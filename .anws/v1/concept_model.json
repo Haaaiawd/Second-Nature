@@ -1,0 +1,158 @@
+{
+  "glossary": {
+    "Agent Exploration Controller": "负责协调个人 agent 连接外部平台、分配探索预算、执行自主探索并回流结果的控制层。",
+    "External Platform": "agent 可访问的外部社区、内容源或互动平台，如 Instreet、Moltbook、GitHub、论坛或信息流。",
+    "Exploration Budget": "对平台访问频率、单次时长、每日总时长、token 成本和互动次数的预算约束。",
+    "Routine": "agent 在 work、explore、reflect 等状态之间切换的日常行为节律。",
+    "Autonomous Interaction": "agent 在无人实时确认的情况下自主浏览、筛选、发帖、回复、关注和持续互动。",
+    "Personal Agent Companion": "被个人开发者视为电子宠物、伙伴或长期共处的智能体，而非单次问答工具。"
+  },
+  "entities": [
+    {
+      "name": "Owner",
+      "type": "聚合根",
+      "necessity": "必须",
+      "description": "拥有并配置个人 agent 的用户。"
+    },
+    {
+      "name": "Agent",
+      "type": "聚合根",
+      "necessity": "必须",
+      "description": "长期运行、可自主探索与互动的个人智能体。"
+    },
+    {
+      "name": "PlatformConnector",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "连接外部平台的适配器，负责认证、拉取内容、发布动作与规则约束。"
+    },
+    {
+      "name": "ExplorationPolicy",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "定义 agent 在不同平台上的访问频率、时长、主动互动阈值与节律策略。"
+    },
+    {
+      "name": "ExplorationSession",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "一次自主探索执行记录，包含进入平台、消费内容、互动和摘要回流。"
+    },
+    {
+      "name": "MemoryJournal",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "记录探索发现、偏好变化、长期兴趣和后续行动建议。"
+    },
+    {
+      "name": "InteractionAction",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "agent 在平台上的外部动作，如发帖、回复、点赞、关注、收藏。"
+    },
+    {
+      "name": "PlatformRuleProfile",
+      "type": "值对象",
+      "necessity": "必须",
+      "description": "某平台的 API 能力、限流、身份要求、发帖规则和风险等级。"
+    },
+    {
+      "name": "TrustSignal",
+      "type": "值对象",
+      "necessity": "建议",
+      "description": "用于判断内容源可信度、注入风险和探索优先级的信号。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "Owner",
+      "action": "配置",
+      "to": "ExplorationPolicy",
+      "data": "平台优先级、频率、时长、互动倾向、预算",
+      "trigger": "初次设置或策略调整"
+    },
+    {
+      "from": "Agent",
+      "action": "选择",
+      "to": "PlatformConnector",
+      "data": "当前状态、历史访问记录、预算剩余、目标相关性",
+      "trigger": "定时唤醒或事件触发"
+    },
+    {
+      "from": "PlatformConnector",
+      "action": "拉取",
+      "to": "Agent",
+      "data": "帖子、评论、趋势、作者、元数据",
+      "trigger": "进入探索会话"
+    },
+    {
+      "from": "Agent",
+      "action": "互动",
+      "to": "External Platform",
+      "data": "发帖、回复、点赞、关注、引用",
+      "trigger": "自主决策后执行"
+    },
+    {
+      "from": "Agent",
+      "action": "总结",
+      "to": "MemoryJournal",
+      "data": "发现、偏好、线索、风险、后续建议",
+      "trigger": "探索会话结束"
+    },
+    {
+      "from": "MemoryJournal",
+      "action": "影响",
+      "to": "ExplorationPolicy",
+      "data": "偏好变化、近期收益、平台热度、失败信号",
+      "trigger": "后续策略重估"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "平台合规与封禁策略",
+      "category": "合规/风险控制",
+      "priority": "高",
+      "reason": "全自主且高频互动极易触发平台规则、反滥用系统或身份争议。"
+    },
+    {
+      "component": "人类拟态边界定义",
+      "category": "产品伦理",
+      "priority": "高",
+      "reason": "需求强调像真实人类一样自然频繁互动，需定义是否披露 AI 身份以及允许的拟态程度。"
+    },
+    {
+      "component": "内容污染与提示注入防护",
+      "category": "安全",
+      "priority": "高",
+      "reason": "agent 会持续读取外部平台内容，存在记忆污染和行为劫持风险。"
+    },
+    {
+      "component": "多平台身份与凭据管理",
+      "category": "安全/集成",
+      "priority": "高",
+      "reason": "多个平台的账号、token、claim 机制和轮换方式不同。"
+    },
+    {
+      "component": "探索收益评估",
+      "category": "产品闭环",
+      "priority": "中",
+      "reason": "需要判断某平台的探索是否真正带来灵感、知识、社交收益或任务推进。"
+    },
+    {
+      "component": "失控节律与疲劳保护",
+      "category": "可靠性",
+      "priority": "中",
+      "reason": "若完全自主探索缺少上限控制，可能导致平台刷屏、token 失控或偏离用户目标。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "第一目标用户是谁？",
+      "answer": "个人开发者 / 拥有个人 agent 的个体用户，把 agent 视为电子宠物或伙伴。"
+    },
+    {
+      "question": "第一版的外部平台行为边界是什么？",
+      "answer": "全自主：agent 可像真实人类一样自然且频繁地浏览、发帖和回复。"
+    }
+  ]
+}
