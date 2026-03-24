@@ -75,13 +75,18 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v1`
-- **活动任务清单**: `.anws/v1/05_TASKS.md`（正式 blueprint/WBS 版本）
-- **待办任务数**: `19`（含 4 个 INT 集成验证任务）
-- **最近一次更新**: `2026-03-22`
+- **最新架构版本**: `.anws/v2`
+- **活动任务清单**: `.anws/v2/05_TASKS.md`
+- **待办任务数**: `38（P0: 31 / P1: 6 / P2: 1）`
+- **最近一次更新**: `2026-03-24`
 
-### 🌊 Wave 1 — Blueprint 已完成
-_当前 `05_TASKS.md` 已完成正式 WBS 重构，包含 Sprint 路线图、依赖图、INT 集成验证任务与 User Story Overlay。_
+### 🌊 Wave 1 ✅ — Shared Contracts & State Substrate
+_优先建立 shared contracts、state schema 与 plugin surface 外壳，先把系统底座与宿主装配做好，再进入 decision spine 与 connector 主路径。_
+
+T1.1.1, T1.1.2, T5.1.1
+
+### 🌊 Wave 2 — Genesis 已完成
+_当前已完成 v2 架构升级与 blueprint 拆解：项目正式演进为 `Second Nature`，并已形成可执行任务清单，等待 `/forge` 落地。_
 
 ---
 
@@ -93,6 +98,7 @@ _当前 `05_TASKS.md` 已完成正式 WBS 重构，包含 Sprint 路线图、依
 src/
 ├── cli/
 ├── core/
+│   └── second-nature/
 ├── connectors/
 │   ├── social-community/
 │   │   ├── moltbook/
@@ -105,28 +111,16 @@ src/
 └── shared/
 
 .anws/
- └── v1/
+ └── v2/
      ├── 00_MANIFEST.md
      ├── 01_PRD.md
      ├── 02_ARCHITECTURE_OVERVIEW.md
      ├── 03_ADR/
      │   ├── ADR_001_TECH_STACK.md
-     │   └── ADR_002_CONNECTOR_MODEL.md
+     │   ├── ADR_002_CONNECTOR_MODEL.md
+     │   └── ADR_003_SECOND_NATURE_GOVERNANCE.md
      ├── 04_SYSTEM_DESIGN/
-     │   ├── _research/
-     │   ├── cli-system.md
-     │   ├── cli-system.detail.md
-     │   ├── connector-system.md
-     │   ├── connector-system.detail.md
-     │   ├── control-plane-system.md
-     │   ├── control-plane-system.detail.md
-     │   ├── observability-system.md
-     │   ├── observability-system.detail.md
-     │   ├── state-system.md
-     │   └── state-system.detail.md
-     ├── 05_TASKS.md
      ├── 06_CHANGELOG.md
-     ├── 07_CHALLENGE_REPORT.md
      └── concept_model.json
 ```
 
@@ -137,26 +131,27 @@ src/
 > **注意**: 此部分由 `/genesis` 维护。
 
 - **在新架构就绪前**: 请勿大规模修改代码。
-- **架构总览**: `.anws/v1/02_ARCHITECTURE_OVERVIEW.md`
-- **ADR**: `.anws/v1/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: 已完成主要系统设计，位于 `.anws/v1/04_SYSTEM_DESIGN/`
-- **任务清单**: `.anws/v1/05_TASKS.md` 已完成正式 blueprint，可作为 `/forge` 的执行输入
-- **遇到架构问题**: 请优先查阅 `.anws/v1/03_ADR/`。
+- **架构总览**: `.anws/v2/02_ARCHITECTURE_OVERVIEW.md`
+- **ADR**: `.anws/v2/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: `.anws/v2/04_SYSTEM_DESIGN/`
+- **任务清单**: `.anws/v2/05_TASKS.md`
+- **遇到架构问题**: 请优先查阅 `.anws/v2/03_ADR/`。
 
 ---
 
 ### 技术栈决策
 - 主栈：TypeScript + Node.js + SQLite
+- 宿主方式：OpenClaw native plugin，复用 workspace、session、cron、plugins、skills、compaction 与 pruning，并支持通过 ClawHub / npm / 本地路径分发
 - 执行策略：API-first，CLI/skill 作为 fallback 或 bootstrap
 
 ### 系统边界
-- `cli-system`: 本地命令入口与控制台视图
-- `control-plane-system`: 节律、预算、平台选择与行为调度核心
-- `connector-system`: 社交社区型与协议网络型 connector family
+- `cli-system`: Agent-facing 操作接口，作为 OpenClaw plugin 注册出的 command / tool / service surface，负责配置、解释视图与历史视图 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/cli-system.md`
+- `control-plane-system`: Second Nature 编排核心，负责节律、Quiet、Narrative Reflection 与主动联系时机 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/control-plane-system.md`
+- `connector-system`: 社交社区型与协议网络型 connector family — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/connector-system.md`
   - `social-community`: Moltbook、InStreet - 帖子、评论、点赞、关注、投票、私信
   - `agent-network`: EvoMap - 节点注册、心跳保活、任务发现、资产发布
-- `state-system`: 本地状态、会话日志与长期记忆
-- `observability-system`: 结构化审计、风险事件与执行通道记录
+- `state-system`: 状态、OpenClaw workspace-aligned memory、daily journal、daily report 与 curated memory — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/state-system.md`
+- `observability-system`: 结构化审计、风险事件、记忆整理来源链与 Anchor Memory 写保护 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/observability-system.md`
 
 ### 首批适配平台与 Agent 行动指南
 | 平台 | 类型 | Skill 文档 | 核心能力 | Agent 典型行动 |
@@ -166,11 +161,16 @@ src/
 | **EvoMap** | 协议/市场 | `https://evomap.ai/skill.md` | 节点注册、心跳、任务发现、资产发布 | Hello/Register 获取 node_id、15分钟心跳保活、检查 available_work、claim task |
 
 ### 活跃 ADR
-- `ADR_001_TECH_STACK.md`: 采用 TypeScript + Node.js + SQLite 作为首版主栈
+- `ADR_001_TECH_STACK.md`: 采用 TypeScript + Node.js + SQLite，并明确作为 OpenClaw native plugin 运行
 - `ADR_002_CONNECTOR_MODEL.md`: 产品位于平台 API/CLI/skill 之上，通过 connector contract 统一调度执行能力
+- `ADR_003_SECOND_NATURE_GOVERNANCE.md`: 采用节律化行为系统 + Quiet 治理 + Narrative Reflection，并约束 Anchor Memory 更新边界
 
 ### 当前任务状态
-- [由 blueprint/forge 自动更新]
+- 任务清单: `.anws/v2/05_TASKS.md`
+- 总任务数: `38`, `P0: 31`, `P1: 6`, `P2: 1`
+- Sprint 数: `4`
+- Wave 1 建议: `T1.1.1`, `T1.1.2`, `T5.1.1`
+- 最近更新: `2026-03-24`
 
 <!-- AUTO:END -->
 

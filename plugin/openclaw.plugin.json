@@ -1,0 +1,10 @@
+{
+  "id": "second-nature",
+  "name": "Second Nature",
+  "description": "OpenClaw native plugin shell for continuity, rhythm, and Quiet governance.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
