@@ -172,7 +172,7 @@ graph TD
 
 ### Phase 3: State API & Governance Workflow (统一读写与治理工作流)
 
-- [ ] **T1.3.1** [REQ-005]: 实现 StateAPI 写入路由与 Quiet 输入聚合
+- [x] **T1.3.1** [REQ-005]: 实现 StateAPI 写入路由与 Quiet 输入聚合
   - **描述**: 实现 activity/observation/report/quiet-input 的分类写入与 `loadQuietInputs()` 聚合逻辑。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §4.3；`04_SYSTEM_DESIGN/state-system.md` §5.1；`04_SYSTEM_DESIGN/state-system.md` §5.2；`01_PRD.md` §9.2 OpenClaw 记忆/工作空间设置要点；T1.2.1 产出的 workspace store
   - **输出**: `src/storage/state-api.ts`, `src/storage/services/daily-log-pipeline.ts`, `src/storage/services/quiet-input-loader.ts`
@@ -187,7 +187,7 @@ graph TD
   - **依赖**: T1.2.1, T1.1.2
   - **优先级**: P0
 
-- [ ] **T1.3.2** [REQ-008]: 实现 proposal/apply 治理管线与 provenance 查询
+- [x] **T1.3.2** [REQ-008]: 实现 proposal/apply 治理管线与 provenance 查询
   - **描述**: 实现 `proposeAnchorWrite()`、`applyGovernedAnchorWrite()` 与 `explainProvenance()`，包括 CAS、冲突标记与来源链登记。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §5.1；`04_SYSTEM_DESIGN/state-system.md` §6.1；`04_SYSTEM_DESIGN/state-system.detail.md` §3.5-3.9；T1.2.1 产出的 workspace store
   - **输出**: `src/storage/services/governance-layer.ts`, `src/storage/services/provenance-service.ts`
@@ -240,7 +240,7 @@ graph TD
   - **依赖**: T1.1.1, T1.1.2
   - **优先级**: P0
 
-- [ ] **T2.1.2** [REQ-008]: 实现结构化 redaction policy 与 manifest 生成
+- [x] **T2.1.2** [REQ-008]: 实现结构化 redaction policy 与 manifest 生成
   - **描述**: 实现字段级 mask/erase/hash 规则，统一生成 `redactionManifest` 并覆盖 decision/telemetry/governance 全部事件入口。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §1.3；`04_SYSTEM_DESIGN/observability-system.md` §9；`04_SYSTEM_DESIGN/observability-system.detail.md` §3.7
   - **输出**: `src/observability/redaction/policy.ts`, `src/observability/redaction/manifest.ts`
@@ -257,7 +257,7 @@ graph TD
 
 ### Phase 2: Ledgers & Query Plane (账本与查询平面)
 
-- [ ] **T2.2.1** [REQ-008]: 实现 DecisionLedger 与 GovernanceAudit append ports
+- [x] **T2.2.1** [REQ-008]: 实现 DecisionLedger 与 GovernanceAudit append ports
   - **描述**: 实现 `recordDecision()`、`recordQuietLifecycle()`、`recordOutreachDecision()`、`recordAnchorChangeAudit()`、`recordCredentialLifecycle()` 等 append-only 写入端口。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §5.1；`04_SYSTEM_DESIGN/observability-system.md` §5.2；`04_SYSTEM_DESIGN/observability-system.md` §5.3；T2.1.1, T2.1.2 的产出
   - **输出**: `src/observability/services/decision-ledger.ts`, `src/observability/services/governance-audit.ts`
@@ -272,7 +272,7 @@ graph TD
   - **依赖**: T2.1.1, T2.1.2, T1.1.1
   - **优先级**: P0
 
-- [ ] **T2.2.2** [REQ-007]: 实现 ExecutionTelemetryPort 与 commit-state 记录
+- [x] **T2.2.2** [REQ-007]: 实现 ExecutionTelemetryPort 与 commit-state 记录
   - **描述**: 实现 connector attempt 记录、retry metadata、idempotency key 与 commit state 可见性。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §5.1；`04_SYSTEM_DESIGN/observability-system.md` §6.1；`04_SYSTEM_DESIGN/control-plane-system.md` §6.5；T2.1.1 的产出
   - **输出**: `src/observability/services/execution-telemetry.ts`

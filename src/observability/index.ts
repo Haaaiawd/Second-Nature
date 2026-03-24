@@ -17,3 +17,7 @@ export {
   type RedactionManifest,
   type RedactionResult,
 } from "./redaction/manifest.js";
+
+export { DecisionLedger, type QuietLifecycleEvent, type OutreachDecision } from "./services/decision-ledger.js";
+export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/governance-audit.js";
+export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";

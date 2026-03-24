@@ -77,10 +77,13 @@
 
 - **最新架构版本**: `.anws/v2`
 - **活动任务清单**: `.anws/v2/05_TASKS.md`
-- **待办任务数**: `38（P0: 31 / P1: 6 / P2: 1）`
+- **待办任务数**: `33（P0: 27 / P1: 5 / P2: 1）`
 - **最近一次更新**: `2026-03-24`
 
-### 🌊 Wave 3 — State API & Governance / Redaction Pipeline
+### 🌊 Wave 4 ✅ — Decision Ledger & Execution Telemetry
+T2.2.1, T2.2.2
+
+### 🌊 Wave 3 ✅ — State API & Governance / Redaction Pipeline
 T1.3.1, T1.3.2, T2.1.2
 
 ### 🌊 Wave 2 ✅ — State Memory & Audit Substrate
