@@ -125,7 +125,7 @@ graph TD
 
 ### Phase 2: Memory & Governance Core (记忆与治理核心)
 
-- [ ] **T1.2.1** [REQ-005]: 实现 workspace artifact store 与 canonical 路径布局
+- [x] **T1.2.1** [REQ-005]: 实现 workspace artifact store 与 canonical 路径布局
   - **描述**: 实现 `workspace/` 下 journals、reports、curated、proposals、anchor assets 的路径解析、原子写入与 hash 计算。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §4.1；`04_SYSTEM_DESIGN/state-system.md` §4.4；`04_SYSTEM_DESIGN/state-system.md` §7.1；T1.1.2 产出的 schema 约束
   - **输出**: `src/storage/memory/workspace/*.ts`, `src/storage/memory/journals/*.ts`, `src/storage/memory/paths.ts`
@@ -140,7 +140,7 @@ graph TD
   - **依赖**: T1.1.2
   - **优先级**: P0
 
-- [ ] **T1.2.2** [REQ-008]: 实现 CredentialVault 与 canonical lifecycle state 持久化
+- [x] **T1.2.2** [REQ-008]: 实现 CredentialVault 与 canonical lifecycle state 持久化
   - **描述**: 实现凭证加密存储、`pending_verification`/`active` 等 canonical 状态管理，以及 challenge context 读取接口。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §4.6；`04_SYSTEM_DESIGN/state-system.md` §5.2；`04_SYSTEM_DESIGN/state-system.md` §6.1；`01_PRD.md` §6.2；T1.1.1 产出的 `CredentialState`
   - **输出**: `src/storage/repositories/credential-repository.ts`, `src/storage/services/credential-vault.ts`
@@ -155,7 +155,7 @@ graph TD
   - **依赖**: T1.1.1, T1.1.2
   - **优先级**: P0
 
-- [ ] **T1.2.3** [REQ-008]: 实现 EffectCommitStore 与 durable transition helpers
+- [x] **T1.2.3** [REQ-008]: 实现 EffectCommitStore 与 durable transition helpers
   - **描述**: 实现 `planned -> dispatched -> externally_acknowledged -> committed/reconcile/aborted` 的持久状态推进与查询接口。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §5.2；`04_SYSTEM_DESIGN/state-system.md` §6.1；`04_SYSTEM_DESIGN/control-plane-system.md` §6.5；T1.1.1 产出的 `IntentCommitRecord`
   - **输出**: `src/storage/repositories/intent-commit-repository.ts`, `src/storage/services/effect-commit-store.ts`
@@ -225,7 +225,7 @@ graph TD
 
 ### Phase 1: Audit Substrate (审计底座)
 
-- [ ] **T2.1.1** [REQ-008]: 建立 observability event schema 与索引键
+- [x] **T2.1.1** [REQ-008]: 建立 observability event schema 与索引键
   - **描述**: 为 decision ledger、execution attempts、governance audit、redaction manifest 建立事件表与 `decision_id/trace_id/asset_id/proposal_id/session_id` 索引。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §4.1；`04_SYSTEM_DESIGN/observability-system.md` §5.1；`04_SYSTEM_DESIGN/observability-system.md` §10；T1.1.1, T1.1.2 的产出
   - **输出**: `src/observability/db/schema/*.ts`, `src/observability/db/index.ts`

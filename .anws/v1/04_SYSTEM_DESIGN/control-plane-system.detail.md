@@ -33,6 +33,7 @@ export const SCHEDULER_CONFIG = {
   maxConcurrentHeartbeats: 3,      // 最大并发心跳数
   heartbeatPriority: 2,            // 心跳优先级
   explorationPriority: 1,          // 探索优先级
+  explorationLeaseTtlMs: 90 * 1000, // exploration 全局租约 TTL
 } as const;
 
 export const STATE_MACHINE_CONFIG = {
@@ -151,6 +152,13 @@ export interface SessionContext {
   // 恢复标记
   resumedFromSessionId?: string;       // 从哪个会话恢复
   resumeCount: number;                  // 恢复次数（防止无限恢复）
+
+  lease?: {
+    leaseKey: 'global-exploration';
+    ownerId: string;
+    acquiredAt: ISO8601String;
+    expiresAt: ISO8601String;
+  };
 }
 
 export interface SessionAction {
@@ -200,6 +208,17 @@ export interface ReflectionResult {
   generatedAt: ISO8601String;
   llmLatencyMs: number;
   modelVersion: string;
+}
+
+export interface ExplorationLease {
+  leaseKey: 'global-exploration';
+  sessionId: string;
+  ownerId: string;
+  traceId: string;
+  reason: 'scheduled_exploration' | 'manual_trigger' | 'resume_recovery';
+  acquiredAt: ISO8601String;
+  heartbeatAt: ISO8601String;
+  expiresAt: ISO8601String;
 }
 ```
 
@@ -338,6 +357,93 @@ function getNextEvents(schedules: Schedule[]): ScheduleEvent[] {
 ```
 
 > **注意事项**: 限流的心跳会在下一轮调度继续处理
+
+### §3.2.1 SessionManager.acquireExplorationLease()
+
+**对应契约**: L0 §5.1 — `acquireExplorationLease()`
+
+```typescript
+async function acquireExplorationLease(input: {
+  sessionId: string;
+  ownerId: string;
+  traceId: string;
+  reason: 'scheduled_exploration' | 'manual_trigger' | 'resume_recovery';
+}): Promise<
+  | { ok: true; lease: ExplorationLease }
+  | { ok: false; blockingSessionId?: string; reason: 'lease_held' | 'lease_store_unavailable' }
+> {
+  /**
+   * 通过 state-system 提供的 compare-and-set 租约接口，保证同一时刻最多一个 exploration 会话向外执行。
+   */
+
+  const nowIso = now();
+  const expiresAt = new Date(
+    Date.now() + SCHEDULER_CONFIG.explorationLeaseTtlMs
+  ).toISOString();
+
+  const lease: ExplorationLease = {
+    leaseKey: 'global-exploration',
+    sessionId: input.sessionId,
+    ownerId: input.ownerId,
+    traceId: input.traceId,
+    reason: input.reason,
+    acquiredAt: nowIso,
+    heartbeatAt: nowIso,
+    expiresAt,
+  };
+
+  const result = await stateSystem.tryAcquireExplorationLease(lease);
+  if (!result.ok) {
+    auditLog.record({
+      eventType: 'platform_skipped',
+      sessionId: input.sessionId,
+      reason: 'exploration_lease_held',
+      blockingSessionId: result.blockingSessionId,
+    });
+
+    return {
+      ok: false,
+      blockingSessionId: result.blockingSessionId,
+      reason: result.reason,
+    };
+  }
+
+  return { ok: true, lease };
+}
+```
+
+### §3.2.2 Orchestrator.executeExplorationWithLease()
+
+**对应契约**: L0 §5.1 — `executeSession()`
+
+```typescript
+async function executeExplorationWithLease(session: ExplorationSession): Promise<SessionResult> {
+  const leaseResult = await acquireExplorationLease({
+    sessionId: session.id,
+    ownerId: 'local-agent',
+    traceId: session.id,
+    reason: 'scheduled_exploration',
+  });
+
+  if (!leaseResult.ok) {
+    return {
+      status: 'skipped',
+      reason: 'exploration_lease_held',
+      blockingSessionId: leaseResult.blockingSessionId,
+    };
+  }
+
+  try {
+    await transitionState(session, 'CONNECTING');
+    return await executeSessionCore(session);
+  } finally {
+    await stateSystem.releaseExplorationLease({
+      leaseKey: 'global-exploration',
+      sessionId: session.id,
+    });
+  }
+}
+```
 
 ---
 
@@ -503,6 +609,7 @@ function decidePlatformSelection(context: SelectionContext): PlatformDecision {
 | ---- | ---- | -------- |
 | PENDING_VERIFICATION 用户永不完成 | 会话卡住 | 5分钟超时自动转移 |
 | 多个平台同时心跳到期 | 部分超时 | 优先级队列，限流处理 |
+| 多个 exploration tick 重叠触发 | 重复外呼、预算竞争 | 使用全局 exploration lease，未拿到租约则 skip |
 | LLM 调用超时 | 摘要生成失败 | 降级为最小日志，不阻断 |
 | 状态机非法流转请求 | 数据不一致 | 检查 `canTransition()`，拒绝非法请求 |
 | connector 返回 terminal_failure | 平台永久不可用 | 标记状态，通知用户，不再调度 |

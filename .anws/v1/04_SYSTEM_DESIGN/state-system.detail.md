@@ -158,6 +158,16 @@ export interface ExplorationSession {
   updatedAt: ISO8601String;
 }
 
+export interface ExplorationLease {
+  leaseKey: 'global-exploration';
+  sessionId: string;
+  ownerId: string;
+  traceId: string;
+  acquiredAt: ISO8601String;
+  heartbeatAt: ISO8601String;
+  expiresAt: ISO8601String;
+}
+
 // 序列化/反序列化契约
 export const SessionSerializer = {
   version: 1,
@@ -401,6 +411,106 @@ async function getCredential(
 }
 ```
 
+### §3.4 LeaseRepository.tryAcquireExplorationLease()
+
+**对应契约**: L0 §5.1 — `tryAcquireExplorationLease()`
+
+```typescript
+async function tryAcquireExplorationLease(
+  lease: ExplorationLease
+): Promise<
+  | { ok: true }
+  | { ok: false; reason: 'lease_held' | 'lease_store_unavailable'; blockingSessionId?: string }
+> {
+  /**
+   * 获取全局 exploration lease。
+   *
+   * 规则:
+   * 1. 若当前无 lease，直接插入。
+   * 2. 若已有 lease 但已过期，可抢占并覆盖。
+   * 3. 若已有 lease 且未过期，仅当 sessionId 相同才允许续租。
+   */
+
+  await db.exec('BEGIN IMMEDIATE');
+
+  try {
+    const existing = await db.query(
+      'SELECT * FROM exploration_leases WHERE lease_key = ?',
+      [lease.leaseKey]
+    );
+
+    const nowMs = Date.now();
+    const existingExpiry = existing?.expires_at ? new Date(existing.expires_at).getTime() : 0;
+
+    if (!existing) {
+      await db.exec(
+        `INSERT INTO exploration_leases (
+          lease_key, session_id, owner_id, trace_id, acquired_at, heartbeat_at, expires_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          lease.leaseKey,
+          lease.sessionId,
+          lease.ownerId,
+          lease.traceId,
+          lease.acquiredAt,
+          lease.heartbeatAt,
+          lease.expiresAt,
+        ]
+      );
+
+      await db.exec('COMMIT');
+      return { ok: true };
+    }
+
+    if (existing.session_id === lease.sessionId || existingExpiry <= nowMs) {
+      await db.exec(
+        `UPDATE exploration_leases
+         SET session_id = ?, owner_id = ?, trace_id = ?, acquired_at = ?, heartbeat_at = ?, expires_at = ?
+         WHERE lease_key = ?`,
+        [
+          lease.sessionId,
+          lease.ownerId,
+          lease.traceId,
+          lease.acquiredAt,
+          lease.heartbeatAt,
+          lease.expiresAt,
+          lease.leaseKey,
+        ]
+      );
+
+      await db.exec('COMMIT');
+      return { ok: true };
+    }
+
+    await db.exec('ROLLBACK');
+    return {
+      ok: false,
+      reason: 'lease_held',
+      blockingSessionId: existing.session_id,
+    };
+  } catch (error) {
+    await db.exec('ROLLBACK');
+    return { ok: false, reason: 'lease_store_unavailable' };
+  }
+}
+```
+
+### §3.5 LeaseRepository.releaseExplorationLease()
+
+**对应契约**: L0 §5.1 — `releaseExplorationLease()`
+
+```typescript
+async function releaseExplorationLease(input: {
+  leaseKey: 'global-exploration';
+  sessionId: string;
+}): Promise<void> {
+  await db.exec(
+    'DELETE FROM exploration_leases WHERE lease_key = ? AND session_id = ?',
+    [input.leaseKey, input.sessionId]
+  );
+}
+```
+
 ---
 
 ## §4 决策树
@@ -444,6 +554,7 @@ function decideBackupStrategy(): BackupStrategy {
 | 主密码错误 | 无法解密 | 抛出 DecryptionError，提示用户验证 |
 | 数据库文件损坏 | 数据丢失 | 从备份恢复，或重新开始 |
 | 并发写入冲突 | 数据不一致 | WAL 模式，事务隔离 |
+| 多个 exploration 同时抢占外呼权限 | 重复执行 | `BEGIN IMMEDIATE` + lease compare-and-set |
 | 凭据解密后内存残留 | 安全风险 | 使用 Buffer，使用后手动清零 |
 | 备份文件丢失 | 无法恢复 | 保留最近 10 个备份，定期导出 |
 | 密码忘记 | 永久丢失 | 明确提示用户：无法恢复 |

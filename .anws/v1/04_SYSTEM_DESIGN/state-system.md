@@ -134,6 +134,8 @@ graph TB
 | `setCredential(cred)` | 凭据 | `void` | 加密写入 |
 | `export()` | - | 加密备份 | 生成文件 |
 | `import(data, password)` | 备份数据、密码 | `void` | 恢复数据 |
+| `tryAcquireExplorationLease(lease)` | 运行租约 | `LeaseAcquireResult` | 获取或续租全局 exploration 锁 |
+| `releaseExplorationLease(ref)` | `leaseKey`, `sessionId` | `void` | 释放全局 exploration 锁 |
 
 ---
 
@@ -146,6 +148,7 @@ graph TB
 | **PlatformCredential** | `platformId`, `type` (`api_key`/`node_secret`/`oauth_token`), `encryptedValue` (含 IV/tag/salt), `metadata` (含完整 status 枚举: unregistered/pending_verification/active/expired/revoked/failed), `platformSpecific` (含 nodeId, claimUrl, verificationDeadline) |
 | **ExplorationSession** | `id`, `platformId`, `state`, `budgetSnapshot`, `actionsJson`, `reflectionJson?`, `contextJson` (新增，用于恢复), `schemaVersion` (版本控制), `createdAt`, `updatedAt` |
 | **LongTermMemory** | `id`, `type`, `content`, `embedding?` |
+| **ExplorationLease** | `leaseKey`, `sessionId`, `ownerId`, `traceId`, `acquiredAt`, `heartbeatAt`, `expiresAt` |
 
 > **L1 完整定义**: [state-system.detail.md §2](./state-system.detail.md)
 
@@ -183,6 +186,7 @@ graph TB
 - 凭据字段单独加密
 - 内存中解密后及时清除
 - 支持明文导出（用户自担风险，需二次确认）
+- exploration lease 必须以 compare-and-set 方式获取，避免多 tick / 重启恢复时重复执行
 
 ---
 
@@ -236,6 +240,17 @@ CREATE TABLE sessions (
   schema_version INTEGER NOT NULL,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
+);
+
+-- exploration 全局运行租约表
+CREATE TABLE exploration_leases (
+  lease_key TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  owner_id TEXT NOT NULL,
+  trace_id TEXT NOT NULL,
+  acquired_at TEXT NOT NULL,
+  heartbeat_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL
 );
 ```
 

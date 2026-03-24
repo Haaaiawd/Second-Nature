@@ -646,6 +646,60 @@ function assertRequestMode(path: string, body: unknown): void {
 }
 ```
 
+### §3.5 FallbackAdapterRouter.executeWithFallback()
+
+**对应契约**: L0 §5.1 — `executeViaFallback()`
+
+```typescript
+async function executeWithFallback<T>(input: {
+  action: string;
+  params: Record<string, unknown>;
+  adapters: ExecutionAdapter[];
+}): Promise<AdapterResult<T>> {
+  /**
+   * 先尝试主通道；若命中可降级错误，再按 adapterPriority 选择 CLI/skill fallback。
+   */
+
+  const errors: Array<{ channel: string; error: AdapterError }> = [];
+
+  for (const adapter of input.adapters) {
+    const result = await adapter.execute<T>({
+      action: input.action,
+      params: input.params,
+    });
+
+    if (result.success) {
+      return result;
+    }
+
+    errors.push({ channel: adapter.type, error: result.error! });
+
+    const retryableForFallback = [
+      'PLATFORM_UNAVAILABLE',
+      'NETWORK_TIMEOUT',
+      'PROTOCOL_ERROR',
+    ].includes(result.error!.type);
+
+    if (!retryableForFallback) {
+      break;
+    }
+  }
+
+  return {
+    success: false,
+    error: {
+      type: 'UNKNOWN',
+      message: `All execution channels failed: ${errors.map(e => e.channel).join(' -> ')}`,
+    },
+    metadata: {
+      executionChannel: input.adapters[input.adapters.length - 1]?.type || 'http',
+      latencyMs: 0,
+      fallbackTrail: errors.map(e => e.channel),
+    },
+  };
+}
+```
+
 ---
 
 ## §4 决策树
@@ -724,6 +778,7 @@ function decideCredentialTransition(
 | InStreet 验证挑战 5分钟内未完成 | 账号无法激活，需重新注册 | 超时检查 + 自动标记 failed |
 | EvoMap A2A envelope sender_id 误用 hub_node_id | 403 错误，节点被封禁 | 构造时强制检查 sender_id != hub_node_id |
 | CLI 输出解析失败 | 无法获取结果，状态未知 | 解析失败时返回 UNKNOWN 错误，不猜测 |
+| HTTP 主通道不可用但 fallback 未实现 | REQ-006 变成空承诺 | 至少 1 条 CLI/skill 路径进入 INT 验证 |
 | 凭据解密失败（主密码错误） | 无法访问平台 | 返回 AUTH_FAILED，提示用户验证主密码 |
 | 平台返回非 JSON 错误体 | 无法解析具体错误 | 使用 HTTP 状态码映射，原始 body 放入 context |
 | 并发初始化同一平台 | 重复注册，凭据覆盖 | 使用 Promise 缓存，确保单实例 |

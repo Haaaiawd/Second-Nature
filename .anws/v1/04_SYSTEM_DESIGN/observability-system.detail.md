@@ -85,8 +85,8 @@ export interface EventLog {
   sessionId?: string;
   actor: string;                 // 哪个系统产生
   
-  // 脱敏后的 payload
-  payload: Record<string, unknown>;
+  // 最小化 + 脱敏后的 payload
+  payload: AuditPayload;
   
   // 元数据
   metadata: {
@@ -124,7 +124,8 @@ export type EventType =
   // 系统级
   | 'session_resumed'
   | 'session_archived'
-  | 'user_action';
+  | 'user_action'
+  | 'payload_trimmed';
 
 // 事件优先级（用于丢弃策略）
 export type EventPriority = 'critical' | 'high' | 'normal' | 'low';
@@ -148,7 +149,30 @@ export const EVENT_PRIORITY_MAP: Record<EventType, EventPriority> = {
   'llm_reflection_failed': 'low',
   'session_archived': 'low',
   'user_action': 'low',
+  'payload_trimmed': 'normal',
 };
+
+export interface AuditPayload {
+  action?: string;
+  reason?: string;
+  status?: string;
+  connectorAction?: string;
+  executionChannel?: 'api' | 'cli' | 'skill' | 'http';
+  platformCode?: string;
+  retryAfterSeconds?: number;
+  latencyMs?: number;
+  sessionState?: string;
+  selectedPlatformId?: string;
+  budgetClass?: 'obligation' | 'discretionary';
+  counts?: Record<string, number>;
+  refs?: {
+    messageId?: string;
+    postId?: string;
+    commentId?: string;
+    taskId?: string;
+  };
+  trimmedFields?: string[];
+}
 ```
 
 ### 2.2 AuditLog
@@ -253,6 +277,44 @@ function sanitizePayload(
   }
   
   return result;
+}
+
+const AUDIT_PAYLOAD_ALLOWLIST = [
+  'action',
+  'reason',
+  'status',
+  'connectorAction',
+  'executionChannel',
+  'platformCode',
+  'retryAfterSeconds',
+  'latencyMs',
+  'sessionState',
+  'selectedPlatformId',
+  'budgetClass',
+  'counts',
+  'refs',
+] as const;
+
+function minimizePayload(
+  payload: Record<string, unknown>
+): AuditPayload {
+  const minimized: Record<string, unknown> = {};
+  const trimmedFields: string[] = [];
+
+  for (const [key, value] of Object.entries(payload)) {
+    if ((AUDIT_PAYLOAD_ALLOWLIST as readonly string[]).includes(key)) {
+      minimized[key] = value;
+    } else {
+      trimmedFields.push(key);
+    }
+  }
+
+  const sanitized = sanitizePayload(minimized);
+  if (trimmedFields.length > 0) {
+    sanitized.trimmedFields = trimmedFields;
+  }
+
+  return sanitized as AuditPayload;
 }
 
 // 使用示例
@@ -364,11 +426,11 @@ async function aggregateMetrics(
    * 按时间窗口聚合指标。
    */
   
-  const windowMs = windowMinutes * 60 * 1000;
+  const bucketSeconds = Math.max(windowMinutes, 1) * 60;
   
   const query = `
     SELECT 
-      strftime('%Y-%m-%dT%H:%M:00Z', timestamp) as window_start,
+      datetime((strftime('%s', timestamp) / ${bucketSeconds}) * ${bucketSeconds}, 'unixepoch') as window_start,
       AVG(value) as avg_value,
       MAX(value) as max_value,
       MIN(value) as min_value,
@@ -464,6 +526,7 @@ function decideWriteStrategy(event: EventLog): WriteStrategy {
 | SQLite 锁定 | 写入失败 | 指数退避重试，最多3次 |
 | 查询时间范围过大 | 内存溢出 | 限制最大返回条数（1000） |
 | 脱敏正则误匹配 | 正常内容被隐藏 | 维护精确的正则模式，定期 review |
+| connector 误传正文/私信/任务全文 | 私密内容落盘 | `minimizePayload()` 白名单裁剪，超出字段全部丢弃 |
 | 导出文件过大 | 磁盘不足 | 分页导出，每文件限制 10MB |
 | 并发查询 | 数据库锁定 | 使用 WAL 模式，读不阻塞写 |
 

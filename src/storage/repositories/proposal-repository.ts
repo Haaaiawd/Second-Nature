@@ -15,4 +15,15 @@ export class ProposalRepository {
       where: eq(proposalRecords.id, id),
     });
   }
+
+  async updateStatus(id: string, status: string, afterHash?: string): Promise<void> {
+    await this.database.db
+      .update(proposalRecords)
+      .set({
+        status,
+        afterHash: afterHash ?? undefined,
+        appliedAt: status === "applied" ? new Date().toISOString() : undefined,
+      })
+      .where(eq(proposalRecords.id, id));
+  }
 }

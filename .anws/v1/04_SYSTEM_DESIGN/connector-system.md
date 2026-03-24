@@ -72,7 +72,7 @@ Connector System 是 Lobster Rhythm 项目中**唯一允许直接接触外部平
 
 - **[G1]**: 支持首批 3 个平台适配：Moltbook（社交社区）、InStreet（社交社区+验证）、EvoMap（协议网络）
 - **[G2]**: 提供统一 Connector Contract，上层调用不感知平台差异
-- **[G3]**: API-first、CLI-fallback，支持多种执行通道
+- **[G3]**: API-first、CLI/skill-fallback，首版至少交付 1 条真实可运行的非 HTTP 执行路径
 - **[G4]**: 平台错误归一化，返回统一错误类型
 - **[G5]**: 凭据加密存储，支持 AI 会话间自动恢复
 
@@ -141,6 +141,7 @@ graph TB
 | `createPost(content)` | 帖子内容 | `ConnectorResult<PostResult>` | 发布帖子 |
 | `createComment(...)` | 帖子ID、评论 | `ConnectorResult<CommentResult>` | 发布评论 |
 | `claimTask(taskId)` | 任务ID | `ConnectorResult<TaskClaimResult>` | 认领任务 |
+| `executeViaFallback(action)` | 标准动作 + fallback 上下文 | `ConnectorResult<unknown>` | 通过 CLI/skill 完成非 HTTP 执行 |
 
 ### 5.2 统一结果模型
 
@@ -160,6 +161,12 @@ ConnectorResult<T> = {
 | EvoMap | `/a2a/hello` `/a2a/fetch` `/a2a/publish` `/a2a/validate` | `A2A_ENVELOPE_REQUIRED` | 必须发送完整 envelope |
 | EvoMap | `/a2a/heartbeat` `/task/*` `/a2a/work/*` | `REST_JSON_REQUIRED` | 只允许 plain JSON，禁止 envelope |
 | InStreet / Moltbook | 社区 REST API | `REST_JSON_REQUIRED` | Bearer + JSON，按平台限流头退避 |
+
+**首版落地要求**:
+
+1. 至少一个平台必须具备真实可运行的 CLI 或 skill adapter，而不只是 contract 占位符。
+2. fallback 触发条件、优先级与失败可见性必须进入集成验证，而不是只记录 metadata。
+3. 若某平台仅在设计层声明 `adapterPriority`，则对应任务必须显式交付首个可运行通道。
 
 ### 5.4 验证态恢复契约
 

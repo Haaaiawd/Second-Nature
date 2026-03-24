@@ -58,6 +58,7 @@ Control Plane System 是 Lobster Rhythm 的**核心协调层**，负责管理个
 - 协调 heartbeat、cron、手动触发和探索状态切换
 - 管理 work / explore / reflect 的节律切换
 - 决定何时调用连接器、何时回流记忆、何时停止互动
+- 保证单 agent 在任意时刻最多只有一个活动 exploration session（通过 lease / single-flight）
 
 **不负责**:
 - 不直接操作外部平台（由 connector-system 负责）
@@ -131,6 +132,7 @@ graph TB
 | **Orchestrator** | 编排 connector 调用 |
 | **LLM Integration** | 生成会话摘要 |
 | **Budget Manager** | 追踪预算消耗 |
+| **Exploration Lease Guard** | 为 exploration 获取/续租/释放全局运行租约，防止重复外呼 |
 
 ---
 
@@ -145,6 +147,7 @@ graph TB
 | `executeSession(cmd)` | 会话命令 | `SessionResult` | 状态流转 |
 | `reflect(session)` | 探索记录 | `ReflectionResult` | 写入长期记忆 |
 | `checkBudget(platform, actionClass)` | 平台ID + 动作类别(`obligation/discretionary`) | `BudgetStatus` | 更新消耗计数 |
+| `acquireExplorationLease(owner)` | `traceId`, `reason`, `ttlMs` | `LeaseResult` | 获取或拒绝全局 exploration 运行租约 |
 
 ### 5.2 状态机
 
@@ -160,6 +163,12 @@ stateDiagram-v2
     REFLECTING --> COOLING_DOWN: 摘要生成
     COOLING_DOWN --> IDLE: 冷却结束
 ```
+
+**状态机不变量**:
+
+1. 同一 agent 任意时刻最多只能存在一个持有中的 exploration lease。
+2. 只有持有 lease 的会话才允许进入 `CONNECTING` / `ACTING` / `REFLECTING`。
+3. 进程重启后必须先从 `state-system` 恢复 lease，再决定是否继续/回收中间态会话。
 
 ### 5.3 预算仲裁规则
 
@@ -179,6 +188,7 @@ stateDiagram-v2
 | **ExplorationSession** | `id`, `state`, `platformId`, `actions[]`, `reflection?` |
 | **PlatformPolicy** | `platformId`, `budget`, `scheduling`, `relevanceTags` |
 | **ReflectionResult** | `summary`, `keyTakeaways[]`, `interactionQuality` |
+| **ExplorationLease** | `leaseKey`, `sessionId`, `ownerId`, `acquiredAt`, `expiresAt`, `heartbeatAt` |
 
 > **L1 完整定义**: [control-plane-system.detail.md §2](./control-plane-system.detail.md)
 

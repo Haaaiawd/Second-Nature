@@ -80,13 +80,16 @@
 - **待办任务数**: `38（P0: 31 / P1: 6 / P2: 1）`
 - **最近一次更新**: `2026-03-24`
 
+### 🌊 Wave 3 — State API & Governance / Redaction Pipeline
+T1.3.1, T1.3.2, T2.1.2
+
+### 🌊 Wave 2 ✅ — State Memory & Audit Substrate
+T1.2.1, T1.2.2, T1.2.3, T2.1.1
+
 ### 🌊 Wave 1 ✅ — Shared Contracts & State Substrate
 _优先建立 shared contracts、state schema 与 plugin surface 外壳，先把系统底座与宿主装配做好，再进入 decision spine 与 connector 主路径。_
 
 T1.1.1, T1.1.2, T5.1.1
-
-### 🌊 Wave 2 — Genesis 已完成
-_当前已完成 v2 架构升级与 blueprint 拆解：项目正式演进为 `Second Nature`，并已形成可执行任务清单，等待 `/forge` 落地。_
 
 ---
 

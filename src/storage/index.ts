@@ -1,0 +1,16 @@
+export { createStateDatabase, type StateDatabase } from "./db/index.js";
+export * as storageSchema from "./db/schema/index.js";
+export * from "./repositories/index.js";
+
+export { createWorkspaceArtifactStore, type WorkspaceArtifactStore } from "./memory/workspace/store.js";
+export * from "./memory/workspace/paths.js";
+export * from "./memory/workspace/types.js";
+
+export { createCredentialVault, type CredentialVault } from "./services/credential-vault.js";
+export { createEffectCommitStore, type EffectCommitStore } from "./services/effect-commit-store.js";
+export { createDailyLogPipeline, type DailyLogPipeline } from "./services/daily-log-pipeline.js";
+export { createQuietInputLoader, type QuietInputLoader } from "./services/quiet-input-loader.js";
+export { createGovernanceLayer, type GovernanceLayer, type AnchorWriteProposal, type ProposalAck, type ApplyAck } from "./services/governance-layer.js";
+export { createProvenanceService, type ProvenanceService, type ProvenanceTrace, type ProvenanceDetail } from "./services/provenance-service.js";
+
+export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";

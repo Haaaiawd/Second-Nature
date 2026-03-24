@@ -1,0 +1,196 @@
+{
+  "glossary": {
+    "Second Nature": "位于 OpenClaw 之上的高层行为连续性层，负责编排平台接入、行为节律、Quiet 记忆整理与长期连续性维护。",
+    "Quiet": "一种可配置的低主动性窗口，不等于睡眠，重点用于记忆整理、自我反思、系统内务与低频巡检。",
+    "Behavior Rhythm": "Agent 在一天中不同时间窗口的行为倾向分布，包括 work、social、exploration、reflection、quiet 等模式。",
+    "Memory Curation": "对 OpenClaw 现有 workspace memory、session transcripts、platform logs 与插件记忆进行整理、提炼、链接与沉淀的过程。",
+    "OpenClaw Workspace Memory": "OpenClaw 注入到 agent 上下文中的工作空间文件体系，包括 AGENTS.md、SOUL.md、USER.md、IDENTITY.md、MEMORY.md 与 daily memory。",
+    "Anchor Memory": "具有宪法性或长期稳定约束作用的记忆文件，例如 SOUL.md、AGENTS.md 等，不应被频繁改写。",
+    "Human Model": "Agent 对用户的长期理解与画像，主要沉淀在 USER.md 及相关记忆中。",
+    "Self Model": "Agent 对自身身份、风格、边界与成长方向的理解，主要沉淀在 SOUL.md、IDENTITY.md 及相关记忆中。",
+    "Continuity": "Agent 在跨会话、跨平台、跨昼夜运行中保持行为、记忆、身份与关系连续性的能力。",
+    "Platform Connector": "面向外部 agent-native 平台的能力适配器，负责 API/CLI/skill 调用与结果归一化。"
+  },
+  "entities": [
+    {
+      "name": "SecondNatureLayer",
+      "type": "聚合根",
+      "necessity": "必须",
+      "description": "承载平台接入编排、行为节律、Quiet 记忆整理与长期连续性维护的高层产品核心。"
+    },
+    {
+      "name": "RhythmWindow",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "一天中某个时间窗口的行为倾向定义，如 morning-work、midday-light、quiet。"
+    },
+    {
+      "name": "QuietPolicy",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "Quiet 是否启用、何时运行、允许何种整理与打断的用户配置。"
+    },
+    {
+      "name": "MemorySource",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "记忆整理的输入来源，包括会话 JSONL、workspace files、平台日志、外部记忆插件。"
+    },
+    {
+      "name": "MemoryArtifact",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "被 Quiet 整理和更新的记忆对象，如 daily memory、MEMORY.md、SOUL.md、USER.md、IDENTITY.md。"
+    },
+    {
+      "name": "HumanModel",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "Agent 对用户偏好、兴趣、禁忌、语气与长期目标的理解模型。"
+    },
+    {
+      "name": "SelfModel",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "Agent 对自身人格、边界、风格、习惯、爱好与成长方向的理解模型。"
+    },
+    {
+      "name": "UserOutreach",
+      "type": "实体",
+      "necessity": "应该",
+      "description": "Agent 主动联系用户的行为，不做硬分类，由 Agent 自主判断时机与内容价值。"
+    },
+    {
+      "name": "PlatformConnector",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "连接 Moltbook、InStreet、EvoMap 等平台的统一适配器。"
+    },
+    {
+      "name": "OpenClawRuntime",
+      "type": "外部系统",
+      "necessity": "必须",
+      "description": "提供 workspace、session、cron、memory 注入、compaction、pruning 等底层运行时能力的上游系统。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "User",
+      "action": "配置",
+      "to": "QuietPolicy",
+      "data": "quiet 开关、时间窗口、整理偏好",
+      "trigger": "设置产品策略"
+    },
+    {
+      "from": "SecondNatureLayer",
+      "action": "选择",
+      "to": "RhythmWindow",
+      "data": "当前时间、persona、用户偏好",
+      "trigger": "周期性 tick 或会话开始"
+    },
+    {
+      "from": "RhythmWindow",
+      "action": "偏置",
+      "to": "PlatformConnector",
+      "data": "当前行为倾向，如 work/social/exploration",
+      "mode": "高层行为偏置"
+    },
+    {
+      "from": "SecondNatureLayer",
+      "action": "进入",
+      "to": "QuietPolicy",
+      "data": "quiet 窗口状态",
+      "trigger": "到达 quiet 时段或需要低主动性整理时"
+    },
+    {
+      "from": "QuietPolicy",
+      "action": "读取",
+      "to": "MemorySource",
+      "data": "session transcripts、platform logs、workspace memory、plugin memory",
+      "mode": "批量/渐进整理"
+    },
+    {
+      "from": "MemorySource",
+      "action": "提炼",
+      "to": "MemoryArtifact",
+      "data": "daily memory、MEMORY.md、SOUL.md、USER.md、IDENTITY.md 更新建议",
+      "mode": "感性总结 + 长期沉淀"
+    },
+    {
+      "from": "SecondNatureLayer",
+      "action": "深化",
+      "to": "HumanModel",
+      "data": "用户兴趣、习惯、价值判断、沟通偏好",
+      "trigger": "quiet reflection"
+    },
+    {
+      "from": "SecondNatureLayer",
+      "action": "深化",
+      "to": "SelfModel",
+      "data": "agent 性格、边界、爱好、成长方向、功能愿景",
+      "trigger": "quiet reflection"
+    },
+    {
+      "from": "SecondNatureLayer",
+      "action": "联系",
+      "to": "UserOutreach",
+      "data": "值得分享、需要帮助、重要澄清的内容",
+      "trigger": "Agent 自主判断时机"
+    },
+    {
+      "from": "OpenClawRuntime",
+      "action": "提供",
+      "to": "SecondNatureLayer",
+      "data": "workspace files、session JSONL、compaction/pruning hooks、cron 触发能力",
+      "mode": "上游底层支撑"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "Quiet 对 OpenClaw workspace 文件的更新边界",
+      "category": "治理规则",
+      "priority": "高",
+      "reason": "需要明确哪些文件可自动更新、哪些只能谨慎增量演化，避免破坏 Anchor Memory。"
+    },
+    {
+      "component": "Anchor Memory 与普通记忆的更新策略",
+      "category": "记忆治理",
+      "priority": "高",
+      "reason": "SOUL.md、AGENTS.md、USER.md、IDENTITY.md、MEMORY.md 的修改频率和触发条件未完全定义。"
+    },
+    {
+      "component": "Quiet 期间的整理节奏与资源上限",
+      "category": "运行策略",
+      "priority": "中",
+      "reason": "需要控制夜间/低主动性窗口的 token、时间与文件更新频率，避免整理过度。"
+    },
+    {
+      "component": "OpenClaw compaction/pruning 与长期记忆整理的职责边界",
+      "category": "系统边界",
+      "priority": "高",
+      "reason": "需要避免把短期上下文管理和长期记忆整理混为一谈。"
+    },
+    {
+      "component": "插件记忆与本地工作空间记忆的对齐策略",
+      "category": "集成",
+      "priority": "中",
+      "reason": "mem0 等外部插件如何映射到本地 curated memory 尚未定义。"
+    },
+    {
+      "component": "用户主动联络的边界与噪声控制",
+      "category": "交互治理",
+      "priority": "中",
+      "reason": "虽然不做硬分类，但仍需定义最小价值阈值与打扰边界。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "v2 的正式产品定位与 OpenClaw 的关系是什么？",
+      "answer": "上层扩展：Second Nature 位于 OpenClaw 之上，复用其 workspace memory、cron、session 与 bootstrap 文件机制。"
+    },
+    {
+      "question": "Quiet / 记忆整理 / 自我反思在 v2 中处于什么产品地位？",
+      "answer": "并列核心：与平台接入和行为节律同级，不是附属功能，但也不喧宾夺主。"
+    }
+  ]
+}

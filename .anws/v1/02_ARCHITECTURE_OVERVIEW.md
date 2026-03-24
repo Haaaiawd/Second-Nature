@@ -300,8 +300,9 @@ src/
 
 **潜在风险**:
 - `control-plane-system` 可能承担过多调度责任，需要通过模块边界避免变成大泥球。
+- `control-plane-system` 必须通过全局 exploration lease / single-flight 约束避免重复外呼，否则状态机再完整也会在运行时失真。
 - 平台连接器差异过大时，`connector-system` 容易被平台特例污染，需要严格的 Connector Contract 和 connector family 划分。
-- LLM 与平台双重不确定性可能放大调试成本，必须强化本地日志与事件回放。
+- LLM 与平台双重不确定性可能放大调试成本，必须强化本地日志与事件回放；同时 observability 只能记录最小审计字段，不能把正文类内容当调试捷径落盘。
 
 ---
 

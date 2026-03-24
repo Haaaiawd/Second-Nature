@@ -149,7 +149,7 @@ graph TD
   - **依赖**: T1.1.1
 
 - [ ] **T2.1.2** [REQ-007]: 实现脱敏、事件 taxonomy 与查询接口
-  - **描述**: 落实统一事件 taxonomy、精确字段脱敏规则与面向 CLI/调试的查询 API。
+  - **描述**: 落实统一事件 taxonomy、payload 最小化白名单、精确字段脱敏规则与面向 CLI/调试的查询 API。
   - **输入**: `01_PRD.md` §4 US-007；`04_SYSTEM_DESIGN/observability-system.md` §5.2, §5.3, §9；`04_SYSTEM_DESIGN/observability-system.detail.md` §1, §2, §3.1, §3.2
   - **输出**: `src/observability/audit/*`、查询接口、脱敏规则测试
   - **📎 参考**: `ADR_002_CONNECTOR_MODEL.md`；`04_SYSTEM_DESIGN/observability-system.md` §11
@@ -157,6 +157,9 @@ graph TD
     - Given 输入 payload 包含敏感字段
     - When 事件被记录或查询输出为 JSON/文本
     - Then 敏感字段被统一脱敏且普通字段不被误伤
+    - Given connector 误传消息正文、帖子正文或任务全文
+    - When 事件进入 observability 管道
+    - Then 非白名单内容字段被裁剪，导出文件中不出现原文
     - Given 查询某平台某会话的事件链
     - When 调用查询接口
     - Then 能返回可过滤、可追踪、带 trace 信息的结果
@@ -175,7 +178,7 @@ graph TD
   - **验收标准**:
     - Given 已累计一段时间的运行数据
     - When 聚合 `exploration.success_rate`、`connector.latency.p95` 等指标
-    - Then 返回的数据窗口与聚合结果符合设计定义
+    - Then 返回的数据窗口与聚合结果符合设计定义，且 `windowMinutes` 配置真实生效
     - Given Owner 请求导出日志与指标
     - When 执行导出接口
     - Then 生成可读导出文件且不包含未脱敏敏感数据
@@ -246,7 +249,7 @@ graph TD
 ### Phase 3: Polish (优化)
 
 - [ ] **T3.3.1** [REQ-006]: 实现 execution channel 可观测性与 fallback 标注
-  - **描述**: 为 API / CLI / skill 三类执行通道打上统一元数据，确保上层与审计层能看到实际执行来源。
+  - **描述**: 为 API / CLI / skill 三类执行通道打上统一元数据，并交付至少 1 条真实可运行的 CLI/skill fallback 路径。
   - **输入**: `01_PRD.md` §4 US-006；`04_SYSTEM_DESIGN/connector-system.md` §5.2, §5.3；`04_SYSTEM_DESIGN/observability-system.md` §1, §5
   - **输出**: connector metadata 扩展、执行通道日志字段、fallback 标注测试
   - **📎 参考**: `ADR_002_CONNECTOR_MODEL.md`；`04_SYSTEM_DESIGN/cli-system.md` §8
@@ -256,11 +259,28 @@ graph TD
     - Then 可明确看到执行通道与 fallback 来源
     - Given CLI/script 输出异常或 API 不可用
     - When 触发 fallback
-    - Then 结果中保留底层执行来源且错误可归因
+    - Then 结果中保留底层执行来源且错误可归因，并至少有一个平台可通过非 HTTP 通道完成成功动作
   - **验证类型**: 集成测试
   - **验证说明**: 通过不同执行通道的模拟测试确认 metadata 与审计字段一致可用。
   - **估时**: 4h
   - **依赖**: T3.2.1, T3.2.2, T2.1.2
+
+- [ ] **T3.3.2** [REQ-006]: 实现首条可运行的 CLI/skill adapter 与 fallback 路径
+  - **描述**: 选择一个首批平台，交付真实可执行的 CLI 或 skill adapter，并接入 fallback router。
+  - **输入**: `01_PRD.md` §4 US-006；`03_ADR/ADR_002_CONNECTOR_MODEL.md`；`04_SYSTEM_DESIGN/connector-system.md` §5.1；`04_SYSTEM_DESIGN/connector-system.detail.md` §3.5
+  - **输出**: `src/connectors/adapters/cli-*` 或 `src/connectors/adapters/skill-*`、fallback router、非 HTTP 集成测试
+  - **📎 参考**: `04_SYSTEM_DESIGN/connector-system.md` §5.3；`04_SYSTEM_DESIGN/cli-system.md` §5.4
+  - **验收标准**:
+    - Given 主 HTTP 通道不可用或被主动禁用
+    - When 对目标平台执行标准动作
+    - Then connector 能通过 CLI 或 skill 通道返回成功结果，而不是仅记录 metadata
+    - Given fallback 链路多次失败
+    - When 用户查看审计或 CLI 提示
+    - Then 能看到完整 fallback trail 与最终失败原因
+  - **验证类型**: 集成测试
+  - **验证说明**: 通过禁用主通道的集成场景，验证真实 fallback 成功路径与失败路径。
+  - **估时**: 6h
+  - **依赖**: T3.3.1
 
 ---
 
@@ -288,7 +308,7 @@ graph TD
 ### Phase 2: Core (核心能力)
 
 - [ ] **T4.2.1** [REQ-002]: 实现会话状态机、统一调度与平台选择算法
-  - **描述**: 实现探索会话状态机、统一调度循环、平台评分选择与验证超时处理。
+  - **描述**: 实现探索会话状态机、统一调度循环、平台评分选择、exploration lease 单飞机制与验证超时处理。
   - **输入**: `01_PRD.md` §4 US-002；`04_SYSTEM_DESIGN/control-plane-system.md` §4, §5.2；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §2.1, §3.1, §3.2, §3.3, §4.1
   - **输出**: `src/core/scheduler/*`、`src/core/orchestrator/*`、平台选择服务、状态流转测试
   - **📎 参考**: `ADR_002_CONNECTOR_MODEL.md`；`04_SYSTEM_DESIGN/connector-system.md` §5
@@ -299,8 +319,11 @@ graph TD
     - Given 会话处于 `PENDING_VERIFICATION`
     - When 超时检查运行
     - Then `elapsedMs` 为合法数值且能正确进入后续冷却/取消逻辑
+    - Given 两个 exploration tick 几乎同时触发
+    - When 第一个会话已持有 lease
+    - Then 第二个会话必须被跳过或排队，而不是重复向外部平台发起动作
   - **验证类型**: 集成测试
-  - **验证说明**: 运行调度与状态机集成测试，确认平台选择、心跳优先和超时处理行为稳定。
+  - **验证说明**: 运行调度与状态机集成测试，确认平台选择、心跳优先、单飞约束和超时处理行为稳定。
   - **估时**: 7h
   - **依赖**: T4.1.1, T3.2.1, T3.2.2, T2.1.2
 
@@ -438,17 +461,20 @@ graph TD
 
 - [ ] **INT-S2** [MILESTONE]: S2 集成验证 — Connect
   - **描述**: 验证三类 connector 已按统一 contract 接入，并能在模拟环境跑通核心动作。
-  - **输入**: T3.1.1、T3.2.1、T3.2.2、T3.3.1 的产出
+  - **输入**: T3.1.1、T3.2.1、T3.2.2、T3.3.1、T3.3.2 的产出
   - **输出**: S2 集成验证记录（通过/失败 + 协议/平台问题清单）
   - **📎 参考**: `ADR_002_CONNECTOR_MODEL.md`；`04_SYSTEM_DESIGN/connector-system.md` §5
   - **验收标准**:
     - Given 社区型与协议型 connector 均已接入
     - When 运行 discover、verify、heartbeat、task discovery 等核心路径
     - Then 所有动作均通过统一结果模型返回，且执行通道可观测
+    - Given 至少一个平台的 HTTP 主通道不可用
+    - When 执行标准动作
+    - Then 至少一条 CLI/skill fallback 路径可以真实跑通
   - **验证类型**: 集成测试
-  - **验证说明**: 运行 connector 集成测试或模拟调用，确认协议路径、恢复逻辑和 metadata 一致可用。
+  - **验证说明**: 运行 connector 集成测试或模拟调用，确认协议路径、恢复逻辑、真实 fallback 与 metadata 一致可用。
   - **估时**: 3h
-  - **依赖**: T3.3.1
+  - **依赖**: T3.3.2
 
 - [ ] **INT-S3** [MILESTONE]: S3 集成验证 — Rhythm
   - **描述**: 验证自主探索闭环，包括平台选择、状态流转、义务动作仲裁与回流。
@@ -459,6 +485,9 @@ graph TD
     - Given 至少 3 个平台策略已启用且 connector 可用
     - When 手动或定时触发一次探索
     - Then 系统完成平台选择、行动/跳过、反思回流并留下可审计记录
+    - Given 相邻 tick 或重复触发发生重叠
+    - When 第一个探索仍在运行
+    - Then 系统不会生成第二个活动 exploration session
   - **验证类型**: 集成测试
   - **验证说明**: 运行端到端集成场景，确认闭环成功率、退避与回流行为符合设计预期。
   - **估时**: 4h
@@ -485,11 +514,11 @@ graph TD
 | User Story | 覆盖任务 | 闭环判断 |
 |-----------|---------|---------|
 | **US-001 / REQ-001** 配置探索边界 | T1.2.1, T4.1.1, T5.1.1, T5.2.1, INT-S1 | 已覆盖配置写入、校验、CLI 展示与基础验证 |
-| **US-002 / REQ-002** 自主选择何时去哪探索 | T3.1.1, T4.2.1, T4.3.1, INT-S3 | 已覆盖平台选择、调度、跳过与退避闭环 |
+| **US-002 / REQ-002** 自主选择何时去哪探索 | T3.1.1, T4.2.1, T4.3.1, INT-S3 | 已覆盖平台选择、调度、单飞约束、跳过与退避闭环 |
 | **US-003 / REQ-003** 社区中频互动 | T3.2.1, T4.2.2, INT-S2, INT-S3 | 已覆盖社区 connector、义务仲裁与回流验证 |
 | **US-004 / REQ-004** 协议网络保活与机会发现 | T1.1.2, T3.2.2, T5.2.2, INT-S2 | 已覆盖节点注册、claim 信息可见性、保活与人工介入提示 |
-| **US-005 / REQ-005** 长期记忆与审计日志 | T1.2.1, T2.1.1, T2.1.2, T2.2.1, T4.2.2, T5.2.2, T5.3.1, INT-S4 | 已覆盖回流、审计查询、历史展示与导出 |
-| **US-006 / REQ-006** 统一调度多种执行方式 | T3.1.1, T3.2.2, T3.3.1, INT-S2 | 已覆盖 contract、adapter、execution channel 可追踪性 |
+| **US-005 / REQ-005** 长期记忆与审计日志 | T1.2.1, T2.1.1, T2.1.2, T2.2.1, T4.2.2, T5.2.2, T5.3.1, INT-S4 | 已覆盖回流、最小化审计、历史展示、指标聚合与安全导出 |
+| **US-006 / REQ-006** 统一调度多种执行方式 | T3.1.1, T3.2.2, T3.3.1, T3.3.2, INT-S2 | 已覆盖 contract、adapter、execution channel 可追踪性与至少一条真实 fallback |
 | **US-007 / REQ-007** 风险与成本治理 | T2.1.2, T4.2.2, T4.3.1, INT-S3 | 已覆盖脱敏、退避、预算仲裁与不可用标记 |
 
 ### Overlay 结论
