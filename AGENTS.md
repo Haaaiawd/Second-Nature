@@ -77,8 +77,38 @@
 
 - **最新架构版本**: `.anws/v2`
 - **活动任务清单**: `.anws/v2/05_TASKS.md`
-- **待办任务数**: `33（P0: 27 / P1: 5 / P2: 1）`
-- **最近一次更新**: `2026-03-24`
+- **待办任务数**: `8（P0: 7 / P1: 1 / P2: 0）`
+- **最近一次更新**: `2026-03-25`
+
+### 🌊 Wave 15 ✅ — Plugin Packaging + Operator Walkthrough
+T5.3.1, T5.4.1
+
+### 🌊 Wave 13 ✅ — Decision Loop Whole-Loop Validation
+T4.4.1
+
+### 🌊 Wave 12 ✅ — Outreach Evaluation + Checkpoint Resume Flow
+T4.2.3, T4.3.1
+
+### 🌊 Wave 11 ✅ — Effect Orchestration + Quiet/Reflection Contract
+T4.2.1, T4.2.2
+
+### 🌊 Wave 10 ✅ — Rhythm & Intent Core + Telemetry Identity Wiring
+T4.1.1, T4.1.2
+
+### 🌊 Wave 9 ✅ — Connector Reliability & Audit Integration
+T3.3.1
+
+### 🌊 Wave 8 ✅ — Platform Adapter Main Paths
+T3.2.1, T3.2.2, T3.2.3
+
+### 🌊 Wave 7 ✅ — Connector Contract & Route Planning Core
+T3.1.1, T3.1.2
+
+### 🌊 Wave 6 ✅ — Observability Quality Gates
+T2.4.1
+
+### 🌊 Wave 5 ✅ — Evidence Query & Audit Projections
+T2.3.1, T2.3.2
 
 ### 🌊 Wave 4 ✅ — Decision Ledger & Execution Telemetry
 T2.2.1, T2.2.2
@@ -173,7 +203,7 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v2/05_TASKS.md`
-- 总任务数: `38`, `P0: 31`, `P1: 6`, `P2: 1`
+- 任务口径: `总任务 38 / 已完成 28 / 待办 10（P0:7 / P1:3 / P2:0）`
 - Sprint 数: `4`
 - Wave 1 建议: `T1.1.1`, `T1.1.2`, `T5.1.1`
 - 最近更新: `2026-03-24`
