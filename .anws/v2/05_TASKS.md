@@ -549,6 +549,21 @@ graph TD
   - **依赖**: T4.2.1, T4.2.2, T4.2.3, T4.3.1
   - **优先级**: P0
 
+- [ ] **T4.4.2** [REQ-002]: 收敛正式 `ingestTick` 入口并替换测试适配器临时入口
+  - **描述**: 在不改变现有决策语义的前提下，补齐 `control-plane-system` 的正式入口编排（`ingestTick`），将当前 whole-loop 使用的测试适配层入口收敛为生产可复用入口，并保留最薄测试适配器仅做基础设施装配。
+  - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5.1 `ingestTick`；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.1；T4.1.2, T4.2.1, T4.2.2, T4.2.3, T4.3.1, T4.4.1 的产出
+  - **输出**: `src/core/second-nature/orchestrator/*.ts`, `tests/integration/control-plane/decision-loop-validation.test.ts`
+  - **📎 参考**: `ADR_003_SECOND_NATURE_GOVERNANCE.md`, `04_SYSTEM_DESIGN/control-plane-system.md` §11
+  - **验收标准**:
+    - Given T4.4.1 已验证 whole-loop 语义，但统一入口仍主要由测试适配层承接
+    - When 提供正式 `ingestTick` 入口并驱动 active/quiet/interrupt/outreach/deny/resume 场景
+    - Then 测试不再依赖测试私有决策捷径，且 decision/evidence/commit-state 语义与现有实现保持一致
+  - **验证类型**: 集成测试
+  - **验证说明**: 运行 control-plane 全链路套件，确认 `ingestTick` 入口覆盖 quiet allow + interrupt + durability + explainability，并验证测试适配器仅做装配不重写业务判断
+  - **估时**: 4h
+  - **依赖**: T4.4.1
+  - **优先级**: P1
+
 ---
 
 ## System 5: Agent-facing Ops Surface System
