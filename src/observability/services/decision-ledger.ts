@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import type { ObservabilityDatabase } from "../db/index.js";
 import { decisionLedger } from "../db/schema/index.js";
 import type { DecisionRecord } from "../../shared/types/continuity.js";
+import { redactEvent } from "../redaction/manifest.js";
+import { persistRedactionManifest } from "./redaction-store.js";
 
 export interface QuietLifecycleEvent {
   id: string;
@@ -29,61 +31,73 @@ export class DecisionLedger {
   constructor(private db: ObservabilityDatabase) {}
 
   async recordDecision(record: DecisionRecord): Promise<void> {
+    const { redacted, manifest } = redactEvent(record);
     await this.db.db.insert(decisionLedger).values({
-      id: record.id,
-      tickId: record.tickId,
-      traceId: record.traceId,
-      intentId: record.intentId ?? null,
-      platformId: record.platformId ?? null,
-      verdict: record.verdict,
-      mode: record.mode,
-      reasons: JSON.stringify(record.reasons),
-      reasonCodes: JSON.stringify(record.reasonCodes),
-      decisionBasis: record.decisionBasis,
-      evidenceRefs: JSON.stringify(record.evidenceRefs),
-      modelEvalRef: record.modelEvalRef ?? null,
-      createdAt: record.createdAt,
+      id: redacted.id,
+      tickId: redacted.tickId,
+      traceId: redacted.traceId,
+      intentId: redacted.intentId ?? null,
+      platformId: redacted.platformId ?? null,
+      verdict: redacted.verdict,
+      mode: redacted.mode,
+      reasons: JSON.stringify(redacted.reasons),
+      reasonCodes: JSON.stringify(redacted.reasonCodes),
+      decisionBasis: redacted.decisionBasis,
+      evidenceRefs: JSON.stringify(redacted.evidenceRefs),
+      modelEvalRef: redacted.modelEvalRef ?? null,
+      createdAt: redacted.createdAt,
     });
+    await persistRedactionManifest(this.db, redacted.id, "decision.recorded", manifest);
   }
 
   async recordQuietLifecycle(event: QuietLifecycleEvent): Promise<void> {
+    const { redacted, manifest } = redactEvent(event);
     await this.db.db.insert(decisionLedger).values({
-      id: event.id,
-      tickId: event.tickId,
-      traceId: `quiet-${event.eventType}-${event.id}`,
+      id: redacted.id,
+      tickId: redacted.tickId,
+      traceId: `quiet-${redacted.eventType}-${redacted.id}`,
       intentId: null,
       platformId: null,
       verdict: "allow",
       mode: "quiet",
-      reasons: JSON.stringify([event.eventType, event.reason ?? ""].filter(Boolean)),
+      reasons: JSON.stringify([redacted.eventType, redacted.reason ?? ""].filter(Boolean)),
       reasonCodes: JSON.stringify(["quiet_lifecycle"]),
       decisionBasis: "rule_only",
-      evidenceRefs: JSON.stringify(event.reflectionCandidates ?? []),
+      evidenceRefs: JSON.stringify(redacted.reflectionCandidates ?? []),
       modelEvalRef: null,
-      createdAt: event.createdAt,
+      createdAt: redacted.createdAt,
     });
+    await persistRedactionManifest(this.db, redacted.id, redacted.eventType, manifest);
   }
 
   async recordOutreachDecision(event: OutreachDecision): Promise<void> {
+    const { redacted, manifest } = redactEvent(event);
+    const verdict = redacted.eventType === "outreach.sent"
+      ? "allow"
+      : redacted.eventType === "outreach.deferred" || redacted.eventType === "outreach.considered"
+        ? "defer"
+        : "deny";
+
     await this.db.db.insert(decisionLedger).values({
-      id: event.id,
-      tickId: event.tickId,
-      traceId: `outreach-${event.eventType}-${event.id}`,
+      id: redacted.id,
+      tickId: redacted.tickId,
+      traceId: `outreach-${redacted.eventType}-${redacted.id}`,
       intentId: null,
-      platformId: event.platformId ?? null,
-      verdict: event.eventType === "outreach.sent" ? "allow" : "deny",
+      platformId: redacted.platformId ?? null,
+      verdict,
       mode: "active",
       reasons: JSON.stringify([
-        event.eventType,
-        event.valueScore?.toString() ?? "",
-        event.suppressionReason ?? "",
+        redacted.eventType,
+        redacted.valueScore?.toString() ?? "",
+        redacted.suppressionReason ?? "",
       ].filter(Boolean)),
       reasonCodes: JSON.stringify(["outreach_decision"]),
       decisionBasis: "score_based",
-      evidenceRefs: JSON.stringify([event.targetUserId ?? ""].filter(Boolean)),
+      evidenceRefs: JSON.stringify([redacted.targetUserId ?? ""].filter(Boolean)),
       modelEvalRef: null,
-      createdAt: event.createdAt,
+      createdAt: redacted.createdAt,
     });
+    await persistRedactionManifest(this.db, redacted.id, redacted.eventType, manifest);
   }
 
   async queryByTickId(tickId: string): Promise<DecisionRecord[]> {

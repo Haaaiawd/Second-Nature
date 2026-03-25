@@ -2,6 +2,8 @@ import { eq, and, gte } from "drizzle-orm";
 import type { ObservabilityDatabase } from "../db/index.js";
 import { executionAttempts } from "../db/schema/index.js";
 import type { ExecutionAttempt, IntentCommitState } from "../../shared/types/continuity.js";
+import { redactEvent } from "../redaction/manifest.js";
+import { persistRedactionManifest } from "./redaction-store.js";
 
 export interface ExecutionAttemptInput {
   traceId: string;
@@ -24,22 +26,24 @@ export class ExecutionTelemetry {
   constructor(private db: ObservabilityDatabase) {}
 
   async recordExecutionAttempt(attempt: ExecutionAttempt): Promise<void> {
+    const { redacted, manifest } = redactEvent(attempt);
     await this.db.db.insert(executionAttempts).values({
-      id: attempt.id,
-      traceId: attempt.traceId,
-      decisionId: attempt.decisionId,
-      intentId: attempt.intentId,
-      platformId: attempt.platformId,
-      capability: attempt.capability,
-      channel: attempt.channel,
-      status: attempt.status,
-      commitState: attempt.commitState ?? null,
-      failureClass: attempt.failureClass ?? null,
-      retryPolicy: attempt.retryPolicy ?? null,
-      idempotencyKey: attempt.idempotencyKey ?? null,
-      startedAt: attempt.startedAt ?? null,
-      finishedAt: attempt.finishedAt ?? null,
+      id: redacted.id,
+      traceId: redacted.traceId,
+      decisionId: redacted.decisionId,
+      intentId: redacted.intentId,
+      platformId: redacted.platformId,
+      capability: redacted.capability,
+      channel: redacted.channel,
+      status: redacted.status,
+      commitState: redacted.commitState ?? null,
+      failureClass: redacted.failureClass ?? null,
+      retryPolicy: redacted.retryPolicy ?? null,
+      idempotencyKey: redacted.idempotencyKey ?? null,
+      startedAt: redacted.startedAt ?? null,
+      finishedAt: redacted.finishedAt ?? null,
     });
+    await persistRedactionManifest(this.db, redacted.id, "connector.attempt.recorded", manifest);
   }
 
   async startAttempt(input: ExecutionAttemptInput): Promise<string> {

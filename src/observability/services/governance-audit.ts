@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 import type { ObservabilityDatabase } from "../db/index.js";
 import { governanceAudit } from "../db/schema/index.js";
 import type { AnchorChangeAudit } from "../../shared/types/continuity.js";
+import { redactEvent } from "../redaction/manifest.js";
+import { persistRedactionManifest } from "./redaction-store.js";
 
 export interface CredentialLifecycleAudit {
   id: string;
@@ -19,41 +21,45 @@ export class GovernanceAudit {
   constructor(private db: ObservabilityDatabase) {}
 
   async recordAnchorChangeAudit(event: AnchorChangeAudit): Promise<void> {
+    const { redacted, manifest } = redactEvent(event);
     await this.db.db.insert(governanceAudit).values({
-      id: event.id,
+      id: redacted.id,
       eventType: "anchor_change",
-      proposalId: event.proposalId,
-      targetAssetId: event.targetAssetId,
-      assetPath: event.assetPath,
+      proposalId: redacted.proposalId,
+      targetAssetId: redacted.targetAssetId,
+      assetPath: redacted.assetPath,
       statusFrom: null,
-      statusTo: event.status,
-      beforeHash: event.beforeHash ?? null,
-      afterHash: event.afterHash ?? null,
-      supportingSources: JSON.stringify(event.supportingSources),
-      reason: event.reason,
+      statusTo: redacted.status,
+      beforeHash: redacted.beforeHash ?? null,
+      afterHash: redacted.afterHash ?? null,
+      supportingSources: JSON.stringify(redacted.supportingSources),
+      reason: redacted.reason,
       verificationDeadline: null,
       attemptsRemaining: null,
-      createdAt: event.createdAt,
+      createdAt: redacted.createdAt,
     });
+    await persistRedactionManifest(this.db, redacted.id, "anchor.change", manifest);
   }
 
   async recordCredentialLifecycle(event: CredentialLifecycleAudit): Promise<void> {
+    const { redacted, manifest } = redactEvent(event);
     await this.db.db.insert(governanceAudit).values({
-      id: event.id,
+      id: redacted.id,
       eventType: "credential_lifecycle",
       proposalId: null,
-      targetAssetId: event.credentialId,
-      assetPath: null,
-      statusFrom: event.statusFrom ?? null,
-      statusTo: event.statusTo,
+      targetAssetId: redacted.platformId,
+      assetPath: redacted.credentialId,
+      statusFrom: redacted.statusFrom ?? null,
+      statusTo: redacted.statusTo,
       beforeHash: null,
       afterHash: null,
       supportingSources: "[]",
-      reason: event.explanationCapsule,
-      verificationDeadline: event.verificationDeadline ?? null,
-      attemptsRemaining: event.attemptsRemaining ?? null,
-      createdAt: event.createdAt,
+      reason: redacted.explanationCapsule,
+      verificationDeadline: redacted.verificationDeadline ?? null,
+      attemptsRemaining: redacted.attemptsRemaining ?? null,
+      createdAt: redacted.createdAt,
     });
+    await persistRedactionManifest(this.db, redacted.id, "credential.lifecycle", manifest);
   }
 
   async recordProposalApply(
@@ -159,11 +165,10 @@ export class GovernanceAudit {
   }
 
   private mapToCredentialAudit(row: typeof governanceAudit.$inferSelect): CredentialLifecycleAudit {
-    const targetId = row.targetAssetId ?? "";
     return {
       id: row.id,
-      platformId: targetId,
-      credentialId: targetId,
+      platformId: row.targetAssetId ?? "",
+      credentialId: row.assetPath ?? "",
       statusFrom: row.statusFrom ?? undefined,
       statusTo: row.statusTo,
       verificationDeadline: row.verificationDeadline ?? undefined,

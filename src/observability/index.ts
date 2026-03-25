@@ -21,3 +21,27 @@ export {
 export { DecisionLedger, type QuietLifecycleEvent, type OutreachDecision } from "./services/decision-ledger.js";
 export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";
+
+export {
+  EvidenceQueryEngine,
+} from "./query/evidence-query-engine.js";
+export type {
+  EvidenceQuery,
+  EvidenceBundle,
+  EvidenceResolutionPlan,
+  GovernanceEvidenceRecord,
+  ResolvedContentRef,
+  ExplanationCapsule,
+} from "./query/compose-evidence.js";
+
+export {
+  projectReflectionAudit,
+  type ReflectionAudit,
+  type ReflectionAuditProjection,
+} from "./projections/reflection-audit.js";
+
+export {
+  projectOutreachQualityAudit,
+  type OutreachQualityAudit,
+  type OutreachQualityProjection,
+} from "./projections/outreach-quality-audit.js";

@@ -15,7 +15,7 @@ export const decisionLedger = sqliteTable("decision_ledger", {
   modelEvalRef: text("model_eval_ref"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
-  uniqueIndex("decision_ticket_idx").on(table.tickId),
+  index("decision_tick_idx").on(table.tickId),
   uniqueIndex("decision_trace_idx").on(table.traceId),
 ]);
 
@@ -36,7 +36,7 @@ export const executionAttempts = sqliteTable("execution_attempts", {
   finishedAt: text("finished_at"),
 }, (table) => [
   uniqueIndex("attempt_trace_idx").on(table.traceId),
-  uniqueIndex("attempt_decision_idx").on(table.decisionId),
+  index("attempt_decision_idx").on(table.decisionId),
   index("attempt_platform_idx").on(table.platformId),
 ]);
 
@@ -56,8 +56,8 @@ export const governanceAudit = sqliteTable("governance_audit", {
   attemptsRemaining: integer("attempts_remaining"),
   createdAt: text("created_at").notNull(),
 }, (table) => [
-  uniqueIndex("audit_proposal_idx").on(table.proposalId),
-  uniqueIndex("audit_asset_idx").on(table.targetAssetId),
+  index("audit_proposal_idx").on(table.proposalId),
+  index("audit_asset_idx").on(table.targetAssetId),
   index("audit_event_idx").on(table.eventType),
 ]);
 
