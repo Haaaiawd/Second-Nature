@@ -2,6 +2,10 @@ import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 import { createCommandRouter } from "../src/cli/index.js";
 
+const lifecycleState = {
+  registerCount: 0,
+};
+
 const serviceShell = {
   name: "second-nature-runtime",
   description: "Background service shell for continuity orchestration.",
@@ -16,11 +20,25 @@ const serviceShell = {
 export default definePluginEntry({
   id: "second-nature",
   name: "Second Nature",
-  description: "Registers the minimal command/tool/service shell for Second Nature.",
+  description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
   register(api) {
+    lifecycleState.registerCount += 1;
+    const lifecycleEvent = lifecycleState.registerCount === 1 ? "load" : "reload";
     const router = createCommandRouter();
 
     api.registerService(serviceShell);
+
+    api.registerService({
+      name: "second-nature-lifecycle",
+      description: "Load/reload lifecycle marker for host-level smoke checks.",
+      start() {
+        return {
+          ok: true,
+          lifecycleEvent,
+          registerCount: lifecycleState.registerCount,
+        };
+      },
+    });
 
     api.registerCli({
       id: "second-nature",

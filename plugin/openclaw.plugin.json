@@ -1,7 +1,14 @@
 {
   "id": "second-nature",
   "name": "Second Nature",
-  "description": "OpenClaw native plugin shell for continuity, rhythm, and Quiet governance.",
+  "version": "0.1.0",
+  "entry": "./index.ts",
+  "description": "OpenClaw native plugin package for continuity, explain, and recovery operations.",
+  "capabilities": {
+    "commands": ["second-nature"],
+    "tools": ["second_nature_ops"],
+    "services": ["second-nature-runtime", "second-nature-lifecycle"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

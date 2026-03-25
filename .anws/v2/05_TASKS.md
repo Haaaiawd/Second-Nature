@@ -588,7 +588,7 @@ graph TD
 
 ### Phase 2: Read Models & Explain UX (读模型与解释体验)
 
-- [ ] **T5.1.2** [REQ-001]: 实现 status/report/quiet/session/credential 聚合读模型
+- [x] **T5.1.2** [REQ-001]: 实现 status/report/quiet/session/credential 聚合读模型
   - **描述**: 实现 `StatusReadModel`、`DailyReportReadModel`、`QuietReadModel`、`SessionDetailReadModel`、`CredentialReadModel` 聚合层。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1；`04_SYSTEM_DESIGN/cli-system.md` §6.1；`04_SYSTEM_DESIGN/state-system.md` §5.2；`04_SYSTEM_DESIGN/control-plane-system.md` §6.3；T1.3.1, T2.3.1 的产出
   - **输出**: `src/cli/read-models/*.ts`
@@ -603,7 +603,7 @@ graph TD
   - **依赖**: T1.3.1, T2.3.1, T4.1.1
   - **优先级**: P0
 
-- [ ] **T5.2.1** [REQ-008]: 实现 explain views 与 why-question 路由
+- [x] **T5.2.1** [REQ-008]: 实现 explain views 与 why-question 路由
   - **描述**: 实现 decision/platform/outreach/soul-change explain subject 路由与 explanation payload formatter。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.4；`04_SYSTEM_DESIGN/observability-system.md` §4.3；`04_SYSTEM_DESIGN/control-plane-system.md` §6.8；T2.3.1, T4.2.3, T1.3.2 的产出
   - **输出**: `src/cli/explain/resolve-subject.ts`, `src/cli/explain/format-explanation.ts`
@@ -618,7 +618,7 @@ graph TD
   - **依赖**: T2.3.1, T4.2.3, T1.3.2, T5.1.2
   - **优先级**: P0
 
-- [ ] **T5.2.2** [REQ-001]: 实现 policy write、credential verify 与 requiredUserInput 恢复流
+- [x] **T5.2.2** [REQ-001]: 实现 policy write、credential verify 与 requiredUserInput 恢复流
   - **描述**: 实现 policy set、credential verify、缺参校验、`requiredUserInput`/`nextStep` 返回与 action bridge 写入路径。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1；`04_SYSTEM_DESIGN/cli-system.md` §5.2；`04_SYSTEM_DESIGN/state-system.md` §5.2；`04_SYSTEM_DESIGN/connector-system.md` §5.1；T1.2.2, T5.1.1 的产出
   - **输出**: `src/cli/commands/policy.ts`, `src/cli/commands/credential.ts`, `src/cli/action-bridge.ts`
@@ -627,15 +627,16 @@ graph TD
     - Given Agent 需要非交互配置策略与处理恢复型输入
     - When 调用 policy/credential 写命令且参数缺失或验证流程待处理
     - Then 系统返回明确的 `requiredUserInput`、`nextStep` 或成功写入结果
+    - Then `policy set` 必须写入 `state-system` 的 canonical policy store；不得使用 CLI 进程内 `Map`、临时内存数据库或其他私有存储替代正式写路径
   - **验证类型**: 集成测试
-  - **验证说明**: 运行 CLI 写命令集成测试，确认 policy 保存、credential verify 与缺参恢复流均可工作
+  - **验证说明**: 运行 CLI 写命令集成测试，确认 policy 保存后可通过 canonical state 回读，credential verify 可在真实 `pending_verification` 记录上推进，且缺参恢复流均可工作
   - **估时**: 4h
   - **依赖**: T1.2.2, T4.1.1, T5.1.1
   - **优先级**: P0
 
 ### Phase 3: Packaging & Operator Flow (打包与操作链路)
 
-- [ ] **T5.3.1** [REQ-009]: 完成 plugin manifest、安装与加载生命周期打包
+- [x] **T5.3.1** [REQ-009]: 完成 plugin manifest、安装与加载生命周期打包
   - **描述**: 在 T5.1.1 最小工程骨架的基础上，完成 `plugin/package.json`、plugin manifest、load/reload 钩子与 ClawHub/npm/local path 安装 smoke 路径。
   - **输入**: `01_PRD.md` §US-009；`02_ARCHITECTURE_OVERVIEW.md` §6；OpenClaw plugins 文档（install/list/enable/status/gateway restart）；OpenClaw building-plugins 文档；`ADR_001_TECH_STACK.md` §84-95；T5.1.1 的 plugin shell
   - **输出**: `plugin/package.json`, `plugin/openclaw.plugin.json`, `scripts/plugin-smoke-check.ts`
