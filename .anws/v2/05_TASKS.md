@@ -652,7 +652,7 @@ graph TD
   - **依赖**: T5.1.1, T4.3.1
   - **优先级**: P1
 
-- [ ] **T5.4.1** [REQ-009]: 建立 operator walkthrough 与 CLI/plugin 集成验证套件
+- [x] **T5.4.1** [REQ-009]: 建立 operator walkthrough 与 CLI/plugin 集成验证套件
   - **描述**: 为配置、恢复、状态查询、explain、plugin load 制作集成验证脚本与演示步骤文档。
   - **输入**: `01_PRD.md` §US-001, §US-006, §US-009；`04_SYSTEM_DESIGN/cli-system.md` §11；T5.1.2, T5.2.1, T5.2.2, T5.3.1 的产出
   - **输出**: `tests/integration/cli/*.test.ts`, `docs/operator-walkthrough.md`
