@@ -186,7 +186,7 @@ openclaw plugins install clawhub:<package>
 When published to npm:
 
 ```bash
-openclaw plugins install @second-nature/openclaw-plugin
+openclaw plugins install @haaaiawd/openclaw-plugin
 ```
 
 ### Cloud or remote host

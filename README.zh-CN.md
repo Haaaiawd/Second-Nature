@@ -188,7 +188,7 @@ openclaw plugins install clawhub:<package>
 如果之后发布到 npm：
 
 ```bash
-openclaw plugins install @second-nature/openclaw-plugin
+openclaw plugins install @haaaiawd/openclaw-plugin
 ```
 
 ### 云端或远程宿主

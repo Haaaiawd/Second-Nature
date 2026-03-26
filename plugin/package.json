@@ -1,5 +1,5 @@
 {
-  "name": "@second-nature/openclaw-plugin",
+  "name": "@haaaiawd/openclaw-plugin",
   "version": "0.1.0",
   "description": "OpenClaw native plugin for long-running agent continuity, Quiet memory curation, and explainable operator flows.",
   "keywords": [
@@ -19,6 +19,9 @@
     "index.ts",
     "openclaw.plugin.json"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "openclaw": {
     "manifest": "./openclaw.plugin.json",
     "extensions": [
