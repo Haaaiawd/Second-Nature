@@ -716,7 +716,7 @@ graph TD
   - **依赖**: T3.1.1, T3.1.2, T3.2.1, T3.2.2, T3.2.3, T3.3.1, T4.2.1, T4.2.2, T4.3.1
   - **优先级**: P0
 
-- [ ] **INT-S4** [MILESTONE]: S4 集成验证 — Operator Voice
+- [x] **INT-S4** [MILESTONE]: S4 集成验证 — Operator Voice
   - **描述**: 验证配置 -> 自主行为 -> Quiet 反思 -> explain -> plugin 加载的完整演示闭环。
   - **输入**: `01_PRD.md` §US-001~US-009；T1.4.1, T2.3.2, T2.4.1, T4.2.3, T4.4.1, T5.1.2, T5.2.1, T5.2.2, T5.3.1, T5.4.1 的产出
   - **输出**: `docs/validation/s4-operator-voice-report.md`
