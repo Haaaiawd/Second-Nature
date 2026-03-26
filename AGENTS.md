@@ -77,8 +77,17 @@
 
 - **最新架构版本**: `.anws/v2`
 - **活动任务清单**: `.anws/v2/05_TASKS.md`
-- **待办任务数**: `12（P0: 7 / P1: 4 / P2: 1）`
+- **待办任务数**: `5（P0: 1 / P1: 3 / P2: 1）`
 - **最近一次更新**: `2026-03-26`
+
+### 🌊 Wave M7 ✅ — Outreach Gate + Decision Loop Validation Closure
+T4.2.3, T4.4.1
+
+### 🌊 Wave M6 ✅ — S3 World Contact Milestone Validation
+INT-S3
+
+### 🌊 Wave M5 ✅ — Connector Reliability + Effect/Quiet/Resume Spine
+T3.3.1, T4.2.1, T4.2.2, T4.3.1
 
 ### 🌊 Wave M4 ✅ — Connector Route Planner + Three Platform Paths
 T3.1.2, T3.2.1, T3.2.2, T3.2.3
@@ -218,7 +227,7 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v2/05_TASKS.md`
-- 任务口径: `总任务 39 / 已完成 27 / 待办 12（P0:7 / P1:4 / P2:1）`
+- 任务口径: `总任务 39 / 已完成 34 / 待办 5（P0:1 / P1:3 / P2:1）`
 - Sprint 数: `4`
 - Wave 1 建议: `T1.1.1`, `T1.1.2`, `T5.1.1`
 - 最近更新: `2026-03-26`

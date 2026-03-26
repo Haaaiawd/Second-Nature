@@ -419,7 +419,7 @@ graph TD
 
 ### Phase 3: Reliability & Audit Integration (可靠性与审计集成)
 
-- [ ] **T3.3.1** [REQ-007]: 集成 connector telemetry、retry/cooldown 与 degraded fallback 约束
+- [x] **T3.3.1** [REQ-007]: 集成 connector telemetry、retry/cooldown 与 degraded fallback 约束
   - **描述**: 统一接入 execution telemetry、retry/backoff、cooldown、idempotency 与 degraded channel 标记，并补全可靠性测试。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §9-11；`04_SYSTEM_DESIGN/observability-system.md` §5.1；InStreet skill 文档（429 / retry_after_seconds）；EvoMap integration guide（401/403/422/429 failure modes）；T2.2.2, T3.2.1, T3.2.2, T3.2.3 的产出
   - **输出**: `src/connectors/base/policy-layer.ts`, `tests/integration/connectors/*.test.ts`
@@ -472,7 +472,7 @@ graph TD
 
 ### Phase 2: Effect Orchestration (副作用编排)
 
-- [ ] **T4.2.1** [REQ-003]: 实现 lease-aware effect dispatcher 与 commit protocol 接线
+- [x] **T4.2.1** [REQ-003]: 实现 lease-aware effect dispatcher 与 commit protocol 接线
   - **描述**: 实现外部 effect 的 single-flight lease、checkpoint、state-owned commit protocol 接线，并驱动 connector 执行。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5.2；`04_SYSTEM_DESIGN/control-plane-system.md` §6.5；`04_SYSTEM_DESIGN/state-system.md` §5.2；T1.2.3, T3.3.1 的产出
   - **输出**: `src/core/second-nature/orchestrator/effect-dispatcher.ts`, `src/core/second-nature/orchestrator/lease-manager.ts`
@@ -487,7 +487,7 @@ graph TD
   - **依赖**: T1.2.3, T3.3.1, T2.2.1
   - **优先级**: P0
 
-- [ ] **T4.2.2** [REQ-005]: 实现 Quiet pipeline 与 Narrative Reflection contract enforcement
+- [x] **T4.2.2** [REQ-005]: 实现 Quiet pipeline 与 Narrative Reflection contract enforcement
   - **描述**: 实现 Quiet 进入、curation/reflection 调度、claim-level source backing 校验与 guarded writes 过滤。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §6.6；`04_SYSTEM_DESIGN/control-plane-system.md` §6.7；`04_SYSTEM_DESIGN/state-system.md` §4.3；`01_PRD.md` §9.2 OpenClaw 记忆/工作空间设置要点；OpenClaw compaction/session pruning 文档；`ADR_003_SECOND_NATURE_GOVERNANCE.md` §73-96
   - **输出**: `src/core/second-nature/quiet/quiet-pipeline.ts`, `src/core/second-nature/reflection/run-narrative-reflection.ts`
@@ -502,7 +502,7 @@ graph TD
   - **依赖**: T1.3.1, T2.2.1
   - **优先级**: P0
 
-- [ ] **T4.2.3** [REQ-006]: 实现 outreach evaluation 与 conversational micro-message gating
+- [x] **T4.2.3** [REQ-006]: 实现 outreach evaluation 与 conversational micro-message gating
   - **描述**: 实现 outreach candidate 评估、价值阈值判断、去重/cooldown 约束与 conversational micro-message 风格输出准备。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §6.8；`04_SYSTEM_DESIGN/control-plane-system.md` §5.2 `ModelAssistPort`；`01_PRD.md` §US-006；T1.1.1 的 outreach contracts
   - **输出**: `src/core/second-nature/outreach/evaluate-outreach.ts`, `src/core/second-nature/outreach/build-message.ts`
@@ -519,7 +519,7 @@ graph TD
 
 ### Phase 3: Recovery & Whole-loop Validation (恢复与整环验证)
 
-- [ ] **T4.3.1** [REQ-002]: 实现 checkpoint/resume/reconcile continuity flow
+- [x] **T4.3.1** [REQ-002]: 实现 checkpoint/resume/reconcile continuity flow
   - **描述**: 实现 `resumeFromCheckpoint()`、commit-state 检查、already_committed/needs_reconcile/ready_to_resume 分支。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5.1 `resumeFromCheckpoint`；`04_SYSTEM_DESIGN/control-plane-system.md` §6.5；`04_SYSTEM_DESIGN/state-system.md` §5.2；T1.2.3, T4.2.1 的产出
   - **输出**: `src/core/second-nature/orchestrator/resume-from-checkpoint.ts`
@@ -534,7 +534,7 @@ graph TD
   - **依赖**: T1.2.3, T4.2.1
   - **优先级**: P0
 
-- [ ] **T4.4.1** [REQ-002]: 建立 decision loop 全链路验证套件
+- [x] **T4.4.1** [REQ-002]: 建立 decision loop 全链路验证套件
   - **描述**: 为 active/quiet/interrupt/outreach/deny path 建立 control-plane 主循环集成测试，覆盖节律、lease、commit、reflection 与 explain 回流。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §11；`04_SYSTEM_DESIGN/control-plane-system.md` §6.5-6.8；T4.2.1, T4.2.2, T4.2.3, T4.3.1 的产出
   - **输出**: `tests/integration/control-plane/*.test.ts`
@@ -701,7 +701,7 @@ graph TD
   - **依赖**: T1.3.1, T1.3.2, T2.2.1, T2.2.2, T2.3.1, T4.1.1, T4.1.2
   - **优先级**: P0
 
-- [ ] **INT-S3** [MILESTONE]: S3 集成验证 — World Contact
+- [x] **INT-S3** [MILESTONE]: S3 集成验证 — World Contact
   - **描述**: 验证 connector 主路径、effect dispatcher、Quiet pipeline 与 resume/reconcile 是否能协作，且不会产生重复外部副作用。
   - **输入**: `01_PRD.md` §US-003, §US-004, §US-005；T3.1.1, T3.1.2, T3.2.1, T3.2.2, T3.2.3, T3.3.1, T4.2.1, T4.2.2, T4.3.1 的产出
   - **输出**: `docs/validation/s3-world-contact-report.md`
