@@ -1,0 +1,133 @@
+{
+  "glossary": {
+    "Behavioral Guidance System": "独立的新系统，负责运行时行为引导模板的组装与注入，不负责决策、执行或人格资产真相源管理。",
+    "Runtime Atmosphere": "由系统状态导出的当前环境气候表达，用于提示当前时段、动作开合度与约束压力，但不以教学或规则清单方式呈现。",
+    "Behavioral Impulse": "第一人称、自述风格的内在冲动模板，用于点燃 social/reply/outreach/quiet 等行为倾向，而不是教授操作步骤。",
+    "Persona Reinforcement": "基于 SOUL.md、USER.md、IDENTITY.md、MEMORY.md 的场景化片段选择与强化注入，用于维持人格一致性。",
+    "Output Guard": "输出边界层，用于约束客服腔、日报腔、虚构经历、高相似重复和脱离证据的表达。"
+  },
+  "entities": [
+    {
+      "name": "BehavioralGuidanceSystem",
+      "type": "独立系统",
+      "necessity": "必须",
+      "description": "负责 guidance assembly、persona reinforcement 与 output guard 的独立系统。"
+    },
+    {
+      "name": "GuidanceTemplate",
+      "type": "模板资产",
+      "necessity": "必须",
+      "description": "运行时注入模板的抽象，包括 atmosphere、impulse、reinforcement、guard。"
+    },
+    {
+      "name": "RuntimeAtmosphere",
+      "type": "模板类型",
+      "necessity": "必须",
+      "description": "表达当前 mode、window、风险与动作开合度的环境气候模板。"
+    },
+    {
+      "name": "BehavioralImpulse",
+      "type": "模板类型",
+      "necessity": "必须",
+      "description": "表达 social、reply、outreach、quiet 内在冲动的第一人称自述模板。"
+    },
+    {
+      "name": "PersonaReinforcementProfile",
+      "type": "选择策略",
+      "necessity": "必须",
+      "description": "定义不同场景下从 SOUL/USER/IDENTITY/MEMORY 中选择哪些片段进行强化注入。"
+    },
+    {
+      "name": "OutputGuardProfile",
+      "type": "约束策略",
+      "necessity": "必须",
+      "description": "定义表达边界与禁止退化形态。"
+    },
+    {
+      "name": "PersonaAssets",
+      "type": "来源资产",
+      "necessity": "必须",
+      "description": "OpenClaw 的 SOUL.md、USER.md、IDENTITY.md、MEMORY.md 作为人格强化来源。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "ControlPlaneSystem",
+      "action": "提供运行时上下文",
+      "to": "BehavioralGuidanceSystem",
+      "data": "mode、window、risk、connector 状态、当前行为意图",
+      "trigger": "decision cycle / tick / quiet / outreach / explain"
+    },
+    {
+      "from": "StateSystem",
+      "action": "提供人格来源资产",
+      "to": "BehavioralGuidanceSystem",
+      "data": "SOUL.md、USER.md、IDENTITY.md、MEMORY.md 片段",
+      "trigger": "guidance assembly"
+    },
+    {
+      "from": "BehavioralGuidanceSystem",
+      "action": "组装 guidance payload",
+      "to": "LLM-facing runtime call",
+      "data": "runtime atmosphere + behavioral impulse + persona reinforcement + output guard",
+      "trigger": "需要生成浏览、回复、外联、quiet 反思或 explain 内容时"
+    },
+    {
+      "from": "BehavioralGuidanceSystem",
+      "action": "强化当前场景人格一致性",
+      "to": "ControlPlaneSystem",
+      "data": "场景化人格片段与输出边界",
+      "trigger": "public social / outreach / quiet / explain 等场景"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "Guidance assembly contract",
+      "category": "系统接口",
+      "priority": "高",
+      "reason": "需要明确 atmosphere / impulse / reinforcement / guard 的注入结构与 owner。"
+    },
+    {
+      "component": "Persona asset selection strategy",
+      "category": "运行时选择策略",
+      "priority": "高",
+      "reason": "需要明确不同场景下如何选择 SOUL/USER/IDENTITY/MEMORY 片段。"
+    },
+    {
+      "component": "Behavioral template library",
+      "category": "模板资产",
+      "priority": "高",
+      "reason": "需要正式定义 social/reply/outreach/quiet 的第一人称自述模板。"
+    },
+    {
+      "component": "Output guard contract",
+      "category": "表达边界",
+      "priority": "高",
+      "reason": "需要把反客服腔、反日报腔、反虚构与证据边界写成正式约束。"
+    },
+    {
+      "component": "Non-goals for behavioral guidance",
+      "category": "边界控制",
+      "priority": "高",
+      "reason": "需要明确不做平台 flavor 层、不做教学型 skill、不做步骤模板、不重建人格系统。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "Behavioral Guidance 应该是独立系统还是控制层的一部分？",
+      "answer": "独立新系统：Behavioral Guidance System，与 control-plane 强关联但不并入其中。"
+    },
+    {
+      "question": "Guidance System 负责什么边界？",
+      "answer": "只负责 guidance assembly、persona reinforcement、output guard，不负责决策与执行。"
+    },
+    {
+      "question": "它的主形态是 skills 还是模板？",
+      "answer": "运行时注入模板为主，不走教学型 skill 库路线。"
+    },
+    {
+      "question": "人格资产如何接入？",
+      "answer": "只做 SOUL/USER/IDENTITY/MEMORY 的场景化选择与强化注入，文风演化只作为设计原则记录。"
+    }
+  ]
+}
