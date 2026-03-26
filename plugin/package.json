@@ -1,6 +1,18 @@
 {
   "name": "@second-nature/openclaw-plugin",
   "version": "0.1.0",
+  "description": "OpenClaw native plugin for long-running agent continuity, Quiet memory curation, and explainable operator flows.",
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "agent",
+    "continuity",
+    "quiet",
+    "memory",
+    "observability",
+    "operator"
+  ],
+  "license": "Apache-2.0",
   "type": "module",
   "main": "./index.ts",
   "files": [
