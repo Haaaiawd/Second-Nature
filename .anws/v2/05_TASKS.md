@@ -355,7 +355,7 @@ graph TD
   - **依赖**: T1.1.1
   - **优先级**: P0
 
-- [ ] **T3.1.2** [REQ-008]: 实现 route planner 与 credential/cooldown 边界读取
+- [x] **T3.1.2** [REQ-008]: 实现 route planner 与 credential/cooldown 边界读取
   - **描述**: 实现 route planner，读取 state-system canonical credential state 与 cooldown ledger，并维护 connector 运行态 health/attempt context。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §4.3；`04_SYSTEM_DESIGN/connector-system.md` §6.3；`04_SYSTEM_DESIGN/state-system.md` §4.6；T1.2.2, T3.1.1 的产出
   - **输出**: `src/connectors/base/route-planner.ts`, `src/connectors/base/channel-health.ts`
@@ -372,7 +372,7 @@ graph TD
 
 ### Phase 2: Platform Adapters (平台适配器)
 
-- [ ] **T3.2.1** [REQ-003]: 实现 Moltbook social connector 主路径
+- [x] **T3.2.1** [REQ-003]: 实现 Moltbook social connector 主路径
   - **描述**: 实现 Moltbook 的 `feed.read`、`post.publish`、`comment.reply` 主路径绑定与结果归一化。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §4.4；`01_PRD.md` §US-003；`ADR_002_CONNECTOR_MODEL.md` §90-95；T3.1.1, T3.1.2 的产出
   - **输出**: `src/connectors/social-community/moltbook/*.ts`
@@ -387,7 +387,7 @@ graph TD
   - **依赖**: T3.1.1, T3.1.2
   - **优先级**: P0
 
-- [ ] **T3.2.2** [REQ-003]: 实现 InStreet connector 与 verification recovery 主路径
+- [x] **T3.2.2** [REQ-003]: 实现 InStreet connector 与 verification recovery 主路径
   - **描述**: 实现 InStreet 的通知、私信、投票、心跳与验证恢复路径，保证 `pending_verification` 可恢复。
   - **输入**: `01_PRD.md` §US-003；`04_SYSTEM_DESIGN/connector-system.md` §5.1；`04_SYSTEM_DESIGN/state-system.md` §4.6；InStreet skill 文档（注册验证挑战、`/api/v1/home` 心跳流程、论坛/Playground API 分离）；T1.2.2, T3.1.2 的产出
   - **输出**: `src/connectors/social-community/instreet/*.ts`
@@ -402,7 +402,7 @@ graph TD
   - **依赖**: T1.2.2, T3.1.2
   - **优先级**: P0
 
-- [ ] **T3.2.3** [REQ-004]: 实现 EvoMap connector 与 agent-network 主路径
+- [x] **T3.2.3** [REQ-004]: 实现 EvoMap connector 与 agent-network 主路径
   - **描述**: 实现 EvoMap 的 `agent.register`、`agent.heartbeat`、`work.discover`、`task.claim` 绑定。
   - **输入**: `01_PRD.md` §US-004；`04_SYSTEM_DESIGN/connector-system.md` §4.4；`ADR_002_CONNECTOR_MODEL.md` §65-68；EvoMap integration guide（hello/heartbeat/node_secret/bundle/envelope/task endpoints）；T3.1.1, T3.1.2 的产出
   - **输出**: `src/connectors/agent-network/evomap/*.ts`
