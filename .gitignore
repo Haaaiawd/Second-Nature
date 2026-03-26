@@ -16,3 +16,4 @@ Thumbs.db
 # Keep architecture and workflow docs under version control
 !.anws/
 !.anws/**
+workspace/
