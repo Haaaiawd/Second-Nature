@@ -167,7 +167,7 @@ graph TD
 
 ### Phase 4: Human Review & Runtime Closure (人工审核与运行时收口)
 
-- [ ] **T3.1.1** [REQ-011]: 建立所有 guidance 模板的人类审核工作流
+- [x] **T3.1.1** [REQ-011]: 建立所有 guidance 模板的人类审核工作流
   - **描述**: 为 atmosphere / impulse / persona reinforcement / output guard 模板建立统一人工审核机制，确保所有涉及提示词与注入消息的内容必须经人类审核后方可视为有效模板。
   - **输入**: `01_PRD.md` §US-002~US-004；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §2.2, §11；T1.2.1, T1.2.2, T1.2.3 的产出
   - **输出**: `docs/guidance-template-review.md`, `tests/integration/guidance/template-review.test.ts`

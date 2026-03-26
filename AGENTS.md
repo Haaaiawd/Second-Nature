@@ -177,6 +177,7 @@ src/
 - Wave 1 完成: `T1.1.1`, `T1.2.1`, `T1.2.2`
 - Wave 2 完成: `T1.2.3`, `T2.1.1`
 - Wave 3 完成: `T2.2.1`, `T2.2.2`, `T2.2.3`
+- Wave 4 完成: `T3.1.1`
 - 最近更新: `2026-03-26`
 
 ### 🌊 Wave 1 ✅ — Behavioral Guidance Foundation
@@ -187,6 +188,9 @@ T1.2.3, T2.1.1
 
 ### 🌊 Wave 3 ✅ — Runtime Integration First Layer
 T2.2.1, T2.2.2, T2.2.3
+
+### 🌊 Wave 4 ✅ — Human Review Workflow
+T3.1.1
 
 <!-- AUTO:END -->
 
