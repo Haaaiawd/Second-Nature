@@ -1,9 +1,11 @@
 import type { StateDatabase } from "./db/index.js";
+import type { NewPolicyRecord, PolicyRecord } from "./db/schema/index.js";
 import { AssetRepository } from "./repositories/asset-repository.js";
 import { CredentialRepository } from "./repositories/credential-repository.js";
 import { ProposalRepository } from "./repositories/proposal-repository.js";
 import { ProvenanceRepository } from "./repositories/provenance-repository.js";
 import { IntentCommitRepository } from "./repositories/intent-commit-repository.js";
+import { PolicyRepository } from "./repositories/policy-repository.js";
 import {
   createDailyLogPipeline,
   type ActivityLogWrite,
@@ -18,8 +20,11 @@ import {
   type CurationInputBundle,
 } from "./services/quiet-input-loader.js";
 
+type PolicyState = Omit<NewPolicyRecord, "updatedAt">;
+
 export interface MemoryReadPort {
   loadQuietInputs(query: CurationInputQuery): Promise<CurationInputBundle>;
+  loadPolicy(platformId: string): Promise<PolicyRecord | undefined>;
 }
 
 export interface MemoryWritePort {
@@ -27,6 +32,7 @@ export interface MemoryWritePort {
   appendObservation(entry: ObservationWrite): Promise<AssetWriteAck>;
   generateDailyReport(input: DailyReportInput): Promise<AssetWriteAck>;
   upsertCuratedMemory(item: CuratedMemoryWrite): Promise<AssetWriteAck>;
+  savePolicy(input: PolicyState): Promise<void>;
 }
 
 export interface CredentialContextPort {
@@ -63,12 +69,14 @@ export class DefaultStateAPI implements StateAPI {
     const proposalRepository = new ProposalRepository(database);
     const provenanceRepository = new ProvenanceRepository(database);
     const intentCommitRepository = new IntentCommitRepository(database);
+    const policyRepository = new PolicyRepository(database);
 
     const dailyLogPipeline = createDailyLogPipeline(assetRepository, provenanceRepository);
     const quietInputLoader = createQuietInputLoader(assetRepository);
 
     this.read = {
       loadQuietInputs: (query: CurationInputQuery) => quietInputLoader.loadQuietInputs(query),
+      loadPolicy: (platformId: string) => policyRepository.findByPlatformId(platformId),
     };
 
     this.write = {
@@ -76,6 +84,14 @@ export class DefaultStateAPI implements StateAPI {
       appendObservation: (entry: ObservationWrite) => dailyLogPipeline.appendObservation(entry),
       generateDailyReport: (input: DailyReportInput) => dailyLogPipeline.generateDailyReport(input),
       upsertCuratedMemory: (item: CuratedMemoryWrite) => dailyLogPipeline.upsertCuratedMemory(item),
+      savePolicy: async (policy: PolicyState) => {
+        await policyRepository.upsert({
+          platformId: policy.platformId,
+          socialDailyLimit: policy.socialDailyLimit,
+          quietEnabled: policy.quietEnabled,
+          updatedAt: new Date().toISOString(),
+        });
+      },
     };
 
     this.credentials = {
@@ -84,7 +100,10 @@ export class DefaultStateAPI implements StateAPI {
       },
       saveCredentialContext: async (input: unknown) => {
         const ctx = input as Parameters<typeof credentialRepository.upsert>[0];
-        await credentialRepository.upsert(ctx);
+        await credentialRepository.upsert({
+          ...ctx,
+          updatedAt: ctx.updatedAt ?? new Date().toISOString(),
+        });
       },
     };
 
