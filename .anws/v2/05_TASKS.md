@@ -204,7 +204,7 @@ graph TD
 
 ### Phase 4: Repair & Durability Polish (修复与耐久性优化)
 
-- [ ] **T1.4.1** [REQ-008]: 实现 repair/backup 启动流程与 orphan 修复
+- [x] **T1.4.1** [REQ-008]: 实现 repair/backup 启动流程与 orphan 修复
   - **描述**: 实现 asset scan、hash 校验、orphan index 修复、SQLite 备份导出与 stale proposal 清理流程。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §10；`04_SYSTEM_DESIGN/state-system.md` §12；`04_SYSTEM_DESIGN/state-system.detail.md` §3.10；T1.1.2, T1.2.1 的产出
   - **输出**: `src/storage/services/repair-and-backup.ts`, `src/storage/bootstrap/repair.ts`
@@ -302,7 +302,7 @@ graph TD
   - **依赖**: T2.2.1, T2.2.2, T1.3.2
   - **优先级**: P0
 
-- [ ] **T2.3.2** [REQ-005]: 实现 reflection/outreach 审计扩展字段投影
+- [x] **T2.3.2** [REQ-005]: 实现 reflection/outreach 审计扩展字段投影
   - **描述**: 实现 `ReflectionAudit` 与 `OutreachQualityAudit` 的特有投影字段，如 `unsupportedClaimCount`、`sourceCoverageRatio`、`valueScore`、`suppressionReason`。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §6.1；`04_SYSTEM_DESIGN/control-plane-system.md` §6.6；`04_SYSTEM_DESIGN/control-plane-system.md` §6.8
   - **输出**: `src/observability/projections/reflection-audit.ts`, `src/observability/projections/outreach-quality-audit.ts`
@@ -319,7 +319,7 @@ graph TD
 
 ### Phase 3: Quality Gates (质量关卡)
 
-- [ ] **T2.4.1** [REQ-008]: 建立 observability 集成验证套件
+- [x] **T2.4.1** [REQ-008]: 建立 observability 集成验证套件
   - **描述**: 为 deny path、anchor audit、credential lifecycle、evidence query、redaction 安全性建立集成测试套件。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §11；`04_SYSTEM_DESIGN/observability-system.md` §5.1；T2.2.1, T2.2.2, T2.3.1, T2.3.2 的产出
   - **输出**: `tests/integration/observability/*.test.ts`

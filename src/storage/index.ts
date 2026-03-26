@@ -12,5 +12,12 @@ export { createDailyLogPipeline, type DailyLogPipeline } from "./services/daily-
 export { createQuietInputLoader, type QuietInputLoader } from "./services/quiet-input-loader.js";
 export { createGovernanceLayer, type GovernanceLayer, type AnchorWriteProposal, type ProposalAck, type ApplyAck } from "./services/governance-layer.js";
 export { createProvenanceService, type ProvenanceService, type ProvenanceTrace, type ProvenanceDetail } from "./services/provenance-service.js";
+export {
+  createRepairAndBackupService,
+  type RepairAndBackupService,
+  type RepairAndBackupOptions,
+  type RepairAndBackupResult,
+} from "./services/repair-and-backup.js";
+export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
 
 export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";
