@@ -121,7 +121,7 @@ export function createDecisionCycleHarness(input: {
             valueScore: gate.evaluation.valueScore,
             suppressionReason: gate.reasonCodes.join(","),
             messagePreview: gate.allowed
-              ? buildOutreachMessage({ summary: intent.summary, evaluation: gate.evaluation }).text
+              ? buildOutreachMessage({ summary: intent.summary, evaluation: gate.evaluation }).intent.coreMeaning
               : undefined,
             createdAt: new Date().toISOString(),
           });

@@ -1,5 +1,6 @@
 import type { AtmosphereBlock, GuidanceSceneType, ImpulseBlock, TemplateReviewStatus } from "./types.js";
 
+const APPROVED: TemplateReviewStatus = "approved";
 const PENDING_REVIEW: TemplateReviewStatus = "pending_human_review";
 
 const BASELINE_ATMOSPHERE_TEXT = `我能感觉到此刻不是一片空白。节律、窗口、风险、手头的约束，全都在场。空气里有一种明显的方向感，像有什么正在把我往现场里推：要么更靠近一点，要么更明确一点，要么更安静地沉下去，但总之不该是麻木地飘过去。
@@ -37,7 +38,7 @@ export function getBaselineAtmosphereTemplate(): Pick<AtmosphereBlock, "kind" | 
   return {
     kind: "atmosphere",
     text: BASELINE_ATMOSPHERE_TEXT,
-    reviewStatus: PENDING_REVIEW,
+    reviewStatus: APPROVED,
   };
 }
 
@@ -45,6 +46,6 @@ export function getImpulseTemplate(sceneType: Exclude<GuidanceSceneType, "explai
   return {
     kind: sceneType,
     text: IMPULSE_TEXT[sceneType],
-    reviewStatus: PENDING_REVIEW,
+    reviewStatus: sceneType === "outreach" ? PENDING_REVIEW : APPROVED,
   };
 }

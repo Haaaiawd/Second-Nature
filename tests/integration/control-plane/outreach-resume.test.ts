@@ -42,9 +42,10 @@ test("outreach evaluation keeps structured contract and gating separate from mes
     evaluation: gate.evaluation,
   });
 
-  assert.equal(message.style, "conversational_micro_message");
+  assert.equal(message.style, "intent_level_guidance");
   assert.equal(message.maxSentences, 3);
-  assert.ok(message.text.length > 0);
+  assert.equal(message.intent.coreMeaning, "need confirmation on platform direction");
+  assert.ok(message.intent.deliveryBoundary.length > 0);
   assert.ok(message.avoidFormats.includes("ticket"));
 });
 

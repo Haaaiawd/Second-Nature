@@ -181,7 +181,7 @@ graph TD
   - **依赖**: T1.2.1, T1.2.2, T1.2.3
   - **优先级**: P0
 
-- [ ] **T3.2.1** [REQ-013]: 重构现有用户外联提示词为“意图级提示”而非固定话术
+- [x] **T3.2.1** [REQ-013]: 重构现有用户外联提示词为“意图级提示”而非固定话术
   - **描述**: 重构当前已实现的 outreach 生成策略，不再输出固定话术模板，而是只提供大致意图、语气边界与 `SOUL` 一致性要求，让 Agent 自己用符合人设的话语组织表达。
   - **输入**: `01_PRD.md` §US-004；`03_ADR/ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md` §6-8；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5.4 `outreach`, §8.4, §8.6；现有 v2 `src/core/second-nature/outreach/*` 的产出
   - **输出**: `src/guidance/templates/impulses/outreach.md`, `src/core/second-nature/outreach/build-message.ts`, `tests/integration/control-plane/outreach-style.test.ts`
