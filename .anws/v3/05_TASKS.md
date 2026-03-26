@@ -200,7 +200,7 @@ graph TD
 
 ## 📍 Sprint 集成验证任务
 
-- [ ] **INT-S1** [MILESTONE]: S1 集成验证 — Guidance Core
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Guidance Core
   - **描述**: 验证 guidance payload 契约、模板、assembler、state candidate port 与 observability hooks 是否形成最小 guidance 主链。
   - **输入**: T1.1.1, T1.2.1, T1.2.2, T1.2.3, T2.1.1, T2.2.2, T2.2.3 的产出
   - **输出**: `docs/validation/v3-s1-guidance-core-report.md`
