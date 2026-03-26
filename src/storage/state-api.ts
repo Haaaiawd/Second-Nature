@@ -19,12 +19,15 @@ import {
   type CurationInputQuery,
   type CurationInputBundle,
 } from "./services/quiet-input-loader.js";
+import { createPersonaCandidateLoader } from "./services/persona-candidate-loader.js";
+import type { PersonaCandidate, SceneContext } from "../guidance/types.js";
 
 type PolicyState = Omit<NewPolicyRecord, "updatedAt">;
 
 export interface MemoryReadPort {
   loadQuietInputs(query: CurationInputQuery): Promise<CurationInputBundle>;
   loadPolicy(platformId: string): Promise<PolicyRecord | undefined>;
+  loadPersonaCandidates(sceneContext: SceneContext): Promise<PersonaCandidate[]>;
 }
 
 export interface MemoryWritePort {
@@ -73,10 +76,12 @@ export class DefaultStateAPI implements StateAPI {
 
     const dailyLogPipeline = createDailyLogPipeline(assetRepository, provenanceRepository);
     const quietInputLoader = createQuietInputLoader(assetRepository);
+    const personaCandidateLoader = createPersonaCandidateLoader();
 
     this.read = {
       loadQuietInputs: (query: CurationInputQuery) => quietInputLoader.loadQuietInputs(query),
       loadPolicy: (platformId: string) => policyRepository.findByPlatformId(platformId),
+      loadPersonaCandidates: (sceneContext: SceneContext) => personaCandidateLoader.loadPersonaCandidates(sceneContext),
     };
 
     this.write = {

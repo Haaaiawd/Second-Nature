@@ -10,3 +10,5 @@ export * from "./quiet/quiet-pipeline.js";
 export * from "./reflection/run-narrative-reflection.js";
 export * from "./outreach/evaluate-outreach.js";
 export * from "./outreach/build-message.js";
+export * from "./guidance/request-guidance.js";
+export * from "./guidance/apply-guidance.js";

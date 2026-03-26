@@ -10,6 +10,7 @@ export { createCredentialVault, type CredentialVault } from "./services/credenti
 export { createEffectCommitStore, type EffectCommitStore } from "./services/effect-commit-store.js";
 export { createDailyLogPipeline, type DailyLogPipeline } from "./services/daily-log-pipeline.js";
 export { createQuietInputLoader, type QuietInputLoader } from "./services/quiet-input-loader.js";
+export { createPersonaCandidateLoader, type PersonaCandidateLoader } from "./services/persona-candidate-loader.js";
 export { createGovernanceLayer, type GovernanceLayer, type AnchorWriteProposal, type ProposalAck, type ApplyAck } from "./services/governance-layer.js";
 export { createProvenanceService, type ProvenanceService, type ProvenanceTrace, type ProvenanceDetail } from "./services/provenance-service.js";
 export {

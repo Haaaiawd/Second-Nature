@@ -45,3 +45,9 @@ export {
   type OutreachQualityAudit,
   type OutreachQualityProjection,
 } from "./projections/outreach-quality-audit.js";
+
+export {
+  projectGuidanceParticipationAudit,
+  type GuidanceParticipationAudit,
+  type GuidanceParticipationProjection,
+} from "./projections/guidance-audit.js";

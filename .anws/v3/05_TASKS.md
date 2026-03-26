@@ -123,7 +123,7 @@ graph TD
 
 ### Phase 3: Integration (集成)
 
-- [ ] **T2.2.1** [REQ-010]: 接入 control-plane 的 guidance request 与 minimal fallback
+- [x] **T2.2.1** [REQ-010]: 接入 control-plane 的 guidance request 与 minimal fallback
   - **描述**: 在 control-plane 的生成路径接入 guidance request，明确 guidance request 的唯一发起点，并在 guidance unavailable 时走最小 fallback 路径。
   - **输入**: `04_SYSTEM_DESIGN/behavioral-guidance-system.md` §4.4, §5.2；`02_ARCHITECTURE_OVERVIEW.md` §2 System 2 / System 6；T2.1.1 产出的 `GuidanceAssembler`
   - **输出**: `src/core/second-nature/guidance/request-guidance.ts`, `src/core/second-nature/guidance/apply-guidance.ts`
@@ -137,7 +137,7 @@ graph TD
   - **依赖**: T2.1.1
   - **优先级**: P0
 
-- [ ] **T2.2.2** [REQ-012]: 为 persona reinforcement 增加 state persona candidate 读取端口
+- [x] **T2.2.2** [REQ-012]: 为 persona reinforcement 增加 state persona candidate 读取端口
   - **描述**: 在 state-system 中暴露最小 persona candidate 读取端口，为 SOUL/USER/IDENTITY/MEMORY 片段选择提供统一输入，而不创建新的 canonical persona store。
   - **输入**: `01_PRD.md` §US-003；`02_ARCHITECTURE_OVERVIEW.md` §2 System 4 / System 6；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5.1 `selectPersonaSnippets`, §6.3；`04_SYSTEM_DESIGN/state-system.md`（v2）§5.2
   - **输出**: `src/storage/services/persona-candidate-loader.ts`, `src/storage/index.ts`
@@ -151,7 +151,7 @@ graph TD
   - **依赖**: T1.2.2
   - **优先级**: P1
 
-- [ ] **T2.2.3** [REQ-013]: 接入 guidance 参与记录与 explain/debug 可见性
+- [x] **T2.2.3** [REQ-013]: 接入 guidance 参与记录与 explain/debug 可见性
   - **描述**: 在 observability-system 中增加 guidance 参与的最小记录语义，允许后续 explain/debug 查看 guidance 是否参与、选择了哪些 block、使用了哪些 persona snippet rationale。
   - **输入**: `04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5.2, §6.3, §8.6；`02_ARCHITECTURE_OVERVIEW.md` §2 System 5 / System 6；`04_SYSTEM_DESIGN/observability-system.md`（v2）§5.1, §6.3
   - **输出**: `src/observability/projections/guidance-audit.ts`, `src/observability/index.ts`
