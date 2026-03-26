@@ -286,6 +286,7 @@ export interface MemoryReadPort {
   loadAnchorMemory(): Promise<AnchorAssetBundle>;
   explainProvenance(assetId: string): Promise<ProvenanceTrace>;
   loadCredentialContext(platformId: string): Promise<CredentialContext>;
+  loadPolicy(platformId: string): Promise<PlatformPolicyRecord | null>;
   loadIntentCommitRecord(intentId: string): Promise<IntentCommitRecord | null>;
 }
 
@@ -297,6 +298,7 @@ export interface MemoryWritePort {
   proposeAnchorWrite(proposal: AnchorWriteProposal): Promise<ProposalAck>;
   applyGovernedAnchorWrite(proposalId: string): Promise<ApplyAck>;
   saveCredentialContext(input: CredentialContextWrite): Promise<void>;
+  savePolicy(input: PolicyWriteInput): Promise<void>;
 }
 
 export interface EffectCommitStorePort {
@@ -324,6 +326,7 @@ export interface PluginIngressPort {
 | `proposal` | filesystem + sqlite index | create | 受治理的候选改动 |
 | `provenance_record` | sqlite | append | 来源链与审计关系 |
 | `credential_record` | sqlite | upsert | 加密凭证、verification 状态与恢复上下文 |
+| `policy_record` | sqlite | upsert | 平台策略与 Quiet 开关等 canonical 配置状态 |
 | `intent_commit_record` | sqlite | create / advance / commit / reconcile | 外部副作用 durable protocol 的 canonical 账本 |
 
 ---
@@ -381,6 +384,19 @@ interface CredentialContext {
   attemptsRemaining?: number;
 }
 
+interface PolicyWriteInput {
+  platformId: string;
+  socialDailyLimit: number;
+  quietEnabled: boolean;
+}
+
+interface PlatformPolicyRecord {
+  platformId: string;
+  socialDailyLimit: number;
+  quietEnabled: boolean;
+  updatedAt: string;
+}
+
 type IntentCommitState = 'planned' | 'dispatched' | 'externally_acknowledged' | 'committed' | 'reconcile' | 'aborted';
 
 interface IntentCommitRecord {
@@ -435,6 +451,7 @@ classDiagram
 
 - 文件系统保存 canonical artifacts 和 proposal files。
 - SQLite 保存 `asset registry`、`provenance graph`、`index`、`repair metadata`、`audit relations` 与 `intent commit records`。
+- 平台策略属于 `state-system` 的 canonical state，默认进入 SQLite `policy_record` 平面；`cli-system` 与其他调用方只能通过公开 `savePolicy/loadPolicy` port 读写，不得各自维护私有 policy 真相源。
 - `observability-system` 可通过 `asset_id` 和 `proposal_id` 反查写入链。
 - `state-system` 是 effect commit protocol 的 canonical owner；control-plane 和 connector 只能通过公开 port 读写，不得各自维护私有提交账本。
 

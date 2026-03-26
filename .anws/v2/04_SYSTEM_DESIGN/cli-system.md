@@ -252,6 +252,8 @@ export interface CredentialActionPort {
 }
 ```
 
+> **Policy 写入约束**: `PolicyWritePort.savePolicy()` 的 canonical owner 是 `state-system`。`cli-system` 只负责非交互参数校验、`requiredUserInput` / `nextStep` 恢复提示与 action bridge 调用；不得使用进程内 `Map`、临时内存数据库或其他 CLI 私有存储作为 policy 真相源。
+
 ### 5.3 输出模式
 
 | 模式 | 用途 | 默认场景 |
