@@ -75,84 +75,10 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v2`
-- **活动任务清单**: `.anws/v2/05_TASKS.md`
-- **待办任务数**: `1（P0: 0 / P1: 1 / P2: 0）`
+- **最新架构版本**: `.anws/v3`
+- **活动任务清单**: `.anws/v3/05_TASKS.md`
+- **待办任务数**: `10（P0: 6 / P1: 4 / P2: 0）`
 - **最近一次更新**: `2026-03-26`
-
-### 🌊 Wave M9 ✅ — S4 Operator Voice Milestone Validation
-INT-S4
-
-### 🌊 Wave M8 ✅ — State Repair/Backup + Observability Projection/Gates Closure
-T1.4.1, T2.3.2, T2.4.1
-
-### 🌊 Wave M7 ✅ — Outreach Gate + Decision Loop Validation Closure
-T4.2.3, T4.4.1
-
-### 🌊 Wave M6 ✅ — S3 World Contact Milestone Validation
-INT-S3
-
-### 🌊 Wave M5 ✅ — Connector Reliability + Effect/Quiet/Resume Spine
-T3.3.1, T4.2.1, T4.2.2, T4.3.1
-
-### 🌊 Wave M4 ✅ — Connector Route Planner + Three Platform Paths
-T3.1.2, T3.2.1, T3.2.2, T3.2.3
-
-### 🌊 Wave M3 ✅ — Intent/Guard Core + S2 Spine Validation
-T4.1.2, INT-S2
-
-### 🌊 Wave M2 ✅ — Decision Spine Prereq Unlock
-T2.3.1, T4.1.1, T3.1.1
-
-### 🌊 Wave M1 ✅ — INT-S1 Substrate Validation
-INT-S1
-
-### 🌊 Wave 15 ✅ — Plugin Packaging + Operator Walkthrough
-T5.3.1, T5.4.1
-
-### 🌊 Wave 14 ✅ — CLI Surface Read/Explain/Recovery Closure
-T5.1.2, T5.2.1, T5.2.2
-
-### 🌊 Wave 13 ✅ — Decision Loop Whole-Loop Validation
-T4.4.1
-
-### 🌊 Wave 12 ✅ — Outreach Evaluation + Checkpoint Resume Flow
-T4.2.3, T4.3.1
-
-### 🌊 Wave 11 ✅ — Effect Orchestration + Quiet/Reflection Contract
-T4.2.1, T4.2.2
-
-### 🌊 Wave 10 ✅ — Rhythm & Intent Core + Telemetry Identity Wiring
-T4.1.1, T4.1.2
-
-### 🌊 Wave 9 ✅ — Connector Reliability & Audit Integration
-T3.3.1
-
-### 🌊 Wave 8 ✅ — Platform Adapter Main Paths
-T3.2.1, T3.2.2, T3.2.3
-
-### 🌊 Wave 7 ✅ — Connector Contract & Route Planning Core
-T3.1.1, T3.1.2
-
-### 🌊 Wave 6 ✅ — Observability Quality Gates
-T2.4.1
-
-### 🌊 Wave 5 ✅ — Evidence Query & Audit Projections
-T2.3.1, T2.3.2
-
-### 🌊 Wave 4 ✅ — Decision Ledger & Execution Telemetry
-T2.2.1, T2.2.2
-
-### 🌊 Wave 3 ✅ — State API & Governance / Redaction Pipeline
-T1.3.1, T1.3.2, T2.1.2
-
-### 🌊 Wave 2 ✅ — State Memory & Audit Substrate
-T1.2.1, T1.2.2, T1.2.3, T2.1.1
-
-### 🌊 Wave 1 ✅ — Shared Contracts & State Substrate
-_优先建立 shared contracts、state schema 与 plugin surface 外壳，先把系统底座与宿主装配做好，再进入 decision spine 与 connector 主路径。_
-
-T1.1.1, T1.1.2, T5.1.1
 
 ---
 
@@ -176,18 +102,29 @@ src/
 ├── observability/
 └── shared/
 
-.anws/
- └── v2/
+ .anws/
+  └── v3/
      ├── 00_MANIFEST.md
      ├── 01_PRD.md
      ├── 02_ARCHITECTURE_OVERVIEW.md
      ├── 03_ADR/
      │   ├── ADR_001_TECH_STACK.md
      │   ├── ADR_002_CONNECTOR_MODEL.md
-     │   └── ADR_003_SECOND_NATURE_GOVERNANCE.md
+     │   ├── ADR_003_SECOND_NATURE_GOVERNANCE.md
+     │   └── ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md
      ├── 04_SYSTEM_DESIGN/
      ├── 06_CHANGELOG.md
      └── concept_model.json
+
+src/
+├── cli/
+├── core/
+│   └── second-nature/
+├── connectors/
+├── guidance/
+├── storage/
+├── observability/
+└── shared/
 ```
 
 ---
@@ -197,18 +134,18 @@ src/
 > **注意**: 此部分由 `/genesis` 维护。
 
 - **在新架构就绪前**: 请勿大规模修改代码。
-- **架构总览**: `.anws/v2/02_ARCHITECTURE_OVERVIEW.md`
-- **ADR**: `.anws/v2/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: `.anws/v2/04_SYSTEM_DESIGN/`
-- **任务清单**: `.anws/v2/05_TASKS.md`
-- **遇到架构问题**: 请优先查阅 `.anws/v2/03_ADR/`。
+- **架构总览**: `.anws/v3/02_ARCHITECTURE_OVERVIEW.md`
+- **ADR**: `.anws/v3/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: `.anws/v3/04_SYSTEM_DESIGN/`（当前已完成 `behavioral-guidance-system`，其余系统按需补充）
+- **任务清单**: `.anws/v3/05_TASKS.md`
+- **遇到架构问题**: 请优先查阅 `.anws/v3/03_ADR/`。
 
 ---
 
 ### 技术栈决策
 - 主栈：TypeScript + Node.js + SQLite
 - 宿主方式：OpenClaw native plugin，复用 workspace、session、cron、plugins、skills、compaction 与 pruning，并支持通过 ClawHub / npm / 本地路径分发
-- 执行策略：API-first，CLI/skill 作为 fallback 或 bootstrap
+- 执行策略：硬层继续 API-first + connector contract；软层采用独立 Behavioral Guidance System + 运行时注入模板
 
 ### 系统边界
 - `cli-system`: Agent-facing 操作接口，作为 OpenClaw plugin 注册出的 command / tool / service surface，负责配置、解释视图与历史视图 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/cli-system.md`
@@ -218,6 +155,7 @@ src/
   - `agent-network`: EvoMap - 节点注册、心跳保活、任务发现、资产发布
 - `state-system`: 状态、OpenClaw workspace-aligned memory、daily journal、daily report 与 curated memory — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/state-system.md`
 - `observability-system`: 结构化审计、风险事件、记忆整理来源链与 Anchor Memory 写保护 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/observability-system.md`
+- `behavioral-guidance-system`: 独立的运行时行为引导系统，负责 runtime atmosphere、behavioral impulses、persona reinforcement 与 output guard，不负责决策或执行 — 详细设计见 `.anws/v3/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
 
 ### 首批适配平台与 Agent 行动指南
 | 平台 | 类型 | Skill 文档 | 核心能力 | Agent 典型行动 |
@@ -230,13 +168,22 @@ src/
 - `ADR_001_TECH_STACK.md`: 采用 TypeScript + Node.js + SQLite，并明确作为 OpenClaw native plugin 运行
 - `ADR_002_CONNECTOR_MODEL.md`: 产品位于平台 API/CLI/skill 之上，通过 connector contract 统一调度执行能力
 - `ADR_003_SECOND_NATURE_GOVERNANCE.md`: 采用节律化行为系统 + Quiet 治理 + Narrative Reflection，并约束 Anchor Memory 更新边界
+- `ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md`: 新增独立 Behavioral Guidance System，主形态为运行时注入模板，不做 platform flavor 层、教学型 skill 或步骤模板
 
 ### 当前任务状态
-- 任务清单: `.anws/v2/05_TASKS.md`
-- 任务口径: `总任务 39 / 已完成 38 / 待办 1（P0:0 / P1:1 / P2:0）`
-- Sprint 数: `4`
-- Wave 1 建议: `T1.1.1`, `T1.1.2`, `T5.1.1`
+- 任务清单: `.anws/v3/05_TASKS.md`
+- 任务口径: `总任务 10 / P0: 6 / P1: 4 / P2: 0`
+- Sprint 数: `2`
+- Wave 1 完成: `T1.1.1`, `T1.2.1`, `T1.2.2`
+- Wave 2 完成: `T1.2.3`, `T2.1.1`
+- Wave 3 建议: `T2.2.1`, `T2.2.2`, `T2.2.3`
 - 最近更新: `2026-03-26`
+
+### 🌊 Wave 1 ✅ — Behavioral Guidance Foundation
+T1.1.1, T1.2.1, T1.2.2
+
+### 🌊 Wave 2 ✅ — Output Guard And Guidance Assembly
+T1.2.3, T2.1.1
 
 <!-- AUTO:END -->
 
