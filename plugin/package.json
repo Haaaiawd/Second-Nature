@@ -8,6 +8,9 @@
     "openclaw.plugin.json"
   ],
   "openclaw": {
-    "manifest": "./openclaw.plugin.json"
+    "manifest": "./openclaw.plugin.json",
+    "extensions": [
+      "./index.ts"
+    ]
   }
 }

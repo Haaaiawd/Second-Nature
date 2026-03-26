@@ -52,10 +52,11 @@ Expect:
 ### A3. OpenClaw manual command sequence
 
 ```bash
-openclaw plugins install file:./plugin
-openclaw plugins enable second-nature
-openclaw gateway restart
-openclaw plugins status second-nature
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins install file:./plugin
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins enable second-nature
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins list
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins info second-nature
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins doctor
 ```
 
 Expected result:
@@ -94,3 +95,36 @@ pnpm test
 - `tests/integration/cli/cli-ops-surface.test.ts`: configuration/recovery/status/explain
 - `tests/integration/cli/plugin-packaging-walkthrough.test.ts`: packaging/load/fallback lifecycle checks
 - `scripts/plugin-smoke-check.ts`: local/clawhub/npm smoke paths
+
+## Manual Validation Record (T5.3.1)
+
+### Captured in this workspace
+
+- Local smoke output captured by running:
+  - `node dist/scripts/plugin-smoke-check.js local-path`
+  - `node dist/scripts/plugin-smoke-check.js clawhub`
+  - `node dist/scripts/plugin-smoke-check.js npm`
+- Observed results:
+  - local-path: `ok=true`, `pluginPackageExists=true`, `manifestExists=true`, `entryExists=true`
+  - clawhub: fallback order is `clawhub -> npm`
+  - npm: fallback order is `npm -> file`
+
+### Host-level manual proof (completed with QClaw OpenClaw CLI)
+
+Executed with host runtime:
+
+```bash
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins install file:./plugin
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins enable second-nature
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins list
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins info second-nature
+node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins doctor
+```
+
+Observed host results:
+
+- `install`: success (`Installed plugin: second-nature`)
+- `enable`: success (`Enabled plugin "second-nature"`)
+- `list`: `second-nature` status is `loaded`
+- `info second-nature`: status `loaded`; surfaces include tool `second_nature_ops`, CLI command `second-nature`, services `second-nature-runtime` and `second-nature-lifecycle`
+- `doctor`: `No plugin issues detected.`
