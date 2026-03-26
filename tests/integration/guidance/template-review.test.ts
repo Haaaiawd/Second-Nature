@@ -23,11 +23,11 @@ test("review workflow maps approved templates to ready_for_runtime_use", async (
   assert.equal(personaPolicy?.nextAction, "ready_for_runtime_use");
 });
 
-test("review workflow sends changed outreach template back to human review", async () => {
+test("review workflow marks approved outreach template as ready_for_runtime_use", async () => {
   const checklist = await collectGuidanceReviewChecklist();
   const outreach = checklist.items.find((item) => item.templateId === "impulse.outreach");
 
   assert.ok(outreach);
-  assert.equal(outreach?.reviewStatus, "pending_human_review");
-  assert.equal(outreach?.nextAction, "human_review_required");
+  assert.equal(outreach?.reviewStatus, "approved");
+  assert.equal(outreach?.nextAction, "ready_for_runtime_use");
 });

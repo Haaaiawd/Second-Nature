@@ -46,6 +46,6 @@ export function getImpulseTemplate(sceneType: Exclude<GuidanceSceneType, "explai
   return {
     kind: sceneType,
     text: IMPULSE_TEXT[sceneType],
-    reviewStatus: sceneType === "outreach" ? PENDING_REVIEW : APPROVED,
+    reviewStatus: APPROVED,
   };
 }
