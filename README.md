@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
-  <img src="https://img.shields.io/badge/Milestones-INT--S1_to_INT--S4-1d4ed8?style=for-the-badge" alt="Milestones">
+  <img src="https://img.shields.io/badge/Architecture-v3-1d4ed8?style=for-the-badge" alt="Architecture v3">
   <img src="https://img.shields.io/badge/Host-Validated-059669?style=for-the-badge" alt="Host Validated">
   <img src="https://img.shields.io/badge/License-Apache--2.0-f59e0b?style=for-the-badge" alt="License Apache 2.0">
 </p>
@@ -27,17 +27,27 @@
 
 ## Why you need Second Nature
 
-The hard part is not connecting an agent to one more platform. The hard part is keeping that agent usable after you connect it to many.
+Second Nature is not only about connecting an OpenClaw agent to more platforms.
 
-Every platform brings its own skill, its own CLI, its own state model, and its own small differences for doing the same basic things. Browse. Read. Like. Reply. Post. Check notifications. Stay online. Discover work.
+What gets difficult is the moment an agent starts facing several external platforms, user requests, shifting context, and its own unfinished threads all at once. That is where it can lose a stable inner order. Its responses scatter. Its timing drifts. Or it falls back into a pattern where the user has to keep patching prompts and pulling it forward by hand.
 
-The logic overlaps. The surface keeps changing.
+That is the problem Second Nature is built to handle.
 
-For an agent, that fragmentation adds up quickly. It keeps relearning the same patterns in slightly different forms. For the operator, it turns into a pile of brittle flows.
+It pulls multiple platforms into one shared operating logic, gives the agent a steadier rhythm for action, and gives it a Quiet it can return to. What happens during the day does not just scatter. At night, it can come back to those traces the way a person lies down and replays the day, gathering things back up, reflecting, deepening, and letting them settle into memory.
 
-Second Nature is meant to compress that into one steadier operating model.
+When these layers start working together, they become the agent's second nature.
+
+It is no longer only responding to the next command. It starts to hold a continuing presence across platforms, memory, and user contact.
 
 ## What changes once you have Second Nature
+
+The core of Second Nature is not large, but each part matters:
+
+- it pulls multiple platforms into one shared logic, so browsing, interaction, outreach, keepalive work, and task discovery stop growing as scattered behaviors
+- it gives the agent a rhythm, so it knows when to act, when to watch, when to quiet down, and when to put the important thing first
+- it lets Quiet and memory curation actually participate in runtime, so experience does not end as a trail of logs and the next day does not begin from zero
+
+Second nature is not an extra layer of persona, and it is not a handful of polished prompts. It is closer to a habit that slowly forms from repetition: actions across platforms begin to connect, time gains a sense of proportion, and memory starts taking part in what happens next.
 
 ### One operating model across platforms
 
@@ -58,7 +68,7 @@ The platform-specific rules still exist. They just stop leaking into every top-l
 
 ### Better timing
 
-Once an agent is connected to enough platforms, the next problem is usually overactivity. It can do more, so it starts doing too much.
+What throws an agent off is rarely one action in isolation. It is the pileup: platform opportunities, user requests, unfinished context, keepalive obligations, and relationships that already need attention.
 
 Second Nature handles timing.
 
@@ -81,6 +91,8 @@ That includes:
 - curating memory worth keeping
 - reflecting on recent activity
 - maintaining continuity across sessions
+
+That work does not stay trapped inside one generation step. Journal entries, reports, and curated memory artifacts remain in the workspace, so later Quiet passes, explain flows, and runtime reads can return to them.
 
 A long-running agent should not feel like it wakes up from zero every time. Quiet exists to stop that reset from happening.
 
@@ -115,14 +127,14 @@ Explainability is not the headline feature here. It is the trust layer that keep
 
 ---
 
-## Current status
+## Current shape
 
-### Milestone chain
+Second Nature now tracks its source of truth under `.anws/v3`.
 
-- `INT-S1` Substrate ✅
-- `INT-S2` Decision Spine ✅
-- `INT-S3` World Contact ✅
-- `INT-S4` Operator Voice ✅
+- the core plugin surface is in place
+- the v3 behavioral guidance layer is in place
+- the guidance templates have gone through human review
+- the current task board is closed with `0` open tasks in `.anws/v3/05_TASKS.md`
 
 ### Host validation
 
@@ -134,11 +146,11 @@ Host validation has been completed through the OpenClaw runtime bundled in `D:\Q
 - info ✅
 - doctor ✅
 
-### Remaining follow-up
+### What is still worth tightening
 
-- `T4.4.2` formal `ingestTick` entrypoint consolidation
-
-This is still worth doing. It is not blocking the completed milestone chain.
+- clearer platform capability notes, especially for EvoMap task flow
+- deeper runtime closure around connector execution and lifecycle polish
+- cloud deployment hardening around persistence and host setup
 
 ### Current non-blocking warnings
 
@@ -159,11 +171,7 @@ openclaw plugins info second-nature
 openclaw plugins doctor
 ```
 
-If you are using the OpenClaw runtime bundled in QClaw on this machine, the tested command path is:
-
-```bash
-node "D:\QClaw\resources\openclaw\node_modules\openclaw\openclaw.mjs" --profile qclaw-plugin-test plugins install file:./plugin
-```
+If your environment does not expose a global `openclaw` command yet, run the same plugin commands through the OpenClaw runtime entry available in that host.
 
 ### ClawHub
 
@@ -191,38 +199,152 @@ If your OpenClaw instance runs in the cloud, install the plugin in that host env
 
 1. Install and enable the plugin.
 2. Confirm it is loaded with `plugins list` and `plugins info second-nature`.
-3. Configure policy and recover credentials if needed.
-4. Inspect status, Quiet, report, session, and credential views.
-5. Use explain when you need to understand a decision, a recovery path, or a memory-related change.
+3. Prepare the local `workspace/` anchor files.
+4. Configure policy and recover credentials if needed.
+5. Inspect status, Quiet, report, session, and credential views.
+6. Use explain when you need to understand a decision, a recovery path, or a memory-related change.
 
 For the full operator path, see `docs/operator-walkthrough.md`.
 
 ---
 
+## Workspace and memory
+
+Second Nature reads its long-running identity and continuity context from the local `workspace/` directory.
+
+These anchor files matter:
+
+- `workspace/SOUL.md` for enduring values, stance, and inner direction
+- `workspace/USER.md` for the relationship with the owner and what matters to them
+- `workspace/IDENTITY.md` for self-description, role, and behavioral boundaries
+- `workspace/MEMORY.md` for longer-lived facts and continuity worth carrying forward
+
+During runtime, the guidance layer reads these files as source material, then selects a small number of relevant snippets for the current scene. The files stay as the source of truth. The runtime only carries what is useful for that moment.
+
+If you are writing these files from scratch, first-person writing works well. It gives the agent something it can actually inhabit instead of a pile of detached notes.
+
+Second Nature also writes back into `workspace/memory/` as it runs:
+
+- daily journals
+- daily reports
+- curated memory
+- anchor write proposals
+
+You can read those as three layers:
+
+- `daily journal` is the trace of activities and observations from the day
+- `daily report` is a compressed summary across a span of activity
+- `curated memory` is what has already been distilled and is ready to be carried forward
+
+`anchor write proposal` appears less often. It mainly shows up when the system is preparing to touch anchor assets, not as a guaranteed output of every Quiet pass.
+
+That gives the agent something to return to during Quiet, recovery, and explanation.
+
+---
+
+## Configuration basics
+
+There are three things to set up before the system feels alive.
+
+### 1. Anchor files
+
+Make sure the `workspace/` directory exists and the anchor files above are present.
+
+### 2. Platform credentials
+
+Current platform credential expectations:
+
+- `moltbook`: `api_key`
+- `instreet`: `api_key` and, in some cases, a verification step before the key becomes active
+- `evomap`: registration flow that yields a `node_secret`, then uses that secret for heartbeat, work discovery, and task claim
+
+### 3. Policy
+
+The current CLI write path supports policy updates through `policy set`. At the moment, the main fields are:
+
+- `platformId`
+- `socialDailyLimit`
+- `quietEnabled`
+
+The CLI also exposes read and recovery views through:
+
+- `status`
+- `credential`
+- `quiet`
+- `report`
+- `session`
+- `explain`
+
+That is enough for baseline inspection and recovery. More complete audit views are still settling into place.
+
+---
+
 ## Architecture snapshot
 
-Second Nature currently consists of five systems:
+Second Nature currently consists of six systems:
 
 - `cli-system` for config, explain, recovery, and operator-facing views
 - `control-plane-system` for rhythm, intent, Quiet, resume, and outreach orchestration
 - `connector-system` for capability contracts and execution adapters
 - `state-system` for local state, memory artifacts, governed writes, and credential ownership
 - `observability-system` for evidence, telemetry, redaction, and governance audit
+- `behavioral-guidance-system` for runtime atmosphere, behavioral impulses, persona reinforcement, and output guard
 
-The architecture and task source of truth lives under `.anws/v2`.
+The architecture and task source of truth lives under `.anws/v3`.
+
+### Runtime flow in one pass
+
+At a high level, the loop looks like this:
+
+1. OpenClaw wakes the plugin through command usage, session context, or scheduled ticks.
+2. The control plane checks rhythm, risk, budgets, and pending obligations.
+3. Candidate intents are planned: exploration, social, outreach, maintenance, reflection, or obligation-driven work.
+4. The guidance layer assembles a lightweight payload for the current scene.
+5. The selected intent is dispatched through the connector layer or through memory/reflection paths.
+6. Outcomes land in state, observability, and workspace memory artifacts.
+7. Quiet windows turn recent traces into something the agent can keep using.
+
+The rhythm layer gives the system hard windows. The action inside those windows stays flexible. That helps the agent feel directed without turning it into a clockwork script.
+
+---
+
+## Platform coverage
+
+### Moltbook
+
+- current capability surface: `feed.read`, `post.publish`, `comment.reply`
+- intended role: social browsing, public participation, lightweight posting
+- current state: adapter shape is in place; deeper production polish still belongs on the roadmap
+
+### InStreet
+
+- current capability surface: `notification.list`, `message.send`, `comment.reply`, `agent.heartbeat`
+- intended role: notifications, replies, private contact, keepalive
+- current state: credential verification and recovery path are modeled more fully than the other social connector paths, though the connector still belongs to an actively maturing integration layer
+
+### EvoMap
+
+- current capability surface: `agent.register`, `agent.heartbeat`, `work.discover`, `task.claim`
+- intended role: node registration, keepalive, work discovery, task intake
+- current state: the mixed-channel contract is in place and the main entrypoints are modeled; the full work lifecycle still needs more closure around evaluation, execution, reporting, and asset flow
 
 ---
 
 ## Validation
 
-Validation artifacts live under `docs/validation/`:
+Validation artifacts live under `docs/validation/` and currently include the v3 guidance reports:
 
-- `docs/validation/s1-substrate-report.md`
-- `docs/validation/s2-decision-spine-report.md`
-- `docs/validation/s3-world-contact-report.md`
-- `docs/validation/s4-operator-voice-report.md`
+- `docs/validation/v3-s1-guidance-core-report.md`
+- `docs/validation/v3-s2-humanized-runtime-report.md`
 
 The end-to-end operator path is documented in `docs/operator-walkthrough.md`.
+
+If you want the architecture history and task ledger, start with:
+
+- `.anws/v3/02_ARCHITECTURE_OVERVIEW.md`
+- `.anws/v3/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
+- `.anws/v3/05_TASKS.md`
+- `AGENTS.md`
 
 ---
 
@@ -238,10 +360,13 @@ If the project is published externally, the release-facing materials should at l
 
 - `README.md`
 - `README.zh-CN.md`
+- `SKILL.md`
 - `plugin/package.json`
 - `plugin/openclaw.plugin.json`
 - `docs/operator-walkthrough.md`
 - `docs/validation/*.md`
+
+`SKILL.md` works best as a setup helper. Once the system is connected and the long-lived principles have been carried into workspace memory assets, it does not need to remain a permanent part of the runtime package.
 
 ---
 
