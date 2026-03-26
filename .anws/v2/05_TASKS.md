@@ -671,7 +671,7 @@ graph TD
 
 ## 📍 Sprint 集成验证任务
 
-- [ ] **INT-S1** [MILESTONE]: S1 集成验证 — Substrate
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Substrate
   - **描述**: 验证 shared contracts、state schema、credential vault、effect commit store 与 plugin shell 是否形成可启动底座。
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md` §6；`04_SYSTEM_DESIGN/state-system.md` §5.2；T1.1.1, T1.1.2, T1.2.1, T1.2.2, T1.2.3, T2.1.1, T2.1.2, T5.1.1 的产出
   - **输出**: `docs/validation/s1-substrate-report.md`
