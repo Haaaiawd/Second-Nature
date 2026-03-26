@@ -178,6 +178,7 @@ src/
 - Wave 2 完成: `T1.2.3`, `T2.1.1`
 - Wave 3 完成: `T2.2.1`, `T2.2.2`, `T2.2.3`
 - Wave 4 完成: `T3.1.1`
+- Guidance 模板审核: `baseline/social/reply/outreach/quiet/persona-selection-policy 已人工审核通过`
 - 最近更新: `2026-03-26`
 
 ### 🌊 Wave 1 ✅ — Behavioral Guidance Foundation

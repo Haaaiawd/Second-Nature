@@ -9,16 +9,16 @@ test("guidance review workflow includes every required template in one checklist
   assert.equal(checklist.items.length, 6);
   assert.ok(checklist.items.every((item) => item.reviewRequired));
   assert.ok(checklist.items.every((item) => item.relativePath.startsWith("src/guidance/templates/")));
-  assert.ok(checklist.items.every((item) => item.reviewStatus === "pending_human_review"));
-  assert.ok(checklist.items.every((item) => item.nextAction === "human_review_required"));
+  assert.ok(checklist.items.every((item) => ["pending_human_review", "approved", "rejected"].includes(item.reviewStatus)));
   assert.doesNotThrow(() => JSON.stringify(checklist));
 });
 
-test("review workflow keeps rejection path explicit through nextAction mapping", async () => {
+test("review workflow maps approved templates to ready_for_runtime_use", async () => {
   const checklist = await collectGuidanceReviewChecklist();
   const personaPolicy = checklist.items.find((item) => item.templateId === "persona.selection");
 
   assert.ok(personaPolicy);
   assert.equal(personaPolicy?.scope, "persona_reinforcement_policy");
-  assert.equal(personaPolicy?.nextAction, "human_review_required");
+  assert.equal(personaPolicy?.reviewStatus, "approved");
+  assert.equal(personaPolicy?.nextAction, "ready_for_runtime_use");
 });

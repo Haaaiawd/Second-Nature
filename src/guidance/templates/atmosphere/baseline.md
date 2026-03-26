@@ -1,5 +1,5 @@
 ---
-review_status: pending_human_review
+review_status: approved
 review_required: true
 scope: runtime_atmosphere
 ---
