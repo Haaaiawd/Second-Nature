@@ -455,7 +455,7 @@ graph TD
   - **依赖**: T1.1.1
   - **优先级**: P0
 
-- [ ] **T4.1.2** [REQ-002]: 实现 intent planner、guard layer 与 decision basis 选择
+- [x] **T4.1.2** [REQ-002]: 实现 intent planner、guard layer 与 decision basis 选择
   - **描述**: 实现 obligation/platform/quiet/outreach 意图合成、guard 判定、`rule_only/score_based/model_assisted` 决策路径。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §4.2；`04_SYSTEM_DESIGN/control-plane-system.md` §5.1 `planIntent/evaluateGuards`；`04_SYSTEM_DESIGN/control-plane-system.md` §6.4；T4.1.1, T3.1.1 的产出
   - **输出**: `src/core/second-nature/orchestrator/intent-planner.ts`, `src/core/second-nature/orchestrator/guard-layer.ts`
@@ -686,7 +686,7 @@ graph TD
   - **依赖**: T1.1.1, T1.1.2, T1.2.1, T1.2.2, T1.2.3, T2.1.1, T2.1.2, T5.1.1
   - **优先级**: P0
 
-- [ ] **INT-S2** [MILESTONE]: S2 集成验证 — Decision Spine
+- [x] **INT-S2** [MILESTONE]: S2 集成验证 — Decision Spine
   - **描述**: 验证 state API、governance、decision ledger、evidence query 与 rhythm/guard spine 是否能支撑 synthetic decision cycle。
   - **输入**: `01_PRD.md` §US-001, §US-002, §US-005；T1.3.1, T1.3.2, T2.2.1, T2.2.2, T2.3.1, T4.1.1, T4.1.2 的产出
   - **输出**: `docs/validation/s2-decision-spine-report.md`
