@@ -287,7 +287,7 @@ graph TD
   - **依赖**: T2.1.1, T1.1.1
   - **优先级**: P0
 
-- [ ] **T2.3.1** [REQ-008]: 实现 Evidence QueryEngine 与 resolution plan
+- [x] **T2.3.1** [REQ-008]: 实现 Evidence QueryEngine 与 resolution plan
   - **描述**: 实现 `queryEvidence()`、`resolveEvidencePath()` 与 explanation capsule 组装逻辑，确保查询先走索引计划，再按需解析 `content_ref`。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §4.3；`04_SYSTEM_DESIGN/observability-system.md` §6.3；`04_SYSTEM_DESIGN/observability-system.detail.md` §3.6；T2.2.1, T2.2.2, T1.3.2 的产出
   - **输出**: `src/observability/query/evidence-query-engine.ts`, `src/observability/query/compose-evidence.ts`
@@ -340,7 +340,7 @@ graph TD
 
 ### Phase 1: Contract Foundation (连接器契约基础)
 
-- [ ] **T3.1.1** [REQ-007]: 实现 connector contract core 与 manifest loader
+- [x] **T3.1.1** [REQ-007]: 实现 connector contract core 与 manifest loader
   - **描述**: 建立 capability registry、manifest schema、failure taxonomy、connector request/result 结构与统一入口。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §4.2；`04_SYSTEM_DESIGN/connector-system.md` §5.1；`04_SYSTEM_DESIGN/connector-system.md` §6.1；T1.1.1 的 shared contracts
   - **输出**: `src/connectors/base/contract.ts`, `src/connectors/base/manifest.ts`, `src/connectors/base/failure-taxonomy.ts`
@@ -440,7 +440,7 @@ graph TD
 
 ### Phase 1: Rhythm & Intent Core (节律与意图核心)
 
-- [ ] **T4.1.1** [REQ-001]: 实现 rhythm policy 模型与窗口选择器
+- [x] **T4.1.1** [REQ-001]: 实现 rhythm policy 模型与窗口选择器
   - **描述**: 实现节律配置模型、时间窗口匹配与 top-level mode 选择逻辑。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §4.4；`04_SYSTEM_DESIGN/control-plane-system.md` §5.1 `selectRhythmWindow`；`01_PRD.md` §US-001, §US-002
   - **输出**: `src/core/second-nature/rhythm/rhythm-policy.ts`, `src/core/second-nature/rhythm/select-window.ts`
