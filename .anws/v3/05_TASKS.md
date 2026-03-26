@@ -214,7 +214,7 @@ graph TD
   - **依赖**: T2.2.3
   - **优先级**: P0
 
-- [ ] **INT-S2** [MILESTONE]: S2 集成验证 — Humanized Runtime
+- [x] **INT-S2** [MILESTONE]: S2 集成验证 — Humanized Runtime
   - **描述**: 验证 guidance 审核流程、outreach 意图级提示、persona reinforcement 与 output guard 是否形成可人工审核且不模板化的运行时行为链。
   - **输入**: T2.2.1, T2.2.2, T2.2.3, T3.1.1, T3.2.1 的产出
   - **输出**: `docs/validation/v3-s2-humanized-runtime-report.md`
