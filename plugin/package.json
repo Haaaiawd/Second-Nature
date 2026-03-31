@@ -1,6 +1,6 @@
 {
-  "name": "@haaaiawd/openclaw-plugin",
-  "version": "0.1.0",
+  "name": "@haaaiawd/second-nature",
+  "version": "0.1.1",
   "description": "OpenClaw native plugin for long-running agent continuity, Quiet memory curation, and explainable operator flows.",
   "keywords": [
     "openclaw",
@@ -17,7 +17,8 @@
   "main": "./index.ts",
   "files": [
     "index.ts",
-    "openclaw.plugin.json"
+    "openclaw.plugin.json",
+    "runtime/"
   ],
   "publishConfig": {
     "access": "public"
@@ -27,5 +28,10 @@
     "extensions": [
       "./index.ts"
     ]
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "drizzle-orm": "^0.44.4",
+    "zod": "^4.1.5"
   }
 }

@@ -59,7 +59,7 @@ graph TD
 
 ### Phase 1: Runtime Package Foundation
 
-- [ ] **T1.1.1** [REQ-017]: 建立 plugin runtime artifact 构建边界
+- [x] **T1.1.1** [REQ-017]: 建立 plugin runtime artifact 构建边界
   - **描述**: 为 `plugin/` 定义正式的 runtime artifact 构建入口，明确发布包如何包含包内 runtime，而不是继续依赖源码仓 `src/` 相对路径。
   - **输入**: `.anws/v4/01_PRD.md` §4 US-004 [REQ-017]；`.anws/v4/03_ADR/ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md`；`.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §4.4
   - **输出**: plugin runtime artifact 构建入口、构建配置、artifact 目录约定

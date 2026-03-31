@@ -1,0 +1,16 @@
+export { createStateDatabase } from "./db/index.js";
+export * as storageSchema from "./db/schema/index.js";
+export * from "./repositories/index.js";
+export { createWorkspaceArtifactStore } from "./memory/workspace/store.js";
+export * from "./memory/workspace/paths.js";
+export * from "./memory/workspace/types.js";
+export { createCredentialVault } from "./services/credential-vault.js";
+export { createEffectCommitStore } from "./services/effect-commit-store.js";
+export { createDailyLogPipeline } from "./services/daily-log-pipeline.js";
+export { createQuietInputLoader } from "./services/quiet-input-loader.js";
+export { createPersonaCandidateLoader } from "./services/persona-candidate-loader.js";
+export { createGovernanceLayer } from "./services/governance-layer.js";
+export { createProvenanceService } from "./services/provenance-service.js";
+export { createRepairAndBackupService, } from "./services/repair-and-backup.js";
+export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
+export { createStateAPI } from "./state-api.js";
