@@ -144,7 +144,7 @@ graph TD
 
 ### Phase 0: Host Bridge Validation
 
-- [ ] **T2.0.1** [REQ-014]: 确认 OpenClaw heartbeat 宿主桥接策略
+- [x] **T2.0.1** [REQ-014]: 确认 OpenClaw heartbeat 宿主桥接策略
   - **描述**: 在实现 heartbeat 主链前，先通过 POC 确认 OpenClaw heartbeat 如何被桥接进 Second Nature，可候选路径包括 `HEARTBEAT.md + tool use`、service-assisted bridge 或其他宿主可实现方案。
   - **输入**: `.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §3.3, §4.1, §5.3, §11.3
   - **输出**: heartbeat host bridge 策略、POC 结论、选定桥接路径
