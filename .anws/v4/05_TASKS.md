@@ -234,7 +234,7 @@ graph TD
 
 ### Phase 1: Decision Trace Closure
 
-- [ ] **T5.1.1** [REQ-018]: 记录 heartbeat 决策与 scope 标签
+- [x] **T5.1.1** [REQ-018]: 记录 heartbeat 决策与 scope 标签
   - **描述**: 为 observability 增加 heartbeat decision record、scope tag 和静默结果记录，使 `HEARTBEAT_OK`、deny、allow 都能被解释与追踪。
   - **输入**: `.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §5.1, §9, §11；`.anws/v4/02_ARCHITECTURE_OVERVIEW.md` §System 5；T2.2.2 产出的 heartbeat decision loop
   - **输出**: heartbeat decision ledger、scope-tagged observability events、查询支持

@@ -27,6 +27,19 @@ export interface OutreachDecision {
   createdAt: string;
 }
 
+export interface HeartbeatDecisionEvent {
+  id: string;
+  tickId: string;
+  traceId: string;
+  runtimeScope: "rhythm" | "user_task" | "user_reply";
+  triggerSource: "heartbeat_bridge" | "user_task" | "user_reply" | "interrupt" | "resume";
+  decisionStatus: "heartbeat_ok" | "intent_selected" | "denied" | "deferred";
+  reasons: string[];
+  intentId?: string;
+  mode: "active" | "quiet" | "maintenance_only" | "paused_for_interrupt";
+  createdAt: string;
+}
+
 export class DecisionLedger {
   constructor(private db: ObservabilityDatabase) {}
 
@@ -48,6 +61,34 @@ export class DecisionLedger {
       createdAt: redacted.createdAt,
     });
     await persistRedactionManifest(this.db, redacted.id, "decision.recorded", manifest);
+  }
+
+  async recordHeartbeatDecision(event: HeartbeatDecisionEvent): Promise<void> {
+    const { redacted, manifest } = redactEvent(event);
+
+    // Map decisionStatus to existing verdict field without changing business semantics
+    const verdict = mapHeartbeatStatusToVerdict(redacted.decisionStatus);
+
+    await this.db.db.insert(decisionLedger).values({
+      id: redacted.id,
+      tickId: redacted.tickId,
+      traceId: redacted.traceId,
+      intentId: redacted.intentId ?? null,
+      platformId: null,
+      verdict,
+      mode: redacted.mode,
+      reasons: JSON.stringify(redacted.reasons),
+      reasonCodes: JSON.stringify(["heartbeat_decision"]),
+      decisionBasis: "rule_only",
+      evidenceRefs: JSON.stringify([
+        `scope:${redacted.runtimeScope}`,
+        `trigger:${redacted.triggerSource}`,
+        `status:${redacted.decisionStatus}`,
+      ].filter(Boolean)),
+      modelEvalRef: null,
+      createdAt: redacted.createdAt,
+    });
+    await persistRedactionManifest(this.db, redacted.id, "heartbeat.decision", manifest);
   }
 
   async recordQuietLifecycle(event: QuietLifecycleEvent): Promise<void> {
@@ -144,5 +185,23 @@ export class DecisionLedger {
       modelEvalRef: row.modelEvalRef ?? undefined,
       createdAt: row.createdAt,
     };
+  }
+}
+
+/**
+ * Map heartbeat decision status to existing verdict field.
+ * This preserves the existing DecisionRecord semantics while allowing
+ * heartbeat-specific status to be recoverable from evidenceRefs.
+ */
+function mapHeartbeatStatusToVerdict(status: HeartbeatDecisionEvent["decisionStatus"]): DecisionRecord["verdict"] {
+  switch (status) {
+    case "intent_selected":
+      return "allow";
+    case "denied":
+      return "deny";
+    case "deferred":
+      return "defer";
+    case "heartbeat_ok":
+      return "defer";
   }
 }
