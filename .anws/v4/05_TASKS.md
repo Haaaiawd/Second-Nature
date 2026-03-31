@@ -93,7 +93,7 @@ graph TD
 
 ### Phase 2: Plugin Surface Rewire
 
-- [ ] **T1.2.1** [REQ-017]: 重写 plugin wrapper 到包内 runtime 解析路径
+- [x] **T1.2.1** [REQ-017]: 重写 plugin wrapper 到包内 runtime 解析路径
   - **描述**: 修改 `plugin/index.ts`，让 wrapper 只解析包内 runtime registration layer，不再尝试 `require("../src/...")`。
   - **输入**: `.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §4.1, §4.3, §8；`plugin/index.ts`；T1.1.2 产出的 packaged runtime modules
   - **输出**: 重写后的 plugin wrapper、稳定的包内 runtime 解析路径

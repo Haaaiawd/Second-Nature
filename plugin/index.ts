@@ -41,7 +41,7 @@ function resolveCommandRouterSafe(): {
   const require = createRequire(import.meta.url);
 
   try {
-    const mod = require("../src/cli/index.js") as { createCommandRouter: () => { commands: any[]; resolve: (name: string) => any } };
+    const mod = require("./runtime/cli/index.js") as { createCommandRouter: () => { commands: any[]; resolve: (name: string) => any } };
     if (mod?.createCommandRouter) {
       return mod.createCommandRouter();
     }
