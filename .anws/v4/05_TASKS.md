@@ -196,7 +196,7 @@ graph TD
 
 ### Phase 2: Heartbeat Decision Spine
 
-- [ ] **T2.2.1** [REQ-018]: 实现 heartbeat 轮的默认保守决策路径
+- [x] **T2.2.1** [REQ-018]: 实现 heartbeat 轮的默认保守决策路径
   - **描述**: 将 candidate intent planning、guard evaluation 和 `HEARTBEAT_OK` 静默结果接成正式 decision loop，让 heartbeat 默认先判断再动作。
   - **输入**: `.anws/v4/01_PRD.md` §4 US-005 [REQ-018]；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.2, §4.3, §5.1；T2.1.1 产出的 heartbeat signal contract；T2.1.2 产出的 scope signal router
   - **输出**: heartbeat decision loop、静默结果路径、candidate intent planning 逻辑

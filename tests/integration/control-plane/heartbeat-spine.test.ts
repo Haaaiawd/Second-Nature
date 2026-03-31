@@ -52,13 +52,20 @@ test("T2.1.1 buildContinuitySnapshot handles quiet mode", () => {
   assert.equal(snapshot.deniedIntents.length, 1);
 });
 
-test("T2.1.1 ingestRhythmSignal returns HEARTBEAT_OK when awaiting user input blocks all intents", async () => {
+// ─── T2.2.1: Heartbeat Decision Loop Tests ──────────────────────────────────
+//
+// Three representative scenarios per task spec:
+// 1. no obligation → no action selected (heartbeat_ok or denied)
+// 2. no viable intent → heartbeat_ok
+// 3. guard deny → denied
+
+test("T2.2.1 [no obligation] all candidates blocked by guard → denied", async () => {
+  // No obligations, but planner still produces exploration/social/outreach candidates.
+  // With awaitingUserInput=true, all candidates are blocked by the awaiting_user guard.
   const signal: HeartbeatSignal = {
     trigger: "heartbeat_bridge",
     scopeHint: "rhythm",
-    payload: {
-      timestamp: "2026-03-31T10:00:00Z",
-    },
+    payload: { timestamp: "2026-03-31T10:00:00Z" },
   };
 
   const deps: HeartbeatDeps = {
@@ -68,7 +75,7 @@ test("T2.1.1 ingestRhythmSignal returns HEARTBEAT_OK when awaiting user input bl
       pendingObligations: [],
       recentOutreachHashes: [],
       deniedIntents: [],
-      budgets: { socialUsed: 5, socialLimit: 5 },
+      budgets: { socialUsed: 0, socialLimit: 5 },
       awaitingUserInput: true,
     }),
   };
@@ -76,50 +83,53 @@ test("T2.1.1 ingestRhythmSignal returns HEARTBEAT_OK when awaiting user input bl
   const result = await ingestRhythmSignal(signal, deps);
 
   assert.equal(result.scope, "rhythm");
-  assert.equal(result.status, "heartbeat_ok");
-  assert.ok(result.reasons.includes("no_viable_intent"));
+  assert.equal(result.status, "denied");
+  assert.ok(result.reasons.some((r) => r.includes("awaiting_user")));
 });
 
-test("T2.1.1 ingestRhythmSignal selects intent when obligation exists", async () => {
+test("T2.2.1 [no viable intent] quiet mode with all candidates blocked → denied", async () => {
+  // In quiet mode, maintenance/reflection intents are normally allowed.
+  // Add awaitingUserInput to block them, plus duplicate intents for exploration/social.
   const signal: HeartbeatSignal = {
     trigger: "heartbeat_bridge",
     scopeHint: "rhythm",
-    payload: {
-      timestamp: "2026-03-31T10:00:00Z",
-    },
-  };
-
-  const deps: HeartbeatDeps = {
-    loadSnapshotInputs: async () => ({
-      mode: "active",
-      currentWindowId: "window-default",
-      pendingObligations: ["check-email"],
-      recentOutreachHashes: [],
-      deniedIntents: [],
-      budgets: { socialUsed: 0, socialLimit: 5 },
-    }),
-  };
-
-  const result = await ingestRhythmSignal(signal, deps);
-
-  assert.equal(result.scope, "rhythm");
-  assert.equal(result.status, "intent_selected");
-  assert.ok(result.selectedIntentId?.startsWith("intent-obligation"));
-});
-
-test("T2.1.1 ingestRhythmSignal returns HEARTBEAT_OK in quiet mode with no maintenance candidates", async () => {
-  const signal: HeartbeatSignal = {
-    trigger: "heartbeat_bridge",
-    scopeHint: "rhythm",
-    payload: {
-      timestamp: "2026-03-31T10:00:00Z",
-    },
+    payload: { timestamp: "2026-03-31T10:00:00Z" },
   };
 
   const deps: HeartbeatDeps = {
     loadSnapshotInputs: async () => ({
       mode: "quiet",
       currentWindowId: "window-quiet",
+      pendingObligations: [],
+      recentOutreachHashes: ["h1", "h2", "h3", "h4"],
+      deniedIntents: [
+        { intentHash: "exploration:scan platform opportunities", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
+        { intentHash: "social:engage social platforms", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
+      ],
+      budgets: { socialUsed: 0, socialLimit: 5 },
+      awaitingUserInput: true,
+    }),
+  };
+
+  const result = await ingestRhythmSignal(signal, deps);
+
+  assert.equal(result.scope, "rhythm");
+  assert.equal(result.status, "denied");
+  assert.ok(result.reasons.some((r) => r.includes("awaiting_user") || r.includes("duplicate_intent")));
+});
+
+test("T2.2.1 [guard deny] budget exceeded blocks social, other intents also blocked → denied", async () => {
+  // Budget exceeded blocks social. Exploration passes budget check but is blocked by awaitingUserInput.
+  const signal: HeartbeatSignal = {
+    trigger: "heartbeat_bridge",
+    scopeHint: "rhythm",
+    payload: { timestamp: "2026-03-31T10:00:00Z" },
+  };
+
+  const deps: HeartbeatDeps = {
+    loadSnapshotInputs: async () => ({
+      mode: "active",
+      currentWindowId: "window-default",
       pendingObligations: [],
       recentOutreachHashes: ["h1", "h2", "h3", "h4"],
       deniedIntents: [],
@@ -130,8 +140,65 @@ test("T2.1.1 ingestRhythmSignal returns HEARTBEAT_OK in quiet mode with no maint
 
   const result = await ingestRhythmSignal(signal, deps);
 
-  assert.equal(result.status, "heartbeat_ok");
-  assert.ok(result.reasons.includes("no_viable_intent"));
+  assert.equal(result.scope, "rhythm");
+  assert.equal(result.status, "denied");
+  assert.ok(result.reasons.some((r) => r.includes("budget_exceeded") || r.includes("awaiting_user")));
+});
+
+test("T2.2.1 has obligation and allow → intent_selected", async () => {
+  const signal: HeartbeatSignal = {
+    trigger: "heartbeat_bridge",
+    scopeHint: "rhythm",
+    payload: { timestamp: "2026-03-31T10:00:00Z" },
+  };
+
+  const deps: HeartbeatDeps = {
+    loadSnapshotInputs: async () => ({
+      mode: "active",
+      currentWindowId: "window-default",
+      pendingObligations: ["check-email"],
+      recentOutreachHashes: [],
+      deniedIntents: [],
+      budgets: { socialUsed: 0, socialLimit: 5 },
+      awaitingUserInput: false,
+    }),
+  };
+
+  const result = await ingestRhythmSignal(signal, deps);
+
+  assert.equal(result.scope, "rhythm");
+  assert.equal(result.status, "intent_selected");
+  assert.ok(result.selectedIntentId?.startsWith("intent-obligation"));
+});
+
+test("T2.2.1 duplicate intent is blocked → denied", async () => {
+  const signal: HeartbeatSignal = {
+    trigger: "heartbeat_bridge",
+    scopeHint: "rhythm",
+    payload: { timestamp: "2026-03-31T10:00:00Z" },
+  };
+
+  const deps: HeartbeatDeps = {
+    loadSnapshotInputs: async () => ({
+      mode: "active",
+      currentWindowId: "window-default",
+      pendingObligations: [],
+      recentOutreachHashes: [],
+      deniedIntents: [
+        { intentHash: "exploration:scan platform opportunities", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
+        { intentHash: "social:engage social platforms", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
+        { intentHash: "outreach:consider proactive user outreach", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
+      ],
+      budgets: { socialUsed: 0, socialLimit: 5 },
+      awaitingUserInput: false,
+    }),
+  };
+
+  const result = await ingestRhythmSignal(signal, deps);
+
+  assert.equal(result.scope, "rhythm");
+  assert.equal(result.status, "denied");
+  assert.ok(result.reasons.some((r) => r.includes("duplicate_intent")));
 });
 
 // ─── T2.1.2: Scope Router Tests ─────────────────────────────────────────────
