@@ -75,7 +75,7 @@ graph TD
   - **依赖**: T1.0.1
   - **优先级**: P0
 
-- [ ] **T1.1.2** [REQ-017]: 打包 command router 与 CLI runtime 依赖图
+- [x] **T1.1.2** [REQ-017]: 打包 command router 与 CLI runtime 依赖图
   - **描述**: 将 command router、read models、action bridge、state/observability runtime 依赖图纳入 artifact，保证命令执行路径在宿主里闭合。
   - **输入**: `.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §4.2, §4.3, §5.1；`src/cli/index.ts`；T1.1.1 产出的 artifact 构建入口
   - **输出**: 被打包的 command router、CLI runtime deps、artifact 内引用关系
