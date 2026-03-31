@@ -124,7 +124,7 @@ graph TD
   - **依赖**: T1.2.1
   - **优先级**: P0
 
-- [ ] **INT-S1** [MILESTONE]: S1 集成验证 — Runtime Package
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Runtime Package
   - **描述**: 验证 runtime artifact package 是否真正让插件安装后可运行，而不是继续退化为 fallback。
   - **输入**: T1.1.1、T1.1.2、T1.2.1、T1.2.2 的产出
   - **输出**: S1 集成验证报告（artifact 内容 + surface 可用性 + fallback 检查）
