@@ -23,3 +23,14 @@ export {
   routeScopedInput,
   type ScopeRouterDeps,
 } from "./scope-router.js";
+
+export {
+  requestGuidanceForIntent,
+  dispatchAllowedEffect,
+  executeHeartbeatCycle,
+  type GuidanceBridgeDeps,
+  type EffectDispatchDeps,
+  type HeartbeatExecutorDeps,
+  type GuidanceBridgeResult,
+  type HeartbeatExecutionResult,
+} from "./heartbeat-executor.js";

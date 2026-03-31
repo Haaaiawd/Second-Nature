@@ -212,7 +212,7 @@ graph TD
   - **依赖**: T2.1.2
   - **优先级**: P1
 
-- [ ] **T2.2.2** [REQ-014]: 接通 guidance bridge 与 allow-only effect dispatch
+- [x] **T2.2.2** [REQ-014]: 接通 guidance bridge 与 allow-only effect dispatch
   - **描述**: 仅在 scene 被选中时请求 guidance payload，并将 allow 的 heartbeat 结果接到 connector / Quiet / reflection / outreach judgment 路径。
   - **输入**: `.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.3, §5.1；`.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；T2.2.1 产出的 heartbeat decision loop
   - **输出**: heartbeat scene guidance 接口、allow-only effect dispatch 路径
