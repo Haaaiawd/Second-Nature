@@ -5,21 +5,38 @@ import { createRequire } from 'module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
+
+/**
+ * Resolve project root regardless of whether script runs from source or dist/.
+ * When compiled, __dirname is dist/scripts/, so we need to go up two levels.
+ * When running from source via --experimental-strip-types, __dirname is scripts/.
+ */
+function resolveRootDir(): string {
+  if (__dirname.includes(path.sep + 'dist' + path.sep + 'scripts')) {
+    return path.resolve(__dirname, '..', '..');
+  }
+  if (__dirname.endsWith('scripts')) {
+    return path.resolve(__dirname, '..');
+  }
+  return path.resolve(__dirname, '..');
+}
+
+const rootDir = resolveRootDir();
 const require = createRequire(import.meta.url);
 
-console.log('=== Packaging Feasibility POC Report ===\n');
+console.log('=== Packaging Feasibility POC Report ===');
+console.log('Project root:', rootDir, '\n');
 
 // 1. Test jiti loading of compiled JS
 console.log('--- Test 1: jiti loading of compiled JS ---');
 try {
   const { createJiti } = require('jiti');
   const jiti = createJiti(import.meta.url);
-  
+
   const cliPath = path.resolve(rootDir, 'dist/src/cli/index.js');
   console.log('Attempting to load:', cliPath);
   console.log('File exists:', fs.existsSync(cliPath));
-  
+
   const mod = jiti(cliPath);
   console.log('Module loaded successfully:', !!mod);
   console.log('Has createCommandRouter:', !!mod.createCommandRouter);
@@ -64,29 +81,25 @@ const pluginPkgPath = path.resolve(rootDir, 'plugin/package.json');
 const pluginPkg = JSON.parse(fs.readFileSync(pluginPkgPath, 'utf-8'));
 console.log('Current plugin files field:', JSON.stringify(pluginPkg.files));
 console.log('Current plugin main:', pluginPkg.main);
-console.log('Plugin has no dependencies field:', !pluginPkg.dependencies);
+console.log('Plugin has dependencies field:', !!pluginPkg.dependencies);
 
-const neededForRuntime = [
-  'command router (dist/src/cli/index.js)',
-  'read models (dist/src/cli/read-models/)',
-  'action bridge (dist/src/cli/action-bridge.js)',
-  'state runtime (dist/src/storage/)',
-  'observability runtime (dist/src/observability/)',
-  'heartbeat service entry (dist/src/core/second-nature/)',
-];
-console.log('Needed for runtime artifact:');
-neededForRuntime.forEach(item => console.log('  - ' + item));
+const runtimeDir = path.resolve(rootDir, 'plugin/runtime');
+const hasRuntimeDir = fs.existsSync(runtimeDir);
+console.log('plugin/runtime/ exists:', hasRuntimeDir);
 
-console.log('\n❌ Current artifact boundary: FAIL');
-console.log('  - Only wrapper + manifest included');
-console.log('  - No runtime code in package');
-console.log('  - References ../src/cli/index.js which does not exist after install\n');
+if (hasRuntimeDir) {
+  const entries = fs.readdirSync(runtimeDir);
+  console.log('Runtime artifact contents:', entries.join(', '));
+  console.log('✅ Artifact boundary: PASS — runtime code included in package\n');
+} else {
+  console.log('❌ Artifact boundary: FAIL — no runtime code in package\n');
+}
 
 // 5. Test compiled code import chain
 console.log('--- Test 5: Compiled code import chain ---');
 try {
   const cliPath = path.resolve(rootDir, 'dist/src/cli/index.js');
-  const cliModule = await import(cliPath);
+  const cliModule = await import(pathToFileURL(cliPath).href);
   console.log('Direct import successful:', !!cliModule);
   console.log('Exports:', Object.keys(cliModule));
   console.log('✅ Compiled import chain: PASS\n');
@@ -96,30 +109,31 @@ try {
   console.log('Error:', err.message, '\n');
 }
 
-// 6. Test plugin/index.ts loading from installed location
-console.log('--- Test 6: Plugin wrapper from installed location ---');
-const installedPlugin = 'D:/tmp/plugin-test/node_modules/@haaaiawd/second-nature';
-const installedIndexPath = path.join(installedPlugin, 'index.ts');
-const installedIndex = fs.readFileSync(installedIndexPath, 'utf-8');
-const hasExternalRef = installedIndex.includes('../src/');
-console.log('Has external src reference:', hasExternalRef);
-console.log('External ref path: ../src/cli/index.js');
-const resolvedPath = path.resolve(installedPlugin, '../src/cli/index.js');
-console.log('This path resolves to:', resolvedPath);
-console.log('Path exists:', fs.existsSync(resolvedPath));
-console.log('❌ Plugin wrapper from installed location: FAIL');
-console.log('  - Wrapper references external src/ path');
-console.log('  - After install, this path does not exist\n');
+// 6. Test plugin wrapper path resolution
+console.log('--- Test 6: Plugin wrapper path resolution ---');
+const pluginIndexPath = path.resolve(rootDir, 'plugin/index.ts');
+const pluginIndex = fs.readFileSync(pluginIndexPath, 'utf-8');
+const hasExternalRef = pluginIndex.includes('../src/');
+const hasRuntimeRef = pluginIndex.includes('./runtime/');
+console.log('Wrapper references ../src/:', hasExternalRef);
+console.log('Wrapper references ./runtime/:', hasRuntimeRef);
 
+if (!hasExternalRef && hasRuntimeRef) {
+  console.log('✅ Plugin wrapper: PASS — uses package-local paths\n');
+} else {
+  console.log('❌ Plugin wrapper: FAIL — still references external src/\n');
+}
+
+// Summary
 console.log('=== Summary ===');
-console.log('1. jiti loading: ✅ PASS - Can load compiled JS modules');
-console.log('2. better-sqlite3: ✅ PASS - Native module works in dev environment');
-console.log('3. npm install --ignore-scripts: ⚠️ RISK - better-sqlite3 needs native compilation');
-console.log('4. Artifact closure: ❌ FAIL - No runtime code in package');
-console.log('5. Compiled import chain: ✅ PASS - Direct imports work');
-console.log('6. Plugin wrapper installed: ❌ FAIL - References non-existent src/ path');
+console.log('1. jiti loading: tested');
+console.log('2. better-sqlite3: tested');
+console.log('3. npm install --ignore-scripts: RISK identified');
+console.log('4. Artifact closure:', hasRuntimeDir ? '✅ PASS' : '❌ FAIL');
+console.log('5. Compiled import chain: tested');
+console.log('6. Plugin wrapper paths:', !hasExternalRef && hasRuntimeRef ? '✅ PASS' : '❌ FAIL');
 console.log('\nConclusion: 可继续沿用 (Can continue using current stack)');
-console.log('But requires:');
-console.log('  - Package runtime code into plugin artifact');
-console.log('  - Fix plugin wrapper to use package-local paths');
-console.log('  - Address better-sqlite3 native compilation for --ignore-scripts scenarios');
+
+function pathToFileURL(filePath: string): URL {
+  return new URL('file://' + filePath.replace(/\\/g, '/'));
+}

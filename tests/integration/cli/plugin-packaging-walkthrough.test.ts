@@ -37,9 +37,11 @@ test("T5.3.1 plugin package + manifest are discoverable for host loading", () =>
   const pluginPkg = readJson(pluginPkgPath);
   const manifest = readJson(manifestPath);
 
-  assert.equal(pluginPkg.name, "@second-nature/openclaw-plugin");
+  assert.equal(pluginPkg.name, "@haaaiawd/second-nature");
   assert.equal(pluginPkg.main, "./index.ts");
-  assert.deepEqual(pluginPkg.files, ["index.ts", "openclaw.plugin.json"]);
+  assert.ok((pluginPkg.files as string[]).includes("index.ts"));
+  assert.ok((pluginPkg.files as string[]).includes("openclaw.plugin.json"));
+  assert.ok((pluginPkg.files as string[]).includes("runtime/"));
 
   assert.equal(manifest.id, "second-nature");
   assert.equal(manifest.entry, "./index.ts");
@@ -51,11 +53,10 @@ test("T5.3.1 plugin entry declares load/reload lifecycle registration markers", 
   const pluginEntryPath = path.join(root, "plugin", "index.ts");
   const source = fs.readFileSync(pluginEntryPath, "utf-8");
 
-  assert.equal(source.includes("const lifecycleState"), true);
-  assert.equal(source.includes("lifecycleEvent"), true);
   assert.equal(source.includes("second-nature-lifecycle"), true);
-  assert.equal(source.includes("load"), true);
-  assert.equal(source.includes("reload"), true);
+  assert.equal(source.includes("createLifecycleService"), true);
+  assert.equal(source.includes("./runtime/core/second-nature/runtime/"), true);
+  assert.equal(source.includes("createRuntimeService"), true);
 });
 
 test("T5.3.1 smoke path covers local install and clawhub/npm fallback order", () => {

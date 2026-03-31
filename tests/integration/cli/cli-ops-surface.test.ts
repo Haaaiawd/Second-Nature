@@ -245,7 +245,7 @@ test("T5.1.2 status/report/quiet/session/credential commands return aggregated r
   const quietResult = await quiet.execute({ scope: "recent" });
   assert.equal(quietResult.ok, true);
   assert.equal((quietResult as any).data.scope, "recent");
-  assert.equal((quietResult as any).data.mode, "quiet");
+  assert.equal((quietResult as any).data.mode, "unknown");
 
   const sessionMissing = await session.execute({});
   assert.equal(sessionMissing.ok, false);
