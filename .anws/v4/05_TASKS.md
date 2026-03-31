@@ -162,7 +162,7 @@ graph TD
 
 ### Phase 1: Runtime Boundary Foundation
 
-- [ ] **T2.1.1** [REQ-014]: 建立 heartbeat signal contract 与 snapshot 构建合同
+- [x] **T2.1.1** [REQ-014]: 建立 heartbeat signal contract 与 snapshot 构建合同
   - **描述**: 基于宿主桥接策略，为 control-plane 实现正式 `ingestRhythmSignal()` 合同与 `ContinuitySnapshot` 构建路径，让 heartbeat 语义进入自由心跳主链。
   - **输入**: `.anws/v4/01_PRD.md` §4 US-001 [REQ-014]；`.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.1, §5.1, §6；T2.0.1 产出的 heartbeat host bridge 策略
   - **输出**: heartbeat signal contract、snapshot builder、heartbeat cycle result 合同
@@ -178,7 +178,7 @@ graph TD
   - **依赖**: T2.0.1
   - **优先级**: P0
 
-- [ ] **T2.1.2** [REQ-015]: 实现显式 scope signal router
+- [x] **T2.1.2** [REQ-015]: 实现显式 scope signal router
   - **描述**: 基于桥接协议、入口类型或显式 metadata，在 control-plane 内实现 `Rhythm Scope`、`User Task Scope` 与 `User Reply Scope` 的 signal routing，而不是假设宿主天然分类。
   - **输入**: `.anws/v4/01_PRD.md` §4 US-002 [REQ-015]；`.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.4, §5.1；T2.0.1 产出的 bridge metadata 约定
   - **输出**: scope signal router、trigger metadata 分类逻辑
