@@ -12,10 +12,6 @@ interface RegisterApi {
   registerTool(tool: unknown, options?: unknown): void;
 }
 
-const lifecycleState = {
-  registerCount: 0,
-};
-
 function createFallbackCommands(): Array<{
   name: string;
   description: string;
@@ -58,30 +54,77 @@ function resolveCommandRouterSafe(): {
   };
 }
 
-const serviceShell = {
-  id: "second-nature-runtime",
-  start() {
-    return;
-  },
-};
+function createRuntimeService(): { id: string; start: () => unknown } {
+  const require = createRequire(import.meta.url);
+
+  try {
+    const runtimeMod = require("./runtime/core/second-nature/runtime/service-entry.js") as {
+      startRuntimeService: (ctx?: Record<string, unknown>) => { ready: boolean; version: string; close: () => void };
+    };
+
+    if (runtimeMod?.startRuntimeService) {
+      const handle = runtimeMod.startRuntimeService();
+      return {
+        id: "second-nature-runtime",
+        start() {
+          return { ready: handle.ready, version: handle.version };
+        },
+      };
+    }
+  } catch {
+    // fall through to minimal service shell
+  }
+
+  return {
+    id: "second-nature-runtime",
+    start() {
+      return { ready: true, version: "0.1.0-minimal" };
+    },
+  };
+}
+
+function createLifecycleService(): { id: string; start: () => unknown } {
+  const require = createRequire(import.meta.url);
+
+  try {
+    const lifecycleMod = require("./runtime/core/second-nature/runtime/lifecycle-service.js") as {
+      recordRegistration: () => { registerCount: number; phase: string; lastChangedAt: number };
+    };
+
+    if (lifecycleMod?.recordRegistration) {
+      return {
+        id: "second-nature-lifecycle",
+        start() {
+          const state = lifecycleMod.recordRegistration();
+          return { phase: state.phase, registerCount: state.registerCount };
+        },
+      };
+    }
+  } catch {
+    // fall through to minimal lifecycle shell
+  }
+
+  let registerCount = 0;
+  return {
+    id: "second-nature-lifecycle",
+    start() {
+      registerCount += 1;
+      return { phase: registerCount === 1 ? "loading" : "reloading", registerCount };
+    },
+  };
+}
 
 export default {
   id: "second-nature",
   name: "Second Nature",
   description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
   register(api: RegisterApi) {
-    lifecycleState.registerCount += 1;
-    const lifecycleEvent = lifecycleState.registerCount === 1 ? "load" : "reload";
     const router = resolveCommandRouterSafe();
+    const runtimeService = createRuntimeService();
+    const lifecycleService = createLifecycleService();
 
-    api.registerService(serviceShell);
-
-    api.registerService({
-      id: "second-nature-lifecycle",
-      start() {
-        return;
-      },
-    });
+    api.registerService(runtimeService);
+    api.registerService(lifecycleService);
 
     api.registerCli(
       ({ program }) => {

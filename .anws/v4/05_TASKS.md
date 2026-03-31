@@ -108,7 +108,7 @@ graph TD
   - **依赖**: T1.1.2
   - **优先级**: P0
 
-- [ ] **T1.2.2** [REQ-017]: 将 service surface 纳入 packaged runtime
+- [x] **T1.2.2** [REQ-017]: 将 service surface 纳入 packaged runtime
   - **描述**: 让 `second-nature-runtime` 与 `second-nature-lifecycle` 服务也由包内 runtime 产物驱动，为 heartbeat 主入口提供真正的 service 宿主入口。
   - **输入**: `.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §5.1；T1.2.1 产出的 wrapper 解析路径
   - **输出**: packaged service runtime、service bootstrap 入口
