@@ -250,7 +250,7 @@ graph TD
   - **依赖**: T2.2.2
   - **优先级**: P1
 
-- [ ] **INT-S2** [MILESTONE]: S2 集成验证 — Heartbeat Spine
+- [x] **INT-S2** [MILESTONE]: S2 集成验证 — Heartbeat Spine
   - **描述**: 验证 heartbeat 主入口、scope routing、默认静默策略与 decision record 是否形成完整主链。
   - **输入**: T2.1.1、T2.1.2、T2.2.1、T2.2.2、T5.1.1 的产出
   - **输出**: S2 集成验证报告（heartbeat 主链通过/失败 + Bug 清单）
