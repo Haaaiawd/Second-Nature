@@ -291,7 +291,7 @@ graph TD
 
 ### Phase 0: Integration Feasibility
 
-- [ ] **T3.0.1** [REQ-014]: 确认 Moltbook 最小真实对接路径与文档依据
+- [x] **T3.0.1** [REQ-014]: 确认 Moltbook 最小真实对接路径与文档依据
   - **描述**: 在实现 Moltbook 最小客户端前，先确认真实 API、CLI 或 skill/browser fallback 的可用路径，并记录文档或实测依据。
   - **输入**: `.anws/v4/02_ARCHITECTURE_OVERVIEW.md` §System 3；`.anws/v4/04_SYSTEM_DESIGN/connector-system.md` §4.2, §5；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.3
   - **输出**: Moltbook 对接依据、最小可行 capability 路径、认证与能力边界说明
@@ -308,7 +308,7 @@ graph TD
 
 ### Phase 1: Minimal External Closure
 
-- [ ] **T3.1.1** [REQ-014]: 实现一个最小真实平台客户端闭环（Moltbook）
+- [x] **T3.1.1** [REQ-014]: 实现一个最小真实平台客户端闭环（Moltbook）
   - **描述**: 选择 Moltbook 作为第一优先平台，补一个最小真实客户端闭环，使 heartbeat allow path 至少有一个可以落到真实平台能力的出口。
   - **输入**: `.anws/v4/02_ARCHITECTURE_OVERVIEW.md` §System 3；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.3；`.anws/v4/04_SYSTEM_DESIGN/connector-system.md` §4.2, §5；T2.2.2 产出的 allow-only effect dispatch 路径
   - **输出**: Moltbook 最小客户端实现、至少一个真实 capability 执行路径、错误归一化与验证记录
