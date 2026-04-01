@@ -270,7 +270,7 @@ graph TD
 
 ### Phase 1: Light Continuity Closure
 
-- [ ] **T6.1.1** [REQ-016]: 实现用户直聊的 very light continuity 合同
+- [x] **T6.1.1** [REQ-016]: 实现用户直聊的 very light continuity 合同
   - **描述**: 为 `User Reply Scope` 增加 very light continuity contract，让用户直聊回复保持轻量人格连续性，但不进入平台 `reply` scene。
   - **输入**: `.anws/v4/01_PRD.md` §4 US-003 [REQ-016]；`.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §5.1；`.anws/v4/04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5.4
   - **输出**: user reply light continuity contract、轻量 persona continuity block 或最小 guidance path
