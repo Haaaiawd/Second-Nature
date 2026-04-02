@@ -23,7 +23,7 @@ async function buildAtmosphere(sceneContext: SceneContext): Promise<AtmosphereBl
 }
 
 async function selectImpulses(sceneContext: SceneContext): Promise<ImpulseBlock[]> {
-  if (sceneContext.sceneType === "explain") {
+  if (sceneContext.sceneType === "explain" || sceneContext.sceneType === "user_reply") {
     return [];
   }
 

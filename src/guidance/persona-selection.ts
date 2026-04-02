@@ -40,6 +40,11 @@ const SCENE_POLICIES: Record<GuidanceSceneType, PersonaSelectionPolicy> = {
     preferredTags: ["explain", "principle", "context", "truthfulness"],
     budget: { maxSnippets: 2, maxTotalCharacters: 420 },
   },
+  user_reply: {
+    sourcePriority: ["SOUL", "IDENTITY", "USER", "MEMORY"],
+    preferredTags: ["continuity", "tone", "conversation", "authenticity"],
+    budget: { maxSnippets: 2, maxTotalCharacters: 280 },
+  },
 };
 
 function tagScore(candidate: PersonaCandidate, preferredTags: readonly string[]): number {

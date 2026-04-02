@@ -42,7 +42,7 @@ export async function buildLightReplyContinuity(input: {
   personaCandidates?: PersonaCandidate[];
 }): Promise<GuidancePayload | GuidanceFallback> {
   const sceneContext: SceneContext = {
-    sceneType: "explain", // Use explain as base - no platform-specific scene needed
+    sceneType: "user_reply",
     mode: "active",
     riskLevel: "low",
     sceneSummary: "direct user reply continuity",

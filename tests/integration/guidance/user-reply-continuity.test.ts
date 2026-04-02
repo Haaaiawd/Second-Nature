@@ -129,13 +129,13 @@ test("T6.1.1 USER_REPLY_SCENE_TYPE is distinct from reply scene", () => {
   assert.notEqual(USER_REPLY_SCENE_TYPE, "reply");
 });
 
-test("T6.1.1 light continuity does not enter reply scene impulse system", async () => {
+test("T6.1.1 light continuity uses user_reply scene type", async () => {
   const result = await buildLightReplyContinuity({
     replyContext: {},
   });
 
-  // Verify the result is a guidance payload, not a reply scene result
+  // Verify the result is a guidance payload with user_reply scene type
   assert.ok("scene" in result, "should be guidance payload");
-  assert.equal((result as any).scene.sceneType, "explain", "should use explain scene type, not reply");
-  assert.equal((result as any).impulses.length, 0, "should not have reply scene impulses");
+  assert.equal((result as any).scene.sceneType, "user_reply", "should use user_reply scene type");
+  assert.equal((result as any).impulses.length, 0, "should not have impulses for user_reply");
 });

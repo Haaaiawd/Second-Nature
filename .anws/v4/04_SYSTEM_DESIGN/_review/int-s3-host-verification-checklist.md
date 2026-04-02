@@ -2,18 +2,43 @@
 
 **任务**: INT-S3 — S3 集成验证 (Host Closure)  
 **创建日期**: 2026-03-31  
+**更新日期**: 2026-03-31  
 **状态**: 待执行 (需要真实 OpenClaw 宿主环境)  
 
 ---
 
 ## 前置条件
 
-- [ ] 所有 S1 任务已完成 (T1.0.1 ~ T1.2.2, INT-S1)
-- [ ] 所有 S2 任务已完成 (T2.0.1 ~ T2.2.2, T5.1.1, INT-S2)
-- [ ] 所有 S3 代码任务已完成 (T3.0.1, T3.1.1, T6.1.1)
-- [ ] `pnpm test` 全绿 (当前 122/122)
+- [x] 所有 S1 任务已完成 (T1.0.1 ~ T1.2.2, INT-S1) — 代码/测试层完成
+- [x] 所有 S2 任务已完成 (T2.0.1 ~ T2.2.2, T5.1.1, INT-S2) — 代码/测试层完成
+- [x] 所有 S3 代码任务已完成 (T3.0.1, T3.1.1, T6.1.1) — 代码/测试层完成
+- [x] `pnpm test` 全绿 (当前 122/122)
 - [ ] 插件已打包 (`npm pack` 在 `plugin/` 目录)
 - [ ] OpenClaw 宿主环境可用
+
+---
+
+## 已知风险与待验证项 (非 blocker，但需关注)
+
+### R1: Moltbook 真实平台闭环尚未验证 (T3.1.1)
+- **当前状态**: 最小真实客户端代码已实现，测试使用 mock fetch
+- **待验证**: 真实 Moltbook API 连通性、OAuth 认证、feed.read 实际返回
+- **如失败**: 回退到 T3.0.1 调研结论，检查 API 文档和认证配置
+
+### R2: better-sqlite3 在 --ignore-scripts 安装场景下可能失效 (T1.0.1 已识别)
+- **当前状态**: 开发环境验证通过，prebuilds 未确认
+- **待验证**: 宿主安装后原生模块是否正常加载
+- **如失败**: 检查 `npm install` 是否带 `--ignore-scripts`，考虑 sql.js 备选
+
+### R3: heartbeat 宿主桥接尚未真实接通 (T2.0.1 是策略 POC)
+- **当前状态**: 桥接策略已确认 (HEARTBEAT.md + tool use)，代码层 decision loop 完整
+- **待验证**: OpenClaw 宿主实际触发 heartbeat → tool call → Second Nature 的完整链路
+- **如失败**: 检查 HEARTBEAT.md 配置和 tool 注册是否正确
+
+### R4: 用户直聊连续性 (T6.1.1) 需在真实对话中验证
+- **当前状态**: 代码实现完成，`user_reply` scene type 已正式注册到 guidance system
+- **待验证**: 实际直聊中语气连续性和人格感是否自然
+- **如失败**: 调整 atmosphere 文本和 persona snippet 选择策略
 
 ---
 
