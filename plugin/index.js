@@ -50,7 +50,7 @@ function createRuntimeService() {
     return {
         id: "second-nature-runtime",
         start() {
-            return { ready: true, version: "0.1.3-minimal" };
+            return { ready: true, version: "0.1.4-minimal" };
         },
     };
 }
