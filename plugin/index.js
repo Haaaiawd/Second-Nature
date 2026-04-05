@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 function createFallbackCommands() {
     const commandNames = ["status", "policy", "credential", "quiet", "report", "session", "audit", "explain"];
     return commandNames.map((name) => ({
@@ -11,10 +10,9 @@ function createFallbackCommands() {
         }),
     }));
 }
-function resolveCommandRouterSafe() {
-    const require = createRequire(import.meta.url);
+async function resolveCommandRouterSafe() {
     try {
-        const mod = require("./runtime/cli/index.js");
+        const mod = await import("./runtime/cli/index.js");
         if (mod?.createCommandRouter) {
             return mod.createCommandRouter();
         }
@@ -30,10 +28,9 @@ function resolveCommandRouterSafe() {
         },
     };
 }
-function createRuntimeService() {
-    const require = createRequire(import.meta.url);
+async function createRuntimeService() {
     try {
-        const runtimeMod = require("./runtime/core/second-nature/runtime/service-entry.js");
+        const runtimeMod = await import("./runtime/core/second-nature/runtime/service-entry.js");
         if (runtimeMod?.startRuntimeService) {
             const handle = runtimeMod.startRuntimeService();
             return {
@@ -54,10 +51,9 @@ function createRuntimeService() {
         },
     };
 }
-function createLifecycleService() {
-    const require = createRequire(import.meta.url);
+async function createLifecycleService() {
     try {
-        const lifecycleMod = require("./runtime/core/second-nature/runtime/lifecycle-service.js");
+        const lifecycleMod = await import("./runtime/core/second-nature/runtime/lifecycle-service.js");
         if (lifecycleMod?.recordRegistration) {
             return {
                 id: "second-nature-lifecycle",
@@ -84,10 +80,10 @@ export default {
     id: "second-nature",
     name: "Second Nature",
     description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
-    register(api) {
-        const router = resolveCommandRouterSafe();
-        const runtimeService = createRuntimeService();
-        const lifecycleService = createLifecycleService();
+    async register(api) {
+        const router = await resolveCommandRouterSafe();
+        const runtimeService = await createRuntimeService();
+        const lifecycleService = await createLifecycleService();
         api.registerService(runtimeService);
         api.registerService(lifecycleService);
         api.registerCli(({ program }) => {

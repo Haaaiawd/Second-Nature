@@ -1,5 +1,3 @@
-import { createRequire } from "node:module";
-
 interface RegisterApi {
   registerService(service: { id: string; start: () => unknown }): void;
   registerCli(registrar: (ctx: { program: unknown }) => void, options?: { commands?: string[] }): void;
@@ -30,14 +28,12 @@ function createFallbackCommands(): Array<{
   }));
 }
 
-function resolveCommandRouterSafe(): {
+async function resolveCommandRouterSafe(): Promise<{
   commands: Array<{ name: string; description: string; execute: (input?: Record<string, unknown>) => Promise<Record<string, unknown>> }>;
   resolve(name: string): { name: string; description: string; execute: (input?: Record<string, unknown>) => Promise<Record<string, unknown>> } | undefined;
-} {
-  const require = createRequire(import.meta.url);
-
+}> {
   try {
-    const mod = require("./runtime/cli/index.js") as { createCommandRouter: () => { commands: any[]; resolve: (name: string) => any } };
+    const mod = await import("./runtime/cli/index.js") as { createCommandRouter: () => { commands: any[]; resolve: (name: string) => any } };
     if (mod?.createCommandRouter) {
       return mod.createCommandRouter();
     }
@@ -54,11 +50,9 @@ function resolveCommandRouterSafe(): {
   };
 }
 
-function createRuntimeService(): { id: string; start: () => unknown } {
-  const require = createRequire(import.meta.url);
-
+async function createRuntimeService(): Promise<{ id: string; start: () => unknown }> {
   try {
-    const runtimeMod = require("./runtime/core/second-nature/runtime/service-entry.js") as {
+    const runtimeMod = await import("./runtime/core/second-nature/runtime/service-entry.js") as {
       startRuntimeService: (ctx?: Record<string, unknown>) => { ready: boolean; version: string; close: () => void };
     };
 
@@ -83,11 +77,9 @@ function createRuntimeService(): { id: string; start: () => unknown } {
   };
 }
 
-function createLifecycleService(): { id: string; start: () => unknown } {
-  const require = createRequire(import.meta.url);
-
+async function createLifecycleService(): Promise<{ id: string; start: () => unknown }> {
   try {
-    const lifecycleMod = require("./runtime/core/second-nature/runtime/lifecycle-service.js") as {
+    const lifecycleMod = await import("./runtime/core/second-nature/runtime/lifecycle-service.js") as {
       recordRegistration: () => { registerCount: number; phase: string; lastChangedAt: number };
     };
 
@@ -118,10 +110,10 @@ export default {
   id: "second-nature",
   name: "Second Nature",
   description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
-  register(api: RegisterApi) {
-    const router = resolveCommandRouterSafe();
-    const runtimeService = createRuntimeService();
-    const lifecycleService = createLifecycleService();
+  async register(api: RegisterApi) {
+    const router = await resolveCommandRouterSafe();
+    const runtimeService = await createRuntimeService();
+    const lifecycleService = await createLifecycleService();
 
     api.registerService(runtimeService);
     api.registerService(lifecycleService);
