@@ -1,8 +1,8 @@
 {
   "id": "second-nature",
   "name": "Second Nature",
-  "version": "0.1.0",
-  "entry": "./index.ts",
+  "version": "0.1.4",
+  "entry": "./index.js",
   "description": "OpenClaw native plugin package for continuity, explain, and recovery operations.",
   "capabilities": {
     "commands": ["second-nature"],

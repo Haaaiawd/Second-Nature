@@ -38,13 +38,13 @@ test("T5.3.1 plugin package + manifest are discoverable for host loading", () =>
   const manifest = readJson(manifestPath);
 
   assert.equal(pluginPkg.name, "@haaaiawd/second-nature");
-  assert.equal(pluginPkg.main, "./index.ts");
-  assert.ok((pluginPkg.files as string[]).includes("index.ts"));
+  assert.equal(pluginPkg.main, "./index.js");
+  assert.ok((pluginPkg.files as string[]).includes("index.js"));
   assert.ok((pluginPkg.files as string[]).includes("openclaw.plugin.json"));
   assert.ok((pluginPkg.files as string[]).includes("runtime/"));
 
   assert.equal(manifest.id, "second-nature");
-  assert.equal(manifest.entry, "./index.ts");
+  assert.equal(manifest.entry, "./index.js");
   assert.equal((manifest.capabilities as any).commands[0], "second-nature");
   assert.equal((manifest.capabilities as any).tools[0], "second_nature_ops");
 });
