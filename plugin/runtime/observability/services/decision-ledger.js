@@ -26,6 +26,31 @@ export class DecisionLedger {
         });
         await persistRedactionManifest(this.db, redacted.id, "decision.recorded", manifest);
     }
+    async recordHeartbeatDecision(event) {
+        const { redacted, manifest } = redactEvent(event);
+        // Map decisionStatus to existing verdict field without changing business semantics
+        const verdict = mapHeartbeatStatusToVerdict(redacted.decisionStatus);
+        await this.db.db.insert(decisionLedger).values({
+            id: redacted.id,
+            tickId: redacted.tickId,
+            traceId: redacted.traceId,
+            intentId: redacted.intentId ?? null,
+            platformId: null,
+            verdict,
+            mode: redacted.mode,
+            reasons: JSON.stringify(redacted.reasons),
+            reasonCodes: JSON.stringify(["heartbeat_decision"]),
+            decisionBasis: "rule_only",
+            evidenceRefs: JSON.stringify([
+                `scope:${redacted.runtimeScope}`,
+                `trigger:${redacted.triggerSource}`,
+                `status:${redacted.decisionStatus}`,
+            ].filter(Boolean)),
+            modelEvalRef: null,
+            createdAt: redacted.createdAt,
+        });
+        await persistRedactionManifest(this.db, redacted.id, "heartbeat.decision", manifest);
+    }
     async recordQuietLifecycle(event) {
         const { redacted, manifest } = redactEvent(event);
         await this.db.db.insert(decisionLedger).values({
@@ -111,5 +136,22 @@ export class DecisionLedger {
             modelEvalRef: row.modelEvalRef ?? undefined,
             createdAt: row.createdAt,
         };
+    }
+}
+/**
+ * Map heartbeat decision status to existing verdict field.
+ * This preserves the existing DecisionRecord semantics while allowing
+ * heartbeat-specific status to be recoverable from evidenceRefs.
+ */
+function mapHeartbeatStatusToVerdict(status) {
+    switch (status) {
+        case "intent_selected":
+            return "allow";
+        case "denied":
+            return "deny";
+        case "deferred":
+            return "defer";
+        case "heartbeat_ok":
+            return "defer";
     }
 }

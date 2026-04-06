@@ -1,4 +1,4 @@
-export type GuidanceSceneType = "social" | "reply" | "outreach" | "quiet" | "explain";
+export type GuidanceSceneType = "social" | "reply" | "outreach" | "quiet" | "explain" | "user_reply";
 export type GuidanceMode = "active" | "quiet" | "maintenance_only" | "paused_for_interrupt";
 export type GuidanceRiskLevel = "low" | "medium" | "high";
 export type AtmosphereOpenness = "open" | "narrow" | "quiet";

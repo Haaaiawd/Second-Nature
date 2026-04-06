@@ -13,7 +13,7 @@ async function buildAtmosphere(sceneContext) {
     };
 }
 async function selectImpulses(sceneContext) {
-    if (sceneContext.sceneType === "explain") {
+    if (sceneContext.sceneType === "explain" || sceneContext.sceneType === "user_reply") {
         return [];
     }
     return [getImpulseTemplate(sceneContext.sceneType)];

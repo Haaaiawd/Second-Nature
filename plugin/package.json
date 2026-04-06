@@ -1,6 +1,6 @@
 {
   "name": "@haaaiawd/second-nature",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "OpenClaw native plugin for long-running agent continuity, Quiet memory curation, and explainable operator flows.",
   "keywords": [
     "openclaw",

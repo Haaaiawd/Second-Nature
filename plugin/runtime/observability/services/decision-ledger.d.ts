@@ -20,10 +20,23 @@ export interface OutreachDecision {
     messagePreview?: string;
     createdAt: string;
 }
+export interface HeartbeatDecisionEvent {
+    id: string;
+    tickId: string;
+    traceId: string;
+    runtimeScope: "rhythm" | "user_task" | "user_reply";
+    triggerSource: "heartbeat_bridge" | "user_task" | "user_reply" | "interrupt" | "resume";
+    decisionStatus: "heartbeat_ok" | "intent_selected" | "denied" | "deferred";
+    reasons: string[];
+    intentId?: string;
+    mode: "active" | "quiet" | "maintenance_only" | "paused_for_interrupt";
+    createdAt: string;
+}
 export declare class DecisionLedger {
     private db;
     constructor(db: ObservabilityDatabase);
     recordDecision(record: DecisionRecord): Promise<void>;
+    recordHeartbeatDecision(event: HeartbeatDecisionEvent): Promise<void>;
     recordQuietLifecycle(event: QuietLifecycleEvent): Promise<void>;
     recordOutreachDecision(event: OutreachDecision): Promise<void>;
     queryByTickId(tickId: string): Promise<DecisionRecord[]>;
