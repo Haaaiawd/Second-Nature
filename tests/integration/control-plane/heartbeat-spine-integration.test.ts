@@ -53,7 +53,7 @@ function createTempDb() {
   const database = createObservabilityDatabase(dbPath);
 
   database.sqlite.exec(`
-    CREATE TABLE decision_ledger (
+    CREATE TABLE IF NOT EXISTS decision_ledger (
       id TEXT PRIMARY KEY,
       tick_id TEXT NOT NULL,
       trace_id TEXT NOT NULL,
@@ -68,10 +68,10 @@ function createTempDb() {
       model_eval_ref TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE INDEX decision_tick_idx ON decision_ledger(tick_id);
-    CREATE UNIQUE INDEX decision_trace_idx ON decision_ledger(trace_id);
+    CREATE INDEX IF NOT EXISTS decision_tick_idx ON decision_ledger(tick_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS decision_trace_idx ON decision_ledger(trace_id);
 
-    CREATE TABLE redaction_manifest (
+    CREATE TABLE IF NOT EXISTS redaction_manifest (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
@@ -80,7 +80,7 @@ function createTempDb() {
       original_value_hash TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE INDEX redact_event_idx ON redaction_manifest(event_id);
+    CREATE INDEX IF NOT EXISTS redact_event_idx ON redaction_manifest(event_id);
   `);
 
   const ledger = new DecisionLedger(database);

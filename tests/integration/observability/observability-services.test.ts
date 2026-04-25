@@ -33,7 +33,7 @@ function createTempDb() {
   const database = createObservabilityDatabase(dbPath);
 
   database.sqlite.exec(`
-    CREATE TABLE decision_ledger (
+    CREATE TABLE IF NOT EXISTS decision_ledger (
       id TEXT PRIMARY KEY,
       tick_id TEXT NOT NULL,
       trace_id TEXT NOT NULL,
@@ -48,10 +48,10 @@ function createTempDb() {
       model_eval_ref TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE INDEX decision_tick_idx ON decision_ledger(tick_id);
-    CREATE UNIQUE INDEX decision_trace_idx ON decision_ledger(trace_id);
+    CREATE INDEX IF NOT EXISTS decision_tick_idx ON decision_ledger(tick_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS decision_trace_idx ON decision_ledger(trace_id);
 
-    CREATE TABLE execution_attempts (
+    CREATE TABLE IF NOT EXISTS execution_attempts (
       id TEXT PRIMARY KEY,
       trace_id TEXT NOT NULL,
       decision_id TEXT NOT NULL,
@@ -67,11 +67,11 @@ function createTempDb() {
       started_at TEXT,
       finished_at TEXT
     );
-    CREATE UNIQUE INDEX attempt_trace_idx ON execution_attempts(trace_id);
-    CREATE INDEX attempt_decision_idx ON execution_attempts(decision_id);
-    CREATE INDEX attempt_platform_idx ON execution_attempts(platform_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS attempt_trace_idx ON execution_attempts(trace_id);
+    CREATE INDEX IF NOT EXISTS attempt_decision_idx ON execution_attempts(decision_id);
+    CREATE INDEX IF NOT EXISTS attempt_platform_idx ON execution_attempts(platform_id);
 
-    CREATE TABLE governance_audit (
+    CREATE TABLE IF NOT EXISTS governance_audit (
       id TEXT PRIMARY KEY,
       event_type TEXT NOT NULL,
       proposal_id TEXT,
@@ -87,11 +87,11 @@ function createTempDb() {
       attempts_remaining INTEGER,
       created_at TEXT NOT NULL
     );
-    CREATE INDEX audit_proposal_idx ON governance_audit(proposal_id);
-    CREATE INDEX audit_asset_idx ON governance_audit(target_asset_id);
-    CREATE INDEX audit_event_idx ON governance_audit(event_type);
+    CREATE INDEX IF NOT EXISTS audit_proposal_idx ON governance_audit(proposal_id);
+    CREATE INDEX IF NOT EXISTS audit_asset_idx ON governance_audit(target_asset_id);
+    CREATE INDEX IF NOT EXISTS audit_event_idx ON governance_audit(event_type);
 
-    CREATE TABLE redaction_manifest (
+    CREATE TABLE IF NOT EXISTS redaction_manifest (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
@@ -100,7 +100,7 @@ function createTempDb() {
       original_value_hash TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE INDEX redact_event_idx ON redaction_manifest(event_id);
+    CREATE INDEX IF NOT EXISTS redact_event_idx ON redaction_manifest(event_id);
   `);
 
   return database;

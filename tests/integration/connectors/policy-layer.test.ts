@@ -42,7 +42,7 @@ function makeRequest(intent: CapabilityIntent, overrides: Partial<ConnectorReque
 test("policy layer records telemetry and applies single-layer retry for InStreet 429 retry_after_seconds", async () => {
   const db = createObservabilityDatabase(":memory:");
   db.sqlite.exec(`
-    CREATE TABLE execution_attempts (
+    CREATE TABLE IF NOT EXISTS execution_attempts (
       id TEXT PRIMARY KEY,
       trace_id TEXT NOT NULL,
       decision_id TEXT NOT NULL,
@@ -58,7 +58,7 @@ test("policy layer records telemetry and applies single-layer retry for InStreet
       started_at TEXT,
       finished_at TEXT
     );
-    CREATE TABLE redaction_manifest (
+    CREATE TABLE IF NOT EXISTS redaction_manifest (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
@@ -112,7 +112,9 @@ test("policy layer records telemetry and applies single-layer retry for InStreet
   assert.equal(count, 2);
 
   const attempts = await db.db.select().from(obsSchema.executionAttempts);
-  assert.ok(attempts.length >= 3);
+  assert.equal(attempts.length, 2);
+  assert.ok(attempts.some((row) => row.status === "failed"));
+  assert.ok(attempts.some((row) => row.status === "succeeded"));
   assert.ok(attempts.every((row) => row.decisionId === "decision-1"));
   assert.ok(attempts.every((row) => row.intentId === "intent-1"));
 

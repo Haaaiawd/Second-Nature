@@ -25,7 +25,7 @@ function createTempDb() {
   const database = createObservabilityDatabase(dbPath);
 
   database.sqlite.exec(`
-    CREATE TABLE decision_ledger (
+    CREATE TABLE IF NOT EXISTS decision_ledger (
       id TEXT PRIMARY KEY,
       tick_id TEXT NOT NULL,
       trace_id TEXT NOT NULL,
@@ -41,7 +41,7 @@ function createTempDb() {
       created_at TEXT NOT NULL
     );
 
-    CREATE TABLE execution_attempts (
+    CREATE TABLE IF NOT EXISTS execution_attempts (
       id TEXT PRIMARY KEY,
       trace_id TEXT NOT NULL,
       decision_id TEXT NOT NULL,
@@ -58,7 +58,7 @@ function createTempDb() {
       finished_at TEXT
     );
 
-    CREATE TABLE governance_audit (
+    CREATE TABLE IF NOT EXISTS governance_audit (
       id TEXT PRIMARY KEY,
       event_type TEXT NOT NULL,
       proposal_id TEXT,

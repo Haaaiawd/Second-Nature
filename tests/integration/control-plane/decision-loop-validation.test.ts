@@ -20,7 +20,7 @@ import { createDecisionCycleHarness } from "./_helpers/decision-cycle-harness.js
 function setupObservability() {
   const db = createObservabilityDatabase(":memory:");
   db.sqlite.exec(`
-    CREATE TABLE decision_ledger (
+    CREATE TABLE IF NOT EXISTS decision_ledger (
       id TEXT PRIMARY KEY,
       tick_id TEXT NOT NULL,
       trace_id TEXT NOT NULL,
@@ -35,7 +35,7 @@ function setupObservability() {
       model_eval_ref TEXT,
       created_at TEXT NOT NULL
     );
-    CREATE TABLE execution_attempts (
+    CREATE TABLE IF NOT EXISTS execution_attempts (
       id TEXT PRIMARY KEY,
       trace_id TEXT NOT NULL,
       decision_id TEXT NOT NULL,
@@ -51,7 +51,7 @@ function setupObservability() {
       started_at TEXT,
       finished_at TEXT
     );
-    CREATE TABLE governance_audit (
+    CREATE TABLE IF NOT EXISTS governance_audit (
       id TEXT PRIMARY KEY,
       event_type TEXT NOT NULL,
       proposal_id TEXT,
@@ -67,7 +67,7 @@ function setupObservability() {
       attempts_remaining INTEGER,
       created_at TEXT NOT NULL
     );
-    CREATE TABLE redaction_manifest (
+    CREATE TABLE IF NOT EXISTS redaction_manifest (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
@@ -87,7 +87,7 @@ test("whole-loop validation covers active/quiet/interrupt/outreach/deny and dura
   const evidenceQuery = new EvidenceQueryEngine(obsDb);
   const stateDb = createStateDatabase(":memory:");
   stateDb.sqlite.exec(`
-    CREATE TABLE intent_commit_records (
+    CREATE TABLE IF NOT EXISTS intent_commit_records (
       id TEXT PRIMARY KEY,
       intent_id TEXT NOT NULL,
       decision_id TEXT NOT NULL,

@@ -22,7 +22,7 @@ test("startup repair fixes orphan index, updates stale hash, rejects stale propo
   const db = createStateDatabase(dbPath);
   try {
     db.sqlite.exec(`
-      CREATE TABLE asset_registry (
+      CREATE TABLE IF NOT EXISTS asset_registry (
         id TEXT PRIMARY KEY,
         kind TEXT NOT NULL,
         path TEXT NOT NULL,
@@ -31,9 +31,9 @@ test("startup repair fixes orphan index, updates stale hash, rejects stale propo
         layer TEXT NOT NULL,
         last_indexed_at TEXT NOT NULL
       );
-      CREATE UNIQUE INDEX asset_registry_path_idx ON asset_registry(path);
+      CREATE UNIQUE INDEX IF NOT EXISTS asset_registry_path_idx ON asset_registry(path);
 
-      CREATE TABLE proposal_records (
+      CREATE TABLE IF NOT EXISTS proposal_records (
         id TEXT PRIMARY KEY,
         target_asset_id TEXT NOT NULL,
         before_hash TEXT,

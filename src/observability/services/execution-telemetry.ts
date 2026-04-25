@@ -12,7 +12,6 @@ export interface ExecutionAttemptInput {
   platformId: string;
   capability: string;
   channel: string;
-  status: ExecutionAttempt["status"];
   commitState?: IntentCommitState;
   failureClass?: string;
   retryPolicy?: string;

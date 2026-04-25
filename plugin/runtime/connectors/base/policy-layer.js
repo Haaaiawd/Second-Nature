@@ -108,40 +108,23 @@ export function createConnectorPolicyLayer(ctx) {
             }
             let lastFailure;
             for (let attempt = 1; attempt <= retryPolicy.maxRetries; attempt += 1) {
-                const traceId = makeTraceId(request, plan);
-                const attemptId = `attempt-${traceId}-${attempt}`;
+                const traceId = `${makeTraceId(request, plan)}:${attempt}`;
                 if (ctx.telemetry) {
-                    await ctx.telemetry.recordExecutionAttempt({
-                        id: attemptId,
+                    await ctx.telemetry.startAttempt({
                         traceId,
                         decisionId: identity.decisionId,
                         intentId: identity.intentId,
                         platformId: request.platformId,
                         capability: request.intent,
                         channel: plan.channel,
-                        status: "started",
                         retryPolicy: JSON.stringify(retryPolicy),
                         idempotencyKey: request.idempotencyKey,
-                        startedAt: new Date().toISOString(),
                     });
                 }
                 const raw = await ctx.executionRunner.run(plan, request);
                 if (raw.success) {
                     if (ctx.telemetry) {
-                        await ctx.telemetry.recordExecutionAttempt({
-                            id: `${attemptId}-done`,
-                            traceId,
-                            decisionId: identity.decisionId,
-                            intentId: identity.intentId,
-                            platformId: request.platformId,
-                            capability: request.intent,
-                            channel: plan.channel,
-                            status: "succeeded",
-                            retryPolicy: JSON.stringify(retryPolicy),
-                            idempotencyKey: request.idempotencyKey,
-                            startedAt: new Date().toISOString(),
-                            finishedAt: new Date().toISOString(),
-                        });
+                        await ctx.telemetry.completeAttempt(traceId, "succeeded");
                     }
                     return {
                         status: "success",
@@ -161,21 +144,7 @@ export function createConnectorPolicyLayer(ctx) {
                     channel: raw.channel,
                 };
                 if (ctx.telemetry) {
-                    await ctx.telemetry.recordExecutionAttempt({
-                        id: `${attemptId}-failed`,
-                        traceId,
-                        decisionId: identity.decisionId,
-                        intentId: identity.intentId,
-                        platformId: request.platformId,
-                        capability: request.intent,
-                        channel: plan.channel,
-                        status: "failed",
-                        failureClass: classified.class,
-                        retryPolicy: JSON.stringify(retryPolicy),
-                        idempotencyKey: request.idempotencyKey,
-                        startedAt: new Date().toISOString(),
-                        finishedAt: new Date().toISOString(),
-                    });
+                    await ctx.telemetry.completeAttempt(traceId, "failed", undefined, classified.class);
                 }
                 if (ctx.cooldownPort) {
                     await ctx.cooldownPort.markFailure(request.platformId, intent, classified.class, classified.retryAfterMs);

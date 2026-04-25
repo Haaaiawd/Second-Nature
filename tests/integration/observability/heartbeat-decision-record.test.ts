@@ -42,7 +42,7 @@ function createTempDb() {
   const database = createObservabilityDatabase(dbPath);
 
   database.sqlite.exec(`
-    CREATE TABLE decision_ledger (
+    CREATE TABLE IF NOT EXISTS decision_ledger (
       id TEXT PRIMARY KEY,
       tick_id TEXT NOT NULL,
       trace_id TEXT NOT NULL,
@@ -58,7 +58,7 @@ function createTempDb() {
       created_at TEXT NOT NULL
     );
 
-    CREATE TABLE redaction_manifest (
+    CREATE TABLE IF NOT EXISTS redaction_manifest (
       id TEXT PRIMARY KEY,
       event_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
