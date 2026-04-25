@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+npm-debug.log
+
+# Data files (runtime-generated)
+data/*.db
+data/*.db-journal
+data/*.db-shm
+data/*.db-wal
+
+# Workspace artifacts
+../venv/
+../.venv/
+../nexus/
+../research-agent-prototype/
+../skills/
+../vercel-deploy/
+
+# OS / editor
+.DS_Store
+*.log
+.vscode/
+.idea/

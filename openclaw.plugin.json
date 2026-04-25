@@ -1,0 +1,24 @@
+{
+  "id": "second-nature",
+  "name": "Second Nature",
+  "version": "0.1.7",
+  "entry": "./index.js",
+  "description": "OpenClaw native plugin package with synchronous surface registration and a bundled runtime spine.",
+  "capabilities": {
+    "commands": [
+      "second-nature"
+    ],
+    "tools": [
+      "second_nature_ops"
+    ],
+    "services": [
+      "second-nature-runtime",
+      "second-nature-lifecycle"
+    ]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
