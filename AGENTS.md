@@ -50,7 +50,7 @@
 | `/probe` | 变更前 / 接手项目 | `.anws/v{N}/00_PROBE_REPORT.md` |
 | `/design-system` | genesis 后 | 04_SYSTEM_DESIGN/*.md |
 | `/blueprint` | genesis 后 | 05_TASKS.md + AGENTS.md 初始 Wave |
-| `/change` | 微调已有任务 | 更新 TASKS + SYSTEM_DESIGN (仅修改) + CHANGELOG |
+| `/change` | 进入 forge 编码后的任务局部修订 | 更新 TASKS + SYSTEM_DESIGN (仅修改) + CHANGELOG |
 | `/explore` | 调研时 | 探索报告 |
 | `/challenge` | 决策前质疑 | 07_CHALLENGE_REPORT.md (含问题总览目录) |
 | `/forge` | 编码执行 | 代码 + 更新 AGENTS.md Wave 块 |
@@ -75,10 +75,9 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v3`
-- **活动任务清单**: `.anws/v3/05_TASKS.md`
-- **待办任务数**: `0（P0: 0 / P1: 0 / P2: 0）`
-- **最近一次更新**: `2026-03-26`
+- **最新架构版本**: `.anws/v4`
+- **活动任务清单**: `尚未生成` (等待 /blueprint)
+- **最近一次更新**: `2026-03-27`
 
 ---
 
@@ -87,6 +86,11 @@
 > **注意**: 此部分由 `/genesis` 维护。
 
 ```text
+plugin/
+├── index.ts
+├── openclaw.plugin.json
+└── package.json
+
 src/
 ├── cli/
 ├── core/
@@ -95,36 +99,28 @@ src/
 │   ├── social-community/
 │   │   ├── moltbook/
 │   │   └── instreet/
-│   ├── agent-network/
-│   │   └── evomap/
-│   └── adapters/
-├── storage/
-├── observability/
-└── shared/
-
- .anws/
-  └── v3/
-     ├── 00_MANIFEST.md
-     ├── 01_PRD.md
-     ├── 02_ARCHITECTURE_OVERVIEW.md
-     ├── 03_ADR/
-     │   ├── ADR_001_TECH_STACK.md
-     │   ├── ADR_002_CONNECTOR_MODEL.md
-     │   ├── ADR_003_SECOND_NATURE_GOVERNANCE.md
-     │   └── ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md
-     ├── 04_SYSTEM_DESIGN/
-     ├── 06_CHANGELOG.md
-     └── concept_model.json
-
-src/
-├── cli/
-├── core/
-│   └── second-nature/
-├── connectors/
+│   └── agent-network/
+│       └── evomap/
 ├── guidance/
 ├── storage/
 ├── observability/
 └── shared/
+
+.anws/
+└── v4/
+   ├── 00_MANIFEST.md
+   ├── 01_PRD.md
+   ├── 02_ARCHITECTURE_OVERVIEW.md
+   ├── 03_ADR/
+   │   ├── ADR_001_TECH_STACK.md
+   │   ├── ADR_002_CONNECTOR_MODEL.md
+   │   ├── ADR_003_SECOND_NATURE_GOVERNANCE.md
+   │   ├── ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md
+   │   ├── ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md
+   │   └── ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md
+   ├── 04_SYSTEM_DESIGN/
+   ├── 06_CHANGELOG.md
+   └── concept_model.json
 ```
 
 ---
@@ -134,76 +130,47 @@ src/
 > **注意**: 此部分由 `/genesis` 维护。
 
 - **在新架构就绪前**: 请勿大规模修改代码。
-- **架构总览**: `.anws/v3/02_ARCHITECTURE_OVERVIEW.md`
-- **ADR**: `.anws/v3/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: `.anws/v3/04_SYSTEM_DESIGN/`（当前已完成 `behavioral-guidance-system`，其余系统按需补充）
-- **任务清单**: `.anws/v3/05_TASKS.md`
-- **遇到架构问题**: 请优先查阅 `.anws/v3/03_ADR/`。
+- **架构总览**: `.anws/v4/02_ARCHITECTURE_OVERVIEW.md`
+- **ADR**: `.anws/v4/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: 待 `/design-system` 执行后更新 (建议优先补 `control-plane-system` 与 `cli-system`)
+- **任务清单**: 待 `/blueprint` 执行后更新 (将生成 `.anws/v4/05_TASKS.md`)
+
+### ADR ↔ SYSTEM_DESIGN 关系
+- **ADR** 记录跨系统决策 (如 heartbeat 主入口、plugin packaging 边界)
+- **SYSTEM_DESIGN** §8 Trade-offs 引用 ADR,不复制决策内容
+- 修改 ADR 时,检查影响范围章节,确认引用该 ADR 的系统
 
 ---
 
 ### 技术栈决策
 - 主栈：TypeScript + Node.js + SQLite
-- 宿主方式：OpenClaw native plugin，复用 workspace、session、cron、plugins、skills、compaction 与 pruning，并支持通过 ClawHub / npm / 本地路径分发
-- 执行策略：硬层继续 API-first + connector contract；软层采用独立 Behavioral Guidance System + 运行时注入模板
+- 宿主方式：OpenClaw native plugin；当前可验证入口是 command / tool / service plugin surface，heartbeat 仍是计划中的自由心跳主入口
+- 执行策略：用户明确任务直接进入任务链；自由心跳继续归属 Second Nature rhythm scope；plugin 发布包当前提供自足 runtime artifact 与最小 activation spine
 
 ### 系统边界
-- `cli-system`: Agent-facing 操作接口，作为 OpenClaw plugin 注册出的 command / tool / service surface，负责配置、解释视图与历史视图 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/cli-system.md`
-- `control-plane-system`: Second Nature 编排核心，负责节律、Quiet、Narrative Reflection 与主动联系时机 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/control-plane-system.md`
-- `connector-system`: 社交社区型与协议网络型 connector family — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/connector-system.md`
-  - `social-community`: Moltbook、InStreet - 帖子、评论、点赞、关注、投票、私信
-  - `agent-network`: EvoMap - 节点注册、心跳保活、任务发现、资产发布
-- `state-system`: 状态、OpenClaw workspace-aligned memory、daily journal、daily report 与 curated memory — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/state-system.md`
-- `observability-system`: 结构化审计、风险事件、记忆整理来源链与 Anchor Memory 写保护 — 详细设计见 `.anws/v2/04_SYSTEM_DESIGN/observability-system.md`
-- `behavioral-guidance-system`: 独立的运行时行为引导系统，负责 runtime atmosphere、behavioral impulses、persona reinforcement 与 output guard，不负责决策或执行 — 详细设计见 `.anws/v3/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
-
-### 首批适配平台与 Agent 行动指南
-| 平台 | 类型 | Skill 文档 | 核心能力 | Agent 典型行动 |
-|------|------|-----------|---------|---------------|
-| **Moltbook** | 社交社区 | `https://www.moltbook.com/skill.md` | 发帖、评论、点赞、关注、浏览 | 浏览热帖、评论回复、创建帖子、关注其他 agent |
-| **InStreet** | 社交社区 | `https://instreet.coze.site/skill.md` | 验证挑战、心跳、通知、私信、投票 | 完成验证挑战、30分钟心跳保活、处理通知、私信互动、参与投票 |
-| **EvoMap** | 协议/市场 | `https://evomap.ai/skill.md` | 节点注册、心跳、任务发现、资产发布 | Hello/Register 获取 node_id、15分钟心跳保活、检查 available_work、claim task |
+- `cli-system`: Agent-facing 操作接口与 plugin runtime artifact 交付边界，负责 command / tool / service surface 与可发布运行时产物 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/cli-system.md`
+- `control-plane-system`: Second Nature 编排核心，负责 heartbeat/runtime ingress、节律、Quiet、Narrative Reflection 与主动联系时机；其中 heartbeat host bridge 仍属于架构目标，不应视为已由当前 plugin surface 坐实 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md`
+- `connector-system`: 社交社区型与协议网络型 connector family
+  - `social-community`: Moltbook、InStreet - 帖子、评论、通知、私信、保活
+  - `agent-network`: EvoMap - 节点注册、心跳保活、任务发现、任务接单
+- `state-system`: 状态、OpenClaw workspace-aligned memory、daily journal、daily report 与 curated memory
+- `observability-system`: 结构化审计、heartbeat 决策记录、风险事件、记忆整理来源链与 Anchor Memory 写保护
+- `behavioral-guidance-system`: 独立的运行时行为引导系统，负责 runtime atmosphere、behavioral impulses、persona reinforcement 与 output guard，不负责决策或执行
 
 ### 活跃 ADR
 - `ADR_001_TECH_STACK.md`: 采用 TypeScript + Node.js + SQLite，并明确作为 OpenClaw native plugin 运行
 - `ADR_002_CONNECTOR_MODEL.md`: 产品位于平台 API/CLI/skill 之上，通过 connector contract 统一调度执行能力
 - `ADR_003_SECOND_NATURE_GOVERNANCE.md`: 采用节律化行为系统 + Quiet 治理 + Narrative Reflection，并约束 Anchor Memory 更新边界
 - `ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md`: 新增独立 Behavioral Guidance System，主形态为运行时注入模板，不做 platform flavor 层、教学型 skill 或步骤模板
+- `ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`: heartbeat 是 Second Nature 的自由心跳主入口；用户明确任务不受节律裁决；用户直聊只保留 very light continuity
+- `ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md`: 插件发布包必须是自足 runtime artifact，安装后不依赖源码仓 `src/`
 
 ### 当前任务状态
-- 任务清单: `.anws/v3/05_TASKS.md`
-- 任务口径: `总任务 10 / 已完成 10 / 待办 0（P0: 0 / P1: 0 / P2: 0）`
-- Sprint 数: `2`
-- Wave 1 完成: `T1.1.1`, `T1.2.1`, `T1.2.2`
-- Wave 2 完成: `T1.2.3`, `T2.1.1`
-- Wave 3 完成: `T2.2.1`, `T2.2.2`, `T2.2.3`
-- Wave 4 完成: `T3.1.1`
-- Wave 5 完成: `T3.2.1`
-- INT-S1 完成: `Guidance Core Validation`
-- INT-S2 完成: `Humanized Runtime Validation`
-- Guidance 模板审核: `baseline/social/reply/outreach/quiet/persona-selection-policy 已人工审核通过`
-- 最近更新: `2026-03-26`
-
-### 🌊 Wave 1 ✅ — Behavioral Guidance Foundation
-T1.1.1, T1.2.1, T1.2.2
-
-### 🌊 Wave 2 ✅ — Output Guard And Guidance Assembly
-T1.2.3, T2.1.1
-
-### 🌊 Wave 3 ✅ — Runtime Integration First Layer
-T2.2.1, T2.2.2, T2.2.3
-
-### 🌊 Wave 4 ✅ — Human Review Workflow
-T3.1.1
-
-### 🌊 Wave 5 ✅ — Outreach Intent Guidance
-T3.2.1
-
-### 🧪 INT-S1 ✅ — Guidance Core Validation
-payload, fallback, persona selection, state port, observability hooks
-
-### 🧪 INT-S2 ✅ — Humanized Runtime Validation
-approved templates, outreach intent guidance, review workflow, runtime compatibility
+- 任务清单: `.anws/v4/05_TASKS.md`
+- 任务口径: `总任务 17 / P0: 12 / P1: 3 / 里程碑: 3`
+- Sprint 数: `3`
+- Wave 1 建议: `T1.0.1`, `T1.1.1`, `T2.0.1`
+- 最近更新: `2026-03-27`
 
 <!-- AUTO:END -->
 

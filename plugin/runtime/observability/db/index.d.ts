@@ -1,8 +1,8 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { type Database } from "sql.js";
+import { drizzle } from "drizzle-orm/sql-js";
 import * as schema from "./schema/index.js";
 export interface ObservabilityDatabase {
-    sqlite: Database.Database;
+    sqlite: Database;
     db: ReturnType<typeof drizzle<typeof schema>>;
     schema: typeof schema;
     close(): void;

@@ -1,25 +1,85 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import initSqlJs, { type Database } from "sql.js";
+import { drizzle } from "drizzle-orm/sql-js";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import * as schema from "./schema/index.js";
 
+// Pre-initialize sql.js WASM at module load time
+const SQL = await initSqlJs();
+
+const STATE_SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS credential_records (
+    platform_id TEXT PRIMARY KEY,
+    credential_type TEXT NOT NULL,
+    encrypted_value TEXT NOT NULL,
+    status TEXT NOT NULL,
+    verification_code TEXT,
+    challenge_text TEXT,
+    expires_at TEXT,
+    attempts_remaining INTEGER,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS policy_records (
+    platform_id TEXT PRIMARY KEY,
+    social_daily_limit INTEGER NOT NULL,
+    quiet_enabled INTEGER NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS asset_registry (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    path TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    layer TEXT NOT NULL,
+    last_indexed_at TEXT NOT NULL
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS asset_registry_path_idx ON asset_registry(path);
+  CREATE TABLE IF NOT EXISTS intent_commit_records (
+    id TEXT PRIMARY KEY,
+    intent_id TEXT NOT NULL,
+    decision_id TEXT NOT NULL,
+    checkpoint_id TEXT,
+    state TEXT NOT NULL,
+    outcome_ref TEXT,
+    metadata_json TEXT,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS proposal_records (
+    id TEXT PRIMARY KEY,
+    target_asset_id TEXT NOT NULL,
+    before_hash TEXT,
+    after_hash TEXT,
+    status TEXT NOT NULL,
+    proposed_diff TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    supporting_sources TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    applied_at TEXT
+  );
+  CREATE TABLE IF NOT EXISTS provenance_edges (
+    id TEXT PRIMARY KEY,
+    from_id TEXT NOT NULL,
+    to_id TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+`;
+
 export interface StateDatabase {
-  sqlite: Database.Database;
+  sqlite: Database;
   db: ReturnType<typeof drizzle<typeof schema>>;
   schema: typeof schema;
   close(): void;
 }
 
 function resolveDbPath(filename: string): string {
-  // If absolute path or in-memory, use as-is (for tests)
   if (path.isAbsolute(filename) || filename === ":memory:") {
     return filename;
   }
-  // Resolve relative to the plugin installation directory, not CWD.
-  // At runtime: runtime/storage/db/index.js → plugin root is 3 levels up.
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const pluginRoot = path.resolve(__dirname, "..", "..", "..");
   const dataDir = path.join(pluginRoot, "data");
@@ -29,12 +89,21 @@ function resolveDbPath(filename: string): string {
   return path.join(dataDir, filename);
 }
 
+function bootstrapStateSchema(sqlite: Database): void {
+  sqlite.exec(STATE_SCHEMA_SQL);
+}
+
 export function createStateDatabase(filename = "state.db"): StateDatabase {
   const dbPath = resolveDbPath(filename);
-  const sqlite = new Database(dbPath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("busy_timeout = 5000");
+  const isMemory = filename === ":memory:";
 
+  let dbBuffer: Uint8Array | undefined;
+  if (!isMemory && fs.existsSync(dbPath)) {
+    dbBuffer = fs.readFileSync(dbPath);
+  }
+
+  const sqlite = new SQL.Database(dbBuffer);
+  bootstrapStateSchema(sqlite);
   const db = drizzle(sqlite, { schema });
 
   return {
@@ -42,6 +111,10 @@ export function createStateDatabase(filename = "state.db"): StateDatabase {
     db,
     schema,
     close() {
+      if (!isMemory) {
+        const data = sqlite.export();
+        fs.writeFileSync(dbPath, Buffer.from(data));
+      }
       sqlite.close();
     },
   };

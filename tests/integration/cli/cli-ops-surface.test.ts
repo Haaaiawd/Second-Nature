@@ -69,6 +69,8 @@ const OBSERVABILITY_TEST_SCHEMA = `
     model_eval_ref TEXT,
     created_at TEXT NOT NULL
   );
+  CREATE UNIQUE INDEX IF NOT EXISTS decision_trace_idx ON decision_ledger(trace_id);
+  CREATE INDEX IF NOT EXISTS decision_tick_idx ON decision_ledger(tick_id);
   CREATE TABLE IF NOT EXISTS execution_attempts (
     id TEXT PRIMARY KEY,
     trace_id TEXT NOT NULL,
@@ -85,6 +87,9 @@ const OBSERVABILITY_TEST_SCHEMA = `
     started_at TEXT,
     finished_at TEXT
   );
+  CREATE UNIQUE INDEX IF NOT EXISTS attempt_trace_idx ON execution_attempts(trace_id);
+  CREATE INDEX IF NOT EXISTS attempt_decision_idx ON execution_attempts(decision_id);
+  CREATE INDEX IF NOT EXISTS attempt_platform_idx ON execution_attempts(platform_id);
   CREATE TABLE IF NOT EXISTS governance_audit (
     id TEXT PRIMARY KEY,
     event_type TEXT NOT NULL,
@@ -101,6 +106,19 @@ const OBSERVABILITY_TEST_SCHEMA = `
     attempts_remaining INTEGER,
     created_at TEXT NOT NULL
   );
+  CREATE INDEX IF NOT EXISTS audit_proposal_idx ON governance_audit(proposal_id);
+  CREATE INDEX IF NOT EXISTS audit_asset_idx ON governance_audit(target_asset_id);
+  CREATE INDEX IF NOT EXISTS audit_event_idx ON governance_audit(event_type);
+  CREATE TABLE IF NOT EXISTS redaction_manifest (
+    id TEXT PRIMARY KEY,
+    event_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    field_name TEXT NOT NULL,
+    action TEXT NOT NULL,
+    original_value_hash TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS redact_event_idx ON redaction_manifest(event_id);
 `;
 
 function applyCliOpsTestSchema(runtime: ReturnType<typeof createCliRuntimeDeps>) {
@@ -173,6 +191,39 @@ test("T5.1.2 status/report/quiet/session/credential commands return aggregated r
   );
 
   const now = new Date().toISOString();
+  await harness.runtime.observabilityDb.db.insert(decisionLedger).values({
+    id: "decision-runtime",
+    tickId: "tick-runtime",
+    traceId: "sn-runtime-register-1",
+    intentId: "intent-runtime",
+    platformId: null,
+    verdict: "defer",
+    mode: "active",
+    reasons: JSON.stringify(["origin:register"]),
+    reasonCodes: JSON.stringify(["heartbeat_decision"]),
+    decisionBasis: "rule_only",
+    evidenceRefs: JSON.stringify(["scope:rhythm", "trigger:heartbeat_bridge", "status:heartbeat_ok"]),
+    modelEvalRef: null,
+    createdAt: now,
+  });
+
+  await harness.runtime.observabilityDb.db.insert(executionAttempts).values({
+    id: "attempt-runtime",
+    traceId: "sn-runtime-register-1",
+    decisionId: "decision-runtime",
+    intentId: "intent-runtime",
+    platformId: "second-nature-runtime",
+    capability: "runtime.activate",
+    channel: "plugin_host",
+    status: "succeeded",
+    commitState: "committed",
+    failureClass: null,
+    retryPolicy: null,
+    idempotencyKey: null,
+    startedAt: now,
+    finishedAt: now,
+  });
+
   await harness.runtime.observabilityDb.db.insert(decisionLedger).values({
     id: "decision-status",
     tickId: "tick-status",

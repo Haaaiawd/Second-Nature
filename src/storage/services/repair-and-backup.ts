@@ -87,7 +87,8 @@ export class RepairAndBackupService {
     await fs.mkdir(backupDir, { recursive: true });
     const backupFileName = `state-${now.toISOString().replace(/[:.]/g, "-")}.db`;
     const backupPath = path.join(backupDir, backupFileName);
-    await this.database.sqlite.backup(backupPath);
+    const dbData = this.database.sqlite.export();
+    await fs.writeFile(backupPath, Buffer.from(dbData));
 
     return {
       scannedAssetCount: assets.length,

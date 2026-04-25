@@ -446,6 +446,18 @@ classDiagram
   - [ ] 1000 并发用户登录
   - [ ] Target: p95 < 200ms
 
+### 11.5 Contract Verification Matrix (契约-验证责任矩阵)
+
+| 契约 | 风险级别 | 正常态验证 | 失败态验证 | 回归责任 |
+|------|---------|-----------|-----------|---------|
+| `POST /auth/login` | 关键路径 | 集成测试 | 非法凭证返回 401 | 认证主链路最小回归 |
+| JWT 生成规则 | 基础规则层 | 单元测试 | 非法输入/过期边界 | token 相关回归 |
+
+> **要求**:
+> - 每个关键公共契约都应有一条验证责任
+> - 失败态 / 边界态不应省略
+> - Blueprint 和 Challenge 应优先复用本矩阵，而不是完全依赖后续推断
+
 ---
 
 ## 12. 部署与运维 (Deployment & Operations)
@@ -537,14 +549,31 @@ classDiagram
 - **RBAC (Role-Based Access Control)**: 基于角色的访问控制
 - **p95**: 95th percentile，95%的请求响应时间小于该值
 
-### 14.2 References (参考资料)
+### 14.2 Optional Skills & Reference Resources (可选 Skills 与参考资源)
+>
+> 本节用于记录在设计过程中实际参考过的 skill、组件库、方法论或外部资料。
+> 这些内容是辅助输入，不是系统事实来源；最终方案仍以本项目的 PRD、ADR、Architecture Overview 和本文档自身为准。
+>
+> **记录建议**:
+> - 写明资源名称
+> - 写明它帮助了哪个设计决策
+> - 写明最终采纳了什么，舍弃了什么
+>
+> **示例（前端系统）**:
+> - `vercel-react-best-practices`: 用于校验 React 组件边界、渲染策略、性能优化建议
+> - `frontend-design`: 用于参考排版、配色、层级和动效方向
+> - `shadcn/ui`: 用于基础组件模式参考
+> - `Aceternity UI`: 用于展示型区块和交互动效灵感
+> - `Magic UI`: 用于 Tailwind-first 的视觉与动画参考
+
+### 14.3 References (参考资料)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [PostgreSQL Best Practices](https://wiki.postgresql.org/wiki/Don%27t_Do_This)
 - [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
 - [Architecture Overview](../02_ARCHITECTURE_OVERVIEW.md)
 - [ADR001: Tech Stack](../03_ADR/ADR001_TECH_STACK.md)
 
-### 14.3 Change Log (变更日志)
+### 14.4 Change Log (变更日志)
 
 | Version | Date       | Changes  | Author |
 | ------- | ---------- | -------- | ------ |

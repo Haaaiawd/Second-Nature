@@ -25,15 +25,22 @@ function ensureFile(filePath: string): boolean {
 
 function localPathResult(root: string): SmokeResult {
   const pluginDir = path.join(root, "plugin");
-  const pluginPkg = path.join(pluginDir, "package.json");
-  const manifest = path.join(pluginDir, "openclaw.plugin.json");
-  const entry = path.join(pluginDir, "index.ts");
+  const pluginPkgPath = path.join(pluginDir, "package.json");
+  const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
+  const entryPath = path.join(pluginDir, "index.js");
+
+  const pluginPkg = ensureFile(pluginPkgPath) ? JSON.parse(fs.readFileSync(pluginPkgPath, "utf-8")) as { main?: string } : undefined;
+  const manifest = ensureFile(manifestPath)
+    ? JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as { entry?: string }
+    : undefined;
 
   const checks = {
     pluginDirExists: fs.existsSync(pluginDir),
-    pluginPackageExists: ensureFile(pluginPkg),
-    manifestExists: ensureFile(manifest),
-    entryExists: ensureFile(entry),
+    pluginPackageExists: ensureFile(pluginPkgPath),
+    manifestExists: ensureFile(manifestPath),
+    entryExists: ensureFile(entryPath),
+    packageMainIsIndexJs: pluginPkg?.main === "./index.js",
+    manifestEntryIsIndexJs: manifest?.entry === "./index.js",
   };
 
   return {
@@ -41,8 +48,8 @@ function localPathResult(root: string): SmokeResult {
     ok: Object.values(checks).every(Boolean),
     installSpec: `file:${pluginDir}`,
     gatewayRestartRequired: true,
-    manifestPath: manifest,
-    entryPath: entry,
+    manifestPath,
+    entryPath,
     checks,
     notes: [
       `openclaw plugins install file:${pluginDir}`,

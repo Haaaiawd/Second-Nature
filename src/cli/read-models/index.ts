@@ -1,11 +1,11 @@
+import { desc } from "drizzle-orm";
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
 import { createQuietInputLoader } from "../../storage/services/quiet-input-loader.js";
 import { AssetRepository } from "../../storage/repositories/asset-repository.js";
 import { CredentialRepository } from "../../storage/repositories/credential-repository.js";
 import { EvidenceQueryEngine } from "../../observability/query/evidence-query-engine.js";
-import { executionAttempts } from "../../observability/db/schema/index.js";
-import { desc } from "drizzle-orm";
+import { decisionLedger, executionAttempts } from "../../observability/db/schema/index.js";
 
 import type {
   StatusReadModel,
@@ -15,6 +15,9 @@ import type {
   CredentialReadModel,
   ExplainReadModel,
 } from "./types.js";
+
+const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
+const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 
 export interface CliReadModels {
   loadStatus(scope?: string): Promise<StatusReadModel>;
@@ -41,6 +44,30 @@ function buildCredentialNextStep(status: CredentialReadModel["status"]): string 
   return undefined;
 }
 
+function mapRuntimeStatus(
+  attempt?: { status: string; failureClass: string | null } | undefined,
+): StatusReadModel["runtime"]["serviceStatus"] {
+  if (!attempt) {
+    return "unknown";
+  }
+  if (attempt.failureClass || attempt.status === "failed") {
+    return "degraded";
+  }
+  return "running";
+}
+
+function mapConnectorStatus(
+  attempt?: { status: string; failureClass: string | null } | undefined,
+): StatusReadModel["connectors"][number]["status"] {
+  if (!attempt) {
+    return "unknown";
+  }
+  if (attempt.failureClass || attempt.status === "failed") {
+    return "degraded";
+  }
+  return "healthy";
+}
+
 export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
   const assetRepository = new AssetRepository(deps.stateDb);
   const credentialRepository = new CredentialRepository(deps.stateDb);
@@ -49,15 +76,28 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
 
   return {
     async loadStatus(_scope?: string): Promise<StatusReadModel> {
-      let latestAttempt: Awaited<ReturnType<typeof deps.observabilityDb.db.query.executionAttempts.findFirst>>;
+      let recentAttempts: Array<typeof executionAttempts.$inferSelect> = [];
+      let recentDecisions: Array<typeof decisionLedger.$inferSelect> = [];
       let credentials: Awaited<ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>> = [];
 
       try {
-        latestAttempt = await deps.observabilityDb.db.query.executionAttempts.findFirst({
-          orderBy: [desc(executionAttempts.startedAt)],
-        });
+        recentAttempts = await deps.observabilityDb.db
+          .select()
+          .from(executionAttempts)
+          .orderBy(desc(executionAttempts.startedAt), desc(executionAttempts.finishedAt))
+          .limit(50);
       } catch {
-        latestAttempt = undefined;
+        recentAttempts = [];
+      }
+
+      try {
+        recentDecisions = await deps.observabilityDb.db
+          .select()
+          .from(decisionLedger)
+          .orderBy(desc(decisionLedger.createdAt))
+          .limit(50);
+      } catch {
+        recentDecisions = [];
       }
 
       try {
@@ -66,39 +106,56 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         credentials = [];
       }
 
-      const connectorSummary: StatusReadModel["connectors"] = latestAttempt
-        ? [{
-            platformId: latestAttempt.platformId,
-            status: latestAttempt.failureClass ? "degraded" : "healthy",
-            channel: latestAttempt.channel,
-            failureClass: latestAttempt.failureClass ?? undefined,
-          }]
+      const latestRuntimeAttempt = recentAttempts.find((attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID);
+      const latestConnectorAttempt = recentAttempts.find((attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID);
+      const latestRuntimeDecision = recentDecisions.find((decision) => decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX));
+      const runtimeUpdatedAt =
+        latestRuntimeAttempt?.finishedAt ?? latestRuntimeAttempt?.startedAt ?? latestRuntimeDecision?.createdAt ?? "";
+      const quietMode =
+        latestRuntimeDecision?.mode === "quiet" ||
+        latestRuntimeDecision?.mode === "maintenance_only" ||
+        latestRuntimeDecision?.mode === "paused_for_interrupt"
+          ? latestRuntimeDecision.mode
+          : "unknown";
+      const riskFlags = [latestRuntimeAttempt?.failureClass, latestConnectorAttempt?.failureClass].filter(
+        (value): value is string => Boolean(value),
+      );
+
+      const connectorSummary: StatusReadModel["connectors"] = latestConnectorAttempt
+        ? [
+            {
+              platformId: latestConnectorAttempt.platformId,
+              status: mapConnectorStatus(latestConnectorAttempt),
+              channel: latestConnectorAttempt.channel,
+              failureClass: latestConnectorAttempt.failureClass ?? undefined,
+            },
+          ]
         : [];
 
       return {
         runtime: {
           host: "openclaw-plugin",
-          serviceStatus: latestAttempt ? (latestAttempt.failureClass ? "degraded" : "running") : "unknown",
-          updatedAt: new Date().toISOString(),
+          serviceStatus: mapRuntimeStatus(latestRuntimeAttempt),
+          updatedAt: runtimeUpdatedAt,
         },
         rhythm: {
-          mode: "unknown",
+          mode: (latestRuntimeDecision?.mode as StatusReadModel["rhythm"]["mode"] | undefined) ?? "unknown",
           windowId: undefined,
         },
         quiet: {
-          mode: "unknown",
-          lastEvent: undefined,
-          interrupted: undefined,
+          mode: quietMode,
+          lastEvent: latestRuntimeDecision?.traceId,
+          interrupted: latestRuntimeDecision?.mode === "paused_for_interrupt" ? true : undefined,
         },
         connectors: connectorSummary,
         credentials: credentials.map((item) => ({
-          platformId: item.platformId,
+          platformId: (item as unknown as { platformId: string }).platformId ?? (item as unknown as { platform_id: string }).platform_id,
           status: item.status as CredentialReadModel["status"],
           nextStep: buildCredentialNextStep(item.status as CredentialReadModel["status"]),
         })),
         risk: {
-          level: latestAttempt?.failureClass ? "medium" : "low",
-          flags: latestAttempt?.failureClass ? [latestAttempt.failureClass] : [],
+          level: riskFlags.length > 0 ? "medium" : "low",
+          flags: riskFlags,
         },
       };
     },
@@ -176,7 +233,7 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       }
 
       return {
-        platformId: record.platformId,
+        platformId: (record as unknown as { platformId: string }).platformId ?? (record as unknown as { platform_id: string }).platform_id,
         status: record.status as CredentialReadModel["status"],
         verificationDeadline: record.expiresAt ?? undefined,
         attemptsRemaining: record.attemptsRemaining ?? undefined,

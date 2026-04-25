@@ -27,7 +27,17 @@ export class DefaultStateAPI {
         const personaCandidateLoader = createPersonaCandidateLoader();
         this.read = {
             loadQuietInputs: (query) => quietInputLoader.loadQuietInputs(query),
-            loadPolicy: (platformId) => policyRepository.findByPlatformId(platformId),
+            loadPolicy: async (platformId) => {
+                const record = await policyRepository.findByPlatformId(platformId);
+                if (!record)
+                    return undefined;
+                return {
+                    platformId: record.platformId ?? record.platform_id,
+                    socialDailyLimit: record.socialDailyLimit ?? record.social_daily_limit,
+                    quietEnabled: record.quietEnabled ?? Boolean(record.quiet_enabled),
+                    updatedAt: record.updatedAt ?? record.updated_at,
+                };
+            },
             loadPersonaCandidates: (sceneContext) => personaCandidateLoader.loadPersonaCandidates(sceneContext),
         };
         this.write = {
@@ -46,7 +56,21 @@ export class DefaultStateAPI {
         };
         this.credentials = {
             loadCredentialContext: async (platformId) => {
-                return credentialRepository.findByPlatformId(platformId);
+                const record = await credentialRepository.findByPlatformId(platformId);
+                if (!record)
+                    return null;
+                const r = record;
+                return {
+                    platformId: (r.platformId ?? r.platform_id),
+                    credentialType: (r.credentialType ?? r.credential_type),
+                    encryptedValue: (r.encryptedValue ?? r.encrypted_value),
+                    status: (r.status ?? ""),
+                    verificationCode: (r.verificationCode ?? r.verification_code ?? null),
+                    challengeText: (r.challengeText ?? r.challenge_text ?? null),
+                    expiresAt: (r.expiresAt ?? r.expires_at ?? null),
+                    attemptsRemaining: (r.attemptsRemaining ?? r.attempts_remaining ?? null),
+                    updatedAt: (r.updatedAt ?? r.updated_at ?? ""),
+                };
             },
             saveCredentialContext: async (input) => {
                 const ctx = input;

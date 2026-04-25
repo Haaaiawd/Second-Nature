@@ -15,11 +15,20 @@ export function createActionBridge(stateApi) {
             if (!answer.trim()) {
                 throw new Error("verification_answer_required");
             }
+            const credentialType = existing.credentialType ?? existing.credential_type;
+            const encryptedValue = existing.encryptedValue ?? existing.encrypted_value;
+            const expiresAt = existing.expiresAt ?? existing.expires_at;
+            const attemptsRemaining = existing.attemptsRemaining ?? existing.attempts_remaining;
+            const challengeText = existing.challengeText ?? existing.challenge_text;
             await stateApi.credentials.saveCredentialContext({
-                ...existing,
+                platformId: existing.platformId ?? existing.platform_id,
+                credentialType: credentialType ?? "",
+                encryptedValue: encryptedValue ?? "",
                 status: "active",
                 verificationCode: answer,
-                encryptedValue: existing.encryptedValue,
+                challengeText,
+                expiresAt,
+                attemptsRemaining,
                 updatedAt: new Date().toISOString(),
             });
         },

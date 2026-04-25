@@ -57,6 +57,9 @@ test("T5.3.1 plugin entry declares load/reload lifecycle registration markers", 
   assert.equal(source.includes("createLifecycleService"), true);
   assert.equal(source.includes("./runtime/core/second-nature/runtime/"), true);
   assert.equal(source.includes("createRuntimeService"), true);
+  assert.equal(source.includes("register(api: RegisterApi)"), true);
+  assert.equal(source.includes("async register(api: RegisterApi)"), false);
+  assert.equal(source.includes("recordRuntimeEvidence"), true);
 });
 
 test("T5.3.1 smoke path covers local install and clawhub/npm fallback order", () => {

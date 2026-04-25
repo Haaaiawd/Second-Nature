@@ -80,7 +80,16 @@ export class DefaultStateAPI implements StateAPI {
 
     this.read = {
       loadQuietInputs: (query: CurationInputQuery) => quietInputLoader.loadQuietInputs(query),
-      loadPolicy: (platformId: string) => policyRepository.findByPlatformId(platformId),
+      loadPolicy: async (platformId: string) => {
+        const record = await policyRepository.findByPlatformId(platformId);
+        if (!record) return undefined;
+        return {
+          platformId: (record as unknown as { platformId: string }).platformId ?? (record as unknown as { platform_id: string }).platform_id,
+          socialDailyLimit: (record as unknown as { socialDailyLimit: number }).socialDailyLimit ?? (record as unknown as { social_daily_limit: number }).social_daily_limit,
+          quietEnabled: (record as unknown as { quietEnabled: boolean }).quietEnabled ?? Boolean((record as unknown as { quiet_enabled: number }).quiet_enabled),
+          updatedAt: (record as unknown as { updatedAt: string }).updatedAt ?? (record as unknown as { updated_at: string }).updated_at,
+        };
+      },
       loadPersonaCandidates: (sceneContext: SceneContext) => personaCandidateLoader.loadPersonaCandidates(sceneContext),
     };
 
@@ -101,7 +110,20 @@ export class DefaultStateAPI implements StateAPI {
 
     this.credentials = {
       loadCredentialContext: async (platformId: string) => {
-        return credentialRepository.findByPlatformId(platformId);
+        const record = await credentialRepository.findByPlatformId(platformId);
+        if (!record) return null;
+        const r = record as Record<string, unknown>;
+        return {
+          platformId: (r.platformId ?? r.platform_id) as string,
+          credentialType: (r.credentialType ?? r.credential_type) as string,
+          encryptedValue: (r.encryptedValue ?? r.encrypted_value) as string,
+          status: (r.status ?? "") as string,
+          verificationCode: (r.verificationCode ?? r.verification_code ?? null) as string | null,
+          challengeText: (r.challengeText ?? r.challenge_text ?? null) as string | null,
+          expiresAt: (r.expiresAt ?? r.expires_at ?? null) as string | null,
+          attemptsRemaining: (r.attemptsRemaining ?? r.attempts_remaining ?? null) as number | null,
+          updatedAt: (r.updatedAt ?? r.updated_at ?? "") as string,
+        };
       },
       saveCredentialContext: async (input: unknown) => {
         const ctx = input as Parameters<typeof credentialRepository.upsert>[0];

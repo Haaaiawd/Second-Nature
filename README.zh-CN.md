@@ -15,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
   <img src="https://img.shields.io/badge/Architecture-v3-1d4ed8?style=for-the-badge" alt="Architecture v3">
-  <img src="https://img.shields.io/badge/Host-Validated-059669?style=for-the-badge" alt="Host Validated">
+  <img src="https://img.shields.io/badge/Host-Surface%20Validated-059669?style=for-the-badge" alt="Host Surface Validated">
   <img src="https://img.shields.io/badge/License-Apache--2.0-f59e0b?style=for-the-badge" alt="License Apache 2.0">
 </p>
 
@@ -140,13 +140,20 @@ Second Nature 现在的真相源已经切到 `.anws/v3`。
 
 ### 宿主验证
 
-已经在 `D:\QClaw` 捆绑的 OpenClaw runtime 中完成宿主级验证。
+已经在 `D:\QClaw` 捆绑的 OpenClaw runtime 中完成本地主机侧 plugin surface 验证。
 
 - install ✅
 - enable ✅
 - list ✅
 - info ✅
 - doctor ✅
+- sync register ✅
+- runtime activation evidence ✅
+
+这里坐实的是 plugin surface 本身，以及背后的最小 runtime spine。
+这不应该被理解成 full heartbeat bridge、connector orchestration 或 Quiet 闭环已经全部完成。
+
+云端宿主闭环仍需按专用 checklist 继续复测。
 
 ### 仍然值得继续补强的地方
 
@@ -188,7 +195,7 @@ openclaw plugins install clawhub:<package>
 如果之后发布到 npm：
 
 ```bash
-openclaw plugins install @haaaiawd/openclaw-plugin
+openclaw plugins install @haaaiawd/second-nature
 ```
 
 ### 云端或远程宿主
@@ -296,15 +303,13 @@ Second Nature 当前分成六个系统：
 
 ### 一次运行大致会经过什么
 
-如果把它压成一条直线去看，大概是这样：
+如果把当前已经验证过的运行链压成一条直线去看，大概是这样：
 
-1. OpenClaw 通过命令、session 上下文或调度 tick 唤醒 plugin。
-2. control-plane 先看当前节律窗口、风险、预算和 obligation。
-3. 系统规划候选 intent，比如 exploration、social、outreach、maintenance、reflection，或者 obligation 驱动的 work。
-4. guidance 层根据当前 scene 装配一份轻量 payload。
-5. 被选中的 intent 进入 connector 执行链，或者走记忆整理 / reflection 路径。
-6. 结果回流到 state、observability 和 workspace memory artifacts。
-7. Quiet 窗口再把这些痕迹慢慢整理成后面还能继续用的东西。
+1. OpenClaw 先通过 command / tool / service surface 加载 plugin。
+2. 注册流程会在宿主返回前同步完成，不再依赖被忽略的 async register。
+3. runtime spine 会把 activation / reload evidence 写进 observability。
+4. `status` 会把 runtime liveness 和 connector execution attempts 分开读取。
+5. 更深的 control-plane rhythm、connector 执行链和 Quiet 闭环仍在后续阶段继续收口。
 
 节律层给系统的是硬窗口，窗口里的动作依然保留弹性。这样跑起来会更有方向感，也更像一个长期存在的 agent。
 

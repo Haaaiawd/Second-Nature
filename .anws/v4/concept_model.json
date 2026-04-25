@@ -1,0 +1,149 @@
+{
+  "glossary": {
+    "Heartbeat Main Entry": "Second Nature 的主运行入口，承接 OpenClaw 主会话 heartbeat，用于自由心跳下的感知、节律判断、Quiet、obligation 与探索决策。",
+    "Rhythm Scope": "Second Nature 管理的自由运行域，只覆盖无用户明确指令时的持续运行行为，不接管用户显式任务。",
+    "User Task Scope": "用户明确交代给 agent 的任务执行域，直接进入任务链，不受节律裁决。",
+    "User Reply Scope": "用户直聊回复域，只应用 very light continuity guidance，不进入节律裁决，也不复用平台 reply 场景。",
+    "Runtime Packaging": "插件发布后的自足运行时形态，安装后不依赖源码仓的 src 目录，命令、服务和 heartbeat 入口都可独立运行。",
+    "HEARTBEAT_OK": "heartbeat 轮完成后无重要动作时的最小结果，表示本轮完成感知与判断，但无需向外投递噪声。"
+  },
+  "entities": [
+    {
+      "name": "HeartbeatRuntimeService",
+      "type": "运行时服务",
+      "necessity": "必须",
+      "description": "接收 OpenClaw heartbeat 并驱动 Second Nature 自由心跳编排的主入口服务。"
+    },
+    {
+      "name": "ContinuitySnapshot",
+      "type": "状态快照",
+      "necessity": "必须",
+      "description": "描述当前自由运行态的最小状态，包括 mode、window、pending obligations、budgets 与风险状态。"
+    },
+    {
+      "name": "RhythmDecision",
+      "type": "决策结果",
+      "necessity": "必须",
+      "description": "heartbeat 轮对当前自由心跳行为作出的节律判断结果。"
+    },
+    {
+      "name": "RuntimeArtifactPackage",
+      "type": "发布产物",
+      "necessity": "必须",
+      "description": "包含命令路由、读模型、状态依赖与 heartbeat 入口的插件自足运行时产物。"
+    },
+    {
+      "name": "UserExplicitTask",
+      "type": "触发源",
+      "necessity": "必须",
+      "description": "用户明确交代 agent 去执行的任务，应直接进入任务执行链。"
+    },
+    {
+      "name": "DirectUserReply",
+      "type": "交互场景",
+      "necessity": "必须",
+      "description": "用户直聊回复场景，只需要 very light continuity guidance。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "OpenClawHeartbeat",
+      "action": "唤醒",
+      "to": "HeartbeatRuntimeService",
+      "data": "主会话 heartbeat 上下文",
+      "trigger": "heartbeat interval"
+    },
+    {
+      "from": "HeartbeatRuntimeService",
+      "action": "构建",
+      "to": "ContinuitySnapshot",
+      "data": "mode、window、pending obligations、recent outreach、budgets、risk",
+      "trigger": "heartbeat round"
+    },
+    {
+      "from": "ContinuitySnapshot",
+      "action": "规划",
+      "to": "RhythmDecision",
+      "data": "obligation / exploration / quiet / reflection / outreach 候选意图",
+      "trigger": "自由心跳决策"
+    },
+    {
+      "from": "RhythmDecision",
+      "action": "进入",
+      "to": "GuidanceAssembly",
+      "data": "只有选中需要 guidance 的 scene 时才请求 guidance payload",
+      "trigger": "scene selected"
+    },
+    {
+      "from": "UserExplicitTask",
+      "action": "直接进入",
+      "to": "TaskExecutionChain",
+      "data": "用户明确任务上下文",
+      "trigger": "user directive"
+    },
+    {
+      "from": "DirectUserReply",
+      "action": "应用轻量连续性",
+      "to": "ReplyGenerationPath",
+      "data": "very light persona continuity + tone consistency",
+      "trigger": "user chat message"
+    },
+    {
+      "from": "RuntimeArtifactPackage",
+      "action": "提供",
+      "to": "OpenClawPluginHost",
+      "data": "command router、tool runtime、service runtime、heartbeat entry",
+      "trigger": "plugin install / enable"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "Heartbeat runtime entry contract",
+      "category": "宿主接入",
+      "priority": "高",
+      "reason": "当前已有 control-plane 内部模块，但缺正式 heartbeat 主入口。"
+    },
+    {
+      "component": "User task vs rhythm boundary contract",
+      "category": "运行时边界",
+      "priority": "高",
+      "reason": "需要正式定义用户明确任务不受节律调度约束。"
+    },
+    {
+      "component": "Runtime packaging strategy",
+      "category": "分发与发布",
+      "priority": "高",
+      "reason": "当前插件发布包缺失 src/cli 运行时代码，命令退化为 fallback。"
+    },
+    {
+      "component": "Heartbeat output policy",
+      "category": "运行策略",
+      "priority": "中",
+      "reason": "需要明确 heartbeat 默认保守输出，没事时返回 HEARTBEAT_OK。"
+    },
+    {
+      "component": "Direct user reply light continuity policy",
+      "category": "交互边界",
+      "priority": "中",
+      "reason": "需要明确用户直聊回复不走 reply scene，只使用 very light continuity guidance。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "Second Nature 的主运行入口是什么？",
+      "answer": "Heartbeat 主入口。Second Nature 以 OpenClaw heartbeat 作为自由心跳的主运行入口。"
+    },
+    {
+      "question": "节律控制是否覆盖用户明确任务？",
+      "answer": "不覆盖。用户明确下达的任务直接进入任务执行链，不受节律裁决。"
+    },
+    {
+      "question": "用户直聊回复是否进入平台 reply guidance？",
+      "answer": "不进入。用户直聊回复只应用 very light continuity guidance。"
+    },
+    {
+      "question": "当前插件发布问题的本质是什么？",
+      "answer": "发布包只有 wrapper，没有自足 runtime，安装后找不到 src/cli/index.js，所有命令退化为 fallback。"
+    }
+  ]
+}

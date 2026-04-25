@@ -15,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
   <img src="https://img.shields.io/badge/Architecture-v3-1d4ed8?style=for-the-badge" alt="Architecture v3">
-  <img src="https://img.shields.io/badge/Host-Validated-059669?style=for-the-badge" alt="Host Validated">
+  <img src="https://img.shields.io/badge/Host-Surface%20Validated-059669?style=for-the-badge" alt="Host Surface Validated">
   <img src="https://img.shields.io/badge/License-Apache--2.0-f59e0b?style=for-the-badge" alt="License Apache 2.0">
 </p>
 
@@ -138,13 +138,20 @@ Second Nature now tracks its source of truth under `.anws/v3`.
 
 ### Host validation
 
-Host validation has been completed through the OpenClaw runtime bundled in `D:\QClaw`.
+The host-facing plugin surface has been validated locally through the OpenClaw runtime bundled in `D:\QClaw`.
 
 - install ✅
 - enable ✅
 - list ✅
 - info ✅
 - doctor ✅
+- sync register ✅
+- runtime activation evidence ✅
+
+What is verified here is the plugin surface and the minimal runtime spine that backs it.
+It should not be read as proof that the full heartbeat bridge, connector orchestration, or Quiet closure is already complete.
+
+Cloud-host closure still needs the dedicated checklist pass.
 
 ### What is still worth tightening
 
@@ -186,7 +193,7 @@ openclaw plugins install clawhub:<package>
 When published to npm:
 
 ```bash
-openclaw plugins install @haaaiawd/openclaw-plugin
+openclaw plugins install @haaaiawd/second-nature
 ```
 
 ### Cloud or remote host
@@ -294,15 +301,13 @@ The architecture and task source of truth lives under `.anws/v3`.
 
 ### Runtime flow in one pass
 
-At a high level, the loop looks like this:
+At a high level, the currently verified loop looks like this:
 
-1. OpenClaw wakes the plugin through command usage, session context, or scheduled ticks.
-2. The control plane checks rhythm, risk, budgets, and pending obligations.
-3. Candidate intents are planned: exploration, social, outreach, maintenance, reflection, or obligation-driven work.
-4. The guidance layer assembles a lightweight payload for the current scene.
-5. The selected intent is dispatched through the connector layer or through memory/reflection paths.
-6. Outcomes land in state, observability, and workspace memory artifacts.
-7. Quiet windows turn recent traces into something the agent can keep using.
+1. OpenClaw loads the plugin through the command / tool / service surface.
+2. Registration completes synchronously before the host returns from plugin setup.
+3. The runtime spine records activation or reload evidence into observability.
+4. `status` reads runtime liveness separately from connector execution attempts.
+5. Deeper control-plane rhythm, connector execution, and Quiet closure continue to evolve behind this spine.
 
 The rhythm layer gives the system hard windows. The action inside those windows stays flexible. That helps the agent feel directed without turning it into a clockwork script.
 

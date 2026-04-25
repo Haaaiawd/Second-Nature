@@ -27,6 +27,10 @@ graph TD
 
 ## 📊 Sprint 路线图
 
+> 发布语义注记（2026-04-11）:
+> 当前代码与本轮发布物已经覆盖 S1 的 runtime package 目标，并提供了最小 activation spine。
+> 但 S2 / S3 中涉及 heartbeat host bridge、最小平台动作闭环与云端宿主闭环的内容，不能仅凭当前 plugin surface 视为全部坐实。
+
 | Sprint | 代号 | 核心任务 | 退出标准 | 预估 |
 |--------|------|---------|---------|------|
 | S1 | Runtime Package | packaging feasibility + plugin runtime artifact + command/tool/service 可运行 | 安装后的插件不再 fallback，核心命令可用，packaging 风险已验证 | 2-3d |
