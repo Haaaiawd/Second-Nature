@@ -57,6 +57,60 @@ test("T5.3.2 plugin register is synchronous and registers surfaces before return
   assert.equal(commands[0]?.name, "second-nature");
 });
 
+test("T5.3.2 register does not start services before host invokes them", async () => {
+  const plugin = await loadPlugin();
+  let runtimeService: ServiceRegistration | undefined;
+  let lifecycleService: ServiceRegistration | undefined;
+  let command: CommandRegistration | undefined;
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown> },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService(service: ServiceRegistration) {
+      if (service.id === "second-nature-runtime") {
+        runtimeService = service;
+      }
+      if (service.id === "second-nature-lifecycle") {
+        lifecycleService = service;
+      }
+    },
+    registerCommand(entry: CommandRegistration) {
+      command = entry;
+    },
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(runtimeService);
+  assert.ok(lifecycleService);
+  assert.ok(command);
+  assert.ok(tool);
+
+  const lifecycleBeforeUse = lifecycleService.start() as { registerCount: number };
+  assert.equal(lifecycleBeforeUse.registerCount, 0);
+
+  const commandPayload = JSON.parse((await command.handler({ args: "status" })).text) as {
+    ok: boolean;
+    data: { runtime: { serviceStatus: string } };
+  };
+  const toolPayload = JSON.parse((await tool.execute("1", { command: "status" })).content[0]?.text ?? "{}") as {
+    ok: boolean;
+    data: { runtime: { serviceStatus: string } };
+  };
+
+  assert.equal(commandPayload.ok, true);
+  assert.equal(toolPayload.ok, true);
+  assert.equal(commandPayload.data.runtime.serviceStatus, toolPayload.data.runtime.serviceStatus);
+});
+
+
 test("T5.3.2 command and tool surfaces share router semantics", async () => {
   const plugin = await loadPlugin();
   let command: CommandRegistration | undefined;

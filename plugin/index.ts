@@ -555,7 +555,6 @@ export default {
   name: "Second Nature",
   description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
   register(api: RegisterApi) {
-    const spine = refreshRegistrationState();
     const runtimeService = createRuntimeService();
     const lifecycleService = createLifecycleService();
 
@@ -567,6 +566,7 @@ export default {
       description: "Route Agent-facing operational commands for Second Nature.",
       acceptsArgs: true,
       handler: async (ctx: { args?: string }) => {
+        const spine = ensureActivationSpine();
         const parsed = parseCommandInput(ctx.args);
         if (!parsed.ok) {
           return {
@@ -601,6 +601,7 @@ export default {
         required: ["command"],
       },
       async execute(_id: string, params: { command: string; args?: Record<string, unknown> }) {
+        const spine = ensureActivationSpine();
         const resolved = spine.router.resolve(params.command);
         if (!resolved) {
           return {
