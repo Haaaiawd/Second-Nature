@@ -298,6 +298,43 @@ function buildExplainPayload(spine: ActivationSpine, subjectRaw?: string): Comma
   };
 }
 
+function buildHeartbeatCheckPayload(spine: ActivationSpine, input?: Record<string, unknown>): CommandPayload {
+  const runtimeEvidence = latestRuntimeEvidence(spine);
+  const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
+  const timestamp =
+    typeof input?.timestamp === "string" && input.timestamp.trim().length > 0 ? input.timestamp : updatedAt;
+
+  return {
+    ok: true,
+    status: "heartbeat_ok",
+    heartbeat: "HEARTBEAT_OK",
+    scope: "rhythm",
+    trigger: "heartbeat_bridge",
+    reasons: ["host_safe_bridge_ready"],
+    nextAction: "continue",
+    message: "Host-safe heartbeat bridge acknowledged the round. No additional action is required from this surface.",
+    data: {
+      runtime: {
+        host: "openclaw-plugin",
+        serviceStatus: spine.runtimeHandle.ready ? "running" : "idle",
+        updatedAt,
+      },
+      surface: {
+        tool: "second_nature_ops",
+        command: "second-nature heartbeat_check",
+      },
+      bridge: {
+        timestamp,
+        sessionContextProvided:
+          typeof input?.sessionContext === "string" && input.sessionContext.trim().length > 0,
+        heartbeatChecklistProvided:
+          typeof input?.heartbeatChecklist === "string" && input.heartbeatChecklist.trim().length > 0,
+        serviceEntryMode: "runtime_carrier_only",
+      },
+    },
+  };
+}
+
 function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
   const notImplemented = async (command: string): Promise<CommandPayload> => ({
     ok: false,
@@ -380,6 +417,11 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
         const subject = typeof input?.subject === "string" ? input.subject : undefined;
         return buildExplainPayload(spine, subject);
       },
+    },
+    {
+      name: "heartbeat_check",
+      description: "Acknowledge the shipping heartbeat bridge round",
+      execute: async (input) => buildHeartbeatCheckPayload(spine, input),
     },
   ];
 
@@ -506,6 +548,18 @@ function parseCommandInput(rawArgs?: string):
         ok: true,
         command,
         input: rest[0] ? { platformId: rest[0] } : undefined,
+      };
+    case "heartbeat_check":
+      return {
+        ok: true,
+        command,
+        input:
+          rest.length > 0
+            ? {
+                timestamp: rest[0],
+                sessionContext: rest.length > 1 ? rest.slice(1).join(" ") : undefined,
+              }
+            : undefined,
       };
     case "explain":
       return {

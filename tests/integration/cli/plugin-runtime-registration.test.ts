@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
+import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 
 interface ServiceRegistration {
@@ -151,6 +152,96 @@ test("T5.3.2 command and tool surfaces share router semantics", async () => {
   assert.equal(commandPayload.ok, true);
   assert.equal(toolPayload.ok, true);
   assert.equal(commandPayload.data.runtime.serviceStatus, toolPayload.data.runtime.serviceStatus);
+});
+
+
+test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable parity", async () => {
+  const plugin = await loadPlugin();
+  let command: CommandRegistration | undefined;
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown> },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand(entry: CommandRegistration) {
+      command = entry;
+    },
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(command);
+  assert.ok(tool);
+
+  const commandResult = await command.handler({ args: "heartbeat_check 2026-04-27T10:00:00Z host-context" });
+  const toolResult = await tool.execute("1", {
+    command: "heartbeat_check",
+    args: {
+      timestamp: "2026-04-27T10:00:00Z",
+      sessionContext: "host-context",
+      heartbeatChecklist: "call second_nature_ops heartbeat_check",
+    },
+  });
+
+  const commandPayload = JSON.parse(commandResult.text) as {
+    ok: boolean;
+    status: string;
+    heartbeat: string;
+    nextAction: string;
+    data: {
+      surface: { tool: string; command: string };
+      bridge: {
+        timestamp: string;
+        sessionContextProvided: boolean;
+        heartbeatChecklistProvided: boolean;
+        serviceEntryMode: string;
+      };
+    };
+  };
+  const toolPayload = JSON.parse(toolResult.content[0]?.text ?? "{}") as typeof commandPayload;
+
+  assert.equal(commandPayload.ok, true);
+  assert.equal(commandPayload.status, "heartbeat_ok");
+  assert.equal(commandPayload.heartbeat, "HEARTBEAT_OK");
+  assert.equal(commandPayload.nextAction, "continue");
+  assert.equal(commandPayload.data.surface.tool, "second_nature_ops");
+  assert.equal(commandPayload.data.surface.command, "second-nature heartbeat_check");
+  assert.equal(commandPayload.data.bridge.timestamp, "2026-04-27T10:00:00Z");
+  assert.equal(commandPayload.data.bridge.sessionContextProvided, true);
+  assert.equal(commandPayload.data.bridge.heartbeatChecklistProvided, false);
+  assert.equal(commandPayload.data.bridge.serviceEntryMode, "runtime_carrier_only");
+
+  assert.equal(toolPayload.ok, true);
+  assert.equal(toolPayload.status, "heartbeat_ok");
+  assert.equal(toolPayload.heartbeat, "HEARTBEAT_OK");
+  assert.equal(toolPayload.nextAction, "continue");
+  assert.equal(toolPayload.data.surface.tool, commandPayload.data.surface.tool);
+  assert.equal(toolPayload.data.surface.command, commandPayload.data.surface.command);
+  assert.equal(toolPayload.data.bridge.timestamp, commandPayload.data.bridge.timestamp);
+  assert.equal(toolPayload.data.bridge.sessionContextProvided, commandPayload.data.bridge.sessionContextProvided);
+  assert.equal(toolPayload.data.bridge.heartbeatChecklistProvided, true);
+  assert.equal(toolPayload.data.bridge.serviceEntryMode, commandPayload.data.bridge.serviceEntryMode);
+});
+
+
+
+test("T1.2.3 HEARTBEAT.md instructs tool use and success semantics", () => {
+  const heartbeatPath = path.join(process.cwd(), "HEARTBEAT.md");
+  assert.equal(fs.existsSync(heartbeatPath), true);
+
+  const source = fs.readFileSync(heartbeatPath, "utf-8");
+  assert.equal(source.includes("second_nature_ops"), true);
+  assert.equal(source.includes("heartbeat_check"), true);
+  assert.equal(source.includes("HEARTBEAT_OK"), true);
+  assert.equal(source.includes("continue"), true);
+  assert.equal(source.includes("per-heartbeat callback"), true);
 });
 
 test("T5.3.2 command surface rejects structured-only actions and parses simple args", async () => {

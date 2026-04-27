@@ -3,10 +3,12 @@
 ## 状态
 Accepted
 
-> 实现注记（2026-04-11）:
+> 实现注记（2026-04-27）:
 > 本 ADR 仍代表目标架构方向。
 > 当前代码已经坐实的是同步 plugin 注册、包内 runtime artifact、最小 activation/runtime evidence，以及 runtime status truth split。
-> heartbeat host bridge 本身仍未被当前 plugin surface 单独证明闭环，因此不能把当前发布物表述成 ADR-005 已完整落地。
+> 当前已选定的 shipping bridge contract 是 `HEARTBEAT.md + second_nature_ops("heartbeat_check")`；但这个 contract 还没有完整进入 shipping plugin surface。
+> `src/core/second-nature/runtime/service-entry.ts` 仍只是最小 runtime handle / carrier，不应被表述为已收到 per-heartbeat callback。
+> 因此不能把当前发布物表述成 ADR-005 已完整落地。
 
 ## 日期
 2026-03-27
@@ -72,6 +74,8 @@ OpenClaw 文档进一步提供了关键约束：
 - `Rhythm Scope` 以 OpenClaw heartbeat 语义为主体生命线
 - 当前不假设 plugin API 存在直接的 heartbeat callback
 - heartbeat 轮需要通过宿主桥接方式进入 Second Nature 的节律链
+- 当前选定的主桥接合同为 `HEARTBEAT.md + second_nature_ops("heartbeat_check")`
+- service surface 只提供 packaged runtime carrier / lifecycle truth，不单独伪装成 per-heartbeat callback
 - 默认无事时允许 `HEARTBEAT_OK` 或等价静默结果
 
 ### 2. 用户明确任务不受节律裁决
@@ -102,8 +106,8 @@ OpenClaw 文档进一步提供了关键约束：
 
 ### 需要的后续行动
 - 在 `control-plane-system` 设计文档中补 heartbeat host bridge 与 output policy
-- 在 `cli-system` / plugin 设计中明确 heartbeat 对应的 service / tool / prompt bridge 方式
-- 在 blueprint 中新增 heartbeat bridge POC 与 user-scope signal contract 相关任务
+- 在 `cli-system` / plugin 设计中明确 heartbeat 对应的 shipping tool / command / prompt bridge 合同
+- 在 blueprint 中新增 heartbeat bridge POC、shipping surface 收口与 user-scope signal contract 相关任务
 
 ## 参考资料
 - `https://docs.openclaw.ai/zh-CN/automation/cron-vs-heartbeat`

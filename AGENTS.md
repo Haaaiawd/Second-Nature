@@ -71,13 +71,16 @@
 
 <!-- AUTO:BEGIN — 项目状态保留区（升级时唯一保留的部分，请勿手动修改区块边界） -->
 
+### 🌊 Wave 1 ✅ — Heartbeat shipping bridge surface
+T1.2.3
+
 ## 📍 当前状态 (由 Workflow 自动更新)
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
 - **最新架构版本**: `.anws/v4`
-- **活动任务清单**: `尚未生成` (等待 /blueprint)
-- **最近一次更新**: `2026-03-27`
+- **活动任务清单**: `.anws/v4/05_TASKS.md`
+- **最近一次更新**: `2026-04-27`
 
 ---
 
@@ -144,12 +147,12 @@ src/
 
 ### 技术栈决策
 - 主栈：TypeScript + Node.js + SQLite
-- 宿主方式：OpenClaw native plugin；当前可验证入口是 command / tool / service plugin surface，heartbeat 仍是计划中的自由心跳主入口
-- 执行策略：用户明确任务直接进入任务链；自由心跳继续归属 Second Nature rhythm scope；plugin 发布包当前提供自足 runtime artifact 与最小 activation spine
+- 宿主方式：OpenClaw native plugin；heartbeat 已作为架构选定的自由心跳主入口，当前 shipping bridge contract 为 `HEARTBEAT.md + second_nature_ops("heartbeat_check")`，宿主闭环仍待 `INT-S3`
+- 执行策略：用户明确任务直接进入任务链；自由心跳继续归属 Second Nature rhythm scope；plugin 发布包当前提供自足 runtime artifact、truthful service carrier 与最小 activation spine
 
 ### 系统边界
 - `cli-system`: Agent-facing 操作接口与 plugin runtime artifact 交付边界，负责 command / tool / service surface 与可发布运行时产物 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/cli-system.md`
-- `control-plane-system`: Second Nature 编排核心，负责 heartbeat/runtime ingress、节律、Quiet、Narrative Reflection 与主动联系时机；其中 heartbeat host bridge 仍属于架构目标，不应视为已由当前 plugin surface 坐实 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md`
+- `control-plane-system`: Second Nature 编排核心，负责 heartbeat/runtime ingress、节律、Quiet、Narrative Reflection 与主动联系时机；当前已选定 `HEARTBEAT.md + second_nature_ops("heartbeat_check")` 作为 shipping bridge contract，但宿主闭环仍待 `INT-S3` 验证 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md`
 - `connector-system`: 社交社区型与协议网络型 connector family
   - `social-community`: Moltbook、InStreet - 帖子、评论、通知、私信、保活
   - `agent-network`: EvoMap - 节点注册、心跳保活、任务发现、任务接单
@@ -167,10 +170,10 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v4/05_TASKS.md`
-- 任务口径: `总任务 17 / P0: 12 / P1: 3 / 里程碑: 3`
+- 任务口径: `总任务 18 / P0: 15 / P1: 3 / 里程碑: 3`
 - Sprint 数: `3`
-- Wave 1 建议: `T1.0.1`, `T1.1.1`, `T2.0.1`
-- 最近更新: `2026-03-27`
+- Wave 2 建议: `INT-S3`
+- 最近更新: `2026-04-27`
 
 <!-- AUTO:END -->
 

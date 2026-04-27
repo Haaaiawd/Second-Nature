@@ -10,7 +10,9 @@ graph TD
     T1_2_1 --> T1_2_2[T1.2.2 Package service surface]
     T1_2_2 --> INT_S1[INT-S1 Package Validation]
 
-    T2_0_1[T2.0.1 Heartbeat host bridge POC] --> T2_1_1[T2.1.1 Heartbeat signal contract]
+    T1_2_2 --> T1_2_3[T1.2.3 Ship heartbeat_check bridge]
+    T2_0_1[T2.0.1 Heartbeat host bridge POC] --> T1_2_3
+    T2_0_1 --> T2_1_1[T2.1.1 Heartbeat signal contract]
     T2_1_1 --> T2_1_2[T2.1.2 Scope signal router]
     T2_1_2 --> T2_2_1[T2.2.1 Heartbeat decision loop]
     T2_2_1 --> T2_2_2[T2.2.2 Guidance + effect bridge]
@@ -21,21 +23,23 @@ graph TD
     T2_1_2 --> T6_1_1[T6.1.1 Light continuity contract]
     INT_S1 --> INT_S3[INT-S3 Host Validation]
     INT_S2 --> INT_S3
+    T1_2_3 --> INT_S3
     T3_1_1 --> INT_S3
     T6_1_1 --> INT_S3
 ```
 
 ## 📊 Sprint 路线图
 
-> 发布语义注记（2026-04-11）:
-> 当前代码与本轮发布物已经覆盖 S1 的 runtime package 目标，并提供了最小 activation spine。
-> 但 S2 / S3 中涉及 heartbeat host bridge、最小平台动作闭环与云端宿主闭环的内容，不能仅凭当前 plugin surface 视为全部坐实。
+> 发布语义注记（2026-04-27）:
+> 当前代码与本轮发布物已经覆盖 S1 的 runtime package 目标，并提供最小 activation spine。
+> 但 T1.2.2 只证明 packaged service carrier 与 lifecycle truth，不等于 heartbeat host bridge 已完成。
+> S2 / S3 中涉及 `HEARTBEAT.md + heartbeat_check` shipping bridge、最小平台动作闭环与云端宿主闭环的内容，不能仅凭当前 plugin surface 视为全部坐实。
 
 | Sprint | 代号 | 核心任务 | 退出标准 | 预估 |
 |--------|------|---------|---------|------|
 | S1 | Runtime Package | packaging feasibility + plugin runtime artifact + command/tool/service 可运行 | 安装后的插件不再 fallback，核心命令可用，packaging 风险已验证 | 2-3d |
-| S2 | Heartbeat Spine | heartbeat bridge POC + signal contract + decision record | heartbeat 桥接路径已确认，heartbeat 能完成一次静默或动作决策，并留下可解释记录 | 3-4d |
-| S3 | Host Closure | 最小平台客户端 + 轻量 continuity + 宿主验证 | 云端宿主可安装、加载、查看 surface，heartbeat 主链与最小平台动作可验证 | 2-3d |
+| S2 | Heartbeat Spine | heartbeat bridge POC + signal contract + decision record | heartbeat 内核能完成一次静默或动作决策，并留下可解释记录；该证明仅限 runtime 内部主链 | 3-4d |
+| S3 | Host Closure | shipping heartbeat bridge + 最小平台客户端 + 轻量 continuity + 宿主验证 | 云端宿主可安装、加载、查看 surface，`HEARTBEAT.md + heartbeat_check` 可被消费，heartbeat 主链与最小平台动作可验证 | 2-3d |
 
 > **覆盖范围说明**: 本任务清单只覆盖 `.anws/v4/01_PRD.md` 中定义的 `REQ-014` ~ `REQ-018`。更广泛的平台扩展、更多 connector 能力和额外 UX 能力不在本次 v4 blueprint 范围内。
 
@@ -113,19 +117,36 @@ graph TD
   - **优先级**: P0
 
 - [x] **T1.2.2** [REQ-017]: 将 service surface 纳入 packaged runtime
-  - **描述**: 让 `second-nature-runtime` 与 `second-nature-lifecycle` 服务也由包内 runtime 产物驱动，为 heartbeat 主入口提供真正的 service 宿主入口。
+  - **描述**: 让 `second-nature-runtime` 与 `second-nature-lifecycle` 服务由包内 runtime 产物驱动，提供 packaged runtime carrier、lifecycle truth 与最小 activation spine；这里不把 service `start()` 表述成已经收到 per-heartbeat callback。
   - **输入**: `.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §5.1；T1.2.1 产出的 wrapper 解析路径
-  - **输出**: packaged service runtime、service bootstrap 入口
+  - **输出**: packaged service runtime、service bootstrap 入口、runtime lifecycle truth
   - **📎 参考**: `ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`cli-system.md` §5.1
   - **验收标准**:
-    - Given heartbeat 主入口最终要通过 service surface 暴露
+    - Given plugin `register(api)` 需要保持同步，且宿主只应看到 truthful service surface
     - When 插件完成注册
-    - Then `second-nature-runtime` 与 lifecycle service 都来自 packaged runtime，而不是空壳 start()
-    - Then 宿主 `plugins info second-nature` 能看到两项 service surface，且启动路径指向包内 runtime
+    - Then `second-nature-runtime` 与 `second-nature-lifecycle` 都来自 packaged runtime，而不是空壳占位
+    - Then 这些 service 只声明 packaged runtime carrier / lifecycle truth，不把当前 `service-entry` 误写成已完成 heartbeat host bridge
   - **验证类型**: 集成测试
-  - **验证说明**: 检查插件注册信息和服务启动行为，确认服务不再只是空 shell
+  - **验证说明**: 检查插件注册信息和服务启动行为，确认服务来自 packaged runtime，并且生命周期语义与当前最小 handle 保持一致
   - **估时**: 6h
   - **依赖**: T1.2.1
+  - **优先级**: P0
+
+- [x] **T1.2.3** [REQ-014]: 暴露 `heartbeat_check` shipping bridge 入口并补 `HEARTBEAT.md`
+  - **描述**: 按 T2.0.1 已选定的桥接 POC，把 `HEARTBEAT.md + second_nature_ops("heartbeat_check")` 正式收口为 shipping plugin surface；command surface 允许等价 `second-nature heartbeat_check`，但不得破坏同步注册与 host-safe 加载边界。
+  - **输入**: `.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §5.1, §11.2；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §5.3, §11.3；T1.2.2 产出的 packaged service/runtime carrier；T2.0.1 产出的 bridge POC 结论
+  - **输出**: `heartbeat_check` command/tool surface、`HEARTBEAT.md`、bridge result contract
+  - **📎 参考**: `ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`cli-system.md` §5.1；`control-plane-system.md` §5.3
+  - **验收标准**:
+    - Given 当前选定的宿主桥接方案是 `HEARTBEAT.md + second_nature_ops("heartbeat_check")`
+    - When 插件完成注册并由宿主或等价调用方触发 `heartbeat_check`
+    - Then tool / command surface 至少有一条 shipping 路径返回 `HEARTBEAT_OK` 或可消费的结构化 heartbeat 决策结果
+    - Then 仓库中存在与该入口配套的 `HEARTBEAT.md`，明确调用指令、成功语义与下一步动作语义
+    - Then `register(api)` 仍保持同步，且当前 `service-entry` 不被伪装成 per-heartbeat callback
+  - **验证类型**: 集成测试
+  - **验证说明**: 通过 plugin surface 集成测试验证 `heartbeat_check` 暴露、command/tool 语义一致、结果可消费，并检查 `HEARTBEAT.md` 与 surface 合同对齐
+  - **估时**: 4h
+  - **依赖**: T1.2.2, T2.0.1
   - **优先级**: P0
 
 - [x] **INT-S1** [MILESTONE]: S1 集成验证 — Runtime Package
@@ -149,17 +170,17 @@ graph TD
 ### Phase 0: Host Bridge Validation
 
 - [x] **T2.0.1** [REQ-014]: 确认 OpenClaw heartbeat 宿主桥接策略
-  - **描述**: 在实现 heartbeat 主链前，先通过 POC 确认 OpenClaw heartbeat 如何被桥接进 Second Nature，可候选路径包括 `HEARTBEAT.md + tool use`、service-assisted bridge 或其他宿主可实现方案。
+  - **描述**: 通过 POC 确认 OpenClaw heartbeat 如何被桥接进 Second Nature，并正式选定 `HEARTBEAT.md + second_nature_ops("heartbeat_check")` 为主桥接方案；service-assisted bridge 仅保留为 runtime carrier / helper，不单独宣称宿主闭环。
   - **输入**: `.anws/v4/03_ADR/ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §3.3, §4.1, §5.3, §11.3
-  - **输出**: heartbeat host bridge 策略、POC 结论、选定桥接路径
+  - **输出**: heartbeat host bridge 策略、POC 结论、主/备桥接路径
   - **📎 参考**: `ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`；`control-plane-system.md` §4.1, §5.3
   - **验收标准**:
     - Given OpenClaw heartbeat 是主会话 LLM 轮次，而非 plugin 直接事件
     - When 完成宿主桥接 POC
-    - Then 团队能从候选路径中选定 1 条主桥接方案，并给出 1 条备选方案
-    - Then 选定方案必须明确 signal 从哪来、带什么 metadata、由谁消费，不能停留在概念图层
+    - Then 团队已选定 `HEARTBEAT.md + second_nature_ops("heartbeat_check")` 作为主桥接方案，并给出 1 条备选路径
+    - Then 主桥接方案明确 signal 从哪来、带什么 metadata、由谁消费，且明确当前 `service-entry` 不是 per-heartbeat callback
   - **验证类型**: 手动验证
-  - **验证说明**: 通过 OpenClaw 宿主实验与最小桥接方案验证，确认选定桥接路径可行
+  - **验证说明**: 通过 OpenClaw 宿主实验与最小桥接方案验证，确认选定桥接路径可行，并记录主/备路径边界
   - **估时**: 4h
   - **依赖**: T1.2.2
   - **优先级**: P0
@@ -255,15 +276,16 @@ graph TD
   - **优先级**: P1
 
 - [x] **INT-S2** [MILESTONE]: S2 集成验证 — Heartbeat Spine
-  - **描述**: 验证 heartbeat 主入口、scope routing、默认静默策略与 decision record 是否形成完整主链。
+  - **描述**: 验证 heartbeat signal contract、scope routing、默认静默策略与 decision record 是否在 control-plane runtime 内形成完整主链；本里程碑只证明内部主链与 synthetic / explicit bridge signal 输入，不等价于宿主 shipping bridge 已闭环。
   - **输入**: T2.1.1、T2.1.2、T2.2.1、T2.2.2、T5.1.1 的产出
-  - **输出**: S2 集成验证报告（heartbeat 主链通过/失败 + Bug 清单）
+  - **输出**: S2 集成验证报告（runtime heartbeat 主链通过/失败 + Bug 清单）
   - **验收标准**:
     - Given S2 所有任务已完成
-    - When 执行 heartbeat -> snapshot -> scope -> decision -> observability 的完整链路检查
-    - Then 系统能够产生 `HEARTBEAT_OK` 或 allow 结果，并留下可解释 decision record
+    - When 执行 `heartbeat_bridge` signal -> snapshot -> scope -> decision -> observability 的完整链路检查
+    - Then 系统能够在 runtime 内产生 `HEARTBEAT_OK` 或 allow 结果，并留下可解释 decision record
+    - Then 该结论不得直接外推成宿主已稳定消费 `heartbeat_check`；宿主闭环另由 INT-S3 负责
   - **验证类型**: 集成测试
-  - **验证说明**: 按退出标准执行整链验证，确认 heartbeat 主链在宿主内可观测、可解释、可收敛
+  - **验证说明**: 按退出标准执行整链验证，确认 heartbeat 主链在 runtime 内可观测、可解释、可收敛；宿主侧 bridge 证明不计入本项
   - **估时**: 3h
   - **依赖**: T5.1.1
   - **优先级**: P0
@@ -313,17 +335,17 @@ graph TD
 ### Phase 1: Minimal External Closure
 
 - [x] **T3.1.1** [REQ-014]: 实现一个最小真实平台客户端闭环（Moltbook）
-  - **描述**: 选择 Moltbook 作为第一优先平台，补一个最小真实客户端闭环，使 heartbeat allow path 至少有一个可以落到真实平台能力的出口。
+  - **描述**: 选择 Moltbook 作为第一优先平台，补一个最小真实平台协议客户端与 capability 执行路径，使 heartbeat allow path 至少有一个对接真实平台协议的出口；真实宿主/真实平台出口证明继续由 INT-S3 承接。
   - **输入**: `.anws/v4/02_ARCHITECTURE_OVERVIEW.md` §System 3；`.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md` §4.3；`.anws/v4/04_SYSTEM_DESIGN/connector-system.md` §4.2, §5；T2.2.2 产出的 allow-only effect dispatch 路径
-  - **输出**: Moltbook 最小客户端实现、至少一个真实 capability 执行路径、错误归一化与验证记录
+  - **输出**: Moltbook 最小客户端实现、至少一个真实平台协议 capability 路径、错误归一化与请求/响应合同验证记录
   - **📎 参考**: `connector-system.md` §4.2, §5；`control-plane-system.md` §4.3
   - **验收标准**:
     - Given heartbeat allow path 或手动触发路径已能进入 connector 执行
     - When 调用 Moltbook 最小 capability
-    - Then 系统能够完成至少一个真实平台交互，而不是停在空接口
-    - Then 所选 capability 必须明确指向一个可验证的真实出口，例如 `feed.read` 或 `post.publish`，不能只停留在 mock 返回
+    - Then 系统能够形成并执行至少一个面向真实平台协议的 capability 请求，而不是停在空接口
+    - Then 所选 capability 必须明确指向一个可验证的真实出口，例如 `feed.read` 或 `post.publish`；若当前阶段只做 mock / near-real 合同验证，真实连通与认证返回语义验证由 INT-S3 承接
   - **验证类型**: 集成测试
-  - **验证说明**: 使用真实或可验证的 Moltbook 接口完成一次 capability 调用，确认结果可被写回并记录
+  - **验证说明**: 通过集成测试验证 request construction、鉴权 header、超时/错误归一化与 response handling；真实或近真实平台出口验证继续放在 INT-S3
   - **估时**: 8h
   - **依赖**: T3.0.1
   - **优先级**: P0
@@ -335,17 +357,19 @@ graph TD
 ### Phase 1: End-to-End Host Closure
 
 - [ ] **INT-S3** [MILESTONE]: S3 集成验证 — Host Closure
-  - **描述**: 在真实或近真实 OpenClaw 宿主里验证 v4 的 packaged runtime、heartbeat 主链、最小平台出口和 light continuity 边界是否共同成立。
-  - **输入**: INT-S1、INT-S2、T3.1.1、T6.1.1 的产出
+  - **描述**: 在真实或近真实 OpenClaw 宿主里验证 v4 的 packaged runtime、`HEARTBEAT.md + heartbeat_check` shipping bridge、最小平台出口和 light continuity 边界是否共同成立。
+  - **输入**: INT-S1、INT-S2、T1.2.3、T3.1.1、T6.1.1 的产出
   - **输出**: 云端/宿主验证报告（安装、加载、surface、heartbeat、最小平台动作、边界验证）
   - **验收标准**:
-    - Given Runtime Package 和 Heartbeat Spine 均已通过前置集成验证
-    - When 在宿主环境安装并启用插件，检查 command/tool/service 与 heartbeat 入口
-    - Then 插件可加载，核心命令可用，heartbeat 主链可验证，最小平台动作可执行，用户任务边界不被破坏
+    - Given Runtime Package、runtime heartbeat spine 与 shipping heartbeat bridge surface 均已就绪
+    - When 在宿主环境安装并启用插件，检查 command / tool / service 与 heartbeat 入口
+    - Then 插件可加载，核心命令可用，`heartbeat_check` 可通过 `second_nature_ops` 或等价 command surface 被消费，且 `HEARTBEAT.md` 与该入口语义对齐
+    - Then heartbeat 主链能从宿主触发走到 runtime 结果，且至少一个最小平台 capability 在真实或 near-real 出口上得到验证，而不是只停留在 mock `fetch`
+    - Then 用户任务边界与 very light continuity 边界不被破坏
   - **验证类型**: 手动验证
-  - **验证说明**: 在目标宿主中安装插件，重启 gateway，检查插件信息、命令执行、heartbeat 结果与边界行为
+  - **验证说明**: 在目标宿主中安装插件，重启 gateway，检查插件信息、`heartbeat_check` surface、宿主 heartbeat 结果、最小平台 capability 与边界行为
   - **估时**: 4h
-  - **依赖**: INT-S1, INT-S2, T3.1.1, T6.1.1
+  - **依赖**: INT-S1, INT-S2, T1.2.3, T3.1.1, T6.1.1
   - **优先级**: P0
 
 ---
@@ -353,9 +377,9 @@ graph TD
 ## 🎯 User Story Overlay
 
 ### US-001: 将 heartbeat 作为 Second Nature 的自由心跳主入口 [REQ-014] (P0)
-**涉及任务**: T2.0.1 → T2.1.1 → T2.2.1 → T2.2.2 → T5.1.1 → INT-S2  
-**关键路径**: T2.0.1 → T2.1.1 → T2.2.1 → T2.2.2 → T5.1.1 → INT-S2  
-**独立可测**: ✅ S2 结束即可演示  
+**涉及任务**: T2.0.1 → T2.1.1 → T2.2.1 → T2.2.2 → T5.1.1 → INT-S2；T1.2.3 → INT-S3  
+**关键路径**: T2.0.1 → T2.1.1 → T2.2.1 → T2.2.2 → T5.1.1 → INT-S2；宿主闭环另需 T1.2.3 → INT-S3  
+**独立可测**: ✅ S2 结束可验证内部主链；S3 完成宿主桥接闭环  
 **覆盖状态**: ✅ 完整
 
 ### US-002: 明确用户任务链不受节律裁决 [REQ-015] (P0)
