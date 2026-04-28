@@ -1,12 +1,66 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 
 import { createMoltbookApiClient, MoltbookApiError } from "../../../src/connectors/social-community/moltbook/api-client.js";
 import { createMoltbookRunner } from "../../../src/connectors/social-community/moltbook/adapter.js";
 import { moltbookManifest } from "../../../src/connectors/social-community/moltbook/manifest.js";
 import type { ExecutionPlan, ConnectorRequest, RawAttempt } from "../../../src/connectors/base/contract.js";
 
-// ─── T3.0.1: Moltbook Integration Path Verification ─────────────────────────
+function createMoltbookStubServer() {
+  const requests: Array<{ method: string; url: string; authorization?: string; body: string }> = [];
+  const server = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    const body = Buffer.concat(chunks).toString("utf-8");
+    requests.push({
+      method: req.method ?? "GET",
+      url: req.url ?? "/",
+      authorization: typeof req.headers.authorization === "string" ? req.headers.authorization : undefined,
+      body,
+    });
+
+    if (req.url?.startsWith("/api/v1/feed")) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ posts: [{ id: "1", content: "stub-post" }] }));
+      return;
+    }
+
+    if (req.url === "/api/v1/posts" && req.method === "POST") {
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ id: "post-1", status: "published" }));
+      return;
+    }
+
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "not_found" }));
+  });
+
+  return {
+    requests,
+    async start() {
+      await new Promise<void>((resolve, reject) => {
+        server.listen(0, "127.0.0.1", () => resolve());
+        server.once("error", reject);
+      });
+      const address = server.address() as AddressInfo;
+      return `http://127.0.0.1:${address.port}`;
+    },
+    async stop() {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error) reject(error);
+          else resolve();
+        });
+      });
+    },
+  };
+}
+
 
 test("T3.0.1 Moltbook manifest declares feed.read, post.publish, comment.reply capabilities", () => {
   assert.equal(moltbookManifest.platformId, "moltbook");
@@ -51,76 +105,54 @@ test("T3.1.1 Moltbook API client creates with valid config", () => {
   assert.ok(typeof client.replyComment === "function", "should have replyComment method");
 });
 
-test("T3.1.1 Moltbook API client readFeed builds correct request", async () => {
-  let capturedUrl: string | undefined;
-  let capturedHeaders: Record<string, string> | undefined;
-
-  // Mock fetch
-  const originalFetch = globalThis.fetch;
-  (globalThis as any).fetch = async (url: string, options: any) => {
-    capturedUrl = url as string;
-    capturedHeaders = options?.headers as Record<string, string>;
-    return {
-      ok: true,
-      status: 200,
-      statusText: "OK",
-      json: async () => ({ posts: [{ id: "1", content: "test" }] }),
-      text: async () => "",
-    };
-  };
+test("T3.1.1 Moltbook API client readFeed uses real HTTP transport against near-real stub", async () => {
+  const stub = createMoltbookStubServer();
+  const baseUrl = await stub.start();
 
   try {
     const client = createMoltbookApiClient({
-      baseUrl: "https://api.moltbook.com",
+      baseUrl,
       accessToken: "test-token",
     });
 
-    const result = await client.readFeed({ limit: 10, sort: "recent" });
+    const result = await client.readFeed({ limit: 10, sort: "recent" }) as { posts: Array<{ id: string; content: string }> };
 
-    assert.ok(capturedUrl?.includes("/api/v1/feed"), "should call feed endpoint");
-    assert.ok(capturedUrl?.includes("limit=10"), "should include limit param");
-    assert.ok(capturedUrl?.includes("sort=recent"), "should include sort param");
-    assert.equal(capturedHeaders?.["Authorization"], "Bearer test-token", "should include auth header");
-    assert.ok(result, "should return feed data");
+    assert.equal(stub.requests.length, 1);
+    assert.equal(stub.requests[0]?.method, "GET");
+    assert.ok(stub.requests[0]?.url.includes("/api/v1/feed"), "should call feed endpoint");
+    assert.ok(stub.requests[0]?.url.includes("limit=10"), "should include limit param");
+    assert.ok(stub.requests[0]?.url.includes("sort=recent"), "should include sort param");
+    assert.equal(stub.requests[0]?.authorization, "Bearer test-token");
+    assert.equal(result.posts[0]?.content, "stub-post");
   } finally {
-    globalThis.fetch = originalFetch;
+    await stub.stop();
   }
 });
 
-test("T3.1.1 Moltbook API client publishPost builds correct request", async () => {
-  let capturedMethod: string | undefined;
-  let capturedBody: string | undefined;
-
-  const originalFetch = globalThis.fetch;
-  (globalThis as any).fetch = async (_url: string, options: any) => {
-    capturedMethod = options?.method;
-    capturedBody = options?.body;
-    return {
-      ok: true,
-      status: 201,
-      statusText: "Created",
-      json: async () => ({ id: "post-1", status: "published" }),
-      text: async () => "",
-    };
-  };
+test("T3.1.1 Moltbook API client publishPost uses real HTTP transport against near-real stub", async () => {
+  const stub = createMoltbookStubServer();
+  const baseUrl = await stub.start();
 
   try {
     const client = createMoltbookApiClient({
-      baseUrl: "https://api.moltbook.com",
+      baseUrl,
       accessToken: "test-token",
     });
 
     const result = await client.publishPost({
       content: "Hello from Second Nature",
       link: "https://example.com",
-    });
+    }) as { id: string; status: string };
 
-    assert.equal(capturedMethod, "POST", "should use POST method");
-    assert.ok(capturedBody?.includes("Hello from Second Nature"), "should include content");
-    assert.ok(capturedBody?.includes("https://example.com"), "should include link");
-    assert.ok(result, "should return post data");
+    assert.equal(stub.requests.length, 1);
+    assert.equal(stub.requests[0]?.method, "POST");
+    assert.equal(stub.requests[0]?.url, "/api/v1/posts");
+    assert.equal(stub.requests[0]?.authorization, "Bearer test-token");
+    assert.ok(stub.requests[0]?.body.includes("Hello from Second Nature"), "should include content");
+    assert.ok(stub.requests[0]?.body.includes("https://example.com"), "should include link");
+    assert.equal(result.status, "published");
   } finally {
-    globalThis.fetch = originalFetch;
+    await stub.stop();
   }
 });
 
