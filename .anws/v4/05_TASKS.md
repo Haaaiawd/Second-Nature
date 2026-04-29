@@ -356,7 +356,7 @@ graph TD
 
 ### Phase 1: End-to-End Host Closure
 
-- [ ] **INT-S3** [MILESTONE]: S3 集成验证 — Host Closure
+- [x] **INT-S3** [MILESTONE]: S3 集成验证 — Host Closure
   - **描述**: 在真实或近真实 OpenClaw 宿主里验证 v4 的 packaged runtime、`HEARTBEAT.md + heartbeat_check` shipping bridge、最小平台出口和 light continuity 边界是否共同成立。
   - **输入**: INT-S1、INT-S2、T1.2.3、T3.1.1、T6.1.1 的产出
   - **输出**: 云端/宿主验证报告（安装、加载、surface、heartbeat、最小平台动作、边界验证）
@@ -368,6 +368,16 @@ graph TD
     - Then 用户任务边界与 very light continuity 边界不被破坏
   - **验证类型**: 手动验证
   - **验证说明**: 在目标宿主中安装插件，重启 gateway，检查插件信息、`heartbeat_check` surface、宿主 heartbeat 结果、最小平台 capability 与边界行为
+  - **验证结果** (2026-04-29):
+    - ✅ 插件 v0.1.7 已安装并被 gateway 加载 (`plugins.loaded: ["second-nature"]`)
+    - ✅ `plugins.allow` 配置已更新，重启后插件自动加载
+    - ✅ 宿主 heartbeat 触发后 agent 正确读取 workspace `HEARTBEAT.md`
+    - ✅ agent thinking: "It says to use the Second Nature bridge. Let me run the heartbeat check."
+    - ✅ `second_nature_ops("heartbeat_check")` 被成功调用，返回 `{"heartbeat":"HEARTBEAT_OK","status":"heartbeat_ok","nextAction":"continue"}`
+    - ✅ agent 按指令静默继续，`silent: true`, `status: "ok-token"`, `durationMs: 250103`
+    - ✅ 128/128 测试全绿
+    - ⚠️ Moltbook 真实平台连通性仍使用 mock（R1 已知风险，non-blocker）
+    - ⚠️ `openclaw gateway restart` 在 Windows 上因 `SIGUSR1` 不支持而失败（OpenClaw 上游 bug，workaround: stop + run）
   - **估时**: 4h
   - **依赖**: INT-S1, INT-S2, T1.2.3, T3.1.1, T6.1.1
   - **优先级**: P0

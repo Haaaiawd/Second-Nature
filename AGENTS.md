@@ -74,6 +74,9 @@
 ### 🌊 Wave 1 ✅ — Heartbeat shipping bridge surface
 T1.2.3
 
+### 🌊 Wave 2 ✅ — INT-S3 Host Closure
+宿主 heartbeat 主链已验证：agent 读 HEARTBEAT.md → 调用 second_nature_ops("heartbeat_check") → 返回 HEARTBEAT_OK → 静默继续。插件 v0.1.7 已在 OpenClaw gateway 正常加载。Windows 平台 `gateway restart` 用 stop+run 替代（SIGUSR1 上游 bug）。
+
 ## 📍 当前状态 (由 Workflow 自动更新)
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
