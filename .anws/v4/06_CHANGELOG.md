@@ -9,6 +9,11 @@
 
 ---
 
+## 2026-05-01 - chore: 移除仓库内辅助 IDE 投影并收窄 install-lock
+- [REMOVE] 不再将 `.github/prompts`、`.github/skills`、`.opencode/commands`、`.opencode/skills` 纳入版本库（辅助开发用；各 IDE 侧改由本地或 `anws install` 投放）
+- [CHANGE] `.anws/install-lock.json`：`copilot` / `opencode` 目标的 `managedFiles` 收窄为仅 `AGENTS.md`，与仓库文件集合一致
+- [CHANGE] `plugin/package.json` 与 `plugin/openclaw.plugin.json` 版本字段对齐 **0.1.8**（与已发布 npm 一致）
+
 ## 2026-05-01 - forge: T1.2.4 文档收口
 - [CHANGE] T1.2.4: 完成 Host-safe 运维说明（§5.1.2 示例与排障表 + README 链指）
   - 用户原话: "/forge 请进行修改吧"

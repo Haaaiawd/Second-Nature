@@ -79,9 +79,9 @@
 - **活动任务清单**: `.anws/v4/05_TASKS.md`
 - **最近一次更新**: `2026-05-01`
 
-### 🌊 Wave 3 ✅ — Host-safe ops playbook
+### 🌊 Wave 4 ✅ — Repo hygiene + plugin manifest sync
 
-T1.2.4
+移除仓库内 Copilot/OpenCode 重复辅助提示词；`install-lock` 收窄；plugin **0.1.8** 与 npm 对齐。（Wave 3 / T1.2.4 文档已在前序 commit 结算。）
 
 ---
 
