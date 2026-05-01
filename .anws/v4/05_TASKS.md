@@ -11,6 +11,7 @@ graph TD
     T1_2_2 --> INT_S1[INT-S1 Package Validation]
 
     T1_2_2 --> T1_2_3[T1.2.3 Ship heartbeat_check bridge]
+    T1_2_3 --> T1_2_4[T1.2.4 Host-safe ops playbook]
     T2_0_1[T2.0.1 Heartbeat host bridge POC] --> T1_2_3
     T2_0_1 --> T2_1_1[T2.1.1 Heartbeat signal contract]
     T2_1_1 --> T2_1_2[T2.1.2 Scope signal router]
@@ -34,6 +35,9 @@ graph TD
 > 当前代码与本轮发布物已经覆盖 S1 的 runtime package 目标，并提供最小 activation spine。
 > 但 T1.2.2 只证明 packaged service carrier 与 lifecycle truth，不等于 heartbeat host bridge 已完成。
 > S2 / S3 中涉及 `HEARTBEAT.md + heartbeat_check` shipping bridge、最小平台动作闭环与云端宿主闭环的内容，不能仅凭当前 plugin surface 视为全部坐实。
+>
+> 运维承接注记（2026-05-01）:
+> 宿主隧道实测已区分三类结果：**调用形态错误**（如非法 command 名）、**host-safe / `runtime_carrier_only` 设计边界**（合成 status、credential、未实现的 policy/audit）、**需完整 workspace runtime 或宿主配置** 才能验收的能力（真实连接器、EvoMap 配置）。对应文档与验收分层由 **T1.2.4** 收敛，避免后续优化误判范围。
 
 | Sprint | 代号 | 核心任务 | 退出标准 | 预估 |
 |--------|------|---------|---------|------|
@@ -148,6 +152,22 @@ graph TD
   - **估时**: 4h
   - **依赖**: T1.2.2, T2.0.1
   - **优先级**: P0
+
+- [x] **T1.2.4** [REQ-017]: Host-safe surface 运维说明与验收分层（文档）
+  - **描述**: 将 npm 发布包在 OpenClaw 宿主上的 **实际行为矩阵** 固化为运维可读文档：`second_nature_ops` 的合法 JSON（顶层 `command` + `args`，禁止复合命令名）、`serviceEntryMode: runtime_carrier_only` 含义、`status` 中空 `connectors`/`credentials` 为合成占位、`credential`/`policy`/`audit`/`explain` 在 host-safe 下的预期成功/失败语义；并明确与「完整 workspace runtime / 宿主侧 connector 配置」的验收分界，供后续优化与 INT-S3 类复测对照。
+  - **输入**: `plugin/index.ts` host-safe router；`HEARTBEAT.md`；INT-S3 与 2026-05-01 隧道实测笔记；`.anws/v4/04_SYSTEM_DESIGN/cli-system.md`
+  - **输出**: 写入 `cli-system.md`（或同级附录）的 **Host-safe 表面矩阵 + 常见误判排障**；可选：`README` / 发布说明中的简短链指
+  - **📎 参考**: `ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md`；`cli-system.md` §5
+  - **验收标准**:
+    - Given 运维人员只持有已安装的 `@haaaiawd/second-nature` 与 OpenClaw Control / `second_nature_ops`
+    - When 按文档执行一轮最小 smoke（`heartbeat_check`、`status`、`credential` 正确形态、`explain` 带 `args.subject`）
+    - Then 能明确判定结果是「调用错误」「host-safe 边界」还是「需另行启用完整运行时/配置」，且不把合成空列表误判为连接器功能缺失
+    - Then 文档中列出至少一条 **错误调用示例**（如非法 command 名）与 **正确 tool 参数示例**
+  - **验证类型**: 手动验证
+  - **验证说明**: 对照宿主实测与 `plugin/index.ts` 路由，走读文档是否与管理界面观测一致
+  - **估时**: 3h
+  - **依赖**: T1.2.3
+  - **优先级**: P1
 
 - [x] **INT-S1** [MILESTONE]: S1 集成验证 — Runtime Package
   - **描述**: 验证 runtime artifact package 是否真正让插件安装后可运行，而不是继续退化为 fallback。
@@ -369,7 +389,7 @@ graph TD
   - **验证类型**: 手动验证
   - **验证说明**: 在目标宿主中安装插件，重启 gateway，检查插件信息、`heartbeat_check` surface、宿主 heartbeat 结果、最小平台 capability 与边界行为
   - **验证结果** (2026-04-29):
-    - ✅ 插件 v0.1.7 已安装并被 gateway 加载 (`plugins.loaded: ["second-nature"]`)
+    - ✅ 插件 v0.1.8 已安装并被 gateway 加载 (`plugins.loaded: ["second-nature"]`)
     - ✅ `plugins.allow` 配置已更新，重启后插件自动加载
     - ✅ 宿主 heartbeat 触发后 agent 正确读取 workspace `HEARTBEAT.md`
     - ✅ agent thinking: "It says to use the Second Nature bridge. Let me run the heartbeat check."
@@ -378,6 +398,12 @@ graph TD
     - ✅ 128/128 测试全绿
     - ⚠️ Moltbook 真实平台连通性仍使用 mock（R1 已知风险，non-blocker）
     - ⚠️ `openclaw gateway restart` 在 Windows 上因 `SIGUSR1` 不支持而失败（OpenClaw 上游 bug，workaround: stop + run）
+    - 📌 **隧道复测补充**（2026-05-01，Control + SSH 本地端口转发）:
+      - ✅ `heartbeat_check` / `status` / `quiet` / `report` 与 host-safe 路由一致；`session` 无 `sessionId` → `MISSING_SESSION_ID`（预期）
+      - ⚠️ `second_nature_ops` 须使用 `{ "command": "<name>", "args": { ... } }`；**复合或拼接的命令名**（如 `credential+show`）会落入 `Unknown Second Nature command`，验收时需与功能缺失区分
+      - ⚠️ host-safe 下：`policy`（show）、`audit` 走未实现路径；`credential` 为合成 `missing`；`status` 中 `connectors` / `credentials` 为空数组——**不推断**「社交平台未配置」或「存储失败」
+      - ⚠️ `explain` 必须在 `args.subject` 传入主题（如 `decision:<id>`）；否则 `MISSING_EXPLAIN_SUBJECT`
+      - 📎 抽样 `exec`：`HEARTBEAT.md` 可读；`~/.openclaw/*.json` 未见 `EVOMAP` 字符串 → EvoMap 需在宿主/OpenClaw 配置层另行接线后再做端到端验收
   - **估时**: 4h
   - **依赖**: INT-S1, INT-S2, T1.2.3, T3.1.1, T6.1.1
   - **优先级**: P0

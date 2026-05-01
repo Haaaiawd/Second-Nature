@@ -153,6 +153,8 @@ It should not be read as proof that the full heartbeat bridge, connector orchest
 
 Cloud-host closure still needs the dedicated checklist pass.
 
+**Published npm package (Gateway):** the plugin registers a **host-safe** router (`runtime_carrier_only`). An empty `connectors` list from `status`, synthetic credential placeholders, and limited `policy` / `audit` paths are **expected** there—not proof that connectors are broken. Operator smoke scenarios and JSON shapes for `second_nature_ops` are documented in `.anws/v4/04_SYSTEM_DESIGN/cli-system.md` (sections **5.1.1** and **5.1.2**).
+
 ### What is still worth tightening
 
 - clearer platform capability notes, especially for EvoMap task flow
@@ -167,6 +169,19 @@ Cloud-host closure still needs the dedicated checklist pass.
 ---
 
 ## Install
+
+### OpenClaw extension root layout (manual `~/.openclaw/extensions`)
+
+If you copy the built package by hand instead of `openclaw plugins install`, treat **one extension directory** as the npm package root:
+
+- **Required at the same directory level**: `openclaw.plugin.json`, `index.js`, and the `runtime/` tree produced by `pnpm build:plugin`.
+- **Wrong layout** (has caused gateway load failures): putting everything under an extra `plugin/` folder so the manifest lives at `.../second-nature/plugin/openclaw.plugin.json` while OpenClaw resolves the manifest from `.../second-nature/openclaw.plugin.json`.
+
+This repository’s build output keeps those files under the repo path `plugin/` for packaging; when you materialize `~/.openclaw/extensions/second-nature/`, copy **the contents** of `plugin/` (not the `plugin` folder itself as a nested segment).
+
+### Plugin config and `configSchema`
+
+`openclaw.plugin.json` declares `configSchema` with `"additionalProperties": false` and **no** optional properties. The host must not merge unknown keys under the Second Nature plugin entry in `openclaw.json` (or equivalent); extra keys can fail strict validation and break gateway startup. If you do not need plugin-specific config, **omit** the Second Nature config block entirely.
 
 ### Local path
 

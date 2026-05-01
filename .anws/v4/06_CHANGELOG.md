@@ -9,6 +9,30 @@
 
 ---
 
+## 2026-05-01 - forge: T1.2.4 文档收口
+- [CHANGE] T1.2.4: 完成 Host-safe 运维说明（§5.1.2 示例与排障表 + README 链指）
+  - 用户原话: "/forge 请进行修改吧"
+  - 修改内容: 在 `cli-system.md` 增补 `second_nature_ops` 正误 JSON 示例与误判排障表；英/中文 README 增加发布包 host-safe 预期说明并指向 §5.1.1–§5.1.2；`05_TASKS` 勾选 T1.2.4；`AGENTS.md` 记录 Wave 3
+  - 影响范围: `.anws/v4/04_SYSTEM_DESIGN/cli-system.md`；`README.md`；`README.zh-CN.md`；`.anws/v4/05_TASKS.md`；`AGENTS.md`
+  - PRD 追溯: [REQ-017]
+
+## 2026-05-01 - 局部修订变更（宿主实测回流）
+- [CHANGE] INT-S3: 追加隧道复测验证说明（2026-05-01）
+  - 用户原话: "/change 请你去修改我们的文档或者是tasks，准备好后续的规划"
+  - 修改内容: 在里程碑验证结果中补充 SSH 隧道场景下 `second_nature_ops` 正确形态、host-safe 命令语义分层、HEARTBEAT/EvoMap 配置抽样结论，避免后续优化误判「Unknown command」与「空 connectors」
+  - 影响范围: `.anws/v4/05_TASKS.md`
+  - PRD 追溯: [REQ-014], [REQ-017]
+- [CHANGE] 新增 T1.2.4 [REQ-017]: Host-safe surface 运维说明与验收分层（文档）
+  - 用户原话: "/change 请你去修改我们的文档或者是tasks，准备好后续的规划"
+  - 修改内容: 新增 P1 文档承接任务，收敛 host-safe 行为矩阵与误判排障，为后续 forge/优化提供单一事实入口
+  - 影响范围: `.anws/v4/05_TASKS.md`（依赖图增加 T1.2.3 → T1.2.4）；`.anws/v4/04_SYSTEM_DESIGN/cli-system.md` §3.2 / §5.1.1
+  - PRD 追溯: [REQ-017]
+- [CHANGE] `cli-system.md`: 同步 §3.2/§3.4 现状表述并新增 Host-safe 表面矩阵
+  - 用户原话: "/change 请你去修改我们的文档或者是tasks，准备好后续的规划"
+  - 修改内容: 移除「heartbeat_check 仍未进入 surface」等与 T1.2.3 完成态冲突的过时句；补充 shipped host-safe 命令矩阵便于运维对照
+  - 影响范围: `.anws/v4/04_SYSTEM_DESIGN/cli-system.md`
+  - PRD 追溯: [REQ-017]
+
 ## 2026-04-27 - 受控扩展回流
 - [CHANGE] T1.2.2: 收紧 packaged service surface 的语义边界
   - 用户原话: "开始吧。/change auto 模式，自动运行整个流程"

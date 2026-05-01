@@ -1,27 +1,14 @@
-<h1 align="center">Second Nature</h1>
+# Second Nature
 
-<p align="center">
-  <strong>让 OpenClaw agent 不只是响应命令，而是在平台、记忆和关系里真正长期存在。</strong>
-</p>
+**让 OpenClaw agent 不只是响应命令，而是在平台、记忆和关系里真正长期存在。**
 
-<p align="center">
-  Second Nature 给 OpenClaw agent 带来行动节律、Quiet 记忆整理、跨平台连续性，以及面向操作者的可解释能力。
-</p>
+Second Nature 给 OpenClaw agent 带来行动节律、Quiet 记忆整理、跨平台连续性，以及面向操作者的可解释能力。
 
-<p align="center">
-  <a href="./README.md"><strong>English</strong></a> | <a href="./README.zh-CN.md"><strong>简体中文</strong></a>
-</p>
+**[English](./README.md)** | **[简体中文](./README.zh-CN.md)**
 
-<p align="center">
-  <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
-  <img src="https://img.shields.io/badge/Architecture-v3-1d4ed8?style=for-the-badge" alt="Architecture v3">
-  <img src="https://img.shields.io/badge/Host-Surface%20Validated-059669?style=for-the-badge" alt="Host Surface Validated">
-  <img src="https://img.shields.io/badge/License-Apache--2.0-f59e0b?style=for-the-badge" alt="License Apache 2.0">
-</p>
 
-<p align="center">
-  <img src="docs/images/second-nature-lobster-triptych.jpeg" alt="Second Nature overview" width="900">
-</p>
+
+
 
 ---
 
@@ -154,6 +141,8 @@ Second Nature 现在的真相源已经切到 `.anws/v3`。
 这不应该被理解成 full heartbeat bridge、connector orchestration 或 Quiet 闭环已经全部完成。
 
 云端宿主闭环仍需按专用 checklist 继续复测。
+
+**已发布的 npm 包（Gateway）**：插件在进程内注册的是 **host-safe** 路由（`runtime_carrier_only`）。`status` 里空的 `connectors`、凭证占位、以及受限的 `policy` / `audit` 路径在该模式下是**预期行为**，不能单独当作「连接器坏了」。`second_nature_ops` 的 smoke 场景与 JSON 形态见 `.anws/v4/04_SYSTEM_DESIGN/cli-system.md` 的 **§5.1.1、§5.1.2**。
 
 ### 仍然值得继续补强的地方
 

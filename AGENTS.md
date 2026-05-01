@@ -71,19 +71,17 @@
 
 <!-- AUTO:BEGIN — 项目状态保留区（升级时唯一保留的部分，请勿手动修改区块边界） -->
 
-### 🌊 Wave 1 ✅ — Heartbeat shipping bridge surface
-T1.2.3
-
-### 🌊 Wave 2 ✅ — INT-S3 Host Closure
-宿主 heartbeat 主链已验证：agent 读 HEARTBEAT.md → 调用 second_nature_ops("heartbeat_check") → 返回 HEARTBEAT_OK → 静默继续。插件 v0.1.7 已在 OpenClaw gateway 正常加载。Windows 平台 `gateway restart` 用 stop+run 替代（SIGUSR1 上游 bug）。
-
 ## 📍 当前状态 (由 Workflow 自动更新)
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
 - **最新架构版本**: `.anws/v4`
 - **活动任务清单**: `.anws/v4/05_TASKS.md`
-- **最近一次更新**: `2026-04-27`
+- **最近一次更新**: `2026-05-01`
+
+### 🌊 Wave 3 ✅ — Host-safe ops playbook
+
+T1.2.4
 
 ---
 
@@ -142,6 +140,7 @@ src/
 - **任务清单**: 待 `/blueprint` 执行后更新 (将生成 `.anws/v4/05_TASKS.md`)
 
 ### ADR ↔ SYSTEM_DESIGN 关系
+
 - **ADR** 记录跨系统决策 (如 heartbeat 主入口、plugin packaging 边界)
 - **SYSTEM_DESIGN** §8 Trade-offs 引用 ADR,不复制决策内容
 - 修改 ADR 时,检查影响范围章节,确认引用该 ADR 的系统
@@ -149,34 +148,16 @@ src/
 ---
 
 ### 技术栈决策
-- 主栈：TypeScript + Node.js + SQLite
-- 宿主方式：OpenClaw native plugin；heartbeat 已作为架构选定的自由心跳主入口，当前 shipping bridge contract 为 `HEARTBEAT.md + second_nature_ops("heartbeat_check")`，宿主闭环仍待 `INT-S3`
-- 执行策略：用户明确任务直接进入任务链；自由心跳继续归属 Second Nature rhythm scope；plugin 发布包当前提供自足 runtime artifact、truthful service carrier 与最小 activation spine
+- [由 .anws/tech-evaluator 或 /genesis 自动填充]
 
 ### 系统边界
-- `cli-system`: Agent-facing 操作接口与 plugin runtime artifact 交付边界，负责 command / tool / service surface 与可发布运行时产物 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/cli-system.md`
-- `control-plane-system`: Second Nature 编排核心，负责 heartbeat/runtime ingress、节律、Quiet、Narrative Reflection 与主动联系时机；当前已选定 `HEARTBEAT.md + second_nature_ops("heartbeat_check")` 作为 shipping bridge contract，但宿主闭环仍待 `INT-S3` 验证 — 详细设计见 `.anws/v4/04_SYSTEM_DESIGN/control-plane-system.md`
-- `connector-system`: 社交社区型与协议网络型 connector family
-  - `social-community`: Moltbook、InStreet - 帖子、评论、通知、私信、保活
-  - `agent-network`: EvoMap - 节点注册、心跳保活、任务发现、任务接单
-- `state-system`: 状态、OpenClaw workspace-aligned memory、daily journal、daily report 与 curated memory
-- `observability-system`: 结构化审计、heartbeat 决策记录、风险事件、记忆整理来源链与 Anchor Memory 写保护
-- `behavioral-guidance-system`: 独立的运行时行为引导系统，负责 runtime atmosphere、behavioral impulses、persona reinforcement 与 output guard，不负责决策或执行
+- [由 .anws/system-architect 或 /genesis 自动填充]
 
 ### 活跃 ADR
-- `ADR_001_TECH_STACK.md`: 采用 TypeScript + Node.js + SQLite，并明确作为 OpenClaw native plugin 运行
-- `ADR_002_CONNECTOR_MODEL.md`: 产品位于平台 API/CLI/skill 之上，通过 connector contract 统一调度执行能力
-- `ADR_003_SECOND_NATURE_GOVERNANCE.md`: 采用节律化行为系统 + Quiet 治理 + Narrative Reflection，并约束 Anchor Memory 更新边界
-- `ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md`: 新增独立 Behavioral Guidance System，主形态为运行时注入模板，不做 platform flavor 层、教学型 skill 或步骤模板
-- `ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md`: heartbeat 是 Second Nature 的自由心跳主入口；用户明确任务不受节律裁决；用户直聊只保留 very light continuity
-- `ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md`: 插件发布包必须是自足 runtime artifact，安装后不依赖源码仓 `src/`
+- [由 .anws 自动填充 ADR 摘要]
 
 ### 当前任务状态
-- 任务清单: `.anws/v4/05_TASKS.md`
-- 任务口径: `总任务 18 / P0: 15 / P1: 3 / 里程碑: 3`
-- Sprint 数: `3`
-- Wave 2 建议: `INT-S3`
-- 最近更新: `2026-04-27`
+- [由 blueprint/forge 自动更新]
 
 <!-- AUTO:END -->
 
