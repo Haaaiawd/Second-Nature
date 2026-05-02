@@ -50,3 +50,6 @@ export type {
 } from "./snapshots/types.js";
 export { loadLifeEvidenceSnapshot, type LoadLifeEvidenceSnapshotOptions } from "./snapshots/life-evidence-snapshot.js";
 export { loadContinuitySnapshot, type LoadContinuitySnapshotParams } from "./snapshots/continuity-snapshot.js";
+
+export type { UserInterestSnapshot, UserInterestSignal, UserInterestStaleness } from "./user-interest/types.js";
+export { loadUserInterestSnapshot } from "./user-interest/load-user-interest-snapshot.js";
