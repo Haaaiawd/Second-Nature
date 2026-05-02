@@ -1,4 +1,5 @@
 import { type FailureClass } from "./failure-taxonomy.js";
+import { type EffectCommitLedgerPort } from "./execution-policy.js";
 import type { CapabilityIntent, ConnectorRequest, ConnectorResult, ExecutionPlan, ExecutionRunner, RoutePlanner } from "./contract.js";
 import type { ExecutionTelemetry } from "../../observability/services/execution-telemetry.js";
 export interface RetryPolicy {
@@ -21,6 +22,7 @@ export interface ConnectorPolicyContext {
     cooldownPort?: CooldownPort;
     retryPolicy?: Partial<RetryPolicy>;
     allowDegradedFallback?: (plan: ExecutionPlan, request: ConnectorRequest) => boolean;
+    effectCommitLedger?: EffectCommitLedgerPort;
 }
 export declare function createConnectorPolicyLayer(ctx: ConnectorPolicyContext): {
     executeWithPolicy(intent: CapabilityIntent, request: ConnectorRequest): Promise<ConnectorResult<unknown>>;

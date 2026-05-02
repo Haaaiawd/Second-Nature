@@ -22,11 +22,11 @@ export declare const guidanceSourceRefSchema: z.ZodObject<{
 }, z.core.$strip>;
 export declare const deliveryExpressionContextSchema: z.ZodObject<{
     deliveryVerdict: z.ZodEnum<{
-        target_available: "target_available";
         target_none: "target_none";
         channel_missing: "channel_missing";
         host_unsupported: "host_unsupported";
         delivery_failed: "delivery_failed";
+        target_available: "target_available";
     }>;
     fallbackRef: z.ZodOptional<z.ZodString>;
     wordingMode: z.ZodEnum<{
@@ -79,11 +79,11 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
     }, z.core.$strip>>;
     deliveryContext: z.ZodOptional<z.ZodObject<{
         deliveryVerdict: z.ZodEnum<{
-            target_available: "target_available";
             target_none: "target_none";
             channel_missing: "channel_missing";
             host_unsupported: "host_unsupported";
             delivery_failed: "delivery_failed";
+            target_available: "target_available";
         }>;
         fallbackRef: z.ZodOptional<z.ZodString>;
         wordingMode: z.ZodEnum<{
@@ -133,11 +133,11 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
     }, z.core.$strip>>;
     deliveryContext: z.ZodOptional<z.ZodObject<{
         deliveryVerdict: z.ZodEnum<{
-            target_available: "target_available";
             target_none: "target_none";
             channel_missing: "channel_missing";
             host_unsupported: "host_unsupported";
             delivery_failed: "delivery_failed";
+            target_available: "target_available";
         }>;
         fallbackRef: z.ZodOptional<z.ZodString>;
         wordingMode: z.ZodEnum<{
@@ -206,7 +206,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
     }[];
     rhythmWindowKind?: "quiet" | "social" | "work" | "exploration" | "reflection" | "maintenance" | undefined;
     deliveryContext?: {
-        deliveryVerdict: "target_available" | "target_none" | "channel_missing" | "host_unsupported" | "delivery_failed";
+        deliveryVerdict: "target_none" | "channel_missing" | "host_unsupported" | "delivery_failed" | "target_available";
         wordingMode: "sendable" | "not_sent_fallback_candidate";
         fallbackRef?: string | undefined;
     } | undefined;

@@ -88,6 +88,17 @@ const STATE_SCHEMA_SQL = `
     created_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS delivery_attempt_decision_idx ON delivery_attempts(decision_id);
+  CREATE TABLE IF NOT EXISTS operator_fallback_artifacts (
+    fallback_ref TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    source_refs_json TEXT NOT NULL,
+    candidate_message TEXT,
+    next_step TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS operator_fallback_decision_idx ON operator_fallback_artifacts(decision_id);
 `;
 function resolveDbPath(filename) {
     if (path.isAbsolute(filename) || filename === ":memory:") {

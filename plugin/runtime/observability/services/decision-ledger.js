@@ -155,5 +155,7 @@ function mapHeartbeatStatusToVerdict(status) {
             return "defer";
         case "runtime_carrier_only":
             return "defer";
+        case "delivery_unavailable":
+            return "deny";
     }
 }
