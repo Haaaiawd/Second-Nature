@@ -38,6 +38,17 @@ export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/gover
 export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";
 
 export {
+  LivedExperienceAuditRecorder,
+  createLivedExperienceAuditRecorder,
+  type DecisionTracePayload,
+  type DeliveryAuditPayload,
+  type DeliveryAuditStatus,
+  type ExplainLinkageSummary,
+  type GuidanceGroundingAuditPayload,
+  type SourceCoverageAuditPayload,
+} from "./services/lived-experience-audit.js";
+
+export {
   GovernancePlaneRecorder,
   createGovernancePlaneRecorder,
   type AuditAppendAck,
