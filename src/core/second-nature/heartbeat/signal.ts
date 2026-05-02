@@ -15,6 +15,8 @@ export type HeartbeatCycleStatus =
   | "intent_selected"
   | "deferred"
   | "denied"
+  /** Delivery port returned failed / host dropped; operator fallback written (T2.3.2 / ADR-007). */
+  | "delivery_unavailable"
   /** Host-safe packaged carrier: no lived-experience loop (ADR-005 / control-plane L0). */
   | "runtime_carrier_only";
 
@@ -39,6 +41,9 @@ export interface HeartbeatCycleResult {
   status: HeartbeatCycleStatus;
   selectedIntentId?: string;
   reasons: string[];
+  decisionId?: string;
+  deliveryAttemptId?: string;
+  fallbackRef?: string;
 }
 
 export interface ScopeRouteResult {

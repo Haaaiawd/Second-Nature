@@ -6,3 +6,4 @@ export * from "./policies.js";
 export * from "./proposals.js";
 export * from "./provenance.js";
 export * from "./delivery-attempts.js";
+export * from "./operator-fallback-artifacts.js";

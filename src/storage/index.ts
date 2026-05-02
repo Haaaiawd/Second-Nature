@@ -57,3 +57,6 @@ export { loadUserInterestSnapshot } from "./user-interest/load-user-interest-sna
 export type { DeliveryAttemptWrite, DeliveryAttemptRecord, DeliveryAttemptAck } from "./delivery/types.js";
 export { writeDeliveryAttempt } from "./delivery/write-delivery-attempt.js";
 export { listDeliveryAttemptsByDecisionId } from "./delivery/query-delivery-attempts.js";
+
+export type { OperatorFallbackWrite, OperatorFallbackReason } from "./fallback/operator-fallback-types.js";
+export { writeOperatorFallback, type OperatorFallbackAck } from "./fallback/write-operator-fallback.js";
