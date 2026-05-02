@@ -230,7 +230,43 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
   assert.equal(toolPayload.data.bridge.serviceEntryMode, commandPayload.data.bridge.serviceEntryMode);
 });
 
+test("T4.1.4 second_nature_ops storage_smoke uses packaged runtime path", async () => {
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown> },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
 
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const basic = JSON.parse((await tool.execute("1", { command: "storage_smoke", args: {} })).content[0]?.text ?? "{}") as {
+    ok: boolean;
+    data?: { runtimeIndexDriver?: string; semantics?: { sqlJs?: { walAssumed?: boolean } } };
+  };
+  assert.equal(basic.ok, true);
+  assert.equal(basic.data?.runtimeIndexDriver, "sql_js");
+  assert.equal(basic.data?.semantics?.sqlJs?.walAssumed, false);
+
+  const repair = JSON.parse((await tool.execute("1", { command: "storage_smoke", args: { runRepairFixture: true } }))
+    .content[0]?.text ?? "{}") as {
+    ok: boolean;
+    data?: { repairFromArtifactsFixture?: { repairStatus?: string } };
+  };
+  assert.equal(repair.ok, true);
+  assert.equal(repair.data?.repairFromArtifactsFixture?.repairStatus, "ok");
+});
 
 test("T1.2.3 HEARTBEAT.md instructs tool use and success semantics", () => {
   const heartbeatPath = path.join(process.cwd(), "HEARTBEAT.md");
