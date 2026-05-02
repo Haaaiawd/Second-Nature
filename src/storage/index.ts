@@ -32,3 +32,5 @@ export type {
   SourceRef,
 } from "./life-evidence/types.js";
 export { appendLifeEvidence, type AppendLifeEvidenceOptions } from "./life-evidence/append-life-evidence.js";
+
+export { loadRhythmPolicySnapshot, type RhythmPolicySnapshot } from "./rhythm/rhythm-policy-snapshot.js";
