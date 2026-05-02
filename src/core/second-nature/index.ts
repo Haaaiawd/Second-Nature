@@ -14,5 +14,6 @@ export * from "./outreach/evaluate-outreach.js";
 export * from "./outreach/build-message.js";
 export * from "./outreach/delivery-target.js";
 export * from "./outreach/judge-outreach.js";
+export * from "./outreach/build-outreach-draft-request.js";
 export * from "./guidance/request-guidance.js";
 export * from "./guidance/apply-guidance.js";
