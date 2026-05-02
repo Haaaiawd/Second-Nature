@@ -154,7 +154,7 @@ graph TD
   - **依赖**: T5.3.1, T4.3.1
   - **优先级**: P1
 
-- [ ] **T1.2.2** [REQ-022]: 实现 operator-visible fallback view
+- [x] **T1.2.2** [REQ-022]: 实现 operator-visible fallback view
   - **描述**: 实现 `showOperatorFallback(ref)`，固定返回 `status: not_sent`，展示 reason、sourceRefs、candidateMessage、nextStep。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §6.1；`04_SYSTEM_DESIGN/state-system.md` §5.1, §6.1；T4.3.1 产出的 fallback read model
   - **输出**: `showOperatorFallback()`、fallback CLI/tool view

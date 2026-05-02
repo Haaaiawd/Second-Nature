@@ -23,7 +23,10 @@ export function createCliRuntimeDeps(overrides = {}) {
 export function createCommandRouter(options = {}) {
     const runtime = createCliRuntimeDeps(options.deps);
     const pluginRoot = path.join(process.cwd(), "plugin");
-    const opsRouter = createOpsRouter({ runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok });
+    const opsRouter = createOpsRouter({
+        runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok,
+        readModels: runtime.readModels,
+    });
     const commands = createCliCommands({
         readModels: runtime.readModels,
         actionBridge: runtime.actionBridge,
@@ -48,3 +51,4 @@ export { probeHostCapability } from "./host-capability/probe-host-capability.js"
 export { recordHostCapability } from "./host-capability/record-host-capability.js";
 export { runHostSmoke } from "./host-smoke/run-host-smoke.js";
 export { explainSurfaceSubject } from "./explain/explain-surface-subject.js";
+export { showOperatorFallback, OperatorFallbackNotFoundError } from "./ops/show-operator-fallback.js";

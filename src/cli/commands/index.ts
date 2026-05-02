@@ -3,6 +3,7 @@ import type { OpsRouter } from "../ops/ops-router.js";
 import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
+import { showOperatorFallback, OperatorFallbackNotFoundError } from "../ops/show-operator-fallback.js";
 import { policySet } from "./policy.js";
 import type { CliReadModels } from "../read-models/index.js";
 
@@ -159,8 +160,43 @@ export function createCliCommands(deps: CliCommandDeps): CliCommandDefinition[] 
       name: "heartbeat_check",
       description: "Workspace heartbeat_check ops surface (v5 HeartbeatSurfaceResult)",
       execute: async (input) => {
-        const surface = opsRouter.dispatch("heartbeat_check", input);
+        const surface = await Promise.resolve(opsRouter.dispatch("heartbeat_check", input));
         return surface as Record<string, unknown>;
+      },
+    },
+    {
+      name: "fallback",
+      description: "Operator-visible delivery fallback view (status always not_sent)",
+      execute: async (input) => {
+        const ref = typeof input?.ref === "string" ? input.ref.trim() : "";
+        if (!ref) {
+          return {
+            ok: false,
+            error: {
+              code: "MISSING_FALLBACK_REF",
+              message: "fallback requires ref (e.g. fallback:…)",
+              requiredUserInput: ["ref"],
+              nextStep: "reinvoke_with_ref",
+            },
+          };
+        }
+        try {
+          const data = await showOperatorFallback(ref, readModels);
+          return { ok: true, data };
+        } catch (error) {
+          if (error instanceof OperatorFallbackNotFoundError) {
+            return {
+              ok: false,
+              error: {
+                code: error.code,
+                message: error.message,
+                requiredUserInput: ["ref"],
+                nextStep: "verify_fallback_ref_from_delivery_audit",
+              },
+            };
+          }
+          throw error;
+        }
       },
     },
   ];

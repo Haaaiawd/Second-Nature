@@ -318,6 +318,26 @@ function buildExplainPayload(spine: ActivationSpine, subjectRaw?: string): Comma
   };
 }
 
+function buildFallbackHostSafePayload(ref?: string): CommandPayload {
+  if (!ref?.trim()) {
+    return {
+      ok: false,
+      error: {
+        code: "MISSING_FALLBACK_REF",
+        message: "fallback requires ref (e.g. fallback:…)",
+        requiredUserInput: ["ref"],
+        nextStep: "reinvoke_with_ref",
+      },
+    };
+  }
+  return createUnavailableActionError(
+    "HOST_SAFE_FALLBACK_VIEW_UNAVAILABLE",
+    "Operator fallback view requires workspace state database; host-safe plugin cannot read persisted fallback artifacts.",
+    ["ref"],
+    "run_workspace_second_nature_cli_or_full_runtime_package",
+  );
+}
+
 function buildHeartbeatCheckPayload(spine: ActivationSpine, input?: Record<string, unknown>): CommandPayload {
   const runtimeEvidence = latestRuntimeEvidence(spine);
   const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
@@ -442,6 +462,14 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       name: "heartbeat_check",
       description: "Acknowledge the shipping heartbeat bridge round",
       execute: async (input) => buildHeartbeatCheckPayload(spine, input),
+    },
+    {
+      name: "fallback",
+      description: "Operator-visible delivery fallback view (full workspace runtime required)",
+      execute: async (input) => {
+        const ref = typeof input?.ref === "string" ? input.ref.trim() : undefined;
+        return buildFallbackHostSafePayload(ref);
+      },
     },
   ];
 
@@ -586,6 +614,12 @@ function parseCommandInput(rawArgs?: string):
         ok: true,
         command,
         input: rest.length > 0 ? { subject: rest.join(" ") } : undefined,
+      };
+    case "fallback":
+      return {
+        ok: true,
+        command,
+        input: rest.length > 0 ? { ref: rest.join(" ") } : undefined,
       };
     default:
       return {

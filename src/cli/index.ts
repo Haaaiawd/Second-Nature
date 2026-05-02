@@ -48,7 +48,10 @@ export function createCliRuntimeDeps(overrides: Partial<CliRuntimeDeps> = {}): C
 export function createCommandRouter(options: CreateCommandRouterOptions = {}): CommandRouter {
   const runtime = createCliRuntimeDeps(options.deps);
   const pluginRoot = path.join(process.cwd(), "plugin");
-  const opsRouter = createOpsRouter({ runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok });
+  const opsRouter = createOpsRouter({
+    runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok,
+    readModels: runtime.readModels,
+  });
   const commands = createCliCommands({
     readModels: runtime.readModels,
     actionBridge: runtime.actionBridge,
@@ -82,3 +85,4 @@ export { recordHostCapability } from "./host-capability/record-host-capability.j
 export { runHostSmoke } from "./host-smoke/run-host-smoke.js";
 export type { HostSmokePlan, HostSmokeReport, HostSmokeCase, HostSmokeCaseResult } from "./host-smoke/types.js";
 export { explainSurfaceSubject } from "./explain/explain-surface-subject.js";
+export { showOperatorFallback, OperatorFallbackNotFoundError } from "./ops/show-operator-fallback.js";

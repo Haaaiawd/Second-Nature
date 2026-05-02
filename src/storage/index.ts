@@ -59,7 +59,13 @@ export { writeDeliveryAttempt } from "./delivery/write-delivery-attempt.js";
 export { listDeliveryAttemptsByDecisionId } from "./delivery/query-delivery-attempts.js";
 
 export type { OperatorFallbackWrite, OperatorFallbackReason } from "./fallback/operator-fallback-types.js";
+export type { OperatorFallbackView } from "./fallback/operator-fallback-view.js";
 export { writeOperatorFallback, type OperatorFallbackAck } from "./fallback/write-operator-fallback.js";
+export {
+  loadOperatorFallbackRow,
+  normalizeFallbackRef,
+  toOperatorFallbackView,
+} from "./fallback/load-operator-fallback.js";
 
 export type { QuietArtifactWrite, QuietClaim, QuietArtifactKind } from "./quiet/quiet-artifact-types.js";
 export {

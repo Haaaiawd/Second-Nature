@@ -6,6 +6,7 @@ import { EvidenceQueryEngine } from "../../observability/query/evidence-query-en
 import { decisionLedger, executionAttempts } from "../../observability/db/schema/index.js";
 import { queryExplain } from "../../observability/query/explain-query.js";
 import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
+import { loadOperatorFallbackRow, toOperatorFallbackView } from "../../storage/fallback/load-operator-fallback.js";
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 function toExplainQuery(subject) {
@@ -214,6 +215,12 @@ export function createCliReadModels(deps) {
                 attemptsRemaining: record.attemptsRemaining ?? undefined,
                 nextStep: buildCredentialNextStep(record.status),
             };
+        },
+        async loadFallbackView(ref) {
+            const row = await loadOperatorFallbackRow(deps.stateDb, ref);
+            if (!row)
+                return null;
+            return toOperatorFallbackView(row);
         },
         async explain(subject) {
             const q = toExplainQuery(subject);

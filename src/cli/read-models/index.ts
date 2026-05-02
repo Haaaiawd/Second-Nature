@@ -22,6 +22,8 @@ import type {
 
 export type { ExplainSubjectKind } from "./types.js";
 import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
+import { loadOperatorFallbackRow, toOperatorFallbackView } from "../../storage/fallback/load-operator-fallback.js";
+import type { OperatorFallbackView } from "../../storage/fallback/operator-fallback-view.js";
 
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
@@ -33,12 +35,14 @@ export interface CliReadModels {
   loadSession(sessionId: string): Promise<SessionDetailReadModel>;
   loadCredential(platformId: string): Promise<CredentialReadModel>;
   explain(subject: ExplainSubject): Promise<ExplainReadModel>;
+  /** T1.2.2 — persisted operator fallback; view status is always not_sent. */
+  loadFallbackView(ref: string): Promise<OperatorFallbackView | null>;
 }
 
-/** T1.2.1 — operator-facing read surface (subset of full CLI read models). */
+/** T1.2.1 / T1.2.2 — operator-facing read surface (subset of full CLI read models). */
 export type OpsReadModelPort = Pick<
   CliReadModels,
-  "loadStatus" | "loadDailyReport" | "loadQuiet" | "loadSession" | "loadCredential" | "explain"
+  "loadStatus" | "loadDailyReport" | "loadQuiet" | "loadSession" | "loadCredential" | "explain" | "loadFallbackView"
 >;
 
 export interface ExplainSubject {
@@ -279,6 +283,12 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         attemptsRemaining: record.attemptsRemaining ?? undefined,
         nextStep: buildCredentialNextStep(record.status as CredentialReadModel["status"]),
       };
+    },
+
+    async loadFallbackView(ref: string): Promise<OperatorFallbackView | null> {
+      const row = await loadOperatorFallbackRow(deps.stateDb, ref);
+      if (!row) return null;
+      return toOperatorFallbackView(row);
     },
 
     async explain(subject: ExplainSubject): Promise<ExplainReadModel> {
