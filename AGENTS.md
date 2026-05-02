@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-02` (Wave 11)
+- **最近一次更新**: `2026-05-02` (Wave 12)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -177,7 +177,7 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 40, P0: 27, P1: 9, P2: 0
 - Sprint 数: 4
-- Wave 11 建议: T3.3.1, T1.4.1, T1.4.2, T7.1.1 → 收口 INT-S4（真实宿主冒烟）；INT-S1 可含 storage_smoke
+- Wave 12 建议: T1.4.1, T1.4.2, T7.1.1 → 收口 INT-S4（真实宿主冒烟）；INT-S1 可含 storage_smoke
 - 最近更新: `2026-05-02`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -205,13 +205,16 @@ Heartbeat `resolveAllowedIntentResult`（outreach 全链路与 Quiet `runSourceB
 INT-S3（`reports/int-s3-outreach-delivery-quiet.md`）：source-backed draft → delivery failed / dropped_by_host_policy → `delivery_unavailable` + `not_sent` fallback；`verifyAuditHashChain`（T5.2.2）+ lived-experience audit / explain；Quiet 空态与 S2 轻触回归集成测。
 
 ### 🌊 Wave 9 ✅ — Explain export + ops read surface + host smoke fixtures
-T5.3.1（`queryExplain`、`exportAuditBundle`）；T1.2.1（`explainSurfaceSubject`、`OpsReadModelPort`、可选 `livedExperienceAuditStore` 接线）；T1.3.1（`runHostSmoke` + `heartbeat_tool_not_invoked` fixture）。INT-S4 仍为部分就绪：`reports/int-s4-release-readiness.md` 列阻塞项，待 T3.3.1 / T1.4.x / T4.1.4 / T7.1.1 与真实宿主冒烟。
+T5.3.1（`queryExplain`、`exportAuditBundle`）；T1.2.1（`explainSurfaceSubject`、`OpsReadModelPort`、可选 `livedExperienceAuditStore` 接线）；T1.3.1（`runHostSmoke` + `heartbeat_tool_not_invoked` fixture）。INT-S4 仍为部分就绪：`reports/int-s4-release-readiness.md` 列阻塞项，待 T1.4.x / T7.1.1 与真实宿主冒烟。
 
 ### 🌊 Wave 10 ✅ — Operator fallback view
 T1.2.2（`showOperatorFallback`、`loadFallbackView`、`loadOperatorFallbackRow`、CLI / `second_nature_ops` `fallback` + host-safe explicit unavailable；单测覆盖四类 reason 与 DB status 纠偏为 `not_sent`）。
 
 ### 🌊 Wave 11 ✅ — Storage mode smoke
 T4.1.4（`probeNativeSqliteLoad`、`runStorageModeSmoke`、`storage_smoke` CLI、插件动态加载 runtime 报告；集成测覆盖 sql.js 语义、可选 artifact→index repair fixture）。
+
+### 🌊 Wave 12 ✅ — Near-real connector smoke
+T3.3.1（`runNearRealConnectorSmoke`：Moltbook `feed.read` + EvoMap `work.discover` 哨兵 runner、life evidence 入库、`ExecutionTelemetry` 执行尝试、EvoMap `task.claim` 带 idempotency 的 dry 结果）。
 
 <!-- AUTO:END -->
 

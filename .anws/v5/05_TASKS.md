@@ -402,7 +402,7 @@ graph TD
 
 ### Phase 3: Near-real Platform Paths
 
-- [ ] **T3.3.1** [REQ-020]: Moltbook / InStreet / EvoMap near-real read/write path
+- [x] **T3.3.1** [REQ-020]: Moltbook / InStreet / EvoMap near-real read/write path
   - **描述**: 为至少一个社交平台和一个 agent-network 平台提供 near-real read path，并为一条 write/task path 提供 dry-run 或显式安全验证。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §11.1-§11.2；`01_PRD.md` US-002；T3.1.2 evidence mapper；T3.2.1 execution safety
   - **输出**: near-real platform smoke fixtures + connector attempt audit
@@ -803,7 +803,7 @@ graph TD
 ### US-002: 建立 life evidence 入库与查询契约 (P0)
 **涉及任务**: T3.1.2 → T4.1.1 → T4.2.1 → T5.1.2 → T3.3.1  
 **关键路径**: T3.1.2 → T4.1.1 → T4.2.1  
-**独立可测**: ✅ S2 可测基础写读，S4 可测 near-real 平台路径  
+**独立可测**: ✅ S2 可测基础写读，S4 可测 near-real 平台路径（T3.3.1 哨兵 harness）  
 **覆盖状态**: ✅ 完整
 
 ### US-003: 现代化 rhythm windows 与生活节律 (P0)
