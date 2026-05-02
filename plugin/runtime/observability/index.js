@@ -7,6 +7,7 @@ export { redactEvent, createEmptyManifest, mergeManifests, } from "./redaction/m
 export { DecisionLedger } from "./services/decision-ledger.js";
 export { GovernanceAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry } from "./services/execution-telemetry.js";
+export { GovernancePlaneRecorder, createGovernancePlaneRecorder, } from "./services/governance-plane-recorder.js";
 export { EvidenceQueryEngine, } from "./query/evidence-query-engine.js";
 export { projectReflectionAudit, } from "./projections/reflection-audit.js";
 export { projectOutreachQualityAudit, } from "./projections/outreach-quality-audit.js";

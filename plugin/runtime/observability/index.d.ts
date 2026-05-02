@@ -7,6 +7,7 @@ export { redactEvent, createEmptyManifest, mergeManifests, type RedactionManifes
 export { DecisionLedger, type QuietLifecycleEvent, type OutreachDecision, type HeartbeatDecisionEvent } from "./services/decision-ledger.js";
 export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";
+export { GovernancePlaneRecorder, createGovernancePlaneRecorder, type AuditAppendAck, type ConnectorAttemptAudit, type ConnectorAttemptOutcome, type StateGovernanceAudit, type StateGovernanceKind, } from "./services/governance-plane-recorder.js";
 export { EvidenceQueryEngine, } from "./query/evidence-query-engine.js";
 export type { EvidenceQuery, EvidenceBundle, EvidenceResolutionPlan, GovernanceEvidenceRecord, ResolvedContentRef, ExplanationCapsule, } from "./query/compose-evidence.js";
 export { projectReflectionAudit, type ReflectionAudit, type ReflectionAuditProjection, } from "./projections/reflection-audit.js";

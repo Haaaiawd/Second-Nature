@@ -15,6 +15,20 @@ export declare class GovernanceAudit {
     private db;
     constructor(db: ObservabilityDatabase);
     recordAnchorChangeAudit(event: AnchorChangeAudit): Promise<void>;
+    /**
+     * Generic governance-plane events (T5.1.2): fallback_written, effect_commit_advanced, connector_failure, etc.
+     * traceId is stored on target_asset_id for explain/trace correlation until a dedicated column exists.
+     */
+    recordOperationalGovernanceEvent(input: {
+        id: string;
+        eventType: string;
+        traceId: string;
+        statusTo: string;
+        reason: string;
+        assetPath?: string;
+        supportingSources?: string[];
+        createdAt?: string;
+    }): Promise<void>;
     recordCredentialLifecycle(event: CredentialLifecycleAudit): Promise<void>;
     recordProposalApply(proposalId: string, targetAssetId: string, assetPath: string, beforeHash: string | undefined, afterHash: string | undefined, supportingSources: string[], reason: string): Promise<void>;
     recordProposalReject(proposalId: string, targetAssetId: string, assetPath: string, reason: string): Promise<void>;

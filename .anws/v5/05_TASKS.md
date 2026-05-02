@@ -228,7 +228,7 @@ graph TD
 
 ### Phase 1: Heartbeat Runtime
 
-- [ ] **T2.1.1** [REQ-019]: 实现 `runHeartbeatCycle()` skeleton 与 scope routing
+- [x] **T2.1.1** [REQ-019]: 实现 `runHeartbeatCycle()` skeleton 与 scope routing
   - **描述**: 建立 heartbeat signal、runtime availability 分支、`routeScopedInput()`、snapshot load 与 no-candidate `HEARTBEAT_OK` 静默记录。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5.1, §6.1；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.1-§3.3；T4.2.1 产出的 snapshots
   - **输出**: `ControlPlaneRuntimePort.runHeartbeatCycle()`、`routeScopedInput()`
@@ -244,7 +244,7 @@ graph TD
   - **依赖**: T4.2.1, T5.1.1
   - **优先级**: P0
 
-- [ ] **T2.1.2** [REQ-021]: `RhythmPolicySnapshot -> RhythmWindowDecision` owner boundary test
+- [x] **T2.1.2** [REQ-021]: `RhythmPolicySnapshot -> RhythmWindowDecision` owner boundary test
   - **描述**: 验证 state 只生产 `RhythmPolicySnapshot`，control-plane 拥有 `RhythmWindowDecision` 选择权，并统一 `allowedIntentKinds`。
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md` §7；`04_SYSTEM_DESIGN/control-plane-system.md` §5.1；`04_SYSTEM_DESIGN/state-system.md` §5.2；T4.1.2 产出的 rhythm policy read model
   - **输出**: owner boundary unit test + `selectRhythmWindow()` fixtures
@@ -506,7 +506,7 @@ graph TD
   - **依赖**: T4.1.1, T4.1.3
   - **优先级**: P0
 
-- [ ] **T4.2.2** [REQ-023]: `UserInterestSnapshot insufficient` downgrade test
+- [x] **T4.2.2** [REQ-023]: `UserInterestSnapshot insufficient` downgrade test
   - **描述**: 实现最小 `loadUserInterestSnapshot()` 与 insufficient downgrade；P0 范围只要求 outreach 可安全降级到 evidence-only，不要求完整长期兴趣模型成熟。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §5.1, §6.1, §11.4；`04_SYSTEM_DESIGN/state-system.detail.md` §3.4, §4.3；`07_CHALLENGE_REPORT.md` CH-07-03
   - **输出**: `UserInterestSnapshot` builder + downgrade tests
@@ -580,7 +580,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **T5.1.2** [REQ-020]: 实现 connector attempt / state governance audit
+- [x] **T5.1.2** [REQ-020]: 实现 connector attempt / state governance audit
   - **描述**: 实现 `recordConnectorAttempt()` 与 `recordStateGovernance()`，承接 connector failure、fallback written、effect commit、anchor proposal/apply 等治理事件。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §5.1, §5.3；`04_SYSTEM_DESIGN/connector-system.md` §5.2；T5.1.1 audit foundation
   - **输出**: connector attempt telemetry/governance events

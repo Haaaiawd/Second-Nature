@@ -1,6 +1,7 @@
 export * from "./types.js";
 export * from "./rhythm/rhythm-policy.js";
 export * from "./rhythm/select-window.js";
+export * from "./rhythm/policy-bridge.js";
 export * from "./orchestrator/intent-planner.js";
 export * from "./orchestrator/guard-layer.js";
 export * from "./orchestrator/lease-manager.js";

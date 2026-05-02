@@ -19,3 +19,4 @@ export { appendLifeEvidence } from "./life-evidence/append-life-evidence.js";
 export { loadRhythmPolicySnapshot } from "./rhythm/rhythm-policy-snapshot.js";
 export { loadLifeEvidenceSnapshot } from "./snapshots/life-evidence-snapshot.js";
 export { loadContinuitySnapshot } from "./snapshots/continuity-snapshot.js";
+export { loadUserInterestSnapshot } from "./user-interest/load-user-interest-snapshot.js";

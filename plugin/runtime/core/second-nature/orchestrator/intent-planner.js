@@ -69,6 +69,9 @@ function planOutreachIntents(snapshot) {
     ];
 }
 export function planIntent(snapshot) {
+    if (snapshot.mode === "maintenance_only") {
+        return planObligationIntents(snapshot);
+    }
     const intents = [
         ...planObligationIntents(snapshot),
         ...planPlatformIntents(snapshot),

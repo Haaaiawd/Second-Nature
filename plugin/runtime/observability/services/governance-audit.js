@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { governanceAudit } from "../db/schema/index.js";
-import { redactEvent } from "../redaction/manifest.js";
+import { createEmptyManifest, redactEvent } from "../redaction/manifest.js";
 import { persistRedactionManifest } from "./redaction-store.js";
 export class GovernanceAudit {
     db;
@@ -26,6 +26,30 @@ export class GovernanceAudit {
             createdAt: redacted.createdAt,
         });
         await persistRedactionManifest(this.db, redacted.id, "anchor.change", manifest);
+    }
+    /**
+     * Generic governance-plane events (T5.1.2): fallback_written, effect_commit_advanced, connector_failure, etc.
+     * traceId is stored on target_asset_id for explain/trace correlation until a dedicated column exists.
+     */
+    async recordOperationalGovernanceEvent(input) {
+        const createdAt = input.createdAt ?? new Date().toISOString();
+        await this.db.db.insert(governanceAudit).values({
+            id: input.id,
+            eventType: input.eventType,
+            proposalId: null,
+            targetAssetId: input.traceId,
+            assetPath: input.assetPath ?? null,
+            statusFrom: null,
+            statusTo: input.statusTo,
+            beforeHash: null,
+            afterHash: null,
+            supportingSources: JSON.stringify(input.supportingSources ?? []),
+            reason: input.reason,
+            verificationDeadline: null,
+            attemptsRemaining: null,
+            createdAt,
+        });
+        await persistRedactionManifest(this.db, input.id, input.eventType, createEmptyManifest());
     }
     async recordCredentialLifecycle(event) {
         const { redacted, manifest } = redactEvent(event);
