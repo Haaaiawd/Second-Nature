@@ -75,13 +75,13 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v4`
-- **活动任务清单**: `.anws/v4/05_TASKS.md`
+- **最新架构版本**: `.anws/v5`
+- **活动任务清单**: `.anws/v5/05_TASKS.md`
 - **最近一次更新**: `2026-05-01`
 
-### 🌊 Wave 4 ✅ — Repo hygiene + plugin manifest sync
+### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
-移除仓库内 Copilot/OpenCode 重复辅助提示词；`install-lock` 收窄；plugin **0.1.8** 与 npm 对齐。（Wave 3 / T1.2.4 文档已在前序 commit 结算。）
+v5 将 Second Nature 从 host-safe heartbeat acknowledgment 推进为 lived-experience closure：heartbeat decision loop、life evidence、rhythm windows、Quiet source coverage、user interest snapshot 与 OpenClaw 用户可见主动联系闭环。
 
 ---
 
@@ -111,7 +111,7 @@ src/
 └── shared/
 
 .anws/
-└── v4/
+└── v5/
    ├── 00_MANIFEST.md
    ├── 01_PRD.md
    ├── 02_ARCHITECTURE_OVERVIEW.md
@@ -121,8 +121,10 @@ src/
    │   ├── ADR_003_SECOND_NATURE_GOVERNANCE.md
    │   ├── ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md
    │   ├── ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md
-   │   └── ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md
+   │   ├── ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md
+   │   └── ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md
    ├── 04_SYSTEM_DESIGN/
+   │   └── _research/
    ├── 06_CHANGELOG.md
    └── concept_model.json
 ```
@@ -133,31 +135,53 @@ src/
 
 > **注意**: 此部分由 `/genesis` 维护。
 
-- **在新架构就绪前**: 请勿大规模修改代码。
-- **架构总览**: `.anws/v4/02_ARCHITECTURE_OVERVIEW.md`
-- **ADR**: `.anws/v4/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: 待 `/design-system` 执行后更新 (建议优先补 `control-plane-system` 与 `cli-system`)
-- **任务清单**: 待 `/blueprint` 执行后更新 (将生成 `.anws/v4/05_TASKS.md`)
+- **架构总览**: `.anws/v5/02_ARCHITECTURE_OVERVIEW.md`
+- **PRD**: `.anws/v5/01_PRD.md`
+- **ADR**: `.anws/v5/03_ADR/` (跨系统决策的唯一记录源)
+- **OpenClaw capability research**: `.anws/v5/04_SYSTEM_DESIGN/_research/openclaw-lived-experience-closure-research.md`
+- **详细设计**: `control-plane-system`、`cli-system`、`state-system`、`behavioral-guidance-system`、`observability-system`、`connector-system` 已完成；任务清单已按第 8 轮 review 回流修复，可进入 `/forge`
+- **任务清单**: `.anws/v5/05_TASKS.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
-- **ADR** 记录跨系统决策 (如 heartbeat 主入口、plugin packaging 边界)
+- **ADR** 记录跨系统决策 (如 heartbeat delivery、life evidence 闭环、plugin packaging 边界)
 - **SYSTEM_DESIGN** §8 Trade-offs 引用 ADR,不复制决策内容
 - 修改 ADR 时,检查影响范围章节,确认引用该 ADR 的系统
 
 ---
 
 ### 技术栈决策
-- [由 .anws/tech-evaluator 或 /genesis 自动填充]
+- 语言: TypeScript
+- Runtime: Node.js + OpenClaw native plugin
+- 存储: SQLite/sql.js index + Markdown/JSON workspace artifacts
+- 主运行入口: OpenClaw heartbeat delivery + plugin hooks / injection
 
 ### 系统边界
-- [由 .anws/system-architect 或 /genesis 自动填充]
+- `cli-system`: OpenClaw command/tool/service surface、runtime artifact、host capability probe — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/cli-system.md`
+- `control-plane-system`: heartbeat decision loop、rhythm windows、outreach judgment、delivery policy — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/control-plane-system.md`
+- `connector-system`: 平台读取、互动、任务发现、执行通道治理与 source-backed life evidence candidate 生产 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/connector-system.md`
+- `state-system`: life evidence、user interest snapshot、Quiet artifact、workspace memory 索引 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/state-system.md`
+- `observability-system`: heartbeat decision trace、delivery audit、source coverage、guidance grounding、host capability 与 fallback reason 证据层 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/observability-system.md`
+- `behavioral-guidance-system`: source-backed guidance assembly、friend-like outreach draft、Quiet narrative guidance 与 User Reply light continuity，不拥有行动决策权或投递权 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
 
 ### 活跃 ADR
-- [由 .anws 自动填充 ADR 摘要]
+- ADR-001: 主技术栈、宿主运行时与验证策略选择 — 继续 TypeScript/Node/OpenClaw plugin，验证重点转向 heartbeat delivery 与 source-backed outreach
+- ADR-002: 平台连接器模型与执行边界 — connector 采用 Contract + Execution Adapter，API-first，CLI/skill 仅作显式 fallback
+- ADR-003: Second Nature 行为节律、Quiet 与记忆治理原则 — Quiet / reflection 必须基于 source-backed life evidence
+- ADR-004: Behavioral Guidance Layer 的系统边界与实现形态 — guidance 可生成朋友式草稿，但不拥有决策或投递权
+- ADR-005: Heartbeat 作为 Second Nature 的主运行入口与三层运行时边界 — heartbeat 仍是自由心跳主入口
+- ADR-006: 可发布的自足 Plugin Runtime Package — 发布包必须包含自足 runtime artifact
+- ADR-007: Heartbeat Delivery 与 Life Evidence 闭环 — delivery target 是主动联系成立的硬前提
 
 ### 当前任务状态
-- [由 blueprint/forge 自动更新]
+- 任务清单: `.anws/v5/05_TASKS.md`
+- 总任务数: 40, P0: 27, P1: 9, P2: 0
+- Sprint 数: 4
+- Wave 1 建议: T1.1.1, T5.1.1, T4.1.1, T4.1.2
+- 最近更新: `2026-05-01`
+
+### 🌊 Wave 1 — Host & State Foundation 起步
+T1.1.1, T5.1.1, T4.1.1, T4.1.2
 
 <!-- AUTO:END -->
 

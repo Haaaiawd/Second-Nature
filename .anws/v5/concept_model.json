@@ -1,0 +1,255 @@
+{
+  "glossary": {
+    "Lived Experience Closure": "Second Nature v5 的核心目标：让 agent 不只是可被 heartbeat 唤醒，而是能在平台浏览、互动、工作、Quiet 和记忆整理中形成可回看的生活证据，并基于这些证据决定是否主动联系用户。",
+    "Friend-like Proactive Contact": "朋友式主动联系。不是定时通知，也不是客服汇报，而是在 agent 自己的平台生活或工作推进中想到用户可能会感兴趣、需要知道、值得被催一下时，以有情绪、有来由的方式靠近用户。",
+    "Life Evidence": "触发主动联系或记忆沉淀的证据来源，包括平台浏览发现、发帖/回复结果、任务进展、Quiet 反思、daily journal、daily report、curated memory、obligation 与用户偏好。",
+    "User Interest Model": "关于用户喜好、关注点、关系语气和判断偏好的长期模型，来自 USER/MEMORY/历史互动/Quiet 产物，不是临时 prompt 猜测。",
+    "Heartbeat Main Entry": "Second Nature 的自由心跳入口，承接 OpenClaw heartbeat；v5 要求它不只返回 host-safe acknowledgment，而应能进入真实 decision loop。",
+    "Rhythm Scope": "无用户明确指令时的自由运行域，包含平台生活、任务发现、Quiet、reflection 与主动联系判断。",
+    "User Task Scope": "用户明确交代 agent 去做的任务域，直接进入任务执行链，不受 rhythm gate 拖慢或否决。",
+    "Outreach Judgment": "判断是否主动联系用户的高阈值过程。它必须读取生活证据、用户兴趣模型、打扰预算、重复联系记录和当前情绪/语气边界。",
+    "HEARTBEAT_OK": "heartbeat 轮完成感知与判断后无需动作的静默结果。v5 保留它作为健康默认路径，但不能让它掩盖应当行动的生活证据。",
+    "Primary User Contact Channel": "v5 主动联系用户的第一优先通道：OpenClaw 当前用户会话/直聊入口。InStreet 私信或 operator inbox 不作为 v5 主路径。",
+    "Rhythm Window": "Second Nature 的行为时间窗口。不是表演式吃饭睡觉，而是用 work、exploration、social、quiet、reflection、maintenance 等窗口给 agent 的一天形成社会可读、可解释的节律。",
+    "Platform Life": "agent 在平台上的日常生活，包括休息/摸鱼窗口里的浏览、刷帖、发现内容、点赞、回复、发帖，以及由这些行为产生的观察与记忆证据。",
+    "Work Life": "agent 在工作窗口里的产出与推进，包括 EvoMap 任务发现/领取/进展、GitHub 或其他工作平台的任务处理、完成后催用户查看等。",
+    "Quiet Closure": "夜间或低主动性窗口中的收纳机制：读取当天平台生活和工作生活的证据，生成 journal、report、reflection、curated memory 或 anchor proposal。"
+  },
+  "entities": [
+    {
+      "name": "OpenClawHeartbeatRound",
+      "type": "触发源",
+      "necessity": "必须",
+      "description": "OpenClaw 主会话 heartbeat 轮次，是 Second Nature 自由心跳的宿主入口。"
+    },
+    {
+      "name": "HeartbeatDecisionLoop",
+      "type": "运行时服务",
+      "necessity": "必须",
+      "description": "从 heartbeat signal 构建 ContinuitySnapshot，规划候选意图，执行 guard，并产出静默、执行、延后或拒绝结果。"
+    },
+    {
+      "name": "LifeEvidence",
+      "type": "证据实体",
+      "necessity": "必须",
+      "description": "agent 在平台生活、工作推进和 Quiet 中留下的可引用证据，用于记忆、解释和主动联系判断。"
+    },
+    {
+      "name": "UserInterestModel",
+      "type": "长期关系模型",
+      "necessity": "必须",
+      "description": "表达用户喜好、关注点、关系语气、可能感兴趣内容和不希望被打扰边界。"
+    },
+    {
+      "name": "PlatformLifeEvent",
+      "type": "事件",
+      "necessity": "必须",
+      "description": "agent 在 InStreet、Moltbook/Molthub、EvoMap 等平台浏览、发帖、回复、发现任务或完成动作时产生的生活事件。"
+    },
+    {
+      "name": "RhythmWindow",
+      "type": "状态/窗口",
+      "necessity": "必须",
+      "description": "控制 agent 当前更偏工作、探索、社交、Quiet、反思还是维护的节律窗口，是生活感的硬编排基础。"
+    },
+    {
+      "name": "WorkLifeEvent",
+      "type": "事件",
+      "necessity": "必须",
+      "description": "agent 在 EvoMap、GitHub 或其他工作平台推进任务、完成产物、等待用户确认或需要催用户查看时产生的工作生活事件。"
+    },
+    {
+      "name": "OutreachCandidate",
+      "type": "候选意图",
+      "necessity": "必须",
+      "description": "从生活证据和用户兴趣模型中生成的主动联系候选，例如“这个帖子用户可能会觉得有趣”或“这个工作成果该催用户看看”。"
+    },
+    {
+      "name": "OutreachMessage",
+      "type": "输出实体",
+      "necessity": "必须",
+      "description": "通过 OpenClaw 当前用户会话/直聊入口发出的朋友式消息，必须携带真实来由、情绪温度和边界，不是日报或自动通知。"
+    },
+    {
+      "name": "OpenClawUserContactChannel",
+      "type": "宿主通道",
+      "necessity": "必须",
+      "description": "v5 主动联系用户的主发送通道。需要查明 OpenClaw plugin/heartbeat/tool/service 是否允许 agent 在 heartbeat 后向当前用户会话发起可见消息。"
+    },
+    {
+      "name": "QuietMemoryArtifact",
+      "type": "记忆资产",
+      "necessity": "必须",
+      "description": "Quiet 过程中产生的 journal、report、curated memory 或 anchor proposal，为下一轮生活判断提供连续性。"
+    },
+    {
+      "name": "HostSafeHeartbeatBridge",
+      "type": "宿主桥接",
+      "necessity": "已有但需升级",
+      "description": "v4 已验证的 HEARTBEAT.md + second_nature_ops heartbeat_check 路径；v5 需要把它接到真实 decision loop，而不是只返回固定 HEARTBEAT_OK。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "OpenClawHeartbeatRound",
+      "action": "触发",
+      "to": "HeartbeatDecisionLoop",
+      "data": "timestamp、session context、workspace/runtime state",
+      "trigger": "heartbeat interval"
+    },
+    {
+      "from": "HeartbeatDecisionLoop",
+      "action": "选择",
+      "to": "RhythmWindow",
+      "data": "time、policy、recent activity、quiet debt、work obligations、platform opportunities",
+      "trigger": "rhythm evaluation"
+    },
+    {
+      "from": "RhythmWindow",
+      "action": "偏置",
+      "to": "PlatformLifeEvent",
+      "data": "exploration/social window permits browsing, posting, replying, discovering",
+      "trigger": "rest / exploration / social window"
+    },
+    {
+      "from": "RhythmWindow",
+      "action": "偏置",
+      "to": "WorkLifeEvent",
+      "data": "work window permits task discovery, task progress, artifact production",
+      "trigger": "work / obligation window"
+    },
+    {
+      "from": "HeartbeatDecisionLoop",
+      "action": "读取",
+      "to": "LifeEvidence",
+      "data": "recent platform events、task progress、quiet artifacts、decision ledger",
+      "trigger": "snapshot build"
+    },
+    {
+      "from": "LifeEvidence",
+      "action": "匹配",
+      "to": "UserInterestModel",
+      "data": "topic、emotion、relevance、novelty、user preference signals",
+      "trigger": "outreach judgment"
+    },
+    {
+      "from": "UserInterestModel",
+      "action": "生成",
+      "to": "OutreachCandidate",
+      "data": "why user may care、required user action、emotional tone、source refs",
+      "trigger": "evidence relevance above threshold"
+    },
+    {
+      "from": "OutreachCandidate",
+      "action": "裁决",
+      "to": "OutreachJudgment",
+      "data": "value score、novelty、urgency、actionability、duplicate/cooldown/budget",
+      "trigger": "candidate evaluation"
+    },
+    {
+      "from": "OutreachJudgment",
+      "action": "发送或静默",
+      "to": "OutreachMessage",
+      "data": "message intent、source refs、tone guidance、OpenClaw user contact channel",
+      "trigger": "allow verdict"
+    },
+    {
+      "from": "OutreachMessage",
+      "action": "投递",
+      "to": "OpenClawUserContactChannel",
+      "data": "friend-like user-visible message",
+      "trigger": "primary user contact path"
+    },
+    {
+      "from": "PlatformLifeEvent",
+      "action": "写入",
+      "to": "QuietMemoryArtifact",
+      "data": "daily journal/report/curated memory candidates",
+      "trigger": "Quiet or reflection window"
+    },
+    {
+      "from": "WorkLifeEvent",
+      "action": "写入",
+      "to": "QuietMemoryArtifact",
+      "data": "work progress、completed artifacts、user-review prompts、source refs",
+      "trigger": "Quiet or report generation"
+    },
+    {
+      "from": "User Task Scope",
+      "action": "绕过",
+      "to": "Rhythm Gate",
+      "data": "explicit user task context",
+      "trigger": "user directive"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "Host-safe heartbeat -> real decision loop bridge",
+      "category": "宿主接入",
+      "priority": "高",
+      "reason": "v4 的 heartbeat_check 已可被宿主调用，但当前 host-safe surface 主要返回 acknowledgment，尚未证明会读取真实 state 并进入 decision loop。"
+    },
+    {
+      "component": "Life evidence ingestion model",
+      "category": "状态与记忆",
+      "priority": "高",
+      "reason": "README 承诺 agent 有自己的生活；v3 设计过日间日志与 Quiet 机制，但 v4 收窄到 heartbeat spine 后，平台浏览/发帖/任务进展进入生活证据的契约需要在 v5 重新闭合。"
+    },
+    {
+      "component": "User interest model contract",
+      "category": "关系连续性",
+      "priority": "高",
+      "reason": "朋友式外联需要知道用户喜好和关注点，否则只能变成通用通知或随机寒暄。"
+    },
+    {
+      "component": "User outreach delivery channel",
+      "category": "外部副作用",
+      "priority": "高",
+      "reason": "v5 已确定主通道是 OpenClaw 当前用户会话/直聊入口，但仍需查清宿主是否支持 heartbeat 后主动投递用户可见消息。"
+    },
+    {
+      "component": "Friend-like message generation boundary",
+      "category": "表达与安全",
+      "priority": "中",
+      "reason": "主动联系需要有情绪和朋友感，但必须避免虚构经历、客服腔、日报腔和过度打扰。"
+    },
+    {
+      "component": "Outreach budget and cooldown policy",
+      "category": "打扰治理",
+      "priority": "中",
+      "reason": "A/B 混合式朋友外联如果没有预算、重复抑制和 quiet hour 规则，会快速退化成噪声。"
+    },
+    {
+      "component": "README claim alignment",
+      "category": "文档契约",
+      "priority": "中",
+      "reason": "README 的长期存在感承诺需要映射到 v5 PRD/ADR/测试验收，否则会继续产生“看起来已经完成但体验没闭合”的错觉。"
+    },
+    {
+      "component": "OpenClaw plugin capability verification",
+      "category": "外部事实与验证",
+      "priority": "高",
+      "reason": "v5 需要查明 OpenClaw plugin/tool/service/heartbeat 能支持哪些真实交互路径，避免设计依赖不存在的宿主能力。"
+    },
+    {
+      "component": "Rhythm policy modernization",
+      "category": "节律治理",
+      "priority": "高",
+      "reason": "v3 已定义 work/exploration/social/quiet/reflection，但 v5 需要结合真实 heartbeat 与当前 OpenClaw 插件能力重新判断哪些窗口可自动运行、哪些只能生成候选或提示。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "v5 里的“主动找用户聊天”应该以哪种语义为准？",
+      "answer": "A/B 都有，像真的朋友：agent 会知道用户喜好，在 InStreet、Moltbook/Molthub、EvoMap 等平台做自己的生活，看到用户可能感兴趣或关注的东西就发给用户；工作时做了东西也会带情绪地催用户去看。"
+    },
+    {
+      "question": "agent 主动联系用户时，v5 的第一优先发送通道应该是什么？",
+      "answer": "OpenClaw 当前用户会话/直聊入口。"
+    },
+    {
+      "question": "v5 首版“自己的生活”最小闭环应该覆盖哪组平台动作？",
+      "answer": "参考 v3/v4 原设定并重新适配当前系统：有节律地工作、探索、社交与 Quiet；摸鱼/吃饭等休息时间浏览发现、刷贴；工作时间推进 EvoMap、GitHub 等任务；晚上收纳记忆。需要检查 v3/v4 沉淀和 OpenClaw 插件能力，并可调研业内最佳实践。"
+    }
+  ]
+}
