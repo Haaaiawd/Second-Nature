@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-02` (Wave 7)
+- **最近一次更新**: `2026-05-02` (Wave 8)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -177,7 +177,7 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 40, P0: 27, P1: 9, P2: 0
 - Sprint 数: 4
-- Wave 7 建议: INT-S3, T1.2.1, T1.3.1, T5.3.1
+- Wave 8 建议: T1.2.1, T1.3.1, T5.3.1, INT-S4
 - 最近更新: `2026-05-02`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -200,6 +200,9 @@ T6.2.1, T2.3.2, T4.4.1, T3.2.1
 
 ### 🌊 Wave 7 ✅ — Code review closure (CR-M1/M2/M3) + Quiet orchestration
 Heartbeat `resolveAllowedIntentResult`（outreach 全链路与 Quiet `runSourceBackedQuiet`）、`evidence-guidance`（T6.1.2）、workspace Quiet 持久化与集成/单测覆盖（T2.3.3）。
+
+### 🌊 Wave 8 ✅ — INT-S3 closure + audit hash-chain
+INT-S3（`reports/int-s3-outreach-delivery-quiet.md`）：source-backed draft → delivery failed / dropped_by_host_policy → `delivery_unavailable` + `not_sent` fallback；`verifyAuditHashChain`（T5.2.2）+ lived-experience audit / explain；Quiet 空态与 S2 轻触回归集成测。
 
 <!-- AUTO:END -->
 

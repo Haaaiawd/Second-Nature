@@ -614,7 +614,7 @@ graph TD
   - **依赖**: T5.1.1
   - **优先级**: P0
 
-- [ ] **T5.2.2** [REQ-025]: `verifyAuditHashChain(range)`
+- [x] **T5.2.2** [REQ-025]: `verifyAuditHashChain(range)`
   - **描述**: 实现 audit hash-chain 校验接口，检测 recordHash 不匹配、previousHash 断链和范围不完整。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §5.1, §11.1, §13；`04_SYSTEM_DESIGN/observability-system.detail.md` §3.11；`07_CHALLENGE_REPORT.md` CH-07-08；T5.1.1 audit envelope
   - **输出**: `verifyAuditHashChain(range)` + integrity report
@@ -760,7 +760,7 @@ graph TD
   - **估时**: 4h
   - **依赖**: T2.1.1, T2.1.2, T2.1.3, T2.2.1, T3.1.1, T3.1.2, T3.2.1, T4.2.1, T4.2.2
 
-- [ ] **INT-S3** [MILESTONE]: S3 集成验证 — Outreach / Delivery / Quiet Closure
+- [x] **INT-S3** [MILESTONE]: S3 集成验证 — Outreach / Delivery / Quiet Closure
   - **描述**: 验证 S3 退出标准，确认 source-backed outreach、guidance draft、delivery fallback、DeliveryAttemptRecord、Quiet source coverage 和 hash-chain 都闭合。
   - **输入**: S3 所有任务产出：T6.1.1, T6.1.2, T6.2.1, T2.3.1, T2.3.2, T2.3.3, T4.3.1, T4.4.1, T5.2.1, T5.2.2
   - **输出**: `reports/int-s3-outreach-delivery-quiet.md`
