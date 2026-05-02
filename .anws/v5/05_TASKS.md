@@ -312,7 +312,7 @@ graph TD
   - **依赖**: T2.1.3, T4.2.2
   - **优先级**: P0
 
-- [ ] **T2.3.2** [REQ-022]: delivery failed / `dropped_by_host_policy` fallback test
+- [x] **T2.3.2** [REQ-022]: delivery failed / `dropped_by_host_policy` fallback test
   - **描述**: 为 `dispatchAllowedIntent()` 增加失败态验证，确保 delivery attempt `failed` 或 `dropped_by_host_policy` 后写 operator fallback，且结果为 `delivery_unavailable`。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.9；`04_SYSTEM_DESIGN/state-system.md` §6.1；`07_CHALLENGE_REPORT.md` CH-07-02；T4.3.1 产出的 `writeDeliveryAttempt()`；T6.2.1 产出的 draft contract test
   - **输出**: delivery failed fallback integration test
@@ -384,7 +384,7 @@ graph TD
 
 ### Phase 2: Execution Safety
 
-- [ ] **T3.2.1** [REQ-020]: 实现 side-effect idempotency / retry gate
+- [x] **T3.2.1** [REQ-020]: 实现 side-effect idempotency / retry gate
   - **描述**: 实现 `enforceExecutionPolicy()`、bounded retry、idempotency key、effect commit ledger 交互，防止重复 heartbeat / retry / crash recovery 造成重复副作用。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §4.5, §5.1, §9；`04_SYSTEM_DESIGN/connector-system.detail.md` §3.6, §4.2；T4.1.1 state commit port；`05_TASKS.md` Contract Mapping: side-effect idempotency
   - **输出**: execution policy layer + effect commit integration
@@ -542,7 +542,7 @@ graph TD
 
 ### Phase 4: Quiet / Governance
 
-- [ ] **T4.4.1** [REQ-024]: 实现 Quiet artifact writer 与 source coverage gate
+- [x] **T4.4.1** [REQ-024]: 实现 Quiet artifact writer 与 source coverage gate
   - **描述**: 实现 `writeQuietArtifact()`、source coverage calculation、empty-state artifact、curated/anchor proposal entry point。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §4.5, §5.1, §11.4；`04_SYSTEM_DESIGN/state-system.detail.md` §3.5, §4.2；T4.2.1 evidence snapshot
   - **输出**: `QuietArtifact` writer + source coverage tests
@@ -688,7 +688,7 @@ graph TD
 
 ### Phase 2: Outreach Draft Contract
 
-- [ ] **T6.2.1** [REQ-022]: `OutreachDraftRequest` contract test
+- [x] **T6.2.1** [REQ-022]: `OutreachDraftRequest` contract test
   - **描述**: 验证 control-plane 的 `buildOutreachDraftRequest()` 与 guidance 的 `draftOutreachMessage()` 字段、语义和 fallback wording 完全对齐。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.9；`04_SYSTEM_DESIGN/behavioral-guidance-system.detail.md` §3.6, §4.1, §4.3；T6.1.1 schema；T2.3.1 OutreachJudgment
   - **输出**: cross-system contract test suite

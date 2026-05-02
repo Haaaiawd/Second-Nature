@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-02`
+- **最近一次更新**: `2026-05-02` (Wave 6)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -195,7 +195,7 @@ T2.1.3, T2.2.1, T3.1.1, T3.1.2
 ### 🌊 Wave 5 ✅ — Outreach persistence & audit linkage
 T2.3.1, T4.3.1, T5.2.1, T6.1.1
 
-### 🌊 Wave 6 — Delivery failure closure & execution/Quiet gates
+### 🌊 Wave 6 ✅ — Delivery failure closure & execution/Quiet gates
 T6.2.1, T2.3.2, T4.4.1, T3.2.1
 
 <!-- AUTO:END -->
