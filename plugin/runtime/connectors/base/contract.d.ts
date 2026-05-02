@@ -59,6 +59,10 @@ export interface ConnectorManifestLike {
     channelPriority: ChannelType[];
     credentialTypes: string[];
     degradedChannels?: ChannelType[];
+    sourceRefPolicy?: {
+        minSourceRefs?: number;
+        rejectInlineSensitivePayload?: boolean;
+    };
 }
 export interface ConnectorManifestLoader {
     loadManifest(platformId: string): ConnectorManifestLike;
