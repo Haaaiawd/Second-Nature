@@ -4,6 +4,7 @@ import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError } from "../ops/show-operator-fallback.js";
+import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.js";
 import { policySet } from "./policy.js";
 import type { CliReadModels } from "../read-models/index.js";
 
@@ -162,6 +163,16 @@ export function createCliCommands(deps: CliCommandDeps): CliCommandDefinition[] 
       execute: async (input) => {
         const surface = await Promise.resolve(opsRouter.dispatch("heartbeat_check", input));
         return surface as Record<string, unknown>;
+      },
+    },
+    {
+      name: "storage_smoke",
+      description: "T4.1.4 — report sql.js vs native SQLite probe and optional artifact→index repair fixture",
+      execute: async (input) => {
+        const runRepairFixture = Boolean(input?.runRepairFixture);
+        const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
+        const data = await runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+        return { ok: true, data };
       },
     },
     {

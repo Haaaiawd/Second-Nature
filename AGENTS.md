@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-02` (Wave 10)
+- **最近一次更新**: `2026-05-02` (Wave 11)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -177,7 +177,7 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 40, P0: 27, P1: 9, P2: 0
 - Sprint 数: 4
-- Wave 10 建议: T3.3.1, T1.4.1, T1.4.2, T4.1.4, T7.1.1 → 收口 INT-S4（真实宿主冒烟）
+- Wave 11 建议: T3.3.1, T1.4.1, T1.4.2, T7.1.1 → 收口 INT-S4（真实宿主冒烟）；INT-S1 可含 storage_smoke
 - 最近更新: `2026-05-02`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -209,6 +209,9 @@ T5.3.1（`queryExplain`、`exportAuditBundle`）；T1.2.1（`explainSurfaceSubje
 
 ### 🌊 Wave 10 ✅ — Operator fallback view
 T1.2.2（`showOperatorFallback`、`loadFallbackView`、`loadOperatorFallbackRow`、CLI / `second_nature_ops` `fallback` + host-safe explicit unavailable；单测覆盖四类 reason 与 DB status 纠偏为 `not_sent`）。
+
+### 🌊 Wave 11 ✅ — Storage mode smoke
+T4.1.4（`probeNativeSqliteLoad`、`runStorageModeSmoke`、`storage_smoke` CLI、插件动态加载 runtime 报告；集成测覆盖 sql.js 语义、可选 artifact→index repair fixture）。
 
 <!-- AUTO:END -->
 

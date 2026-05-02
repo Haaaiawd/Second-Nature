@@ -218,6 +218,26 @@ function buildExplainPayload(spine, subjectRaw) {
         },
     };
 }
+async function buildStorageSmokePayload(input) {
+    try {
+        const mod = await import("./runtime/storage/bootstrap/storage-mode-smoke.js");
+        const runRepairFixture = Boolean(input?.runRepairFixture);
+        const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
+        const data = await mod.runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+        return { ok: true, data };
+    }
+    catch (error) {
+        return {
+            ok: false,
+            message: error instanceof Error ? error.message : String(error),
+            error: {
+                code: "STORAGE_SMOKE_LOAD_FAILED",
+                message: "Could not load packaged storage-mode smoke module",
+                nextStep: "rebuild_plugin_runtime_package",
+            },
+        };
+    }
+}
 function buildFallbackHostSafePayload(ref) {
     if (!ref?.trim()) {
         return {
@@ -348,6 +368,11 @@ function createHostSafeRouter(spine) {
                 const ref = typeof input?.ref === "string" ? input.ref.trim() : undefined;
                 return buildFallbackHostSafePayload(ref);
             },
+        },
+        {
+            name: "storage_smoke",
+            description: "T4.1.4 storage mode smoke report (sql.js vs native probe)",
+            execute: async (input) => buildStorageSmokePayload(input),
         },
     ];
     return {
@@ -481,6 +506,14 @@ function parseCommandInput(rawArgs) {
                 command,
                 input: rest.length > 0 ? { ref: rest.join(" ") } : undefined,
             };
+        case "storage_smoke": {
+            const wantRepair = rest[0] === "repair" || rest.includes("--repair");
+            return {
+                ok: true,
+                command,
+                input: wantRepair ? { runRepairFixture: true } : undefined,
+            };
+        }
         default:
             return {
                 ok: true,

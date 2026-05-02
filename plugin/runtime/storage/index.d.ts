@@ -13,6 +13,8 @@ export { createGovernanceLayer, type GovernanceLayer, type AnchorWriteProposal, 
 export { createProvenanceService, type ProvenanceService, type ProvenanceTrace, type ProvenanceDetail } from "./services/provenance-service.js";
 export { createRepairAndBackupService, type RepairAndBackupService, type RepairAndBackupOptions, type RepairAndBackupResult, } from "./services/repair-and-backup.js";
 export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
+export { probeNativeSqliteLoad } from "./bootstrap/native-sqlite-probe.js";
+export { runStorageModeSmoke, type StorageModeSmokeReport, type RunStorageModeSmokeOptions, } from "./bootstrap/storage-mode-smoke.js";
 export { repairStateIndexes, type RepairSummary, type RepairStateIndexesOptions, type RepairGateStatus, } from "./bootstrap/repair-gate.js";
 export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";
 export type { LifeEvidence, LifeEvidenceCandidate, LifeEvidenceType, LifeEvidenceWriteAck, Sensitivity, SourceRef, } from "./life-evidence/types.js";

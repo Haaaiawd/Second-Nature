@@ -20,6 +20,12 @@ export {
   type RepairAndBackupResult,
 } from "./services/repair-and-backup.js";
 export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
+export { probeNativeSqliteLoad } from "./bootstrap/native-sqlite-probe.js";
+export {
+  runStorageModeSmoke,
+  type StorageModeSmokeReport,
+  type RunStorageModeSmokeOptions,
+} from "./bootstrap/storage-mode-smoke.js";
 export {
   repairStateIndexes,
   type RepairSummary,

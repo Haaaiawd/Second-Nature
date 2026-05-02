@@ -13,6 +13,8 @@ export { createGovernanceLayer } from "./services/governance-layer.js";
 export { createProvenanceService } from "./services/provenance-service.js";
 export { createRepairAndBackupService, } from "./services/repair-and-backup.js";
 export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
+export { probeNativeSqliteLoad } from "./bootstrap/native-sqlite-probe.js";
+export { runStorageModeSmoke, } from "./bootstrap/storage-mode-smoke.js";
 export { repairStateIndexes, } from "./bootstrap/repair-gate.js";
 export { createStateAPI } from "./state-api.js";
 export { appendLifeEvidence } from "./life-evidence/append-life-evidence.js";

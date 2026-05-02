@@ -472,7 +472,7 @@ graph TD
   - **依赖**: T4.1.1
   - **优先级**: P0
 
-- [ ] **T4.1.4** [REQ-019]: native SQLite vs sql.js storage mode smoke
+- [x] **T4.1.4** [REQ-019]: native SQLite vs sql.js storage mode smoke
   - **描述**: 建立存储驱动模式 smoke，显式区分 native SQLite WAL/backup 与 sql.js fallback 单写队列/explicit flush/repair 语义。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §12.1.1；`03_ADR/ADR_001_TECH_STACK.md` §决策；`07_CHALLENGE_REPORT.md` CH-07-10；T4.1.3 startup repair gate
   - **输出**: storage mode smoke report
