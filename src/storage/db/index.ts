@@ -78,6 +78,19 @@ const STATE_SCHEMA_SQL = `
     kind TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS delivery_attempts (
+    attempt_id TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL,
+    target TEXT,
+    channel TEXT,
+    status TEXT NOT NULL,
+    message_id TEXT,
+    host_proof_ref_json TEXT,
+    error_class TEXT,
+    fallback_ref TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS delivery_attempt_decision_idx ON delivery_attempts(decision_id);
 `;
 
 export interface StateDatabase {

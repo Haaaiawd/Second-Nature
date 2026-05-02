@@ -53,3 +53,7 @@ export { loadContinuitySnapshot, type LoadContinuitySnapshotParams } from "./sna
 
 export type { UserInterestSnapshot, UserInterestSignal, UserInterestStaleness } from "./user-interest/types.js";
 export { loadUserInterestSnapshot } from "./user-interest/load-user-interest-snapshot.js";
+
+export type { DeliveryAttemptWrite, DeliveryAttemptRecord, DeliveryAttemptAck } from "./delivery/types.js";
+export { writeDeliveryAttempt } from "./delivery/write-delivery-attempt.js";
+export { listDeliveryAttemptsByDecisionId } from "./delivery/query-delivery-attempts.js";
