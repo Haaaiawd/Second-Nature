@@ -19,7 +19,7 @@ function explainSubjectError(code, message) {
     };
 }
 export function createCliCommands(deps) {
-    const { readModels, actionBridge } = deps;
+    const { readModels, actionBridge, opsRouter } = deps;
     return [
         {
             name: "status",
@@ -132,6 +132,14 @@ export function createCliCommands(deps) {
                     ok: true,
                     data: formatExplanation(model),
                 };
+            },
+        },
+        {
+            name: "heartbeat_check",
+            description: "Workspace heartbeat_check ops surface (v5 HeartbeatSurfaceResult)",
+            execute: async (input) => {
+                const surface = opsRouter.dispatch("heartbeat_check", input);
+                return surface;
             },
         },
     ];

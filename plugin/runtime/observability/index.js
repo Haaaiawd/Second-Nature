@@ -1,5 +1,7 @@
 export { createObservabilityDatabase } from "./db/index.js";
 export * as obsSchema from "./db/schema/index.js";
+export { buildAuditEnvelope, redactAuditEvent, auditManifestFromFieldManifest, } from "./audit/audit-envelope.js";
+export { AppendOnlyAuditStore } from "./audit/append-only-audit-store.js";
 export { REDACTION_CONFIG, DEFAULT_REDACTION_POLICY, getFieldRedactionRule, } from "./redaction/policy.js";
 export { redactEvent, createEmptyManifest, mergeManifests, } from "./redaction/manifest.js";
 export { DecisionLedger } from "./services/decision-ledger.js";

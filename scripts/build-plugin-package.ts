@@ -55,6 +55,8 @@ const RUNTIME_ARTIFACTS = [
   { src: "src/cli/index.js", dest: "cli/index.js" },
   { src: "src/cli/action-bridge.js", dest: "cli/action-bridge.js" },
   { src: "src/cli/runtime/", dest: "cli/runtime/" },
+  { src: "src/cli/host-capability/", dest: "cli/host-capability/" },
+  { src: "src/cli/ops/", dest: "cli/ops/" },
   { src: "src/cli/commands/", dest: "cli/commands/" },
   { src: "src/cli/read-models/", dest: "cli/read-models/" },
   { src: "src/cli/explain/", dest: "cli/explain/" },

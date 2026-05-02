@@ -1,8 +1,12 @@
 import { createObservabilityDatabase, type ObservabilityDatabase } from "../observability/db/index.js";
 import { createStateAPI, createStateDatabase, type StateDatabase, type StateAPI } from "../storage/index.js";
+import path from "node:path";
+
 import { createActionBridge, type ActionBridge } from "./action-bridge.js";
 import { createCliCommands, type CliCommandDefinition } from "./commands/index.js";
+import { createOpsRouter } from "./ops/ops-router.js";
 import { createCliReadModels, type CliReadModels } from "./read-models/index.js";
+import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
 
 export interface CommandRouter {
   commands: CliCommandDefinition[];
@@ -43,9 +47,12 @@ export function createCliRuntimeDeps(overrides: Partial<CliRuntimeDeps> = {}): C
 
 export function createCommandRouter(options: CreateCommandRouterOptions = {}): CommandRouter {
   const runtime = createCliRuntimeDeps(options.deps);
+  const pluginRoot = path.join(process.cwd(), "plugin");
+  const opsRouter = createOpsRouter({ runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok });
   const commands = createCliCommands({
     readModels: runtime.readModels,
     actionBridge: runtime.actionBridge,
+    opsRouter,
   });
 
   return {
@@ -60,3 +67,15 @@ export function closeCliRuntimeDeps(deps: Pick<CliRuntimeDeps, "stateDb" | "obse
   deps.stateDb.close();
   deps.observabilityDb.close();
 }
+
+export { createOpsRouter, type OpsRouter, type OpsRouterDeps } from "./ops/ops-router.js";
+export {
+  heartbeatCheck,
+  type HeartbeatSurfaceResult,
+  type HeartbeatSurfaceStatus,
+  type HeartbeatCheckInput,
+} from "./ops/heartbeat-surface.js";
+export * from "./host-capability/types.js";
+export { classifyDeliveryCapability, type ClassifyDeliveryCapabilityInput } from "./host-capability/classify-delivery.js";
+export { probeHostCapability } from "./host-capability/probe-host-capability.js";
+export { recordHostCapability } from "./host-capability/record-host-capability.js";

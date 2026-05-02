@@ -177,14 +177,17 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 40, P0: 27, P1: 9, P2: 0
 - Sprint 数: 4
-- Wave 2 建议: T1.1.2, T1.1.3, T4.1.3, T4.2.1
+- Wave 3 建议: T2.1.1, T2.1.2, T4.2.2, T5.1.2
 - 最近更新: `2026-05-02`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
 
-### 🌊 Wave 2 — Host bridge & repair readiness
+### 🌊 Wave 2 ✅ — Host bridge & repair readiness
 T1.1.2, T1.1.3, T4.1.3, T4.2.1
+
+### 🌊 Wave 3 — Heartbeat loop & interest read models
+T2.1.1, T2.1.2, T4.2.2, T5.1.2
 
 <!-- AUTO:END -->
 

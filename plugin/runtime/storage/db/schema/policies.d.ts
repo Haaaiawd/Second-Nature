@@ -55,6 +55,23 @@ export declare const policyRecords: import("drizzle-orm/sqlite-core").SQLiteTabl
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        outreachDailyBudget: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "outreach_daily_budget";
+            tableName: "policy_records";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         updatedAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "updated_at";
             tableName: "policy_records";

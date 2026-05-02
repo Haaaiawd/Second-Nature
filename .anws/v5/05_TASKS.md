@@ -104,7 +104,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **T1.1.2** [REQ-025]: OpenClaw capability probe early sprint
+- [x] **T1.1.2** [REQ-025]: OpenClaw capability probe early sprint
   - **描述**: 实现 `probeHostCapability(options)` 与 `HostCapabilityReport` 写入，优先验证 heartbeat bridge、heartbeat tool invocation、delivery target、ack drop、hook/runHeartbeatOnce 能力，并记录 docs-vs-observed 冲突证据。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §6.1, §11.3；`04_SYSTEM_DESIGN/cli-system.detail.md` §3.6；`03_ADR/ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md` §质量门禁；T5.1.1 产出的 host capability audit port
   - **输出**: `probeHostCapability()`、`HostCapabilityReport`、`recordHostCapability()` 调用点
@@ -120,7 +120,7 @@ graph TD
   - **依赖**: T5.1.1
   - **优先级**: P0
 
-- [ ] **T1.1.3** [REQ-019]: 收口 `second_nature_ops("heartbeat_check")` surface
+- [x] **T1.1.3** [REQ-019]: 收口 `second_nature_ops("heartbeat_check")` surface
   - **描述**: 实现 command/tool 共用 ops router 与 stable `HeartbeatSurfaceResult` schema；S1 只闭合 carrier/probe/runtime unavailable/fake control-plane passthrough，真实 control-plane decision loop 由 T2.2.1 接入。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1-§5.4；`04_SYSTEM_DESIGN/cli-system.detail.md` §3.3-§3.5；T1.1.1 产出的 packaged runtime
   - **输出**: `createOpsRouter()`、`heartbeatCheck()`、`HeartbeatSurfaceResult`
@@ -456,7 +456,7 @@ graph TD
   - **依赖**: T4.1.1
   - **优先级**: P0
 
-- [ ] **T4.1.3** [REQ-020]: startup repair gate
+- [x] **T4.1.3** [REQ-020]: startup repair gate
   - **描述**: 将 `repairStateIndexes({ startupGate: true })` 作为 read model 对外服务前置门禁；无法修复时标记 `repair_required`。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §12.2；`04_SYSTEM_DESIGN/state-system.detail.md` §3.13；`07_CHALLENGE_REPORT.md` CH-07-07；T4.1.1 artifact/index schema
   - **输出**: startup repair gate + `RepairSummary`
@@ -490,7 +490,7 @@ graph TD
 
 ### Phase 2: Runtime Snapshots
 
-- [ ] **T4.2.1** [REQ-019]: 实现 `LifeEvidenceSnapshot` 与 `ContinuitySnapshot`
+- [x] **T4.2.1** [REQ-019]: 实现 `LifeEvidenceSnapshot` 与 `ContinuitySnapshot`
   - **描述**: 实现 bounded query、snapshot cache、empty evidence safe return、recent decision/fallback/quiet debt read model。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §5.1, §10.2；`04_SYSTEM_DESIGN/state-system.detail.md` §3.2-§3.3；T4.1.1 evidence store；T4.1.3 repair gate
   - **输出**: `loadLifeEvidenceSnapshot()`、`loadContinuitySnapshot()`

@@ -31,11 +31,13 @@ export class DefaultStateAPI {
                 const record = await policyRepository.findByPlatformId(platformId);
                 if (!record)
                     return undefined;
+                const r = record;
                 return {
-                    platformId: record.platformId ?? record.platform_id,
-                    socialDailyLimit: record.socialDailyLimit ?? record.social_daily_limit,
-                    quietEnabled: record.quietEnabled ?? Boolean(record.quiet_enabled),
-                    updatedAt: record.updatedAt ?? record.updated_at,
+                    platformId: r.platformId ?? r.platform_id ?? platformId,
+                    socialDailyLimit: r.socialDailyLimit ?? r.social_daily_limit ?? 0,
+                    quietEnabled: r.quietEnabled ?? Boolean(r.quiet_enabled),
+                    outreachDailyBudget: r.outreachDailyBudget ?? r.outreach_daily_budget ?? 2,
+                    updatedAt: r.updatedAt ?? r.updated_at ?? "",
                 };
             },
             loadPersonaCandidates: (sceneContext) => personaCandidateLoader.loadPersonaCandidates(sceneContext),
@@ -50,6 +52,7 @@ export class DefaultStateAPI {
                     platformId: policy.platformId,
                     socialDailyLimit: policy.socialDailyLimit,
                     quietEnabled: policy.quietEnabled,
+                    outreachDailyBudget: policy.outreachDailyBudget ?? 2,
                     updatedAt: new Date().toISOString(),
                 });
             },

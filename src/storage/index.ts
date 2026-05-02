@@ -20,6 +20,12 @@ export {
   type RepairAndBackupResult,
 } from "./services/repair-and-backup.js";
 export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
+export {
+  repairStateIndexes,
+  type RepairSummary,
+  type RepairStateIndexesOptions,
+  type RepairGateStatus,
+} from "./bootstrap/repair-gate.js";
 
 export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";
 
@@ -34,3 +40,13 @@ export type {
 export { appendLifeEvidence, type AppendLifeEvidenceOptions } from "./life-evidence/append-life-evidence.js";
 
 export { loadRhythmPolicySnapshot, type RhythmPolicySnapshot } from "./rhythm/rhythm-policy-snapshot.js";
+
+export type {
+  LifeEvidenceQuery,
+  LifeEvidenceSnapshot,
+  LifeEvidenceReadModel,
+  ContinuitySnapshot,
+  SourceCoverage,
+} from "./snapshots/types.js";
+export { loadLifeEvidenceSnapshot, type LoadLifeEvidenceSnapshotOptions } from "./snapshots/life-evidence-snapshot.js";
+export { loadContinuitySnapshot, type LoadContinuitySnapshotParams } from "./snapshots/continuity-snapshot.js";

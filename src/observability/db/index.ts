@@ -75,6 +75,17 @@ const OBSERVABILITY_SCHEMA_SQL = `
     created_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS redact_event_idx ON redaction_manifest(event_id);
+  CREATE TABLE IF NOT EXISTS host_capability_reports (
+    report_id TEXT PRIMARY KEY,
+    generated_at TEXT NOT NULL,
+    host_version TEXT,
+    observed_version TEXT,
+    doc_checked_at TEXT NOT NULL,
+    doc_links_json TEXT NOT NULL,
+    delivery_target TEXT NOT NULL,
+    conflict_records_json TEXT NOT NULL,
+    full_report_json TEXT NOT NULL
+  );
 `;
 
 export interface ObservabilityDatabase {

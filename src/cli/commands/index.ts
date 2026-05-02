@@ -1,4 +1,5 @@
 import type { ActionBridge } from "../action-bridge.js";
+import type { OpsRouter } from "../ops/ops-router.js";
 import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { resolveExplainSubject } from "../explain/resolve-subject.js";
@@ -14,6 +15,7 @@ export interface CliCommandDefinition {
 export interface CliCommandDeps {
   readModels: CliReadModels;
   actionBridge: ActionBridge;
+  opsRouter: OpsRouter;
 }
 
 const notImplemented = async (command: string) => ({
@@ -35,7 +37,7 @@ function explainSubjectError(code: string, message: string): Record<string, unkn
 }
 
 export function createCliCommands(deps: CliCommandDeps): CliCommandDefinition[] {
-  const { readModels, actionBridge } = deps;
+  const { readModels, actionBridge, opsRouter } = deps;
 
   return [
     {
@@ -153,6 +155,14 @@ export function createCliCommands(deps: CliCommandDeps): CliCommandDefinition[] 
           ok: true,
           data: formatExplanation(model),
         };
+      },
+    },
+    {
+      name: "heartbeat_check",
+      description: "Workspace heartbeat_check ops surface (v5 HeartbeatSurfaceResult)",
+      execute: async (input) => {
+        const surface = opsRouter.dispatch("heartbeat_check", input);
+        return surface as Record<string, unknown>;
       },
     },
   ];
