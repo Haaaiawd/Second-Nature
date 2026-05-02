@@ -15,7 +15,10 @@ export {
 
 export {
   ingestRhythmSignal,
+  resolveAllowedIntentResult,
   type HeartbeatDeps,
+  type HeartbeatOutreachDispatchDeps,
+  type HeartbeatQuietWorkflowDeps,
   type HeartbeatDecisionTracePayload,
   buildSnapshotFromInputs,
 } from "./heartbeat-loop.js";

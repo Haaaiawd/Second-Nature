@@ -20,6 +20,7 @@ export declare const guidanceSourceRefSchema: z.ZodObject<{
     excerptHash: z.ZodOptional<z.ZodString>;
     observedAt: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
+export type GuidanceSourceRef = z.infer<typeof guidanceSourceRefSchema>;
 export declare const deliveryExpressionContextSchema: z.ZodObject<{
     deliveryVerdict: z.ZodEnum<{
         target_none: "target_none";

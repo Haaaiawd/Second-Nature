@@ -13,11 +13,16 @@
  * the first-class result when no action is warranted.
  */
 import type { HeartbeatSignal, HeartbeatCycleResult, HeartbeatCycleStatus, RuntimeScope, RuntimeTrigger } from "./signal.js";
-import type { ContinuitySnapshot, IntentKind } from "../types.js";
+import type { CandidateIntent, ContinuitySnapshot, IntentKind } from "../types.js";
 import { buildContinuitySnapshot, type SnapshotInputs } from "./snapshot-builder.js";
-import { buildHeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
+import { buildHeartbeatRuntimeSnapshot, type HeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
 import { planCandidateIntents } from "../orchestrator/intent-planner.js";
 import { evaluateHardGuards } from "../orchestrator/guard-layer.js";
+import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.js";
+import type { StateDatabase } from "../../../storage/db/index.js";
+import { dispatchUserOutreachIntent, type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
+import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
+import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -31,11 +36,68 @@ export interface HeartbeatDecisionTracePayload {
   trigger: RuntimeTrigger;
 }
 
+/** Optional outreach delivery chain: when set, first allowed `user_outreach` runs dispatch (CR-M1). */
+export interface HeartbeatOutreachDispatchDeps {
+  state: StateDatabase;
+  guidance: GuidanceDraftPort;
+  delivery: OpenClawDeliveryPort;
+}
+
+/** Optional Quiet orchestration: when set, quiet/reflection allows run source-backed Quiet writer (T2.3.3). */
+export interface HeartbeatQuietWorkflowDeps {
+  workspaceRoot: string;
+}
+
+/**
+ * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
+ * Exported for unit tests (CR-M1 wiring).
+ */
+export async function resolveAllowedIntentResult(
+  intent: CandidateIntent,
+  runtime: HeartbeatRuntimeSnapshot,
+  inputs: SnapshotInputs,
+  signal: HeartbeatSignal,
+  deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow">,
+): Promise<HeartbeatCycleResult> {
+  const day = typeof signal.payload.timestamp === "string" ? signal.payload.timestamp.slice(0, 10) : "1970-01-01";
+  if (intent.effectClass === "user_outreach" && deps.outreachDispatch) {
+    return dispatchUserOutreachIntent({
+      candidate: intent,
+      snapshot: runtime,
+      judgeInput: buildJudgeOutreachInputFromSnapshot(intent, runtime, inputs),
+      guidance: deps.outreachDispatch.guidance,
+      delivery: deps.outreachDispatch.delivery,
+      state: deps.outreachDispatch.state,
+    });
+  }
+  if (
+    deps.quietWorkflow &&
+    (intent.kind === "quiet" || (intent.kind === "reflection" && intent.effectClass === "narrative_reflection"))
+  ) {
+    const quietRun = await runSourceBackedQuiet({
+      candidate: intent,
+      runtime,
+      day,
+      userInterestSnapshot: inputs.userInterestSnapshot,
+      workspaceRoot: deps.quietWorkflow.workspaceRoot,
+    });
+    return quietRun.result;
+  }
+  return {
+    scope: "rhythm",
+    status: "intent_selected",
+    selectedIntentId: intent.id,
+    reasons: [],
+  };
+}
+
 export interface HeartbeatDeps {
   /** Load snapshot inputs from state-system */
   loadSnapshotInputs: () => Promise<SnapshotInputs>;
   /** Optional observability hook (T2.2.1): one record per completed cycle. */
   recordDecisionTrace?: (payload: HeartbeatDecisionTracePayload) => Promise<void>;
+  outreachDispatch?: HeartbeatOutreachDispatchDeps;
+  quietWorkflow?: HeartbeatQuietWorkflowDeps;
 }
 
 /**
@@ -80,12 +142,18 @@ export async function ingestRhythmSignal(
     const evaluation = evaluateHardGuards(intent, runtime);
     if (evaluation.verdict === "allow") {
       anyAllow = true;
-      const result: HeartbeatCycleResult = {
+      const base: HeartbeatCycleResult = {
         scope: "rhythm",
         status: "intent_selected",
         selectedIntentId: intent.id,
         reasons: evaluation.reasons,
       };
+      const resolved = await resolveAllowedIntentResult(intent, runtime, inputs, signal, deps);
+      const result: HeartbeatCycleResult =
+        resolved.status === "intent_selected" && resolved.reasons.length === 0 && evaluation.reasons.length > 0
+          ? { ...resolved, reasons: evaluation.reasons }
+          : resolved;
+
       await emitTrace(result);
       return result;
     }

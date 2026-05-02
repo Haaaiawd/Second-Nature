@@ -328,7 +328,7 @@ graph TD
   - **依赖**: T2.3.1, T4.3.1, T5.2.1, T6.2.1
   - **优先级**: P0
 
-- [ ] **T2.3.3** [REQ-024]: source-backed Quiet / reflection orchestration
+- [x] **T2.3.3** [REQ-024]: source-backed Quiet / reflection orchestration
   - **描述**: 在 heartbeat 中接入 Quiet / reflection path，空 evidence 只产生 empty-state / maintenance，非空 evidence 请求 source coverage-aware Quiet artifact。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §4.4, §11.4；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §4.3；T4.4.1 Quiet artifact writer；T6.1.2 Quiet guidance
   - **输出**: `runSourceBackedQuiet()` orchestration
@@ -670,7 +670,7 @@ graph TD
   - **依赖**: T2.3.1
   - **优先级**: P0
 
-- [ ] **T6.1.2** [REQ-023]: 实现 evidence pack / interest downgrade / Quiet guidance
+- [x] **T6.1.2** [REQ-023]: 实现 evidence pack / interest downgrade / Quiet guidance
   - **描述**: 实现 `buildEvidencePack()`、`selectInterestBasis()`、`buildQuietNarrativeGuidance()`，确保 interest insufficient 降级为 evidence-only 或 unavailable，并统一 `SourceCoveragePolicy`。
   - **输入**: `04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5.1, §9, §11.4；`04_SYSTEM_DESIGN/behavioral-guidance-system.detail.md` §3.2-§3.3, §3.7；T4.2.2 user interest snapshot；T4.4.1 Quiet artifact contract
   - **输出**: evidence pack builder、interest basis selector、Quiet guidance

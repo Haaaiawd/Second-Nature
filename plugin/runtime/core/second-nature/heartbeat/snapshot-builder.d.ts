@@ -8,6 +8,8 @@
  */
 import type { ContinuitySnapshot, ControlPlaneSourceRef, TopLevelMode } from "../types.js";
 import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
+import type { DeliveryCapabilitySnapshot } from "../outreach/delivery-target.js";
+import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
 export interface SnapshotInputs {
     mode: TopLevelMode;
     currentWindowId: string;
@@ -35,6 +37,10 @@ export interface SnapshotInputs {
     quietEnabledBridge?: boolean;
     duplicateIntentKeys?: string[];
     outreachCooldownKeys?: string[];
+    /** When present, outreach judgment uses this delivery snapshot (ADR-007). */
+    deliveryCapability?: DeliveryCapabilitySnapshot;
+    /** When present, outreach judgment uses this user-interest read model (T4.2.2). */
+    userInterestSnapshot?: UserInterestSnapshot;
 }
 /**
  * Build a ContinuitySnapshot from loaded inputs.

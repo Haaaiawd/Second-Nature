@@ -16,5 +16,7 @@ export * from "./outreach/delivery-target.js";
 export * from "./outreach/judge-outreach.js";
 export * from "./outreach/build-outreach-draft-request.js";
 export * from "./outreach/dispatch-user-outreach.js";
+export * from "./outreach/judge-input-from-snapshot.js";
+export * from "./quiet/run-source-backed-quiet.js";
 export * from "./guidance/request-guidance.js";
 export * from "./guidance/apply-guidance.js";

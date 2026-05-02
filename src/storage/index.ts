@@ -68,3 +68,4 @@ export {
   evidenceGroundingRatio,
   type QuietArtifactAck,
 } from "./quiet/quiet-artifact-writer.js";
+export { persistQuietArtifactToWorkspace, type PersistQuietArtifactResult } from "./quiet/persist-quiet-artifact.js";

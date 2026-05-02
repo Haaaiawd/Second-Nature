@@ -2,6 +2,43 @@ import { buildContinuitySnapshot } from "./snapshot-builder.js";
 import { buildHeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
 import { planCandidateIntents } from "../orchestrator/intent-planner.js";
 import { evaluateHardGuards } from "../orchestrator/guard-layer.js";
+import { dispatchUserOutreachIntent } from "../outreach/dispatch-user-outreach.js";
+import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
+import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
+/**
+ * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
+ * Exported for unit tests (CR-M1 wiring).
+ */
+export async function resolveAllowedIntentResult(intent, runtime, inputs, signal, deps) {
+    const day = typeof signal.payload.timestamp === "string" ? signal.payload.timestamp.slice(0, 10) : "1970-01-01";
+    if (intent.effectClass === "user_outreach" && deps.outreachDispatch) {
+        return dispatchUserOutreachIntent({
+            candidate: intent,
+            snapshot: runtime,
+            judgeInput: buildJudgeOutreachInputFromSnapshot(intent, runtime, inputs),
+            guidance: deps.outreachDispatch.guidance,
+            delivery: deps.outreachDispatch.delivery,
+            state: deps.outreachDispatch.state,
+        });
+    }
+    if (deps.quietWorkflow &&
+        (intent.kind === "quiet" || (intent.kind === "reflection" && intent.effectClass === "narrative_reflection"))) {
+        const quietRun = await runSourceBackedQuiet({
+            candidate: intent,
+            runtime,
+            day,
+            userInterestSnapshot: inputs.userInterestSnapshot,
+            workspaceRoot: deps.quietWorkflow.workspaceRoot,
+        });
+        return quietRun.result;
+    }
+    return {
+        scope: "rhythm",
+        status: "intent_selected",
+        selectedIntentId: intent.id,
+        reasons: [],
+    };
+}
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.
  */
@@ -38,12 +75,16 @@ export async function ingestRhythmSignal(signal, deps) {
         const evaluation = evaluateHardGuards(intent, runtime);
         if (evaluation.verdict === "allow") {
             anyAllow = true;
-            const result = {
+            const base = {
                 scope: "rhythm",
                 status: "intent_selected",
                 selectedIntentId: intent.id,
                 reasons: evaluation.reasons,
             };
+            const resolved = await resolveAllowedIntentResult(intent, runtime, inputs, signal, deps);
+            const result = resolved.status === "intent_selected" && resolved.reasons.length === 0 && evaluation.reasons.length > 0
+                ? { ...resolved, reasons: evaluation.reasons }
+                : resolved;
             await emitTrace(result);
             return result;
         }

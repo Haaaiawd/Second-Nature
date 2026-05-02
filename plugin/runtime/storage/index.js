@@ -24,3 +24,4 @@ export { writeDeliveryAttempt } from "./delivery/write-delivery-attempt.js";
 export { listDeliveryAttemptsByDecisionId } from "./delivery/query-delivery-attempts.js";
 export { writeOperatorFallback } from "./fallback/write-operator-fallback.js";
 export { writeQuietArtifact, calculateQuietSourceCoverage, evidenceGroundingRatio, } from "./quiet/quiet-artifact-writer.js";
+export { persistQuietArtifactToWorkspace } from "./quiet/persist-quiet-artifact.js";

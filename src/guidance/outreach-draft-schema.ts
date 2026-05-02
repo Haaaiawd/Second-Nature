@@ -24,6 +24,8 @@ export const guidanceSourceRefSchema = z.object({
   observedAt: z.string().optional(),
 });
 
+export type GuidanceSourceRef = z.infer<typeof guidanceSourceRefSchema>;
+
 export const deliveryExpressionContextSchema = z.object({
   deliveryVerdict: z.enum([
     "target_available",

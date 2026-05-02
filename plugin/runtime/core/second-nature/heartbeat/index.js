@@ -1,5 +1,5 @@
 export { buildContinuitySnapshot, } from "./snapshot-builder.js";
-export { ingestRhythmSignal, buildSnapshotFromInputs, } from "./heartbeat-loop.js";
+export { ingestRhythmSignal, resolveAllowedIntentResult, buildSnapshotFromInputs, } from "./heartbeat-loop.js";
 export { buildHeartbeatRuntimeSnapshot, buildLifeEvidenceSliceFromInputs, buildHardGuardDeps, resolveRhythmPolicyForHeartbeat, isLifeEvidenceSliceEmpty, } from "./runtime-snapshot.js";
 export { buildPlannerRhythmWindow } from "../rhythm/planner-rhythm-window.js";
 export { runHeartbeatCycle } from "./run-heartbeat-cycle.js";
