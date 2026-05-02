@@ -19,6 +19,8 @@ export {
   buildSnapshotFromInputs,
 } from "./heartbeat-loop.js";
 
+export { runHeartbeatCycle, type RunHeartbeatCycleInput } from "./run-heartbeat-cycle.js";
+
 export {
   routeScopedInput,
   type ScopeRouterDeps,

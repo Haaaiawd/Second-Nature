@@ -99,7 +99,7 @@ test("T5.1.1 heartbeat_ok leaves a queryable record", async () => {
     runtimeScope: "rhythm",
     triggerSource: "heartbeat_bridge",
     decisionStatus: "heartbeat_ok",
-    reasons: ["no_candidates"],
+    reasons: ["silent_no_candidates"],
     mode: "active",
     createdAt: "2026-03-31T10:00:00Z",
   };
@@ -111,7 +111,7 @@ test("T5.1.1 heartbeat_ok leaves a queryable record", async () => {
 
   const record = records[0];
   assert.equal(record.verdict, "defer");
-  assert.ok(record.reasons.includes("no_candidates"));
+  assert.ok(record.reasons.includes("silent_no_candidates"));
   assert.ok(record.evidenceRefs.some((r) => r.includes("scope:rhythm")));
   assert.ok(record.evidenceRefs.some((r) => r.includes("trigger:heartbeat_bridge")));
   assert.ok(record.evidenceRefs.some((r) => r.includes("status:heartbeat_ok")));
@@ -180,7 +180,7 @@ test("T5.1.1 record distinguishes runtimeScope, triggerSource, decisionStatus, r
     runtimeScope: "rhythm",
     triggerSource: "heartbeat_bridge",
     decisionStatus: "heartbeat_ok",
-    reasons: ["no_candidates"],
+    reasons: ["silent_no_candidates"],
     mode: "quiet",
     createdAt: "2026-03-31T12:00:00Z",
   });

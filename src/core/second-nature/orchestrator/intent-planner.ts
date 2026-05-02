@@ -76,6 +76,10 @@ function planOutreachIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
 }
 
 export function planIntent(snapshot: ContinuitySnapshot): CandidateIntent[] {
+  if (snapshot.mode === "maintenance_only") {
+    return planObligationIntents(snapshot);
+  }
+
   const intents = [
     ...planObligationIntents(snapshot),
     ...planPlatformIntents(snapshot),

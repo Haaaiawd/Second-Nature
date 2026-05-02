@@ -76,7 +76,7 @@ export async function ingestRhythmSignal(
     return {
       scope: "rhythm",
       status: "heartbeat_ok",
-      reasons: ["no_candidates"],
+      reasons: ["silent_no_candidates"],
     };
   }
 
