@@ -160,6 +160,7 @@ test("policy layer classifies EvoMap protocol/auth errors without polluting base
       payload: {},
       decisionId: "decision-evomap",
       intentId: "intent-evomap",
+      idempotencyKey: `idem-evomap-claim:${entry.code}`,
     });
     assert.equal(result.status, "terminal_failure");
     assert.equal(result.failureClass, entry.expected);
