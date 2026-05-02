@@ -260,7 +260,7 @@ graph TD
   - **依赖**: T4.1.2
   - **优先级**: P0
 
-- [ ] **T2.1.3** [REQ-021]: 实现 candidate planner 与 hard guard
+- [x] **T2.1.3** [REQ-021]: 实现 candidate planner 与 hard guard
   - **描述**: 实现 work、exploration、social、quiet、reflection、outreach、maintenance 候选规划与 source/cooldown/dedupe/budget/risk guard。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5.1, §11.1；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.5-§3.6；T2.1.2 输出的 rhythm decision
   - **输出**: `planCandidateIntents()`、`evaluateHardGuards()`
@@ -278,7 +278,7 @@ graph TD
 
 ### Phase 2: Evidence Integration
 
-- [ ] **T2.2.1** [REQ-019]: heartbeat -> snapshot -> intent integration
+- [x] **T2.2.1** [REQ-019]: heartbeat -> snapshot -> intent integration
   - **描述**: 连接 state snapshots、candidate planner、decision recorder，完成无候选、work/connector、quiet 候选的基础集成路径。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §4.3, §11.2；T2.1.1, T2.1.3, T3.1.2, T5.1.1 的输出
   - **输出**: heartbeat integration flow + decision trace writes
@@ -350,7 +350,7 @@ graph TD
 
 ### Phase 1: Contract Foundation
 
-- [ ] **T3.1.1** [REQ-020]: 实现 connector manifest / capability contract
+- [x] **T3.1.1** [REQ-020]: 实现 connector manifest / capability contract
   - **描述**: 建立 manifest-first connector registry、capability taxonomy、effect semantics、channel taxonomy 与 schema validation。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §5.1-§6.1；`04_SYSTEM_DESIGN/connector-system.detail.md` §1-§3.3；`03_ADR/ADR_002_CONNECTOR_MODEL.md`
   - **输出**: `ConnectorManifestRegistry`、`describeConnector()`、`checkConnector()`、`discoverCapabilities()`
@@ -366,7 +366,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **T3.1.2** [REQ-020]: `LifeEvidenceCandidate` mapping contract test
+- [x] **T3.1.2** [REQ-020]: `LifeEvidenceCandidate` mapping contract test
   - **描述**: 实现 `mapLifeEvidence(result)` 并验证 connector 成功结果能产生 platform/work evidence candidate，sourceRefs 非空且 sensitivity 正确。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §4.6, §5.1, §11.2；`04_SYSTEM_DESIGN/connector-system.detail.md` §3.8-§3.9；T3.1.1 manifest contract
   - **输出**: `LifeEvidenceCandidate` mapper + contract fixtures
