@@ -2,7 +2,7 @@ import type { ConnectorResult, CapabilityIntent } from "../../../connectors/base
 import { LeaseManager, type EffectClass } from "./lease-manager.js";
 export interface AllowedIntent {
     id: string;
-    kind: "work" | "exploration" | "social" | "reflection" | "outreach" | "maintenance";
+    kind: "work" | "exploration" | "social" | "quiet" | "reflection" | "outreach" | "maintenance";
     summary: string;
     effectClass: EffectClass;
     platformId?: string;

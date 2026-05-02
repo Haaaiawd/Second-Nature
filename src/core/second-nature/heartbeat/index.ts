@@ -16,8 +16,22 @@ export {
 export {
   ingestRhythmSignal,
   type HeartbeatDeps,
+  type HeartbeatDecisionTracePayload,
   buildSnapshotFromInputs,
 } from "./heartbeat-loop.js";
+
+export {
+  buildHeartbeatRuntimeSnapshot,
+  buildLifeEvidenceSliceFromInputs,
+  buildHardGuardDeps,
+  resolveRhythmPolicyForHeartbeat,
+  isLifeEvidenceSliceEmpty,
+  type HeartbeatRuntimeSnapshot,
+  type PlannerLifeEvidenceSlice,
+  type HardGuardDeps,
+} from "./runtime-snapshot.js";
+
+export { buildPlannerRhythmWindow, type PlannerRhythmWindowSlice } from "../rhythm/planner-rhythm-window.js";
 
 export { runHeartbeatCycle, type RunHeartbeatCycleInput } from "./run-heartbeat-cycle.js";
 

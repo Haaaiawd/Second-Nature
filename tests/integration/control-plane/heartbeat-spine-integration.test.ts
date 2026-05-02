@@ -166,7 +166,7 @@ test("INT-S2 heartbeat spine: HEARTBEAT_OK path is observable and explainable", 
 
   // Verify decision result
   assert.equal(cycleResult.scope, "rhythm");
-  assert.equal(cycleResult.status, "denied"); // awaitingUserInput blocks all candidates
+  assert.equal(cycleResult.status, "denied"); // awaiting_user yields deny for each candidate; none allow
 
   // Verify observability record
   const records = await ledger.queryByTickId(recordedDecision.tickId);
@@ -220,7 +220,7 @@ test("INT-S2 heartbeat spine: allow path produces intent_selected with observabi
   assert.ok(record.evidenceRefs.some((r) => r.includes("trigger:heartbeat_bridge")));
 });
 
-test("INT-S2 heartbeat spine: deny path is observable and distinguishable from heartbeat_ok", async () => {
+test("INT-S2 heartbeat spine: duplicate-intent path is deferred and observable", async () => {
   const { ledger } = createTempDb();
 
   const signal: HeartbeatSignal = {
@@ -232,17 +232,14 @@ test("INT-S2 heartbeat spine: deny path is observable and distinguishable from h
   };
 
   const snapshotInputs: SnapshotInputs = {
-    mode: "active",
+    mode: "paused_for_interrupt",
     currentWindowId: "window-default",
     pendingObligations: [],
     recentOutreachHashes: [],
-    deniedIntents: [
-      { intentHash: "exploration:scan platform opportunities", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-      { intentHash: "social:engage social platforms", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-      { intentHash: "outreach:consider proactive user outreach", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-    ],
+    deniedIntents: [],
     budgets: { socialUsed: 0, socialLimit: 5 },
     awaitingUserInput: false,
+    duplicateIntentKeys: ["maintenance:checks"],
   };
 
   const { scopeResult, cycleResult, recordedDecision } = await runHeartbeatSpine(signal, snapshotInputs, ledger);
@@ -250,17 +247,17 @@ test("INT-S2 heartbeat spine: deny path is observable and distinguishable from h
   // Verify scope routing
   assert.equal(scopeResult.scope, "rhythm");
 
-  // Verify decision result
-  assert.equal(cycleResult.status, "denied");
+  // Verify decision result (single maintenance candidate, duplicate hard-guard → defer-only)
+  assert.equal(cycleResult.status, "deferred");
 
   // Verify observability record
   const records = await ledger.queryByTickId(recordedDecision.tickId);
   assert.equal(records.length, 1);
 
   const record = records[0];
-  assert.equal(record.verdict, "deny", "denied should map to deny verdict");
-  assert.ok(record.evidenceRefs.some((r) => r.includes("status:denied")), "status should be distinguishable");
-  assert.ok(record.reasons.some((r) => r.includes("duplicate_intent")), "reasons should be queryable");
+  assert.equal(record.verdict, "defer", "deferred maps to defer verdict");
+  assert.ok(record.evidenceRefs.some((r) => r.includes("status:deferred")), "status should be distinguishable");
+  assert.ok(record.reasons.some((r) => r.includes("defer")), "reasons should mention duplicate defer chain");
 });
 
 test("INT-S2 heartbeat spine: full chain produces distinguishable records for all three paths", async () => {
@@ -307,27 +304,24 @@ test("INT-S2 heartbeat spine: full chain produces distinguishable records for al
       expectedVerdict: "allow",
     },
     {
-      name: "deny",
+      name: "defer-duplicates",
       signal: {
         trigger: "heartbeat_bridge" as const,
         scopeHint: "rhythm" as const,
         payload: { timestamp: "2026-03-31T12:00:00Z" },
       },
       snapshot: {
-        mode: "active" as const,
+        mode: "paused_for_interrupt" as const,
         currentWindowId: "w3",
         pendingObligations: [],
         recentOutreachHashes: [],
-        deniedIntents: [
-          { intentHash: "exploration:scan platform opportunities", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-          { intentHash: "social:engage social platforms", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-          { intentHash: "outreach:consider proactive user outreach", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-        ],
+        deniedIntents: [],
         budgets: { socialUsed: 0, socialLimit: 5 },
         awaitingUserInput: false,
+        duplicateIntentKeys: ["maintenance:checks"],
       },
-      expectedStatus: "denied",
-      expectedVerdict: "deny",
+      expectedStatus: "deferred",
+      expectedVerdict: "defer",
     },
   ];
 
@@ -371,8 +365,10 @@ test("INT-S2 heartbeat spine: full chain produces distinguishable records for al
 
   assert.ok(statuses.includes("denied"), "should have denied path");
   assert.ok(statuses.includes("intent_selected"), "should have allow path");
+  assert.ok(statuses.includes("deferred"), "should have deferred path");
   assert.ok(verdicts.includes("allow"), "should have allow verdict");
   assert.ok(verdicts.includes("deny"), "should have deny verdict");
+  assert.ok(verdicts.includes("defer"), "should have defer verdict");
 
   // All should have same scope and trigger (rhythm / heartbeat_bridge)
   assert.ok(results.every((r) => r.scope === "rhythm"), "all should route to rhythm");

@@ -4,6 +4,7 @@ export * from "./rhythm/select-window.js";
 export * from "./rhythm/policy-bridge.js";
 export * from "./orchestrator/intent-planner.js";
 export * from "./orchestrator/guard-layer.js";
+export * from "./heartbeat/runtime-snapshot.js";
 export * from "./orchestrator/lease-manager.js";
 export * from "./orchestrator/effect-dispatcher.js";
 export * from "./orchestrator/resume-from-checkpoint.js";

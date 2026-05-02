@@ -6,7 +6,8 @@
  *
  * Per design doc §4.2: SnapshotBuilder prepares inputs for the Rhythm Engine.
  */
-import type { ContinuitySnapshot, TopLevelMode } from "../types.js";
+import type { ContinuitySnapshot, ControlPlaneSourceRef, TopLevelMode } from "../types.js";
+import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
 
 export interface SnapshotInputs {
   mode: TopLevelMode;
@@ -20,6 +21,17 @@ export interface SnapshotInputs {
   };
   awaitingUserInput?: boolean;
   riskSuppressed?: boolean;
+  /** Evidence refs for source-backed planner/guards (T2.1.3 / T2.2.1). */
+  lifeEvidenceRefs?: ControlPlaneSourceRef[];
+  platformEventCount?: number;
+  workEventCount?: number;
+  lifeEvidenceEmptyReason?: "no_sources" | "state_unavailable" | "redacted_only";
+  /** Optional explicit rhythm geometry; otherwise `quietEnabledBridge` drives policy-bridge default. */
+  rhythmPolicy?: RhythmPolicy;
+  /** Passed to `rhythmPolicySnapshotToRhythmPolicy` when `rhythmPolicy` is absent. */
+  quietEnabledBridge?: boolean;
+  duplicateIntentKeys?: string[];
+  outreachCooldownKeys?: string[];
 }
 
 /**

@@ -1,9 +1,7 @@
-function stableIntentHash(intent) {
-    return `${intent.kind}:${intent.summary}`;
-}
-function isDuplicateIntent(intent, snapshot) {
-    const hash = stableIntentHash(intent);
-    return snapshot.deniedIntents.some((item) => item.intentHash === hash && item.reason === "duplicate_intent");
+import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
+const QUIET_DENY_KINDS = ["outreach", "social"];
+function intentFingerprint(intent) {
+    return intent.idempotencyKey ?? `${intent.kind}:${intent.summary}`;
 }
 function isBudgetExceeded(intent, snapshot) {
     if (intent.kind !== "social")
@@ -12,43 +10,101 @@ function isBudgetExceeded(intent, snapshot) {
         return false;
     return snapshot.budgets.socialUsed >= snapshot.budgets.socialLimit;
 }
-function isQuietSuppressed(intent, snapshot) {
-    if (snapshot.mode !== "quiet")
+function isQuietSuppressed(intent, runtime) {
+    if (!runtime.rhythmWindow.quietBias)
         return false;
-    if (intent.effectClass === "maintenance" || intent.effectClass === "memory_curation" || intent.effectClass === "narrative_reflection") {
-        return false;
+    if (QUIET_DENY_KINDS.includes(intent.kind)) {
+        return true;
     }
-    return true;
+    if (intent.effectClass === "connector_action" || intent.effectClass === "external_platform_action") {
+        return true;
+    }
+    return false;
 }
-export function evaluateGuards(intent, snapshot) {
+function isSourceBacked(intent) {
+    if (intent.sourceRefs.length > 0)
+        return true;
+    if (intent.effectClass === "maintenance" || intent.effectClass === "no_effect")
+        return true;
+    return false;
+}
+function isRiskBlocked(intent, snapshot) {
+    if (!snapshot.riskSuppressed)
+        return false;
+    return intent.kind === "exploration" || intent.kind === "social" || intent.kind === "outreach";
+}
+/**
+ * Hard guard evaluation (T2.1.3): source, dedupe, cooldown, quiet bias, budget, risk, awaiting user.
+ */
+export function evaluateHardGuards(intent, runtime) {
+    const snapshot = runtime.continuity;
     const reasons = [];
-    if (isDuplicateIntent(intent, snapshot)) {
+    if (!isSourceBacked(intent)) {
+        reasons.push("missing_source_refs");
+    }
+    const key = intentFingerprint(intent);
+    if (runtime.hardGuards.hasDuplicateIntent(key)) {
         reasons.push("duplicate_intent");
+    }
+    if (intent.effectClass === "user_outreach" && !runtime.hardGuards.isOutreachCooldownClear(key)) {
+        reasons.push("outreach_cooldown");
+    }
+    if (isQuietSuppressed(intent, runtime)) {
+        reasons.push("quiet_window_suppression");
     }
     if (isBudgetExceeded(intent, snapshot)) {
         reasons.push("budget_exceeded");
     }
-    if (isQuietSuppressed(intent, snapshot)) {
-        reasons.push("quiet_window");
-    }
     if (snapshot.awaitingUserInput) {
         reasons.push("awaiting_user");
+    }
+    if (isRiskBlocked(intent, snapshot)) {
+        reasons.push("risk_suppressed");
     }
     if (reasons.length === 0) {
         return {
             verdict: "allow",
-            reasons,
+            reasons: [],
             quietSuppressed: false,
-            leaseRequired: intent.effectClass === "external_platform_action" || intent.effectClass === "user_outreach",
-            requiresCheckpoint: intent.effectClass !== "maintenance",
+            leaseRequired: intent.effectClass === "external_platform_action" ||
+                intent.effectClass === "connector_action" ||
+                intent.effectClass === "user_outreach",
+            requiresCheckpoint: intent.effectClass !== "maintenance" && intent.effectClass !== "no_effect",
+        };
+    }
+    const duplicate = reasons.includes("duplicate_intent");
+    const cooldown = reasons.includes("outreach_cooldown");
+    if (duplicate || cooldown) {
+        return {
+            verdict: "defer",
+            reasons,
+            quietSuppressed: reasons.includes("quiet_window_suppression"),
+            leaseRequired: false,
+            requiresCheckpoint: false,
         };
     }
     const escalated = reasons.includes("awaiting_user") && intent.kind === "outreach";
     return {
         verdict: escalated ? "escalate" : "deny",
         reasons,
-        quietSuppressed: reasons.includes("quiet_window"),
+        quietSuppressed: reasons.includes("quiet_window_suppression"),
         leaseRequired: false,
         requiresCheckpoint: false,
     };
+}
+/** Continuity-only guard path for legacy call sites; builds a minimal runtime snapshot. */
+export function evaluateGuards(intent, snapshot) {
+    const inputs = {
+        mode: snapshot.mode,
+        currentWindowId: snapshot.currentWindowId,
+        pendingObligations: snapshot.pendingObligations,
+        recentOutreachHashes: snapshot.recentOutreachHashes,
+        deniedIntents: snapshot.deniedIntents,
+        budgets: snapshot.budgets,
+        awaitingUserInput: snapshot.awaitingUserInput,
+        riskSuppressed: snapshot.riskSuppressed,
+        quietEnabledBridge: snapshot.mode === "quiet",
+    };
+    const runtime = buildHeartbeatRuntimeSnapshot("2026-03-25T12:00:00.000Z", inputs, snapshot);
+    return evaluateHardGuards(intent, runtime);
 }

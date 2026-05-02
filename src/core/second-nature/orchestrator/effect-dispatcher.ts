@@ -5,7 +5,7 @@ import { LeaseManager, type EffectClass } from "./lease-manager.js";
 
 export interface AllowedIntent {
   id: string;
-  kind: "work" | "exploration" | "social" | "reflection" | "outreach" | "maintenance";
+  kind: "work" | "exploration" | "social" | "quiet" | "reflection" | "outreach" | "maintenance";
   summary: string;
   effectClass: EffectClass;
   platformId?: string;
@@ -81,11 +81,15 @@ export type DispatchResult =
   | { status: "maintenance_done"; commitId: string };
 
 function needsLease(effectClass: EffectClass): boolean {
-  return effectClass === "external_platform_action" || effectClass === "user_outreach";
+  return effectClass === "external_platform_action" || effectClass === "connector_action" || effectClass === "user_outreach";
 }
 
 function needsCheckpoint(effectClass: EffectClass): boolean {
-  return effectClass !== "maintenance";
+  return effectClass !== "maintenance" && effectClass !== "no_effect";
+}
+
+function isConnectorEffect(effectClass: EffectClass): boolean {
+  return effectClass === "external_platform_action" || effectClass === "connector_action";
 }
 
 function toCapabilityIntent(intent: AllowedIntent): CapabilityIntent {
@@ -93,6 +97,7 @@ function toCapabilityIntent(intent: AllowedIntent): CapabilityIntent {
   if (intent.kind === "exploration") return "feed.read";
   if (intent.kind === "social") return "comment.reply";
   if (intent.kind === "outreach") return "message.send";
+  if (intent.kind === "quiet") return "feed.read";
   return "feed.read";
 }
 
@@ -120,7 +125,7 @@ export class EffectDispatcher {
         id: decision.checkpointId,
         tickId: decision.tickId,
         intentId: decision.intentId,
-        phase: intent.effectClass === "external_platform_action" ? "before_effect" : "before_quiet_write",
+        phase: isConnectorEffect(intent.effectClass) ? "before_effect" : "before_quiet_write",
         snapshotRef: decision.traceId,
       });
     }
@@ -133,7 +138,7 @@ export class EffectDispatcher {
     });
 
     try {
-      if (intent.effectClass === "external_platform_action") {
+      if (isConnectorEffect(intent.effectClass)) {
         await this.commitPort.advanceIntentCommitState(commit.id, "dispatched");
 
         const result = await this.connectorExecutor.executeEffect({

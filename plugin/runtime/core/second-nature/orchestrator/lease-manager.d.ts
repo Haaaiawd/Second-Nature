@@ -1,4 +1,4 @@
-export type EffectClass = "external_platform_action" | "memory_curation" | "narrative_reflection" | "user_outreach" | "maintenance";
+export type EffectClass = "external_platform_action" | "connector_action" | "memory_curation" | "narrative_reflection" | "user_outreach" | "maintenance" | "no_effect";
 export interface LeaseHandle {
     id: string;
     granted: boolean;
