@@ -177,7 +177,7 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 40, P0: 27, P1: 9, P2: 0
 - Sprint 数: 4
-- Wave 5 建议: T2.3.1, T4.3.1, T5.2.1, T6.1.1
+- Wave 6 建议: T6.2.1, T2.3.2, T4.4.1, T3.2.1
 - 最近更新: `2026-05-02`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -192,8 +192,11 @@ T2.1.1, T2.1.2, T4.2.2, T5.1.2
 ### 🌊 Wave 4 ✅ — Candidate planner integration & connector contracts
 T2.1.3, T2.2.1, T3.1.1, T3.1.2
 
-### 🌊 Wave 5 — Outreach persistence & audit linkage
+### 🌊 Wave 5 ✅ — Outreach persistence & audit linkage
 T2.3.1, T4.3.1, T5.2.1, T6.1.1
+
+### 🌊 Wave 6 — Delivery failure closure & execution/Quiet gates
+T6.2.1, T2.3.2, T4.4.1, T3.2.1
 
 <!-- AUTO:END -->
 

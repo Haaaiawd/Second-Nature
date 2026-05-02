@@ -296,7 +296,7 @@ graph TD
 
 ### Phase 3: Outreach / Delivery / Quiet
 
-- [ ] **T2.3.1** [REQ-022]: 实现 `OutreachJudgment` 与 delivery policy
+- [x] **T2.3.1** [REQ-022]: 实现 `OutreachJudgment` 与 delivery policy
   - **描述**: 实现 `judgeOutreach()`、`resolveDeliveryTarget()`，覆盖 valueScore、userRelevance、actionability、cooldown、dedupe、target none/channel missing/target available。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5.1, §6.1, §11.4；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.7-§3.8；T4.2.2 产出的 user interest snapshot
   - **输出**: `OutreachJudgment`、`DeliveryTargetResolution`
@@ -524,7 +524,7 @@ graph TD
 
 ### Phase 3: Delivery Persistence
 
-- [ ] **T4.3.1** [REQ-022]: `DeliveryAttemptRecord` write/read test
+- [x] **T4.3.1** [REQ-022]: `DeliveryAttemptRecord` write/read test
   - **描述**: 实现 `writeDeliveryAttempt()`、delivery attempt index/read model、fallback link；失败与 host policy drop 必须有 errorClass 或 fallbackRef。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §5.1, §6.1, §11.4；`04_SYSTEM_DESIGN/state-system.detail.md` §3.6；`07_CHALLENGE_REPORT.md` CH-07-05
   - **输出**: `DeliveryAttemptRecord` repository + read model tests
@@ -598,7 +598,7 @@ graph TD
 
 ### Phase 2: Delivery / Source / Integrity
 
-- [ ] **T5.2.1** [REQ-022]: 实现 delivery audit 与 explain linkage
+- [x] **T5.2.1** [REQ-022]: 实现 delivery audit 与 explain linkage
   - **描述**: 实现 `recordDecisionTrace()`、`recordDeliveryAudit()`、`recordSourceCoverage()`、`recordGuidanceGrounding()`，并把 decisionId/fallbackRef/sourceRef 链接到 explain index。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §4.4-§5.1, §11.2；`04_SYSTEM_DESIGN/observability-system.detail.md` §3.1-§3.4；T5.1.1 audit foundation
   - **输出**: decision/delivery/source coverage audit ports
@@ -654,7 +654,7 @@ graph TD
 
 ### Phase 1: Guidance Assembly
 
-- [ ] **T6.1.1** [REQ-022]: 实现 guidance interfaces 与 `OutreachDraftRequest` schema
+- [x] **T6.1.1** [REQ-022]: 实现 guidance interfaces 与 `OutreachDraftRequest` schema
   - **描述**: 定义并实现 `GuidanceDraftPort`、`SceneGuidanceRequest`、`OutreachDraftRequest`、`DeliveryExpressionContext` 与 schema validation。
   - **输入**: `04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5.1-§6.1；`04_SYSTEM_DESIGN/behavioral-guidance-system.detail.md` §2；`04_SYSTEM_DESIGN/control-plane-system.detail.md` §3.9
   - **输出**: guidance contract types + validators
