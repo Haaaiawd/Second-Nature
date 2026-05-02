@@ -22,3 +22,13 @@ export {
 export { runStartupRepairAndBackup } from "./bootstrap/repair.js";
 
 export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";
+
+export type {
+  LifeEvidence,
+  LifeEvidenceCandidate,
+  LifeEvidenceType,
+  LifeEvidenceWriteAck,
+  Sensitivity,
+  SourceRef,
+} from "./life-evidence/types.js";
+export { appendLifeEvidence, type AppendLifeEvidenceOptions } from "./life-evidence/append-life-evidence.js";

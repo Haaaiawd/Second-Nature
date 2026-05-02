@@ -83,11 +83,24 @@ export class DefaultStateAPI implements StateAPI {
       loadPolicy: async (platformId: string) => {
         const record = await policyRepository.findByPlatformId(platformId);
         if (!record) return undefined;
+        const r = record as unknown as {
+          platformId?: string;
+          platform_id?: string;
+          socialDailyLimit?: number;
+          social_daily_limit?: number;
+          quietEnabled?: boolean;
+          quiet_enabled?: number;
+          outreachDailyBudget?: number;
+          outreach_daily_budget?: number;
+          updatedAt?: string;
+          updated_at?: string;
+        };
         return {
-          platformId: (record as unknown as { platformId: string }).platformId ?? (record as unknown as { platform_id: string }).platform_id,
-          socialDailyLimit: (record as unknown as { socialDailyLimit: number }).socialDailyLimit ?? (record as unknown as { social_daily_limit: number }).social_daily_limit,
-          quietEnabled: (record as unknown as { quietEnabled: boolean }).quietEnabled ?? Boolean((record as unknown as { quiet_enabled: number }).quiet_enabled),
-          updatedAt: (record as unknown as { updatedAt: string }).updatedAt ?? (record as unknown as { updated_at: string }).updated_at,
+          platformId: r.platformId ?? r.platform_id ?? platformId,
+          socialDailyLimit: r.socialDailyLimit ?? r.social_daily_limit ?? 0,
+          quietEnabled: r.quietEnabled ?? Boolean(r.quiet_enabled),
+          outreachDailyBudget: r.outreachDailyBudget ?? r.outreach_daily_budget ?? 2,
+          updatedAt: r.updatedAt ?? r.updated_at ?? "",
         };
       },
       loadPersonaCandidates: (sceneContext: SceneContext) => personaCandidateLoader.loadPersonaCandidates(sceneContext),
@@ -103,6 +116,7 @@ export class DefaultStateAPI implements StateAPI {
           platformId: policy.platformId,
           socialDailyLimit: policy.socialDailyLimit,
           quietEnabled: policy.quietEnabled,
+          outreachDailyBudget: policy.outreachDailyBudget ?? 2,
           updatedAt: new Date().toISOString(),
         });
       },
