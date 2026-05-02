@@ -2,6 +2,21 @@ export { createObservabilityDatabase, type ObservabilityDatabase } from "./db/in
 export * as obsSchema from "./db/schema/index.js";
 
 export {
+  buildAuditEnvelope,
+  redactAuditEvent,
+  auditManifestFromFieldManifest,
+  type AuditEnvelope,
+  type AuditEnvelopeSensitivity,
+  type AuditEventFamily,
+  type AuditPlane,
+  type AuditRedactionManifest,
+  type AuditIntegrity,
+  type BuildAuditEnvelopeInput,
+  type RedactAuditEventResult,
+} from "./audit/audit-envelope.js";
+export { AppendOnlyAuditStore } from "./audit/append-only-audit-store.js";
+
+export {
   REDACTION_CONFIG,
   DEFAULT_REDACTION_POLICY,
   getFieldRedactionRule,
