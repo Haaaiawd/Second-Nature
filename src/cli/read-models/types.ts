@@ -75,12 +75,26 @@ export interface CredentialReadModel {
   nextStep?: string;
 }
 
+export type ExplainSubjectKind =
+  | "decision"
+  | "platform-selection"
+  | "outreach"
+  | "soul-change"
+  | "fallback"
+  | "probe"
+  | "delivery"
+  | "report"
+  | "source_ref";
+
 export interface ExplainReadModel {
-  subjectType: "decision" | "platform-selection" | "outreach" | "soul-change";
+  subjectType: ExplainSubjectKind;
   conclusion: string;
   keyFactors: string[];
   evidenceRefs: string[];
   policyRefs?: string[];
   requiredUserInput?: string[];
   nextStep?: string;
+  /** Operator / lived-experience audit warnings (e.g. no user-visible contact) */
+  warnings?: string[];
+  relatedAuditEventIds?: string[];
 }

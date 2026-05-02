@@ -138,7 +138,7 @@ graph TD
 
 ### Phase 2: Read Models
 
-- [ ] **T1.2.1** [REQ-019]: 实现 status / audit / explain / capability report read models
+- [x] **T1.2.1** [REQ-019]: 实现 status / audit / explain / capability report read models
   - **描述**: 让 ops surface 可读取 decision、delivery、fallback、capability report、repair summary 等脱敏视图。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §12.3；`04_SYSTEM_DESIGN/observability-system.md` §5.1；T5.3.1 产出的 explain read model
   - **输出**: `OpsReadModelPort` adapters、`explainSurfaceSubject()`
@@ -172,7 +172,7 @@ graph TD
 
 ### Phase 3: Host Smoke
 
-- [ ] **T1.3.1** [REQ-025]: `heartbeat_tool_not_invoked` host smoke
+- [x] **T1.3.1** [REQ-025]: `heartbeat_tool_not_invoked` host smoke
   - **描述**: 实现 host smoke case，验证真实/near-real heartbeat turn 是否实际调用 `second_nature_ops("heartbeat_check")`；未调用时记录 `heartbeat_tool_not_invoked`。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §11.3-§11.4；`04_SYSTEM_DESIGN/cli-system.detail.md` §3.7；T1.1.2 产出的 capability probe；T1.1.3 产出的 heartbeat surface
   - **输出**: `runHostSmoke()` case: `heartbeat_tool_invocation`
@@ -632,7 +632,7 @@ graph TD
 
 ### Phase 3: Explain / Export
 
-- [ ] **T5.3.1** [REQ-026]: 实现 explain query / audit export read model
+- [x] **T5.3.1** [REQ-026]: 实现 explain query / audit export read model
   - **描述**: 实现 `queryExplain()` 与 `exportAuditBundle(range)`，支持 decisionId、fallbackRef、sourceRefId、reportId 查询，并默认 redacted export。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §5.1, §12；`04_SYSTEM_DESIGN/observability-system.detail.md` §3.8-§3.10；T5.2.1 delivery audit linkage
   - **输出**: `ExplainReadModel`、redacted `AuditBundle`
@@ -861,6 +861,7 @@ graph TD
 | OpenClaw capability probe early sprint | 宿主能力 | T1.1.2 | T1.1.2, INT-S1 | ✅ |
 | `LifeEvidence` source refs | 持久化结构 | T3.1.2, T4.1.1 | T3.1.2, T4.1.1 | ✅ |
 | `HEARTBEAT_OK` ack drop / target none | 宿主 delivery 语义 | T1.1.2, T2.3.1 | T1.3.1, T5.2.1 | ✅ |
+| `queryExplain` / `exportAuditBundle` | operator explain / audit export | T5.3.1 | T5.3.1 | ✅ |
 | `OperatorFallbackArtifact.status = not_sent` | fallback 文件格式 | T4.3.1, T1.2.2 | T1.2.2, T4.3.1 | ✅ |
 | Quiet empty evidence | 关键用户路径 | T4.4.1, T6.1.2, T2.3.3 | T4.4.1, T6.1.2, T2.3.3, INT-S3 | ✅ |
 | README truth boundary | 文档契约 | T1.4.1 | T7.1.1, INT-S4 | ✅ |

@@ -10,6 +10,8 @@ export { GovernanceAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry } from "./services/execution-telemetry.js";
 export { LivedExperienceAuditRecorder, createLivedExperienceAuditRecorder, } from "./services/lived-experience-audit.js";
 export { GovernancePlaneRecorder, createGovernancePlaneRecorder, } from "./services/governance-plane-recorder.js";
+export { queryExplain, } from "./query/explain-query.js";
+export { exportAuditBundle } from "./query/export-audit-bundle.js";
 export { EvidenceQueryEngine, } from "./query/evidence-query-engine.js";
 export { projectReflectionAudit, } from "./projections/reflection-audit.js";
 export { projectOutreachQualityAudit, } from "./projections/outreach-quality-audit.js";

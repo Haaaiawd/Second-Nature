@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-02` (Wave 8)
+- **最近一次更新**: `2026-05-03` (Wave 9)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -177,8 +177,8 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 40, P0: 27, P1: 9, P2: 0
 - Sprint 数: 4
-- Wave 8 建议: T1.2.1, T1.3.1, T5.3.1, INT-S4
-- 最近更新: `2026-05-02`
+- Wave 9 建议: T1.2.2, T3.3.1, T1.4.1, T1.4.2, T7.1.1 → 收口 INT-S4（真实宿主冒烟）
+- 最近更新: `2026-05-03`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
@@ -203,6 +203,9 @@ Heartbeat `resolveAllowedIntentResult`（outreach 全链路与 Quiet `runSourceB
 
 ### 🌊 Wave 8 ✅ — INT-S3 closure + audit hash-chain
 INT-S3（`reports/int-s3-outreach-delivery-quiet.md`）：source-backed draft → delivery failed / dropped_by_host_policy → `delivery_unavailable` + `not_sent` fallback；`verifyAuditHashChain`（T5.2.2）+ lived-experience audit / explain；Quiet 空态与 S2 轻触回归集成测。
+
+### 🌊 Wave 9 ✅ — Explain export + ops read surface + host smoke fixtures
+T5.3.1（`queryExplain`、`exportAuditBundle`）；T1.2.1（`explainSurfaceSubject`、`OpsReadModelPort`、可选 `livedExperienceAuditStore` 接线）；T1.3.1（`runHostSmoke` + `heartbeat_tool_not_invoked` fixture）。INT-S4 仍为部分就绪：`reports/int-s4-release-readiness.md` 列阻塞项，待 T1.2.2 / T3.3.1 / T1.4.x / T7.1.1 与真实宿主冒烟。
 
 <!-- AUTO:END -->
 

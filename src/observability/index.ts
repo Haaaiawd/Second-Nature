@@ -68,6 +68,14 @@ export {
 } from "./services/governance-plane-recorder.js";
 
 export {
+  queryExplain,
+  type ExplainQuery,
+  type OperatorExplainReadModel,
+  type RedactedExplainEvent,
+} from "./query/explain-query.js";
+export { exportAuditBundle, type AuditBundle, type AuditBundleExportRange, type AuditRedactionSummary, type ExportAuditBundleDeps } from "./query/export-audit-bundle.js";
+
+export {
   EvidenceQueryEngine,
 } from "./query/evidence-query-engine.js";
 export type {

@@ -70,6 +70,17 @@ function parseExplainSubject(subjectRaw) {
         case "soul":
         case "soul-change":
             return { subjectType: "soul-change", subjectId: id };
+        case "fallback":
+            return { subjectType: "fallback", subjectId: id };
+        case "probe":
+            return { subjectType: "probe", subjectId: id };
+        case "report":
+            return { subjectType: "report", subjectId: id };
+        case "delivery":
+            return { subjectType: "delivery", subjectId: id };
+        case "source":
+        case "source_ref":
+            return { subjectType: "source_ref", subjectId: id };
         default:
             throw new Error("explain_subject_unsupported");
     }
@@ -183,7 +194,7 @@ function buildExplainPayload(spine, subjectRaw) {
             return createUnavailableActionError("EXPLAIN_SUBJECT_REQUIRES_ID", "subject must include identifier", ["subject"], "reinvoke_explain_with_supported_subject");
         }
         if (code === "explain_subject_unsupported") {
-            return createUnavailableActionError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects are decision:<id>, platform:<id>, outreach:<id>, soul:<id>", ["subject"], "reinvoke_explain_with_supported_subject");
+            return createUnavailableActionError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:", ["subject"], "reinvoke_explain_with_supported_subject");
         }
         return createUnavailableActionError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject", ["subject"], "reinvoke_explain_with_supported_subject");
     }

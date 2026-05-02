@@ -1,6 +1,6 @@
 import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
-import { resolveExplainSubject } from "../explain/resolve-subject.js";
+import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import { policySet } from "./policy.js";
 const notImplemented = async (command) => ({
     ok: false,
@@ -113,9 +113,9 @@ export function createCliCommands(deps) {
                         },
                     };
                 }
-                let subject;
+                let model;
                 try {
-                    subject = resolveExplainSubject(subjectRaw);
+                    model = await explainSurfaceSubject(subjectRaw, readModels);
                 }
                 catch (error) {
                     const code = error.message;
@@ -123,11 +123,10 @@ export function createCliCommands(deps) {
                         return explainSubjectError("EXPLAIN_SUBJECT_REQUIRES_ID", "subject must include identifier");
                     }
                     if (code === "explain_subject_unsupported") {
-                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects are decision:<id>, platform:<id>, outreach:<id>, soul:<id>");
+                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:");
                     }
                     return explainSubjectError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject");
                 }
-                const model = await readModels.explain(subject);
                 return {
                     ok: true,
                     data: formatExplanation(model),

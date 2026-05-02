@@ -7,6 +7,9 @@ import { CredentialRepository } from "../../storage/repositories/credential-repo
 import { EvidenceQueryEngine } from "../../observability/query/evidence-query-engine.js";
 import { decisionLedger, executionAttempts } from "../../observability/db/schema/index.js";
 
+import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+import { queryExplain, type ExplainQuery } from "../../observability/query/explain-query.js";
+
 import type {
   StatusReadModel,
   DailyReportReadModel,
@@ -14,7 +17,11 @@ import type {
   SessionDetailReadModel,
   CredentialReadModel,
   ExplainReadModel,
+  ExplainSubjectKind,
 } from "./types.js";
+
+export type { ExplainSubjectKind } from "./types.js";
+import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
 
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
@@ -28,14 +35,46 @@ export interface CliReadModels {
   explain(subject: ExplainSubject): Promise<ExplainReadModel>;
 }
 
+/** T1.2.1 — operator-facing read surface (subset of full CLI read models). */
+export type OpsReadModelPort = Pick<
+  CliReadModels,
+  "loadStatus" | "loadDailyReport" | "loadQuiet" | "loadSession" | "loadCredential" | "explain"
+>;
+
 export interface ExplainSubject {
-  kind: "decision" | "platform-selection" | "outreach" | "soul-change";
+  kind: ExplainSubjectKind;
   id: string;
 }
 
 export interface CliReadModelsDeps {
   stateDb: StateDatabase;
   observabilityDb: ObservabilityDatabase;
+  /** When set, explain can resolve delivery/fallback/report/source_ref and enrich decision subjects from lived-experience audit envelopes (T5.3.1 / T1.2.1). */
+  livedExperienceAuditStore?: AppendOnlyAuditStore;
+}
+
+function toExplainQuery(subject: ExplainSubject): ExplainQuery | undefined {
+  switch (subject.kind) {
+    case "decision":
+      return { kind: "decision", decisionId: subject.id };
+    case "fallback": {
+      const ref = subject.id.startsWith("fallback:") ? subject.id : `fallback:${subject.id}`;
+      return { kind: "fallback", fallbackRef: ref };
+    }
+    case "probe":
+    case "report":
+      return { kind: "report", reportId: subject.id };
+    case "delivery":
+      return { kind: "delivery", auditId: subject.id };
+    case "source_ref":
+      return { kind: "source_ref", sourceRefId: subject.id };
+    default:
+      return undefined;
+  }
+}
+
+function isAuditOnlySubjectKind(kind: ExplainSubjectKind): boolean {
+  return kind === "fallback" || kind === "probe" || kind === "report" || kind === "delivery" || kind === "source_ref";
 }
 
 function buildCredentialNextStep(status: CredentialReadModel["status"]): string | undefined {
@@ -73,6 +112,7 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
   const credentialRepository = new CredentialRepository(deps.stateDb);
   const quietLoader = createQuietInputLoader(assetRepository);
   const evidenceQuery = new EvidenceQueryEngine(deps.observabilityDb);
+  const auditStore = deps.livedExperienceAuditStore;
 
   return {
     async loadStatus(_scope?: string): Promise<StatusReadModel> {
@@ -242,6 +282,25 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
     },
 
     async explain(subject: ExplainSubject): Promise<ExplainReadModel> {
+      const q = toExplainQuery(subject);
+      if (auditStore && q) {
+        const op = queryExplain(q, auditStore);
+        if (isAuditOnlySubjectKind(subject.kind)) {
+          return mapOperatorExplainToReadModel(op, subject.kind);
+        }
+        if (op.relatedEventIds.length > 0) {
+          return mapOperatorExplainToReadModel(op, subject.kind);
+        }
+      }
+      if (isAuditOnlySubjectKind(subject.kind)) {
+        return {
+          subjectType: subject.kind,
+          conclusion: auditStore ? "no_matching_audit_events" : "lived_experience_audit_store_unavailable",
+          keyFactors: auditStore ? [] : ["configure_lived_experience_audit_store_for_operator_explain"],
+          evidenceRefs: [],
+        };
+      }
+
       const query =
         subject.kind === "decision" || subject.kind === "platform-selection" || subject.kind === "outreach"
           ? { decisionId: subject.id }

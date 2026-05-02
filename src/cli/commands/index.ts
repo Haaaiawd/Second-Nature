@@ -2,7 +2,7 @@ import type { ActionBridge } from "../action-bridge.js";
 import type { OpsRouter } from "../ops/ops-router.js";
 import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
-import { resolveExplainSubject } from "../explain/resolve-subject.js";
+import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import { policySet } from "./policy.js";
 import type { CliReadModels } from "../read-models/index.js";
 
@@ -133,9 +133,9 @@ export function createCliCommands(deps: CliCommandDeps): CliCommandDefinition[] 
           };
         }
 
-        let subject;
+        let model;
         try {
-          subject = resolveExplainSubject(subjectRaw);
+          model = await explainSurfaceSubject(subjectRaw, readModels);
         } catch (error) {
           const code = (error as Error).message;
           if (code === "explain_subject_requires_id") {
@@ -144,13 +144,11 @@ export function createCliCommands(deps: CliCommandDeps): CliCommandDefinition[] 
           if (code === "explain_subject_unsupported") {
             return explainSubjectError(
               "EXPLAIN_SUBJECT_UNSUPPORTED",
-              "supported subjects are decision:<id>, platform:<id>, outreach:<id>, soul:<id>"
+              "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:",
             );
           }
           return explainSubjectError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject");
         }
-
-        const model = await readModels.explain(subject);
         return {
           ok: true,
           data: formatExplanation(model),

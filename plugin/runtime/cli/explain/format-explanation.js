@@ -6,5 +6,7 @@ export function formatExplanation(model) {
         evidenceRefs: model.evidenceRefs,
         requiredUserInput: model.requiredUserInput,
         nextStep: model.nextStep,
+        warnings: model.warnings,
+        relatedAuditEventIds: model.relatedAuditEventIds,
     };
 }

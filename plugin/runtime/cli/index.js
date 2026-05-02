@@ -46,3 +46,5 @@ export * from "./host-capability/types.js";
 export { classifyDeliveryCapability } from "./host-capability/classify-delivery.js";
 export { probeHostCapability } from "./host-capability/probe-host-capability.js";
 export { recordHostCapability } from "./host-capability/record-host-capability.js";
+export { runHostSmoke } from "./host-smoke/run-host-smoke.js";
+export { explainSurfaceSubject } from "./explain/explain-surface-subject.js";

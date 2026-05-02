@@ -6,5 +6,7 @@ export interface FormattedExplanation {
     evidenceRefs: string[];
     requiredUserInput?: string[];
     nextStep?: string;
+    warnings?: string[];
+    relatedAuditEventIds?: string[];
 }
 export declare function formatExplanation(model: ExplainReadModel): FormattedExplanation;

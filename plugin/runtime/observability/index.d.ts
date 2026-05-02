@@ -10,6 +10,8 @@ export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/gover
 export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";
 export { LivedExperienceAuditRecorder, createLivedExperienceAuditRecorder, type DecisionTracePayload, type DeliveryAuditPayload, type DeliveryAuditStatus, type ExplainLinkageSummary, type GuidanceGroundingAuditPayload, type SourceCoverageAuditPayload, } from "./services/lived-experience-audit.js";
 export { GovernancePlaneRecorder, createGovernancePlaneRecorder, type AuditAppendAck, type ConnectorAttemptAudit, type ConnectorAttemptOutcome, type StateGovernanceAudit, type StateGovernanceKind, } from "./services/governance-plane-recorder.js";
+export { queryExplain, type ExplainQuery, type OperatorExplainReadModel, type RedactedExplainEvent, } from "./query/explain-query.js";
+export { exportAuditBundle, type AuditBundle, type AuditBundleExportRange, type AuditRedactionSummary, type ExportAuditBundleDeps } from "./query/export-audit-bundle.js";
 export { EvidenceQueryEngine, } from "./query/evidence-query-engine.js";
 export type { EvidenceQuery, EvidenceBundle, EvidenceResolutionPlan, GovernanceEvidenceRecord, ResolvedContentRef, ExplanationCapsule, } from "./query/compose-evidence.js";
 export { projectReflectionAudit, type ReflectionAudit, type ReflectionAuditProjection, } from "./projections/reflection-audit.js";
