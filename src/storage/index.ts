@@ -60,3 +60,11 @@ export { listDeliveryAttemptsByDecisionId } from "./delivery/query-delivery-atte
 
 export type { OperatorFallbackWrite, OperatorFallbackReason } from "./fallback/operator-fallback-types.js";
 export { writeOperatorFallback, type OperatorFallbackAck } from "./fallback/write-operator-fallback.js";
+
+export type { QuietArtifactWrite, QuietClaim, QuietArtifactKind } from "./quiet/quiet-artifact-types.js";
+export {
+  writeQuietArtifact,
+  calculateQuietSourceCoverage,
+  evidenceGroundingRatio,
+  type QuietArtifactAck,
+} from "./quiet/quiet-artifact-writer.js";
