@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > 本文件是 v1 / Lobster Rhythm 旧材料归档，不属于 `.anws/v5` 当前规范契约。
-> v5 当前控制层契约以 [`control-plane-system.md`](./control-plane-system.md) 与 [`control-plane-system.detail.md`](./control-plane-system.detail.md) 为准。
+> v5 当前控制层契约以 `[control-plane-system.md](./control-plane-system.md)` 与 `[control-plane-system.detail.md](./control-plane-system.detail.md)` 为准。
 > `/challenge`、`/forge`、task-reviewer 和实现任务不得把本文件纳入 `04_SYSTEM_DESIGN/*.md` 当前设计源。
 
 **系统ID**: `control-plane-system`  
@@ -25,12 +25,14 @@ Control Plane System 是 Lobster Rhythm 项目的**核心协调层**，负责管
 
 ### 1.2 边界定义
 
-| 维度 | 定义 |
-|------|------|
-| **输入** | 用户配置、调度事件、历史状态、LLM 推理结果 |
-| **输出** | 探索决策、连接器调用命令、回流指令、状态变更事件 |
-| **依赖** | `connector-system`, `state-system`, LLM Provider |
-| **被依赖** | `cli-system`, `observability-system` |
+
+| 维度      | 定义                                               |
+| ------- | ------------------------------------------------ |
+| **输入**  | 用户配置、调度事件、历史状态、LLM 推理结果                          |
+| **输出**  | 探索决策、连接器调用命令、回流指令、状态变更事件                         |
+| **依赖**  | `connector-system`, `state-system`, LLM Provider |
+| **被依赖** | `cli-system`, `observability-system`             |
+
 
 ### 1.3 关联需求
 
@@ -93,14 +95,16 @@ graph TB
 
 ### 2.2 核心组件
 
-| 组件 | 职责 | 输入 | 输出 |
-|------|------|------|------|
-| **Scheduler** | 统一调度 heartbeat 和探索 | 时间表、触发事件 | 调度事件 |
-| **Session Manager** | 管理探索会话状态机 | 调度事件、connector 结果 | 状态流转命令 |
-| **Platform Selector** | 选择本次探索的目标平台 | 平台列表、预算、目标 | 选中平台 |
-| **Orchestrator** | 编排 connector 调用 | 会话状态、平台选择 | connector 命令 |
-| **LLM Integration** | 生成会话摘要 | 探索记录 | 结构化摘要 |
-| **Budget Manager** | 追踪预算消耗 | 动作记录 | 预算状态 |
+
+| 组件                    | 职责                 | 输入                | 输出           |
+| --------------------- | ------------------ | ----------------- | ------------ |
+| **Scheduler**         | 统一调度 heartbeat 和探索 | 时间表、触发事件          | 调度事件         |
+| **Session Manager**   | 管理探索会话状态机          | 调度事件、connector 结果 | 状态流转命令       |
+| **Platform Selector** | 选择本次探索的目标平台        | 平台列表、预算、目标        | 选中平台         |
+| **Orchestrator**      | 编排 connector 调用    | 会话状态、平台选择         | connector 命令 |
+| **LLM Integration**   | 生成会话摘要             | 探索记录              | 结构化摘要        |
+| **Budget Manager**    | 追踪预算消耗             | 动作记录              | 预算状态         |
+
 
 ### 2.3 核心设计原则
 
@@ -144,15 +148,17 @@ stateDiagram-v2
 
 ### 3.2 状态说明
 
-| 状态 | 说明 | 触发条件 | 出口 |
-|------|------|---------|------|
-| **IDLE** | 待机，等待调度触发 | 初始化完成/冷却结束 | SELECTING |
-| **SELECTING** | 选择目标平台 | 调度触发 | CONNECTING / COOLING_DOWN |
-| **CONNECTING** | 连接平台，验证状态 | 平台选定 | ACTING / PENDING_VERIFICATION / COOLING_DOWN |
-| **ACTING** | 执行探索/互动 | 连接成功 | ACTING / REFLECTING / COOLING_DOWN |
-| **PENDING_VERIFICATION** | 等待用户完成验证 | 需验证（如 InStreet） | CONNECTING / COOLING_DOWN |
-| **REFLECTING** | 生成会话摘要 | 达到上限/完成 | COOLING_DOWN |
-| **COOLING_DOWN** | 冷却期，计算下次触发 | 会话结束 | IDLE |
+
+| 状态                       | 说明         | 触发条件            | 出口                                           |
+| ------------------------ | ---------- | --------------- | -------------------------------------------- |
+| **IDLE**                 | 待机，等待调度触发  | 初始化完成/冷却结束      | SELECTING                                    |
+| **SELECTING**            | 选择目标平台     | 调度触发            | CONNECTING / COOLING_DOWN                    |
+| **CONNECTING**           | 连接平台，验证状态  | 平台选定            | ACTING / PENDING_VERIFICATION / COOLING_DOWN |
+| **ACTING**               | 执行探索/互动    | 连接成功            | ACTING / REFLECTING / COOLING_DOWN           |
+| **PENDING_VERIFICATION** | 等待用户完成验证   | 需验证（如 InStreet） | CONNECTING / COOLING_DOWN                    |
+| **REFLECTING**           | 生成会话摘要     | 达到上限/完成         | COOLING_DOWN                                 |
+| **COOLING_DOWN**         | 冷却期，计算下次触发 | 会话结束            | IDLE                                         |
+
 
 ### 3.3 状态流转条件
 
@@ -507,13 +513,15 @@ interface ControlPlaneEvent {
 
 ### 7.2 关键指标
 
-| 指标 | 描述 | 阈值 |
-|------|------|------|
-| `controlplane.session.duration` | 会话时长 P95 | < 30分钟 |
-| `controlplane.state.transition.latency` | 状态流转延迟 | < 2s |
-| `controlplane.platform.selection.time` | 平台选择耗时 | < 2s |
-| `controlplane.llm.reflection.latency` | 反思 LLM 调用延迟 | < 15s |
-| `controlplane.budget.compliance` | 预算合规率 | 100% |
+
+| 指标                                      | 描述          | 阈值     |
+| --------------------------------------- | ----------- | ------ |
+| `controlplane.session.duration`         | 会话时长 P95    | < 30分钟 |
+| `controlplane.state.transition.latency` | 状态流转延迟      | < 2s   |
+| `controlplane.platform.selection.time`  | 平台选择耗时      | < 2s   |
+| `controlplane.llm.reflection.latency`   | 反思 LLM 调用延迟 | < 15s  |
+| `controlplane.budget.compliance`        | 预算合规率       | 100%   |
+
 
 ---
 
@@ -531,23 +539,27 @@ interface ControlPlaneEvent {
 
 ### 8.2 本系统特有决策
 
-| 决策点 | 选择 | 理由 |
-|--------|------|------|
-| **探索状态机** | 7 状态设计 | 覆盖完整会话生命周期，支持验证等待和冷却期 |
-| **平台选择** | 多因子评分算法 | 可解释、可调整权重，支持强制优先和保活优先模式 |
-| **统一调度** | 单一调度器协调所有平台 | 避免定时器冲突，支持全局预算仲裁 |
-| **LLM 集成** | 仅在 REFLECTING 阶段调用 | 控制成本和延迟，失败有降级策略 |
-| **结果处理** | 只处理归一化状态 | 不感知平台细节，简化错误处理逻辑 |
+
+| 决策点        | 选择                 | 理由                      |
+| ---------- | ------------------ | ----------------------- |
+| **探索状态机**  | 7 状态设计             | 覆盖完整会话生命周期，支持验证等待和冷却期   |
+| **平台选择**   | 多因子评分算法            | 可解释、可调整权重，支持强制优先和保活优先模式 |
+| **统一调度**   | 单一调度器协调所有平台        | 避免定时器冲突，支持全局预算仲裁        |
+| **LLM 集成** | 仅在 REFLECTING 阶段调用 | 控制成本和延迟，失败有降级策略         |
+| **结果处理**   | 只处理归一化状态           | 不感知平台细节，简化错误处理逻辑        |
+
 
 ### 8.3 Trade-offs
 
-| 选择 | 优势 | 代价 |
-|------|------|------|
-| **统一调度器** | 全局预算控制，避免定时器冲突 | 调度复杂度随平台数量增加，需要监控 |
-| **状态机驱动** | 行为可预测，易于调试和测试 | 状态流转条件需要精心设计，避免死循环 |
-| **多因子评分** | 平台选择可解释、可调整 | 参数调优需要实验，目标相关性判断有主观性 |
-| **LLM 反思** | 摘要质量高，有洞察力 | 增加成本和延迟，需要失败降级 |
-| **归一化结果** | 上层逻辑简化，平台无关 | 平台特有错误信息可能丢失细节 |
+
+| 选择         | 优势             | 代价                   |
+| ---------- | -------------- | -------------------- |
+| **统一调度器**  | 全局预算控制，避免定时器冲突 | 调度复杂度随平台数量增加，需要监控    |
+| **状态机驱动**  | 行为可预测，易于调试和测试  | 状态流转条件需要精心设计，避免死循环   |
+| **多因子评分**  | 平台选择可解释、可调整    | 参数调优需要实验，目标相关性判断有主观性 |
+| **LLM 反思** | 摘要质量高，有洞察力     | 增加成本和延迟，需要失败降级       |
+| **归一化结果**  | 上层逻辑简化，平台无关    | 平台特有错误信息可能丢失细节       |
+
 
 ---
 
@@ -555,35 +567,34 @@ interface ControlPlaneEvent {
 
 ### 9.1 已识别风险
 
-| 风险 | 严重度 | 缓解措施 |
-|------|:------:|---------|
-| 调度延迟随平台数量增长 | Medium | 监控调度延迟，必要时优化为优先级队列 |
-| LLM 调用成本和延迟 | Medium | 缓存相似摘要，批处理，失败降级 |
-| 状态机与 connector 错误交互导致死循环 | High | 严格测试状态流转，设置最大重试次数 |
-| 平台选择算法参数调优困难 | Medium | 提供可配置权重，记录决策日志便于回溯 |
+
+| 风险                       | 严重度    | 缓解措施               |
+| ------------------------ | ------ | ------------------ |
+| 调度延迟随平台数量增长              | Medium | 监控调度延迟，必要时优化为优先级队列 |
+| LLM 调用成本和延迟              | Medium | 缓存相似摘要，批处理，失败降级    |
+| 状态机与 connector 错误交互导致死循环 | High   | 严格测试状态流转，设置最大重试次数  |
+| 平台选择算法参数调优困难             | Medium | 提供可配置权重，记录决策日志便于回溯 |
+
 
 ### 9.2 下一步行动
 
 1. **实现阶段**：
-   - 先实现 `SessionManager` 状态机核心
-   - 实现 `Scheduler` 统一调度器
-   - 实现 `PlatformSelector` 评分算法
-   - 最后集成 LLM 反思
-
+  - 先实现 `SessionManager` 状态机核心
+  - 实现 `Scheduler` 统一调度器
+  - 实现 `PlatformSelector` 评分算法
+  - 最后集成 LLM 反思
 2. **与 connector-system 协调**：
-   - 确认命令模型接口
-   - 确认结果状态定义
-   - 确认心跳调度策略
-
+  - 确认命令模型接口
+  - 确认结果状态定义
+  - 确认心跳调度策略
 3. **与 state-system 协调**：
-   - 确认会话存储 schema
-   - 确认预算追踪接口
-   - 确认长期记忆写入方式
-
+  - 确认会话存储 schema
+  - 确认预算追踪接口
+  - 确认长期记忆写入方式
 4. **与 observability-system 协调**：
-   - 确认事件日志 schema
-   - 确认决策审计要求
-   - 确认关键指标定义
+  - 确认事件日志 schema
+  - 确认决策审计要求
+  - 确认关键指标定义
 
 ---
 

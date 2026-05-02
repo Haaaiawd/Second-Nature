@@ -1,17 +1,20 @@
 # Connector System 设计文档 (L0 — 导航层)
 
-| 字段 | 值 |
-| --- | --- |
-| **System ID** | `connector-system` |
-| **Project** | Second Nature |
-| **Version** | 5.0 |
-| **Status** | `Draft` |
-| **Author** | GPT-5.5 |
-| **Date** | 2026-05-01 |
+
+| 字段            | 值                                                                           |
+| ------------- | --------------------------------------------------------------------------- |
+| **System ID** | `connector-system`                                                          |
+| **Project**   | Second Nature                                                               |
+| **Version**   | 5.0                                                                         |
+| **Status**    | `Draft`                                                                     |
+| **Author**    | GPT-5.5                                                                     |
+| **Date**      | 2026-05-01                                                                  |
 | **L1 Detail** | [connector-system.detail.md](./connector-system.detail.md) — 仅 `/forge` 时加载 |
+
 
 > [!IMPORTANT]
 > **文档分层说明**
+>
 > - **本文件 (L0 导航层)**: 架构图、操作契约、数据模型声明、Trade-offs 与验证矩阵。
 > - **[connector-system.detail.md](./connector-system.detail.md) (L1 实现层)**: 配置常量、完整类型、伪代码、决策树、边缘情况。
 > - **L1 锚点原则**: L1 中的所有细节块必须在本文件有入口；禁止 L1 出现孤岛内容。
@@ -20,24 +23,27 @@
 
 ## 目录 (Table of Contents)
 
-| § | 章节 | 关键内容 |
-| :---: | --- | --- |
-| 1 | [概览](#1-概览-overview) | 系统目的、边界、职责 |
-| 2 | [目标与非目标](#2-目标与非目标-goals--non-goals) | Goals / Non-Goals |
-| 3 | [背景与上下文](#3-背景与上下文-background--context) | v5 需求、调研结论、约束 |
-| 4 | [系统架构](#4-系统架构-architecture) | Mermaid 架构图、数据流、决策树 |
-| 5 | [接口设计](#5-接口设计-interface-design) | 操作契约表、跨系统协议 |
-| 6 | [数据模型](#6-数据模型-data-model) | 字段声明、ER 图 → [L1 §1-2](./connector-system.detail.md#1-配置常量-config-constants) |
-| 7 | [技术选型](#7-技术选型-technology-stack) | manifest-first、adapter、policy layer |
-| 8 | [Trade-offs](#8-trade-offs--alternatives-权衡与备选方案) | ADR 引用 + 本系统特有决策 |
-| 9 | [安全性考虑](#9-安全性考虑-security-considerations) | 凭据、幂等、敏感内容、降级通道 |
-| 10 | [性能考虑](#10-性能考虑-performance-considerations) | timeout、retry、rate limit |
-| 11 | [测试策略](#11-测试策略-testing-strategy) | 合约验证矩阵、测试层级 |
-| 12 | [部署与运维](#12-部署与运维-deployment--operations) | local plugin runtime、connector health |
-| 13 | [未来考虑](#13-未来考虑-future-considerations) | 新平台、MCP、browser fallback |
-| 14 | [附录](#14-appendix-附录) | 术语、参考资料 |
+
+| §   | 章节                                                | 关键内容                                                                        |
+| --- | ------------------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | [概览](#1-概览-overview)                              | 系统目的、边界、职责                                                                  |
+| 2   | [目标与非目标](#2-目标与非目标-goals--non-goals)              | Goals / Non-Goals                                                           |
+| 3   | [背景与上下文](#3-背景与上下文-background--context)           | v5 需求、调研结论、约束                                                               |
+| 4   | [系统架构](#4-系统架构-architecture)                      | Mermaid 架构图、数据流、决策树                                                         |
+| 5   | [接口设计](#5-接口设计-interface-design)                  | 操作契约表、跨系统协议                                                                 |
+| 6   | [数据模型](#6-数据模型-data-model)                        | 字段声明、ER 图 → [L1 §1-2](./connector-system.detail.md#1-配置常量-config-constants) |
+| 7   | [技术选型](#7-技术选型-technology-stack)                  | manifest-first、adapter、policy layer                                         |
+| 8   | [Trade-offs](#8-trade-offs--alternatives-权衡与备选方案) | ADR 引用 + 本系统特有决策                                                            |
+| 9   | [安全性考虑](#9-安全性考虑-security-considerations)         | 凭据、幂等、敏感内容、降级通道                                                             |
+| 10  | [性能考虑](#10-性能考虑-performance-considerations)       | timeout、retry、rate limit                                                    |
+| 11  | [测试策略](#11-测试策略-testing-strategy)                 | 合约验证矩阵、测试层级                                                                 |
+| 12  | [部署与运维](#12-部署与运维-deployment--operations)         | local plugin runtime、connector health                                       |
+| 13  | [未来考虑](#13-未来考虑-future-considerations)            | 新平台、MCP、browser fallback                                                    |
+| 14  | [附录](#14-appendix-附录)                             | 术语、参考资料                                                                     |
+
 
 **L1 实现层** → [connector-system.detail.md](./connector-system.detail.md)  
+
 > [§1 配置常量](./connector-system.detail.md#1-配置常量-config-constants) · [§2 数据结构](./connector-system.detail.md#2-核心数据结构完整定义-full-data-structures) · [§3 算法](./connector-system.detail.md#3-核心算法伪代码-non-trivial-algorithm-pseudocode) · [§4 决策树](./connector-system.detail.md#4-决策树详细逻辑-decision-tree-details) · [§5 边缘情况](./connector-system.detail.md#5-边缘情况与注意事项-edge-cases--gotchas) · [§6 测试辅助](./connector-system.detail.md#6-测试辅助-test-helpers)
 
 ---
@@ -49,6 +55,7 @@
 `connector-system` 是 Second Nature 唯一允许直接接触外部 agent-native 平台的执行层。v5 中它的核心职责不是“调用 API”，而是把平台浏览、互动、任务发现和工作推进转化为**可引用、可脱敏、可审计的 `LifeEvidenceCandidate`**。
 
 它服务于 lived-experience closure：
+
 - 让 agent 在 Moltbook / InStreet / EvoMap 等平台有真实或 near-real 行为输入。
 - 为 Quiet / outreach / explain 提供 source-backed evidence，而不是模型自述。
 - 在执行平台副作用时提供 idempotency、retry safety、failure taxonomy 与 degraded fallback 标记。
@@ -63,6 +70,7 @@
 ### 1.3 System Responsibilities (系统职责)
 
 **负责**:
+
 - 提供 manifest-first connector contract：`describeConnector()`、`checkConnector()`、`discoverCapabilities()`、`executeCapability()`。
 - 管理 platform-agnostic `CapabilityIntent`、`ExecutionChannel`、`ConnectorManifest` 与 adapter route planning。
 - 执行 API-first 路由，并仅在 manifest 和 risk policy 允许时使用 CLI / skill / browser degraded fallback。
@@ -71,6 +79,7 @@
 - 将 connector attempt、failure class、degraded channel、source refs 回传 observability。
 
 **不负责**:
+
 - 不判断当前是否应该执行某动作；这是 `control-plane-system` 的 rhythm / guard 职责。
 - 不判断是否值得联系用户；这是 `control-plane-system` 的 outreach judgment 职责。
 - 不生成朋友式消息；这是 `behavioral-guidance-system` 的表达职责。
@@ -128,7 +137,7 @@ v5 的 “有自己的生活” 必须来自真实平台和工作场景。没有
 - Stripe / AWS 的幂等和 backoff 设计说明：side-effecting retry 必须建立在 idempotency key 和 bounded jittered backoff 上。
 - Agent connector 最重要的是 tool/action provenance：每次外部动作都要有 source refs、attempt audit 和 failure class。
 
-完整研究见 [`_research/connector-system-research.md`](./_research/connector-system-research.md)。
+完整研究见 `[_research/connector-system-research.md](./_research/connector-system-research.md)`。
 
 ---
 
@@ -176,15 +185,17 @@ graph TD
 
 ### 4.2 Core Components (核心组件)
 
-| Component | Responsibility | Notes |
-| --- | --- | --- |
-| `ConnectorManifestRegistry` | 加载和校验平台 manifest、capability、channel、credential requirements | 详见 [L1 §1](./connector-system.detail.md#1-配置常量-config-constants) |
-| `ConnectorDiscoveryService` | `describe/check/discover` 三类读接口 | 支撑 CLI / blueprint 验证 |
-| `RoutePlanner` | 根据 capability、effect semantics、channel health、credential、policy 选通道 | 不做高层行为判断 |
-| `ExecutionPolicyLayer` | idempotency、retry/backoff、rate-limit、cooldown、verification recovery | side-effect safety 核心 |
-| `ExecutionAdapters` | REST / A2A / CLI / skill / browser 执行封装 | CLI/skill/browser 必须 degraded |
-| `OutcomeNormalizer` | 原始响应转 `ConnectorResult` 与 failure taxonomy | 禁止 DTO 泄漏 |
-| `EvidenceMapper` | `ConnectorResult` 转 `LifeEvidenceCandidate[]` 与 `SourceRef[]` | v5 新核心 |
+
+| Component                   | Responsibility                                                      | Notes                                                            |
+| --------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `ConnectorManifestRegistry` | 加载和校验平台 manifest、capability、channel、credential requirements         | 详见 [L1 §1](./connector-system.detail.md#1-配置常量-config-constants) |
+| `ConnectorDiscoveryService` | `describe/check/discover` 三类读接口                                     | 支撑 CLI / blueprint 验证                                            |
+| `RoutePlanner`              | 根据 capability、effect semantics、channel health、credential、policy 选通道 | 不做高层行为判断                                                         |
+| `ExecutionPolicyLayer`      | idempotency、retry/backoff、rate-limit、cooldown、verification recovery | side-effect safety 核心                                            |
+| `ExecutionAdapters`         | REST / A2A / CLI / skill / browser 执行封装                             | CLI/skill/browser 必须 degraded                                    |
+| `OutcomeNormalizer`         | 原始响应转 `ConnectorResult` 与 failure taxonomy                          | 禁止 DTO 泄漏                                                        |
+| `EvidenceMapper`            | `ConnectorResult` 转 `LifeEvidenceCandidate[]` 与 `SourceRef[]`       | v5 新核心                                                           |
+
 
 ### 4.3 Data Flow (数据流)
 
@@ -276,19 +287,21 @@ flowchart TD
 
 ### 5.1 操作契约表 (Operation Contracts)
 
-| 操作 | [REQ-XXX] | 前置条件 | 消耗/输入 | 产出/副作用 | 实现细节 |
-| --- | :---: | --- | --- | --- | :---: |
-| `describeConnector(platformId)` | [REQ-020], [REQ-025] | manifest 已注册 | platform id | connector manifest view | [L1 §3.1](./connector-system.detail.md#31-describeconnector) |
-| `checkConnector(platformId)` | [REQ-020], [REQ-025] | credential context 可读 | platform id; minimal permission set | health / credential / permission result | [L1 §3.2](./connector-system.detail.md#32-checkconnector) |
-| `discoverCapabilities(platformId)` | [REQ-020], [REQ-021] | manifest 可读 | platform id | capability inventory + degraded channels | [L1 §3.3](./connector-system.detail.md#33-discovercapabilities) |
-| `executeCapability(request)` | [REQ-020], [REQ-021], [REQ-024] | capability supported; policy context available | capability request | `ConnectorResult`; evidence candidates; audit | [L1 §3.4](./connector-system.detail.md#34-executecapability) |
-| `planExecutionRoute(request)` | [REQ-020], [REQ-025] | manifest/credential/policy/health 可读 | request; effect semantics | `ExecutionPlan` | [L1 §3.5](./connector-system.detail.md#35-planexecutionroute) |
-| `enforceExecutionPolicy(plan)` | [REQ-019], [REQ-020] | plan 已生成 | idempotency; cooldown; rate limit; retry state | allowed plan or policy failure | [L1 §3.6](./connector-system.detail.md#36-enforceexecutionpolicy) |
-| `runExecutionAdapter(plan)` | [REQ-020] | policy allow | REST/A2A/CLI/skill/browser binding | raw attempt result | [L1 §3.7](./connector-system.detail.md#37-runexecutionadapter) |
-| `normalizeConnectorOutcome(attempt)` | [REQ-020], [REQ-024] | attempt complete | raw platform result/error | normalized result + failure class | [L1 §3.8](./connector-system.detail.md#38-normalizeconnectoroutcome) |
-| `mapLifeEvidence(result)` | [REQ-020], [REQ-024] | result success; source refs 可解析 | normalized result; source refs | `LifeEvidenceCandidate[]` | [L1 §3.9](./connector-system.detail.md#39-maplifeevidence) |
-| `recoverVerification(ctx)` | [REQ-020], [REQ-025] | credential state pending verification | challenge context | verification outcome + state write intent | [L1 §3.10](./connector-system.detail.md#310-recoververification) |
-| `classifyConnectorFailure(error)` | [REQ-020], [REQ-025] | raw error exists | error; channel; platform | failure class + retryability | [L1 §3.11](./connector-system.detail.md#311-classifyconnectorfailure) |
+
+| 操作                                   | [REQ-XXX]                       | 前置条件                                           | 消耗/输入                                          | 产出/副作用                                        | 实现细节                                                                  |
+| ------------------------------------ | ------------------------------- | ---------------------------------------------- | ---------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------- |
+| `describeConnector(platformId)`      | [REQ-020], [REQ-025]            | manifest 已注册                                   | platform id                                    | connector manifest view                       | [L1 §3.1](./connector-system.detail.md#31-describeconnector)          |
+| `checkConnector(platformId)`         | [REQ-020], [REQ-025]            | credential context 可读                          | platform id; minimal permission set            | health / credential / permission result       | [L1 §3.2](./connector-system.detail.md#32-checkconnector)             |
+| `discoverCapabilities(platformId)`   | [REQ-020], [REQ-021]            | manifest 可读                                    | platform id                                    | capability inventory + degraded channels      | [L1 §3.3](./connector-system.detail.md#33-discovercapabilities)       |
+| `executeCapability(request)`         | [REQ-020], [REQ-021], [REQ-024] | capability supported; policy context available | capability request                             | `ConnectorResult`; evidence candidates; audit | [L1 §3.4](./connector-system.detail.md#34-executecapability)          |
+| `planExecutionRoute(request)`        | [REQ-020], [REQ-025]            | manifest/credential/policy/health 可读           | request; effect semantics                      | `ExecutionPlan`                               | [L1 §3.5](./connector-system.detail.md#35-planexecutionroute)         |
+| `enforceExecutionPolicy(plan)`       | [REQ-019], [REQ-020]            | plan 已生成                                       | idempotency; cooldown; rate limit; retry state | allowed plan or policy failure                | [L1 §3.6](./connector-system.detail.md#36-enforceexecutionpolicy)     |
+| `runExecutionAdapter(plan)`          | [REQ-020]                       | policy allow                                   | REST/A2A/CLI/skill/browser binding             | raw attempt result                            | [L1 §3.7](./connector-system.detail.md#37-runexecutionadapter)        |
+| `normalizeConnectorOutcome(attempt)` | [REQ-020], [REQ-024]            | attempt complete                               | raw platform result/error                      | normalized result + failure class             | [L1 §3.8](./connector-system.detail.md#38-normalizeconnectoroutcome)  |
+| `mapLifeEvidence(result)`            | [REQ-020], [REQ-024]            | result success; source refs 可解析                | normalized result; source refs                 | `LifeEvidenceCandidate[]`                     | [L1 §3.9](./connector-system.detail.md#39-maplifeevidence)            |
+| `recoverVerification(ctx)`           | [REQ-020], [REQ-025]            | credential state pending verification          | challenge context                              | verification outcome + state write intent     | [L1 §3.10](./connector-system.detail.md#310-recoververification)      |
+| `classifyConnectorFailure(error)`    | [REQ-020], [REQ-025]            | raw error exists                               | error; channel; platform                       | failure class + retryability                  | [L1 §3.11](./connector-system.detail.md#311-classifyconnectorfailure) |
+
 
 ### 5.2 跨系统接口协议 (Cross-System Interface)
 
@@ -318,25 +331,29 @@ export interface ConnectorObservabilityPort {
 
 ### 5.3 Owner 分工表
 
-| 问题 | Owner | Connector 可做 | Connector 不可做 |
-| --- | --- | --- | --- |
-| 当前要不要浏览/发帖/claim | `control-plane-system` | 执行已允许 capability | 自己触发节律动作 |
-| 内容是否值得联系用户 | `control-plane-system` | 产出 source-backed evidence | 做 outreach judgment |
-| 证据是否入长期记忆 | `state-system` / Quiet | 生成 `LifeEvidenceCandidate` | 写 anchor / curated memory |
-| 平台凭据真相源 | `state-system` | 读取 credential context | 保存 canonical credential |
-| 执行审计 | `observability-system` | 发送 attempt audit | 成为 audit store |
-| 平台通道选择 | `connector-system` | 选 execution channel | 绕过 hard guard 执行动作 |
+
+| 问题               | Owner                  | Connector 可做               | Connector 不可做             |
+| ---------------- | ---------------------- | -------------------------- | ------------------------- |
+| 当前要不要浏览/发帖/claim | `control-plane-system` | 执行已允许 capability           | 自己触发节律动作                  |
+| 内容是否值得联系用户       | `control-plane-system` | 产出 source-backed evidence  | 做 outreach judgment       |
+| 证据是否入长期记忆        | `state-system` / Quiet | 生成 `LifeEvidenceCandidate` | 写 anchor / curated memory |
+| 平台凭据真相源          | `state-system`         | 读取 credential context      | 保存 canonical credential   |
+| 执行审计             | `observability-system` | 发送 attempt audit           | 成为 audit store            |
+| 平台通道选择           | `connector-system`     | 选 execution channel        | 绕过 hard guard 执行动作        |
+
 
 ### 5.4 Channel Taxonomy
 
-| Channel | 稳定性 | 允许场景 | 红线 |
-| --- | --- | --- | --- |
-| `api_rest` | 高 | 默认 read/write | 必须 schema validate |
-| `a2a` | 中高 | agent network / async task | 必须 envelope validate |
-| `mcp` | 中 | future tool connector | v5 不作为必需 |
-| `cli` | 中低 | bootstrap / fallback | 不得默认用于高风险副作用 |
-| `skill` | 低 | explicit fallback / demo acceleration | 必须 degraded |
-| `browser` | 最低 | 手动确认后的 last resort | 不得自动重试 side effect |
+
+| Channel    | 稳定性 | 允许场景                                  | 红线                   |
+| ---------- | --- | ------------------------------------- | -------------------- |
+| `api_rest` | 高   | 默认 read/write                         | 必须 schema validate   |
+| `a2a`      | 中高  | agent network / async task            | 必须 envelope validate |
+| `mcp`      | 中   | future tool connector                 | v5 不作为必需             |
+| `cli`      | 中低  | bootstrap / fallback                  | 不得默认用于高风险副作用         |
+| `skill`    | 低   | explicit fallback / demo acceleration | 必须 degraded          |
+| `browser`  | 最低  | 手动确认后的 last resort                    | 不得自动重试 side effect   |
+
 
 ---
 
@@ -469,14 +486,16 @@ classDiagram
 
 ### 7.1 Core Technologies
 
-| Domain | Choice | Rationale |
-| --- | --- | --- |
-| Runtime | TypeScript + Node.js | 与 OpenClaw plugin 主栈一致 |
-| HTTP | `fetch` / `undici` | 适合 REST / JSON API |
-| Schema | `zod` | manifest / request / result 校验 |
-| Adapter | Strategy / Adapter Pattern | 隔离 REST/A2A/CLI/skill/browser 差异 |
-| Retry | bounded exponential backoff + jitter | 防 retry storm |
-| Idempotency | caller-provided or generated key + effect commit ledger | 防重复副作用 |
+
+| Domain      | Choice                                                  | Rationale                        |
+| ----------- | ------------------------------------------------------- | -------------------------------- |
+| Runtime     | TypeScript + Node.js                                    | 与 OpenClaw plugin 主栈一致           |
+| HTTP        | `fetch` / `undici`                                      | 适合 REST / JSON API               |
+| Schema      | `zod`                                                   | manifest / request / result 校验   |
+| Adapter     | Strategy / Adapter Pattern                              | 隔离 REST/A2A/CLI/skill/browser 差异 |
+| Retry       | bounded exponential backoff + jitter                    | 防 retry storm                    |
+| Idempotency | caller-provided or generated key + effect commit ledger | 防重复副作用                           |
+
 
 ### 7.2 Directory Shape
 
@@ -528,10 +547,12 @@ src/connectors/
 ### 8.4 Capability Contract vs Per-platform Method Soup
 
 **Option A: Capability contract (Selected)**
+
 - 优点: control-plane 稳定，新增平台成本低，failure taxonomy 可复用。
 - 缺点: 首版抽象工作更多，需要 contract tests。
 
 **Option B: 每个平台暴露专用方法**
+
 - 优点: 前两个平台可能更快。
 - 缺点: 第三个平台开始就会污染上层，不可持续。
 
@@ -540,10 +561,12 @@ src/connectors/
 ### 8.5 API-first vs Equal-channel Fallback
 
 **Option A: API-first + explicit degraded fallback (Selected)**
+
 - 优点: 稳定通道优先，同时保留 bootstrap/demo 能力。
 - 缺点: manifest 和 policy 更复杂。
 
 **Option B: API/CLI/skill/browser 等价选择**
+
 - 优点: 看起来灵活。
 - 缺点: 高风险，无法解释，容易重复副作用。
 
@@ -552,10 +575,12 @@ src/connectors/
 ### 8.6 Connector Writes Evidence Directly vs Returns Candidate
 
 **Option A: Return candidate and call state append through port (Selected)**
+
 - 优点: state 仍是 canonical owner，connector 不保存记忆真相。
 - 缺点: 多一层 ack / failure 处理。
 
 **Option B: Connector 自己保存 evidence**
+
 - 优点: 单点实现简单。
 - 缺点: 状态真相源分裂，Quiet / guidance 读取边界混乱。
 
@@ -576,13 +601,15 @@ src/connectors/
 
 ## 10. 性能考虑 (Performance Considerations)
 
-| 指标 | 目标 | 策略 |
-| --- | --- | --- |
-| route planning | P95 < 50ms | manifest / health / policy 本地读取 |
-| read-only connector call | P95 < 5s | timeout + bounded retry |
-| side-effecting call | P95 取决于平台 | idempotency + effect commit + no unsafe retry |
-| evidence mapping | P95 < 50ms | summary + source refs，不展开大正文 |
-| check/discover | P95 < 3s | 最小 permission check，缓存 manifest |
+
+| 指标                       | 目标         | 策略                                            |
+| ------------------------ | ---------- | --------------------------------------------- |
+| route planning           | P95 < 50ms | manifest / health / policy 本地读取               |
+| read-only connector call | P95 < 5s   | timeout + bounded retry                       |
+| side-effecting call      | P95 取决于平台  | idempotency + effect commit + no unsafe retry |
+| evidence mapping         | P95 < 50ms | summary + source refs，不展开大正文                  |
+| check/discover           | P95 < 3s   | 最小 permission check，缓存 manifest               |
+
 
 retry 使用 capped exponential backoff + jitter，并尊重平台 `Retry-After`。同一失败不允许在 adapter、connector、control-plane 多层重复 retry。
 
@@ -592,14 +619,16 @@ retry 使用 capped exponential backoff + jitter，并尊重平台 `Retry-After`
 
 ### 11.1 Test Layers
 
-| 类型 | 覆盖范围 |
-| --- | --- |
-| Unit | manifest validation、capability classification、failure taxonomy、source ref mapping |
-| Contract | `ConnectorResult`、`LifeEvidenceCandidate`、`ConnectorAttemptAudit` schema |
-| Adapter | REST / A2A / CLI / skill adapter 的 success/failure/degraded |
-| Policy | idempotency gate、retry safety、rate-limit、cooldown、verification recovery |
-| Integration | control-plane -> connector -> state appendLifeEvidence -> observability audit |
-| Host / platform smoke | Moltbook/InStreet/EvoMap 至少一条 read path 和一条 near-real write/task path |
+
+| 类型                    | 覆盖范围                                                                              |
+| --------------------- | --------------------------------------------------------------------------------- |
+| Unit                  | manifest validation、capability classification、failure taxonomy、source ref mapping |
+| Contract              | `ConnectorResult`、`LifeEvidenceCandidate`、`ConnectorAttemptAudit` schema          |
+| Adapter               | REST / A2A / CLI / skill adapter 的 success/failure/degraded                       |
+| Policy                | idempotency gate、retry safety、rate-limit、cooldown、verification recovery           |
+| Integration           | control-plane -> connector -> state appendLifeEvidence -> observability audit     |
+| Host / platform smoke | Moltbook/InStreet/EvoMap 至少一条 read path 和一条 near-real write/task path             |
+
 
 ### 11.2 关键验收用例
 
@@ -612,14 +641,16 @@ retry 使用 capped exponential backoff + jitter，并尊重平台 `Retry-After`
 
 ### 11.3 Contract Verification Matrix
 
-| Contract | Producer | Consumer | 验证点 | 测试类型 |
-| --- | --- | --- | --- | --- |
-| `ConnectorManifest` | connector | CLI / route planner | capability、channel、credential、degraded policy 完整 | Contract |
-| `ConnectorExecutionRequest` | control-plane | connector | traceId、capability、effectSemantics、idempotency 规则 | Contract + Integration |
-| `ConnectorResult` | connector | control-plane | status、failure、sourceRefs、degraded、effectCommitId | Contract |
-| `LifeEvidenceCandidate` | connector | state-system | sourceRefs 非空、sensitivity 已声明、summary 可脱敏 | Contract + Integration |
-| `ConnectorAttemptAudit` | connector | observability | channel、failureClass、retry、sourceRefs 可追踪 | Contract |
-| `ExecutionPolicy` | connector | connector | unsafe retry 被阻断，Retry-After 被尊重 | Unit |
+
+| Contract                    | Producer      | Consumer            | 验证点                                               | 测试类型                   |
+| --------------------------- | ------------- | ------------------- | ------------------------------------------------- | ---------------------- |
+| `ConnectorManifest`         | connector     | CLI / route planner | capability、channel、credential、degraded policy 完整  | Contract               |
+| `ConnectorExecutionRequest` | control-plane | connector           | traceId、capability、effectSemantics、idempotency 规则 | Contract + Integration |
+| `ConnectorResult`           | connector     | control-plane       | status、failure、sourceRefs、degraded、effectCommitId | Contract               |
+| `LifeEvidenceCandidate`     | connector     | state-system        | sourceRefs 非空、sensitivity 已声明、summary 可脱敏         | Contract + Integration |
+| `ConnectorAttemptAudit`     | connector     | observability       | channel、failureClass、retry、sourceRefs 可追踪         | Contract               |
+| `ExecutionPolicy`           | connector     | connector           | unsafe retry 被阻断，Retry-After 被尊重                  | Unit                   |
+
 
 ---
 
@@ -654,10 +685,10 @@ retry 使用 capped exponential backoff + jitter，并尊重平台 `Retry-After`
 
 ### 14.2 参考资料
 
-- [`_research/connector-system-research.md`](./_research/connector-system-research.md)
-- [`../03_ADR/ADR_001_TECH_STACK.md`](../03_ADR/ADR_001_TECH_STACK.md)
-- [`../03_ADR/ADR_002_CONNECTOR_MODEL.md`](../03_ADR/ADR_002_CONNECTOR_MODEL.md)
-- [`../03_ADR/ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md`](../03_ADR/ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md)
+- `[_research/connector-system-research.md](./_research/connector-system-research.md)`
+- `[../03_ADR/ADR_001_TECH_STACK.md](../03_ADR/ADR_001_TECH_STACK.md)`
+- `[../03_ADR/ADR_002_CONNECTOR_MODEL.md](../03_ADR/ADR_002_CONNECTOR_MODEL.md)`
+- `[../03_ADR/ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md](../03_ADR/ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md)`
 - [Airbyte Protocol](https://docs.airbyte.com/platform/understanding-airbyte/airbyte-protocol.md)
 - [Stripe Idempotent Requests](https://stripe.com/docs/api/idempotent_requests)
 - [AWS Builders Library: Backoff with Jitter](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)

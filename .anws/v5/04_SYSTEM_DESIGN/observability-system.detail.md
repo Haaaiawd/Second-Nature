@@ -1,6 +1,6 @@
 # Observability System — 实现细节 (L1)
 
-> **文件性质**: L1 实现层 · **对应 L0**: [`observability-system.md`](./observability-system.md)  
+> **文件性质**: L1 实现层 · **对应 L0**: `[observability-system.md](./observability-system.md)`  
 > 本文件仅在 `/forge` 任务明确引用时加载。日常阅读和任务规划请优先看 L0。  
 > **孤岛检查**: 本文件各节均在 L0 有对应链接入口。
 
@@ -8,22 +8,26 @@
 
 ## 版本历史
 
-| 版本 | 日期 | Changelog |
-| --- | --- | --- |
+
+| 版本   | 日期         | Changelog                                                                                       |
+| ---- | ---------- | ----------------------------------------------------------------------------------------------- |
 | v5.0 | 2026-05-01 | 重写为 v5 decision trace、delivery audit、source coverage、guidance grounding 与 host capability audit |
+
 
 ---
 
 ## 本文件章节索引
 
-| § | 章节 | 对应 L0 入口 |
-| :---: | --- | :---: |
-| §1 | [配置常量](#1-配置常量-config-constants) | L0 §6 / §9 / §10 |
-| §2 | [完整数据结构](#2-核心数据结构完整定义-full-data-structures) | L0 §6 |
-| §3 | [核心算法伪代码](#3-核心算法伪代码-non-trivial-algorithm-pseudocode) | L0 §5 |
-| §4 | [决策树详细逻辑](#4-决策树详细逻辑-decision-tree-details) | L0 §4 |
-| §5 | [边缘情况与注意事项](#5-边缘情况与注意事项-edge-cases--gotchas) | L0 §5 / §9 / §11 |
-| §6 | [测试辅助](#6-测试辅助-test-helpers) | L0 §11 |
+
+| §   | 章节                                                     | 对应 L0 入口         |
+| --- | ------------------------------------------------------ | ---------------- |
+| §1  | [配置常量](#1-配置常量-config-constants)                       | L0 §6 / §9 / §10 |
+| §2  | [完整数据结构](#2-核心数据结构完整定义-full-data-structures)           | L0 §6            |
+| §3  | [核心算法伪代码](#3-核心算法伪代码-non-trivial-algorithm-pseudocode) | L0 §5            |
+| §4  | [决策树详细逻辑](#4-决策树详细逻辑-decision-tree-details)            | L0 §4            |
+| §5  | [边缘情况与注意事项](#5-边缘情况与注意事项-edge-cases--gotchas)          | L0 §5 / §9 / §11 |
+| §6  | [测试辅助](#6-测试辅助-test-helpers)                           | L0 §11           |
+
 
 ---
 
@@ -849,18 +853,20 @@ function resolveExplainPlan(query: ExplainQuery): ExplainResolutionPlan {
 
 ## §5 边缘情况与注意事项 (Edge Cases & Gotchas)
 
-| 场景 | 风险 | 处理方式 |
-| --- | --- | --- |
-| `target: "none"` 但 heartbeat returned ok | 被误读为主动联系成功 | `DeliveryAuditRecord.status = target_none`; explain 显示 no user-visible contact |
-| `HEARTBEAT_OK` 被宿主 ack drop | 用户以为 agent 没运行 | decision 记录 `heartbeat_ok`; delivery 记录 `ack_dropped` 或不请求 delivery |
-| deny/defer 没有记录 | 无法解释“为什么没做” | 所有 verdict 必须先 `recordDecisionTrace` |
-| fallback 有候选文案 | 被误写成 sent | fallback audit 必须 `not_sent_fallback`; wording 不得写成已发送 |
-| guidance unsupported claim | 朋友式表达变成编故事 | `GuidanceGroundingAudit.status = blocked/degraded` |
-| Quiet empty evidence | 虚构一天经历 | source coverage `blocked` + reason `empty_evidence` |
-| audit payload 保存原文 | 泄漏凭据/私信/prompt | `RedactionManifest` + `content_ref` |
-| telemetry 被采样 | 丢失治理证据 | critical families 不采样，仅 connector success telemetry 可采样 |
-| hash chain 断裂 | 审计可信度下降 | repair 不改旧记录，只追加 `audit.integrity_failure` future event |
-| OTel exporter 开启 | vendor schema 误作真相源 | exporter bundle 标注 projection，local ledger 仍是 source of truth |
+
+| 场景                                       | 风险                  | 处理方式                                                                           |
+| ---------------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
+| `target: "none"` 但 heartbeat returned ok | 被误读为主动联系成功          | `DeliveryAuditRecord.status = target_none`; explain 显示 no user-visible contact |
+| `HEARTBEAT_OK` 被宿主 ack drop              | 用户以为 agent 没运行      | decision 记录 `heartbeat_ok`; delivery 记录 `ack_dropped` 或不请求 delivery            |
+| deny/defer 没有记录                          | 无法解释“为什么没做”         | 所有 verdict 必须先 `recordDecisionTrace`                                           |
+| fallback 有候选文案                           | 被误写成 sent           | fallback audit 必须 `not_sent_fallback`; wording 不得写成已发送                         |
+| guidance unsupported claim               | 朋友式表达变成编故事          | `GuidanceGroundingAudit.status = blocked/degraded`                             |
+| Quiet empty evidence                     | 虚构一天经历              | source coverage `blocked` + reason `empty_evidence`                            |
+| audit payload 保存原文                       | 泄漏凭据/私信/prompt      | `RedactionManifest` + `content_ref`                                            |
+| telemetry 被采样                            | 丢失治理证据              | critical families 不采样，仅 connector success telemetry 可采样                        |
+| hash chain 断裂                            | 审计可信度下降             | repair 不改旧记录，只追加 `audit.integrity_failure` future event                        |
+| OTel exporter 开启                         | vendor schema 误作真相源 | exporter bundle 标注 projection，local ledger 仍是 source of truth                  |
+
 
 ### §5.1 典型错误：把 run success 当 contact success
 
@@ -961,10 +967,13 @@ export function makeHostCapabilityAudit(overrides: Partial<HostCapabilityAudit> 
 
 ### §6.1 Contract Fixtures
 
-| Fixture | 用途 |
-| --- | --- |
-| `makeDecisionTrace({ outcome: "heartbeat_ok" })` | 验证静默 heartbeat explain |
-| `makeDeliveryAudit({ target: "none" })` | 验证 `target_none` 不算 sent |
-| `makeDeliveryAudit({ ackDropMatched: true })` | 验证 ack drop 分类 |
-| `makeSourceCoverageAudit({ usedSourceRefs: [] })` | 验证 empty evidence blocked |
-| `makeHostCapabilityAudit()` | 验证 host smoke report explain |
+
+| Fixture                                           | 用途                           |
+| ------------------------------------------------- | ---------------------------- |
+| `makeDecisionTrace({ outcome: "heartbeat_ok" })`  | 验证静默 heartbeat explain       |
+| `makeDeliveryAudit({ target: "none" })`           | 验证 `target_none` 不算 sent     |
+| `makeDeliveryAudit({ ackDropMatched: true })`     | 验证 ack drop 分类               |
+| `makeSourceCoverageAudit({ usedSourceRefs: [] })` | 验证 empty evidence blocked    |
+| `makeHostCapabilityAudit()`                       | 验证 host smoke report explain |
+
+
