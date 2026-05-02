@@ -38,6 +38,16 @@ export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/gover
 export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";
 
 export {
+  GovernancePlaneRecorder,
+  createGovernancePlaneRecorder,
+  type AuditAppendAck,
+  type ConnectorAttemptAudit,
+  type ConnectorAttemptOutcome,
+  type StateGovernanceAudit,
+  type StateGovernanceKind,
+} from "./services/governance-plane-recorder.js";
+
+export {
   EvidenceQueryEngine,
 } from "./query/evidence-query-engine.js";
 export type {
