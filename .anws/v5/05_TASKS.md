@@ -88,7 +88,7 @@ graph TD
 
 ### Phase 1: Foundation
 
-- [ ] **T1.1.1** [REQ-019]: 实现 packaged runtime artifact boundary
+- [x] **T1.1.1** [REQ-019]: 实现 packaged runtime artifact boundary
   - **描述**: 建立 plugin entry wrapper、runtime registration、artifact module 清单与 source path dependency 禁止规则。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §12.1；`04_SYSTEM_DESIGN/cli-system.detail.md` §3.1-§3.2；`03_ADR/ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md` §决策
   - **输出**: `RuntimeArtifactBoundary`、`resolvePackagedRuntime()`、package contents check
@@ -424,7 +424,7 @@ graph TD
 
 ### Phase 1: Storage Foundation
 
-- [ ] **T4.1.1** [REQ-020]: 实现 `LifeEvidence` storage schema 与 repository
+- [x] **T4.1.1** [REQ-020]: 实现 `LifeEvidence` storage schema 与 repository
   - **描述**: 建立 filesystem + SQLite/sql.js hybrid 的 `appendLifeEvidence()`、evidence index、provenance link 与 snapshot cache invalidation。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §5.1, §6.1；`04_SYSTEM_DESIGN/state-system.detail.md` §3.1；`02_ARCHITECTURE_OVERVIEW.md` §7
   - **输出**: `appendLifeEvidence()`、evidence artifact / index schema
@@ -440,7 +440,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **T4.1.2** [REQ-021]: 实现 `RhythmPolicySnapshot` read model
+- [x] **T4.1.2** [REQ-021]: 实现 `RhythmPolicySnapshot` read model
   - **描述**: 实现 `loadRhythmPolicySnapshot()`，仅提供 quietEnabled、socialDailyLimit、outreachDailyBudget、updatedAt 等 policy 数据，不包含 decision 结果。
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md` §7；`04_SYSTEM_DESIGN/state-system.md` §5.2；`04_SYSTEM_DESIGN/state-system.detail.md` §2
   - **输出**: `RhythmPolicySnapshot` repository/read model
@@ -564,7 +564,7 @@ graph TD
 
 ### Phase 1: Audit Foundation
 
-- [ ] **T5.1.1** [REQ-019]: 实现 audit envelope / redaction / append-only ledger
+- [x] **T5.1.1** [REQ-019]: 实现 audit envelope / redaction / append-only ledger
   - **描述**: 建立 `AuditEnvelope`、`RedactionManifest`、hash-chain integrity fields、append-only audit store 基础。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §5.1, §6.1, §9；`04_SYSTEM_DESIGN/observability-system.detail.md` §1-§3.1
   - **输出**: `buildAuditEnvelope()`、`redactAuditEvent()`、append audit store port
