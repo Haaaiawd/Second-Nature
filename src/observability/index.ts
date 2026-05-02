@@ -3,6 +3,7 @@ export * as obsSchema from "./db/schema/index.js";
 
 export {
   buildAuditEnvelope,
+  computeAuditRecordHash,
   redactAuditEvent,
   auditManifestFromFieldManifest,
   type AuditEnvelope,
@@ -15,6 +16,14 @@ export {
   type RedactAuditEventResult,
 } from "./audit/audit-envelope.js";
 export { AppendOnlyAuditStore } from "./audit/append-only-audit-store.js";
+export {
+  verifyAuditHashChain,
+  createAppendOnlyAuditStoreRangeLoader,
+  type AuditExportRange,
+  type AuditHashChainVerificationReport,
+  type AuditHashChainVerificationStatus,
+  type VerifyAuditHashChainDeps,
+} from "./audit/verify-audit-hash-chain.js";
 
 export {
   REDACTION_CONFIG,

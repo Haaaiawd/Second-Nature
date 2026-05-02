@@ -72,6 +72,20 @@ function hashRecord(input) {
     });
     return crypto.createHash("sha256").update(canonical, "utf8").digest("hex");
 }
+/** Recompute integrity hash for an existing envelope (T5.2.2 / verifyAuditHashChain). */
+export function computeAuditRecordHash(envelope) {
+    return hashRecord({
+        eventId: envelope.eventId,
+        family: envelope.family,
+        plane: envelope.plane,
+        traceId: envelope.traceId,
+        sequence: envelope.sequence,
+        createdAt: envelope.createdAt,
+        payload: envelope.payload,
+        redaction: envelope.redaction,
+        previousHash: envelope.integrity.previousHash,
+    });
+}
 export function buildAuditEnvelope(input) {
     const { payload, redaction } = redactAuditEvent(input.payload);
     const eventId = input.eventId ?? crypto.randomUUID();

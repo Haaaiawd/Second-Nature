@@ -44,6 +44,8 @@ export interface BuildAuditEnvelopeInput<TPayload extends object> {
     eventId?: string;
     createdAt?: string;
 }
+/** Recompute integrity hash for an existing envelope (T5.2.2 / verifyAuditHashChain). */
+export declare function computeAuditRecordHash(envelope: AuditEnvelope<unknown>): string;
 export declare function buildAuditEnvelope<TPayload extends object>(input: BuildAuditEnvelopeInput<TPayload>): AuditEnvelope<TPayload>;
 /** @internal Maps legacy field manifest to audit manifest for persistence helpers. */
 export declare function auditManifestFromFieldManifest(manifest: FieldRedactionManifest): AuditRedactionManifest;
