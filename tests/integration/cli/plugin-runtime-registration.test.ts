@@ -99,16 +99,16 @@ test("T5.3.2 register does not start services before host invokes them", async (
 
   const commandPayload = JSON.parse((await command.handler({ args: "status" })).text) as {
     ok: boolean;
-    data: { runtime: { serviceStatus: string } };
+    data: { carrier: { serviceStatus: string } };
   };
   const toolPayload = JSON.parse((await tool.execute("1", { command: "status" })).content[0]?.text ?? "{}") as {
     ok: boolean;
-    data: { runtime: { serviceStatus: string } };
+    data: { carrier: { serviceStatus: string } };
   };
 
-  assert.equal(commandPayload.ok, true);
-  assert.equal(toolPayload.ok, true);
-  assert.equal(commandPayload.data.runtime.serviceStatus, toolPayload.data.runtime.serviceStatus);
+  assert.equal(commandPayload.ok, false);
+  assert.equal(toolPayload.ok, false);
+  assert.equal(commandPayload.data.carrier.serviceStatus, toolPayload.data.carrier.serviceStatus);
 });
 
 
@@ -143,15 +143,15 @@ test("T5.3.2 command and tool surfaces share router semantics", async () => {
   assert.equal(typeof commandResult.text, "string");
   assert.equal(toolResult.content[0]?.type, "text");
 
-  const commandPayload = JSON.parse(commandResult.text) as { ok: boolean; data: { runtime: { serviceStatus: string } } };
+  const commandPayload = JSON.parse(commandResult.text) as { ok: boolean; data: { carrier: { serviceStatus: string } } };
   const toolPayload = JSON.parse(toolResult.content[0]?.text ?? "{}") as {
     ok: boolean;
-    data: { runtime: { serviceStatus: string } };
+    data: { carrier: { serviceStatus: string } };
   };
 
-  assert.equal(commandPayload.ok, true);
-  assert.equal(toolPayload.ok, true);
-  assert.equal(commandPayload.data.runtime.serviceStatus, toolPayload.data.runtime.serviceStatus);
+  assert.equal(commandPayload.ok, false);
+  assert.equal(toolPayload.ok, false);
+  assert.equal(commandPayload.data.carrier.serviceStatus, toolPayload.data.carrier.serviceStatus);
 });
 
 
@@ -193,7 +193,7 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
   const commandPayload = JSON.parse(commandResult.text) as {
     ok: boolean;
     status: string;
-    heartbeat: string;
+    livedExperienceLoopClaimed?: boolean;
     nextAction: string;
     data: {
       surface: { tool: string; command: string };
@@ -208,9 +208,9 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
   const toolPayload = JSON.parse(toolResult.content[0]?.text ?? "{}") as typeof commandPayload;
 
   assert.equal(commandPayload.ok, true);
-  assert.equal(commandPayload.status, "heartbeat_ok");
-  assert.equal(commandPayload.heartbeat, "HEARTBEAT_OK");
-  assert.equal(commandPayload.nextAction, "continue");
+  assert.equal(commandPayload.status, "runtime_carrier_only");
+  assert.equal(commandPayload.livedExperienceLoopClaimed, false);
+  assert.equal(commandPayload.nextAction, "continue_carrier_surface_only");
   assert.equal(commandPayload.data.surface.tool, "second_nature_ops");
   assert.equal(commandPayload.data.surface.command, "second-nature heartbeat_check");
   assert.equal(commandPayload.data.bridge.timestamp, "2026-04-27T10:00:00Z");
@@ -219,9 +219,9 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
   assert.equal(commandPayload.data.bridge.serviceEntryMode, "runtime_carrier_only");
 
   assert.equal(toolPayload.ok, true);
-  assert.equal(toolPayload.status, "heartbeat_ok");
-  assert.equal(toolPayload.heartbeat, "HEARTBEAT_OK");
-  assert.equal(toolPayload.nextAction, "continue");
+  assert.equal(toolPayload.status, "runtime_carrier_only");
+  assert.equal(toolPayload.livedExperienceLoopClaimed, false);
+  assert.equal(toolPayload.nextAction, "continue_carrier_surface_only");
   assert.equal(toolPayload.data.surface.tool, commandPayload.data.surface.tool);
   assert.equal(toolPayload.data.surface.command, commandPayload.data.surface.command);
   assert.equal(toolPayload.data.bridge.timestamp, commandPayload.data.bridge.timestamp);
@@ -268,15 +268,15 @@ test("T4.1.4 second_nature_ops storage_smoke uses packaged runtime path", async 
   assert.equal(repair.data?.repairFromArtifactsFixture?.repairStatus, "ok");
 });
 
-test("T1.2.3 HEARTBEAT.md instructs tool use and success semantics", () => {
+test("T1.2.3 HEARTBEAT.md instructs tool use and carrier vs workspace semantics", () => {
   const heartbeatPath = path.join(process.cwd(), "HEARTBEAT.md");
   assert.equal(fs.existsSync(heartbeatPath), true);
 
   const source = fs.readFileSync(heartbeatPath, "utf-8");
   assert.equal(source.includes("second_nature_ops"), true);
   assert.equal(source.includes("heartbeat_check"), true);
-  assert.equal(source.includes("HEARTBEAT_OK"), true);
-  assert.equal(source.includes("continue"), true);
+  assert.equal(source.includes("runtime_carrier_only"), true);
+  assert.equal(source.includes("continue_carrier_surface_only"), true);
   assert.equal(source.includes("per-heartbeat callback"), true);
 });
 

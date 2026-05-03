@@ -75,3 +75,43 @@ test("T5.2.1 not_sent_fallback sets warning", () => {
   const ex = rec.explainLinkageForDecision("dec-4");
   assert.ok(ex.warnings.includes("no_user_visible_contact_claim_prohibited"));
 });
+
+test("T5.2.1 ack_dropped sets no_user_visible_contact warning", () => {
+  const rec = createLivedExperienceAuditRecorder();
+  rec.recordDecisionTrace({
+    decisionId: "dec-ad",
+    traceId: "tr-ad",
+    runtimeScope: "rhythm",
+    outcome: "heartbeat_ok",
+    reasonCodes: [],
+    sourceRefs: [],
+    createdAt: now(),
+  });
+  rec.recordDeliveryAudit({
+    auditId: "da-ad",
+    decisionId: "dec-ad",
+    traceId: "tr-ad",
+    status: "ack_dropped",
+    reasonCodes: ["host_ack_dropped"],
+    createdAt: now(),
+  });
+  const ex = rec.explainLinkageForDecision("dec-ad");
+  assert.ok(ex.warnings.includes("no_user_visible_contact_claim_prohibited"));
+  assert.equal(ex.deliveryStatus, "ack_dropped");
+});
+
+test("T5.2.1 sent with hostProofRef only is accepted", () => {
+  const rec = createLivedExperienceAuditRecorder();
+  rec.recordDeliveryAudit({
+    auditId: "da-hp",
+    decisionId: "dec-hp",
+    traceId: "tr-hp",
+    status: "sent",
+    hostProofRef: { id: "hp1", kind: "connector_result", uri: "https://example.com/proof" },
+    reasonCodes: ["message_sent"],
+    createdAt: now(),
+  });
+  const ex = rec.explainLinkageForDecision("dec-hp");
+  assert.equal(ex.deliveryStatus, "sent");
+  assert.equal(ex.warnings.length, 0);
+});

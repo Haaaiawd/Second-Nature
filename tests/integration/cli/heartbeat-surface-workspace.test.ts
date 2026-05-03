@@ -16,6 +16,14 @@ test("T1.1.3 heartbeatCheck runtime unavailable returns runtime_carrier_only wit
   assert.equal(r.livedExperienceLoopClaimed, false);
 });
 
+test("T1.1.3 heartbeatCheck without readModels must not claim heartbeat_ok (CH-09-02)", async () => {
+  const r = await heartbeatCheck({ runtimeAvailable: true, readModels: undefined });
+  assert.equal(r.status, "runtime_carrier_only");
+  assert.equal(r.surfaceMode, "host_safe_carrier");
+  assert.ok(r.reasons.includes("heartbeat_read_models_unavailable"));
+  assert.equal(r.livedExperienceLoopClaimed, false);
+});
+
 test("T1.1.3 heartbeatCheck fake control-plane passthrough is schema parity only", async () => {
   const r = await heartbeatCheck({
     runtimeAvailable: true,

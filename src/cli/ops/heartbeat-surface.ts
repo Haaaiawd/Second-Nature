@@ -98,8 +98,8 @@ export async function heartbeatCheck(input: HeartbeatCheckInput): Promise<Heartb
   if (!input.readModels) {
     return {
       ok: true,
-      status: "heartbeat_ok",
-      surfaceMode: "workspace_full_runtime",
+      status: "runtime_carrier_only",
+      surfaceMode: "host_safe_carrier",
       reasons: ["heartbeat_read_models_unavailable"],
       livedExperienceLoopClaimed: false,
     };

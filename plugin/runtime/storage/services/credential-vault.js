@@ -90,9 +90,10 @@ export function createCredentialVault(db) {
                 return null;
             let plain;
             if (record.encryptedValue) {
-                plain = isCredentialCiphertext(record.encryptedValue)
-                    ? decryptCredentialAtRest(record.encryptedValue)
-                    : record.encryptedValue;
+                if (!isCredentialCiphertext(record.encryptedValue)) {
+                    throw new Error("credential_store_plaintext_or_invalid_legacy_record");
+                }
+                plain = decryptCredentialAtRest(record.encryptedValue);
             }
             return {
                 platformId: record.platformId,

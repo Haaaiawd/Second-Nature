@@ -91,7 +91,8 @@ export class LivedExperienceAuditRecorder {
             payload.status === "not_sent_fallback" ||
             payload.status === "channel_missing" ||
             payload.status === "host_unsupported" ||
-            payload.status === "failed") {
+            payload.status === "failed" ||
+            payload.status === "ack_dropped") {
             entry.noUserVisibleContact = true;
         }
         return { eventId: envelope.eventId };

@@ -25,6 +25,26 @@ import { getLifecycleState, recordRegistration, } from "./runtime/core/second-na
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 const HOST_SAFE_LIMITATION_MESSAGE = "Host-safe plugin package keeps synchronous register/load semantics, but mutating workspace runtime flows remain unavailable here.";
 let activationSpine = null;
+function resolveWorkspaceRoot(toolWorkspaceRoot) {
+    const env = process.env.SECOND_NATURE_WORKSPACE_ROOT?.trim();
+    if (env) {
+        return { resolution: "env", declaredRoot: env, runtimeRoot: env };
+    }
+    const tool = toolWorkspaceRoot?.trim();
+    if (tool) {
+        return { resolution: "tool_args", declaredRoot: tool, runtimeRoot: tool };
+    }
+    return { resolution: "unknown", declaredRoot: undefined, runtimeRoot: process.cwd() };
+}
+function syncWorkspaceRootFromTool(spine, toolWorkspaceRoot) {
+    const next = resolveWorkspaceRoot(toolWorkspaceRoot);
+    const prev = spine.workspaceRootContext;
+    const changed = next.runtimeRoot !== prev.runtimeRoot || next.resolution !== prev.resolution;
+    spine.workspaceRootContext = next;
+    if (changed) {
+        spine.runtimeHandle = startRuntimeService({ workspaceRoot: next.runtimeRoot });
+    }
+}
 function trimRuntimeEvidence(spine) {
     if (spine.runtimeEvidence.length > 12) {
         spine.runtimeEvidence.splice(0, spine.runtimeEvidence.length - 12);
@@ -88,56 +108,73 @@ function parseExplainSubject(subjectRaw) {
 function buildStatusPayload(spine) {
     const runtimeEvidence = latestRuntimeEvidence(spine);
     const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
+    const wr = spine.workspaceRootContext;
+    const needsRootHint = wr.resolution === "unknown";
     return {
-        ok: true,
+        ok: false,
+        surfaceMode: "host_safe_carrier",
+        workspaceReadModelsEvaluated: false,
+        message: HOST_SAFE_LIMITATION_MESSAGE,
+        error: {
+            code: "WORKSPACE_READ_SURFACE_UNAVAILABLE",
+            message: "Aggregated status requires workspace state; the host-safe plugin does not load persisted read models on this surface.",
+            requiredUserInput: needsRootHint ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
+        },
         data: {
-            runtime: {
+            workspaceRootResolution: wr.resolution,
+            carrier: {
                 host: "openclaw-plugin",
                 serviceStatus: spine.runtimeHandle.ready ? "running" : "idle",
                 updatedAt,
-            },
-            rhythm: {
-                mode: "active",
-                windowId: undefined,
-            },
-            quiet: {
-                mode: "unknown",
-                lastEvent: runtimeEvidence?.traceId,
-                interrupted: undefined,
-            },
-            connectors: [],
-            credentials: [],
-            risk: {
-                level: "low",
-                flags: [],
+                lastRuntimeTraceId: runtimeEvidence?.traceId,
             },
         },
     };
 }
-function buildQuietPayload(scope) {
+function buildQuietPayload(spine, scope) {
+    const wr = spine.workspaceRootContext;
     return {
-        ok: true,
+        ok: false,
+        surfaceMode: "host_safe_carrier",
+        workspaceReadModelsEvaluated: false,
+        message: HOST_SAFE_LIMITATION_MESSAGE,
+        error: {
+            code: "QUIET_READ_SURFACE_UNAVAILABLE",
+            message: "Quiet read surface requires workspace runtime; not evaluated in host-safe carrier mode.",
+            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
+        },
         data: {
             scope,
-            mode: "unknown",
-            sourceCount: 0,
-            reportCount: 0,
-            recentJournalCount: 0,
+            evaluated: false,
+            unavailableReason: "host_safe_carrier_no_workspace_db",
+            workspaceRootResolution: wr.resolution,
         },
     };
 }
-function buildReportPayload(day) {
+function buildReportPayload(spine, day) {
+    const wr = spine.workspaceRootContext;
     return {
-        ok: true,
+        ok: false,
+        surfaceMode: "host_safe_carrier",
+        workspaceReadModelsEvaluated: false,
+        message: HOST_SAFE_LIMITATION_MESSAGE,
+        error: {
+            code: "REPORT_READ_SURFACE_UNAVAILABLE",
+            message: "Daily report artifacts require workspace runtime.",
+            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
+        },
         data: {
+            evaluated: false,
+            unavailableReason: "host_safe_carrier_no_workspace_db",
             day: day && day.trim() ? day : new Date().toISOString().slice(0, 10),
-            summary: "",
-            highlights: [],
-            sourceRefs: [],
+            workspaceRootResolution: wr.resolution,
         },
     };
 }
-function buildSessionPayload(sessionId) {
+function buildSessionPayload(spine, sessionId) {
     if (!sessionId) {
         return {
             ok: false,
@@ -149,26 +186,44 @@ function buildSessionPayload(sessionId) {
             },
         };
     }
+    const wr = spine.workspaceRootContext;
     return {
-        ok: true,
+        ok: false,
+        surfaceMode: "host_safe_carrier",
+        workspaceReadModelsEvaluated: false,
+        message: HOST_SAFE_LIMITATION_MESSAGE,
+        error: {
+            code: "SESSION_READ_SURFACE_UNAVAILABLE",
+            message: "Session analytics require workspace state database.",
+            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
+        },
         data: {
             requestedSessionId: sessionId,
-            traceId: sessionId,
-            decisionCount: 0,
-            attemptCount: 0,
-            governanceCount: 0,
-            keyFactors: [],
-            evidenceRefs: [],
+            evaluated: false,
+            unavailableReason: "host_safe_carrier_no_workspace_db",
+            workspaceRootResolution: wr.resolution,
         },
     };
 }
-function buildCredentialPayload(platformId) {
+function buildCredentialPayload(spine, platformId) {
+    const wr = spine.workspaceRootContext;
     return {
-        ok: true,
+        ok: false,
+        surfaceMode: "host_safe_carrier",
+        workspaceReadModelsEvaluated: false,
+        message: HOST_SAFE_LIMITATION_MESSAGE,
+        error: {
+            code: "CREDENTIAL_READ_SURFACE_UNAVAILABLE",
+            message: "Credential inspection requires workspace runtime on this surface.",
+            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
+        },
         data: {
-            platformId: platformId && platformId.trim() ? platformId : "unknown",
-            status: "missing",
-            nextStep: "provide_credential_context",
+            platformId: platformId && platformId.trim() ? platformId : undefined,
+            evaluated: false,
+            unavailableReason: "host_safe_carrier_no_workspace_db",
+            workspaceRootResolution: wr.resolution,
         },
     };
 }
@@ -199,11 +254,15 @@ function buildExplainPayload(spine, subjectRaw) {
         return createUnavailableActionError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject", ["subject"], "reinvoke_explain_with_supported_subject");
     }
     const runtimeEvidence = latestRuntimeEvidence(spine);
+    const wr = spine.workspaceRootContext;
     return {
         ok: true,
+        surfaceMode: "host_safe_carrier",
         data: {
             subjectType: subject.subjectType,
-            conclusion: "Plugin surface is loaded in host-safe mode with a minimal activation spine.",
+            evaluated: false,
+            workspaceRootResolution: wr.resolution,
+            conclusion: "Plugin surface is loaded in host-safe mode with a minimal activation spine; this is not an evidence-backed workspace explain.",
             keyFactors: [
                 "synchronous_register",
                 `subject:${subject.subjectId}`,
@@ -256,16 +315,18 @@ function buildHeartbeatCheckPayload(spine, input) {
     const runtimeEvidence = latestRuntimeEvidence(spine);
     const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
     const timestamp = typeof input?.timestamp === "string" && input.timestamp.trim().length > 0 ? input.timestamp : updatedAt;
+    const wr = spine.workspaceRootContext;
     return {
         ok: true,
-        status: "heartbeat_ok",
-        heartbeat: "HEARTBEAT_OK",
+        status: "runtime_carrier_only",
+        livedExperienceLoopClaimed: false,
         scope: "rhythm",
         trigger: "heartbeat_bridge",
-        reasons: ["host_safe_bridge_ready"],
-        nextAction: "continue",
-        message: "Host-safe heartbeat bridge acknowledged the round. No additional action is required from this surface.",
+        reasons: ["runtime_carrier_only", "host_safe_bridge_ack"],
+        nextAction: "continue_carrier_surface_only",
+        message: "Packaged carrier acknowledged this heartbeat round. This is not a full lived-experience decision loop; use the workspace CLI when read models are required.",
         data: {
+            workspaceRootResolution: wr.resolution,
             runtime: {
                 host: "openclaw-plugin",
                 serviceStatus: spine.runtimeHandle.ready ? "running" : "idle",
@@ -316,7 +377,7 @@ function createHostSafeRouter(spine) {
                     return createUnavailableActionError("HOST_SAFE_CREDENTIAL_VERIFY_UNAVAILABLE", "credential verify is unavailable in the host-safe plugin package", ["verification_answer"], "run_workspace_runtime_or_reinstall_full_build");
                 }
                 const platformId = typeof input?.platformId === "string" ? input.platformId : undefined;
-                return buildCredentialPayload(platformId);
+                return buildCredentialPayload(spine, platformId);
             },
         },
         {
@@ -324,7 +385,7 @@ function createHostSafeRouter(spine) {
             description: "Inspect Quiet lifecycle state",
             execute: async (input) => {
                 const scope = typeof input?.scope === "string" ? input.scope : undefined;
-                return buildQuietPayload(scope);
+                return buildQuietPayload(spine, scope);
             },
         },
         {
@@ -332,7 +393,7 @@ function createHostSafeRouter(spine) {
             description: "Show daily report artifacts",
             execute: async (input) => {
                 const day = typeof input?.day === "string" ? input.day : undefined;
-                return buildReportPayload(day);
+                return buildReportPayload(spine, day);
             },
         },
         {
@@ -340,7 +401,7 @@ function createHostSafeRouter(spine) {
             description: "Inspect continuity session details",
             execute: async (input) => {
                 const sessionId = typeof input?.sessionId === "string" ? input.sessionId : undefined;
-                return buildSessionPayload(sessionId);
+                return buildSessionPayload(spine, sessionId);
             },
         },
         {
@@ -383,12 +444,14 @@ function createHostSafeRouter(spine) {
     };
 }
 function createActivationSpine() {
+    const workspaceRootContext = resolveWorkspaceRoot(undefined);
     const spine = {
         router: undefined,
-        runtimeHandle: startRuntimeService({ workspaceRoot: process.cwd() }),
+        runtimeHandle: startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot }),
         lifecycleState: getLifecycleState(),
         serviceStartRecorded: false,
         runtimeEvidence: [],
+        workspaceRootContext,
     };
     spine.router = createHostSafeRouter(spine);
     return spine;
@@ -422,7 +485,9 @@ function recordRuntimeEvidence(spine, origin) {
 }
 function refreshRegistrationState() {
     const spine = ensureActivationSpine();
-    spine.runtimeHandle = startRuntimeService({ workspaceRoot: process.cwd() });
+    const workspaceRootContext = resolveWorkspaceRoot(undefined);
+    spine.workspaceRootContext = workspaceRootContext;
+    spine.runtimeHandle = startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot });
     spine.lifecycleState = recordRegistration();
     spine.serviceStartRecorded = false;
     recordRuntimeEvidence(spine, "register");
@@ -590,11 +655,16 @@ export default {
                 properties: {
                     command: { type: "string" },
                     args: { type: "object", additionalProperties: true },
+                    workspaceRoot: {
+                        type: "string",
+                        description: "Workspace root for packaged smoke/runtime alignment (optional; prefer SECOND_NATURE_WORKSPACE_ROOT).",
+                    },
                 },
                 required: ["command"],
             },
             async execute(_id, params) {
                 const spine = ensureActivationSpine();
+                syncWorkspaceRootFromTool(spine, params.workspaceRoot);
                 const resolved = spine.router.resolve(params.command);
                 if (!resolved) {
                     return {

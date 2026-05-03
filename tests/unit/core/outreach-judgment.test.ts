@@ -113,3 +113,16 @@ test("judgeOutreach: insufficient interest and low actionability -> deny", () =>
   assert.equal(j.verdict, "deny");
   assert.ok(j.reasons.includes("not_interest_relevant_or_actionable"));
 });
+
+test("judgeOutreach: low outreach value score -> deny with value_score_too_low (CH-09-06)", () => {
+  const c = baseCandidate();
+  c.priority = 0;
+  const j = judgeOutreach(
+    baseInput({
+      candidate: c,
+      lifeEvidence: { empty: true, evidenceRefCount: 0 },
+    }),
+  );
+  assert.equal(j.verdict, "deny");
+  assert.ok(j.reasons.includes("value_score_too_low"));
+});
