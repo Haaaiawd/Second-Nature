@@ -24,6 +24,10 @@
 | **真实宿主冒烟** | `05_TASKS.md` INT-S4：仅在目标 OpenClaw 宿主执行并记录 pass/fail/unknown；CI fixture **不**闭合此项 |
 | **INT-S4 里程碑勾选** | 需在完成上项后更新 `.anws/v5/05_TASKS.md` 中 `INT-S4` 与 `AGENTS.md` Wave 结算 |
 
+## 真实宿主冒烟 — 操作指南
+
+定稿步骤级协议（**Guide-only**，需在目标 OpenClaw 上由人执行）：[`int-s4-real-host-testing-guide.md`](./int-s4-real-host-testing-guide.md)
+
 ## 命令
 
 ```bash

@@ -335,6 +335,7 @@ CLI 目前也提供这些读与恢复入口：
 - `reports/int-s2-evidence-rhythm-loop.md` — S2 证据与节律
 - `reports/int-s3-outreach-delivery-quiet.md` — S3 联系、投递、Quiet
 - `reports/int-s4-release-readiness.md` — S4 发布就绪（**真实宿主**部分需现场补全）
+- `reports/int-s4-real-host-testing-guide.md` — **INT-S4** 真实宿主冒烟步骤协议（E2E / 操作指南）
 - `reports/release-gate-v5-s4.md` — 发布门禁汇总（T1.4.2）
 - `reports/t7-1-1-documentation-traceability-checklist.md` — 文档追溯（T7.1.1）
 
