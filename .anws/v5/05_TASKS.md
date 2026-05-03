@@ -730,7 +730,7 @@ graph TD
 
 ## Sprint 集成验证任务
 
-- [ ] **INT-S1** [MILESTONE]: S1 集成验证 — Host & State Foundation
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Host & State Foundation
   - **描述**: 验证 S1 退出标准，确认 host capability、runtime artifact、基础 state/audit、repair/storage mode 能协作。
   - **输入**: S1 所有任务产出：T1.1.1, T1.1.2, T1.1.3, T4.1.1, T4.1.2, T4.1.3, T4.1.4, T5.1.1, T5.1.2
   - **输出**: `reports/int-s1-host-state-foundation.md`
@@ -745,7 +745,7 @@ graph TD
   - **估时**: 4h
   - **依赖**: T1.1.1, T1.1.2, T1.1.3, T4.1.1, T4.1.2, T4.1.3, T4.1.4, T5.1.1, T5.1.2
 
-- [ ] **INT-S2** [MILESTONE]: S2 集成验证 — Evidence & Rhythm Loop
+- [x] **INT-S2** [MILESTONE]: S2 集成验证 — Evidence & Rhythm Loop
   - **描述**: 验证 S2 退出标准，确认 evidence、snapshot、rhythm decision、candidate planner 和 connector mapping 能形成 heartbeat decision loop。
   - **输入**: S2 所有任务产出：T2.1.1, T2.1.2, T2.1.3, T2.2.1, T3.1.1, T3.1.2, T3.2.1, T4.2.1, T4.2.2
   - **输出**: `reports/int-s2-evidence-rhythm-loop.md`
