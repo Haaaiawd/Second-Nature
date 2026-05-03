@@ -20,6 +20,8 @@ export interface OpenClawDeliverySendResult {
   status: "sent" | "failed" | "dropped_by_host_policy";
   errorClass?: string;
   messageId?: string;
+  /** Host-reported delivery proof when messageId is absent (T4.3.1). */
+  hostProofRef?: SourceRef;
 }
 
 export interface OpenClawDeliveryPort {
@@ -35,6 +37,10 @@ export interface OpenClawDeliveryPort {
 
 function toSourceRefs(refs: CandidateIntent["sourceRefs"]): SourceRef[] {
   return refs.map((r) => ({ ...r }));
+}
+
+function hasDeliveryProof(attempt: OpenClawDeliverySendResult): boolean {
+  return Boolean(attempt.messageId?.trim()) || Boolean(attempt.hostProofRef);
 }
 
 function operatorReasonForUnavailable(verdict: DeliveryTargetResolution["verdict"]): OperatorFallbackReason {
@@ -107,7 +113,7 @@ export async function dispatchUserOutreachIntent(input: {
     sourceRefs: judgment.sourceRefs,
   });
 
-  if (attempt.status !== "sent") {
+  if (attempt.status !== "sent" || !hasDeliveryProof(attempt)) {
     const fb = await writeOperatorFallback(state, {
       reason: "delivery_failed",
       decisionId: judgment.decisionId,
@@ -115,20 +121,25 @@ export async function dispatchUserOutreachIntent(input: {
       candidateMessage: draft.draft.text,
       nextStep: "review_delivery_audit_and_host_capability",
     });
+    const hostReportedSentWithoutProof = attempt.status === "sent" && !hasDeliveryProof(attempt);
     await writeDeliveryAttempt(state, {
       attemptId: attempt.id,
       decisionId: judgment.decisionId,
       target: deliveryResolution.target,
       channel: deliveryResolution.channel,
       status: attempt.status === "dropped_by_host_policy" ? "dropped_by_host_policy" : "failed",
-      errorClass: attempt.errorClass ?? attempt.status,
+      errorClass: hostReportedSentWithoutProof
+        ? "delivery_proof_missing"
+        : attempt.errorClass ?? attempt.status,
       fallbackRef: fb.fallbackRef,
     });
     return {
       scope: "rhythm",
       status: "delivery_unavailable",
       selectedIntentId: candidate.id,
-      reasons: ["delivery_failed", attempt.status],
+      reasons: hostReportedSentWithoutProof
+        ? ["delivery_failed", "delivery_proof_missing"]
+        : ["delivery_failed", attempt.status],
       decisionId: judgment.decisionId,
       deliveryAttemptId: attempt.id,
       fallbackRef: fb.fallbackRef,
@@ -141,7 +152,8 @@ export async function dispatchUserOutreachIntent(input: {
     target: deliveryResolution.target,
     channel: deliveryResolution.channel,
     status: "sent",
-    messageId: attempt.messageId ?? "host_message_id_missing",
+    messageId: attempt.messageId?.trim(),
+    hostProofRef: attempt.hostProofRef,
   });
 
   return {

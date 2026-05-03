@@ -7,6 +7,7 @@ import { PolicyRepository } from "./repositories/policy-repository.js";
 import { createDailyLogPipeline, } from "./services/daily-log-pipeline.js";
 import { createQuietInputLoader, } from "./services/quiet-input-loader.js";
 import { createPersonaCandidateLoader } from "./services/persona-candidate-loader.js";
+import { encryptCredentialAtRest, isCredentialCiphertext } from "./services/credential-vault.js";
 export class DefaultStateAPI {
     database;
     read;
@@ -77,8 +78,11 @@ export class DefaultStateAPI {
             },
             saveCredentialContext: async (input) => {
                 const ctx = input;
+                const raw = ctx.encryptedValue != null ? String(ctx.encryptedValue) : "";
+                const encryptedValue = !raw || isCredentialCiphertext(raw) ? raw : encryptCredentialAtRest(raw);
                 await credentialRepository.upsert({
                     ...ctx,
+                    encryptedValue,
                     updatedAt: ctx.updatedAt ?? new Date().toISOString(),
                 });
             },

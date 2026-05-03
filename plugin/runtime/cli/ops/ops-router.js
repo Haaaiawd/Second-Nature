@@ -8,6 +8,7 @@ export function createOpsRouter(deps) {
         heartbeatCheck: (input) => heartbeatCheck({
             ...input,
             runtimeAvailable: input.runtimeAvailable ?? deps.runtimeAvailable,
+            readModels: input.readModels ?? deps.readModels,
         }),
         dispatch(command, input) {
             if (command === "heartbeat_check") {
@@ -18,6 +19,10 @@ export function createOpsRouter(deps) {
                     fakeControlPlanePassthrough: input?.fakeControlPlanePassthrough && typeof input.fakeControlPlanePassthrough === "object"
                         ? input.fakeControlPlanePassthrough
                         : undefined,
+                    readModels: deps.readModels,
+                    timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
+                    sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
+                    scopeHint: input?.scopeHint,
                 });
             }
             if (command === "fallback") {

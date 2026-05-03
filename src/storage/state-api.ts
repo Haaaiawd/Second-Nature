@@ -20,6 +20,7 @@ import {
   type CurationInputBundle,
 } from "./services/quiet-input-loader.js";
 import { createPersonaCandidateLoader } from "./services/persona-candidate-loader.js";
+import { encryptCredentialAtRest, isCredentialCiphertext } from "./services/credential-vault.js";
 import type { PersonaCandidate, SceneContext } from "../guidance/types.js";
 
 type PolicyState = Omit<NewPolicyRecord, "updatedAt">;
@@ -141,8 +142,12 @@ export class DefaultStateAPI implements StateAPI {
       },
       saveCredentialContext: async (input: unknown) => {
         const ctx = input as Parameters<typeof credentialRepository.upsert>[0];
+        const raw = ctx.encryptedValue != null ? String(ctx.encryptedValue) : "";
+        const encryptedValue =
+          !raw || isCredentialCiphertext(raw) ? raw : encryptCredentialAtRest(raw);
         await credentialRepository.upsert({
           ...ctx,
+          encryptedValue,
           updatedAt: ctx.updatedAt ?? new Date().toISOString(),
         });
       },

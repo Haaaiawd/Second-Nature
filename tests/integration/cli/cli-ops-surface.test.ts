@@ -1,4 +1,4 @@
-import test from "node:test";
+import test, { beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -13,6 +13,10 @@ import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { createObservabilityDatabase } from "../../../src/observability/db/index.js";
 import { decisionLedger, executionAttempts, governanceAudit } from "../../../src/observability/db/schema/index.js";
 import { resolveDailyReportPath } from "../../../src/storage/memory/workspace/paths.js";
+
+beforeEach(() => {
+  process.env.SECOND_NATURE_ENCRYPTION_KEY = "abcdefghijklmnopqrstuvwxyz123456";
+});
 
 const STATE_TEST_SCHEMA = `
   CREATE TABLE IF NOT EXISTS credential_records (

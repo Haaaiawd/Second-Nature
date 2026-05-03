@@ -7,6 +7,7 @@ import type { CandidateIntent } from "../types.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import type { HeartbeatCycleResult } from "../heartbeat/signal.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
+import type { SourceRef } from "../../../storage/life-evidence/types.js";
 import { type JudgeOutreachInput } from "./judge-outreach.js";
 import { type DeliveryTargetResolution } from "./delivery-target.js";
 export interface OpenClawDeliverySendResult {
@@ -14,6 +15,8 @@ export interface OpenClawDeliverySendResult {
     status: "sent" | "failed" | "dropped_by_host_policy";
     errorClass?: string;
     messageId?: string;
+    /** Host-reported delivery proof when messageId is absent (T4.3.1). */
+    hostProofRef?: SourceRef;
 }
 export interface OpenClawDeliveryPort {
     sendDeliveryRequest(input: {

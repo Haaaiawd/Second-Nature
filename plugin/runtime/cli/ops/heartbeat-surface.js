@@ -1,4 +1,18 @@
-export function heartbeatCheck(input) {
+import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
+function mapCycleToSurface(cycle, surfaceMode) {
+    const status = cycle.status === "runtime_carrier_only" ? "runtime_carrier_only" : cycle.status;
+    return {
+        ok: true,
+        status,
+        surfaceMode,
+        decisionId: cycle.decisionId,
+        deliveryAttemptId: cycle.deliveryAttemptId,
+        fallbackRef: cycle.fallbackRef,
+        reasons: cycle.reasons,
+        livedExperienceLoopClaimed: false,
+    };
+}
+export async function heartbeatCheck(input) {
     if (!input.runtimeAvailable) {
         return {
             ok: true,
@@ -31,11 +45,27 @@ export function heartbeatCheck(input) {
             schemaParityOnly: true,
         };
     }
-    return {
-        ok: true,
-        status: "heartbeat_ok",
-        surfaceMode: "workspace_full_runtime",
-        reasons: ["s1_placeholder_no_decision_loop"],
-        livedExperienceLoopClaimed: false,
+    if (!input.readModels) {
+        return {
+            ok: true,
+            status: "heartbeat_ok",
+            surfaceMode: "workspace_full_runtime",
+            reasons: ["heartbeat_read_models_unavailable"],
+            livedExperienceLoopClaimed: false,
+        };
+    }
+    const timestamp = typeof input.timestamp === "string" && input.timestamp.trim().length > 0
+        ? input.timestamp.trim()
+        : new Date().toISOString();
+    const signal = {
+        trigger: "heartbeat_bridge",
+        scopeHint: input.scopeHint,
+        payload: {
+            timestamp,
+            sessionContext: typeof input.sessionContext === "string" ? input.sessionContext : undefined,
+        },
     };
+    const run = createWorkspaceHeartbeatRunner(input.readModels);
+    const cycle = await run(signal);
+    return mapCycleToSurface(cycle, "workspace_full_runtime");
 }

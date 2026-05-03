@@ -81,6 +81,32 @@ test("T2.3.2 delivery failed writes attempt + operator fallback and returns deli
   state.close();
 });
 
+test("T2.3.2 host sent without messageId or hostProofRef is delivery_unavailable with delivery_proof_missing", async () => {
+  const state = createStateDatabase(":memory:");
+  const guidance = createDraftOutreachMessagePort();
+  const result = await dispatchUserOutreachIntent({
+    candidate: { ...candidate, id: "c-no-proof" },
+    snapshot: makeSnapshot("2026-05-02T14:10:00.000Z"),
+    judgeInput: judgeBase,
+    guidance,
+    delivery: {
+      sendDeliveryRequest: async () => ({
+        id: "att-no-proof",
+        status: "sent",
+      }),
+    },
+    state,
+  });
+
+  assert.equal(result.status, "delivery_unavailable");
+  assert.ok(result.fallbackRef?.startsWith("fallback:"));
+  const rows = await listDeliveryAttemptsByDecisionId(state, result.decisionId!);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].status, "failed");
+  assert.equal(rows[0].errorClass, "delivery_proof_missing");
+  state.close();
+});
+
 test("T2.3.2 dropped_by_host_policy writes attempt + fallback", async () => {
   const state = createStateDatabase(":memory:");
   const guidance = createDraftOutreachMessagePort();

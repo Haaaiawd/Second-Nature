@@ -2,18 +2,26 @@
  * Shared ops command dispatch for CLI + tool surfaces (T1.1.3, T1.2.2).
  */
 import { heartbeatCheck, type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
-import { showOperatorFallback, OperatorFallbackNotFoundError, type ShowOperatorFallbackReadModels } from "./show-operator-fallback.js";
+import { showOperatorFallback, OperatorFallbackNotFoundError } from "./show-operator-fallback.js";
+import type { CliReadModels } from "../read-models/index.js";
 
 export interface OpsRouterDeps {
   /** When true, packaged runtime artifacts resolved and full graph is loadable */
   runtimeAvailable: boolean;
-  /** When set, `dispatch("fallback", { ref })` returns operator fallback view (T1.2.2). */
-  readModels?: ShowOperatorFallbackReadModels;
+  /** Workspace read models: fallback view + heartbeat decision loop inputs (T1.2.2 / US-001). */
+  readModels?: CliReadModels;
 }
 
 export interface OpsRouter {
-  heartbeatCheck(input: HeartbeatCheckInput): HeartbeatSurfaceResult;
-  dispatch(command: string, input?: Record<string, unknown>): HeartbeatSurfaceResult | Record<string, unknown> | Promise<Record<string, unknown>>;
+  heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;
+  dispatch(
+    command: string,
+    input?: Record<string, unknown>,
+  ):
+    | HeartbeatSurfaceResult
+    | Record<string, unknown>
+    | Promise<HeartbeatSurfaceResult>
+    | Promise<Record<string, unknown>>;
 }
 
 export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
@@ -22,6 +30,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
       heartbeatCheck({
         ...input,
         runtimeAvailable: input.runtimeAvailable ?? deps.runtimeAvailable,
+        readModels: input.readModels ?? deps.readModels,
       }),
     dispatch(command, input) {
       if (command === "heartbeat_check") {
@@ -34,6 +43,10 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             input?.fakeControlPlanePassthrough && typeof input.fakeControlPlanePassthrough === "object"
               ? (input.fakeControlPlanePassthrough as Record<string, unknown>)
               : undefined,
+          readModels: deps.readModels,
+          timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
+          sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
+          scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],
         });
       }
       if (command === "fallback") {
