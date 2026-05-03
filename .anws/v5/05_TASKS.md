@@ -136,6 +136,25 @@ graph TD
   - **依赖**: T1.1.1
   - **优先级**: P0
 
+- [ ] **T1.1.4** [REQ-019]: OpenClaw 插件 — workspace 根已知时的 **full ops / Quiet 读路径桥接**（受控）
+  - **用户原话承接**: 「不允许」插件面仅 carrier 拒绝 Quiet；须在 **可解析 workspace** 条件下提供 **真实 Quiet / heartbeat 读结果或诚实失败**，不得回退假读模型。
+  - **描述**: 在 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot` 解析为 `env`/`tool_args` 时，经 **惰性动态加载**（保持 `register()` 同步）装配与 CLI 等价的 `CliReadModels` + `createOpsRouter`，使 `second_nature_ops` 的 `heartbeat_check` 与 **同一读桥** 下的只读命令可走与 CLI 一致的 read model 路径（含 `heartbeatCheck(..., readModels)` → `runHeartbeatCycle`）；`workspaceRootResolution === "unknown"` 时 **维持** 当前 `ok: false` / `evaluated: false` 诚实语义（含 CH-11-02：`explain` 不得维持 carrier 上 `ok: true` 半成功形状）。备选实现：受控 **子进程** 调用 workspace CLI（Plan B），须在任务验收中二选其一或并列说明宿主约束。
+  - **输入**: `plugin/index.ts`；`src/cli/index.ts`；`src/cli/ops/heartbeat-surface.ts`；`src/cli/ops/workspace-heartbeat-runner.ts`；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`；`explore/reports/2026-05-03_t1-1-4-bridge-prd-feasibility.md`；`.anws/v5/07_CHALLENGE_REPORT.md`（Round 11 CH-11-01/02）；`docs/validation/int-s4-human-operator-testing-guide.md`
+  - **输出**: 插件内 bridge 模块（或等价内联段）+ 集成测；README / host 指南中 **「根已知 = 可跑 full 读路径」** 的运维句；INT-S4 验证说明补丁
+  - **契约承接**: ADR-006 包边界；ADR-005 runtime 分层；US-001 / US-006 在 **OpenClaw 插件 + 已知 workspace** 组合下的可观测性
+  - **验收标准**:
+    - Given `workspaceRootResolution` 为 `env` 或 `tool_args` 且 state DB 可打开
+    - When 调用 `second_nature_ops` 的 `heartbeat_check`、`quiet`、聚合 `status`，以及 **至少** `explain`（有效 `subject`）、`fallback`（有效 `ref`）、`report` / `session` / `credential`（show）中与桥接实现范围一致的子集
+    - Then 返回结果与 **同路径 CLI** 的 `HeartbeatSurfaceResult`、对应 read model（`loadQuiet` / `loadStatus` / `explainSurfaceSubject` / `showOperatorFallback` / `loadDailyReport` / `loadSession` / `loadCredential`）语义一致或给出 **同级的显式错误**（非假空）；且 `livedExperienceLoopClaimed` 与事实一致
+    - Given `workspaceRootResolution === "unknown"`
+    - When 调用上述命令（含带参数的 `explain`）
+    - Then 仍不得返回「已评估读模型」形状（保持 CH-10 诚实语义）；**且** `explain` 必须与 `status`/`quiet` 同族：`ok: false` + 明确 `error.code` **或** 任务实施前在 `05_TASKS` 中写死并评审通过的单一替代信封（默认推荐 `ok: false` 对齐 CH-11-02）
+  - **验证类型**: 集成测试（fixture workspace）+ 文档；**真实宿主** 归入 INT-S4
+  - **验证说明**: 新增/扩展 `plugin-runtime-registration` 或专用集成测覆盖「根已知桥接」与「根 unknown 仍拒绝」；不得删除现有 carrier-only 基线测例。
+  - **估时**: 12h（含沙箱风险缓冲）
+  - **依赖**: T1.1.1, T1.1.3, T2.2.1（decision loop 行为以现有 `runHeartbeatCycle` 为准）
+  - **优先级**: P0
+
 ### Phase 2: Read Models
 
 - [x] **T1.2.1** [REQ-019]: 实现 status / audit / explain / capability report read models
@@ -776,17 +795,17 @@ graph TD
   - **依赖**: T6.1.1, T6.1.2, T6.2.1, T2.3.1, T2.3.2, T2.3.3, T4.3.1, T4.4.1, T5.2.1, T5.2.2
 
 - [ ] **INT-S4** [MILESTONE]: S4 集成验证 — Packaging / Host Smoke / Docs
-  - **描述**: 验证 S4 退出标准，确认 packaged plugin、host smoke、ops explain、platform near-real path、README 边界和 release gate 可复现。
-  - **输入**: S4 所有任务产出：T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
+  - **描述**: 验证 S4 退出标准，确认 packaged plugin、host smoke、ops explain、platform near-real path、README 边界和 release gate 可复现；**若 T1.1.4 已交付**：在真实宿主上增加 **workspace 根已知** 场景下 `heartbeat_check` / `quiet` 与 CLI 语义对齐或诚实失败的证据（见 `docs/validation/int-s4-human-operator-testing-guide.md`）。
+  - **输入**: S4 所有任务产出：T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1；**T1.1.4**（插件 workspace 桥接，可选纳入同一宿主波次）
   - **输出**: `reports/int-s4-release-readiness.md`
   - **契约承接**: host smoke report、fallback visibility、README truth boundary、release gate
-  - **📎 参考**: `cli-system.md` §12.2；`01_PRD.md` US-008
+  - **📎 参考**: `cli-system.md` §12.2；`01_PRD.md` US-008；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`
   - **验收标准**:
     - Given package artifact 与 host smoke plan 已准备
     - When 执行 release readiness 验证
     - Then package load、heartbeat_check、target none、ack drop、heartbeat_tool_not_invoked、fallback visibility、README boundary 均有 pass/fail/unknown 证据
   - **验证类型**: 冒烟测试 / 手动验证
-  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。
+  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。
   - **估时**: 4h
   - **依赖**: T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
 
