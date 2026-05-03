@@ -116,44 +116,48 @@ Second Nature 不只是让 agent 去行动，也会把关键过程留下来。
 
 ---
 
-## 当前形态
+## v5：当前 / 目标 / 待宿主验证
 
-Second Nature 现在的真相源已经切到 `.anws/v3`。
+**规范契约（canonical）** 在 **`.anws/v5`**（`01_PRD.md`、`02_ARCHITECTURE_OVERVIEW.md`、`03_ADR/`、`04_SYSTEM_DESIGN/`、`05_TASKS.md`）。`.anws/v3`、`.anws/v4` 为历史材料，除非正文另有说明。
 
-- plugin 的核心表面层已经接好
-- v3 behavioral guidance 这条线已经落地
-- guidance 模板已经完成人工审核
-- 当前任务板已经收口，`.anws/v3/05_TASKS.md` 里没有未完成任务
+本节用于避免把 **「宿主安全的心跳载体」** 或 **仓库 CI** 误读成「我的真实 OpenClaw 上完整生活闭环已结束」。
 
-### 宿主验证
+### 当前（本仓库已验证）
 
-已经在 `D:\QClaw` 捆绑的 OpenClaw runtime 中完成本地主机侧 plugin surface 验证。
+由 **`pnpm test`**（含 `pnpm build` + `pnpm build:plugin`）及 `reports/int-s1-host-state-foundation.md`、`reports/int-s2-evidence-rhythm-loop.md`、`reports/int-s3-outreach-delivery-quiet.md` 汇总：
 
-- install ✅
-- enable ✅
-- list ✅
-- info ✅
-- doctor ✅
-- sync register ✅
-- runtime activation evidence ✅
+- **打包 runtime**（`plugin/runtime/`，不依赖仓内 `src/` 作为运行时来源）。
+- **`second_nature_ops("heartbeat_check")`**；区分 `runtime_carrier_only` 与完整决策链。
+- **宿主能力探测** `HostCapabilityReport` 及测试内持久化。
+- **宿主 smoke fixture**（`heartbeat_tool_not_invoked`、文档与实测冲突等），**非** CI 上的真实 OpenClaw 会话。
+- **控制面**：节律路由、候选规划、主动联系裁决、投递失败 / 策略丢弃兜底、带 source gate 的 Quiet 编排。
+- **状态与可观测性**：life evidence 快照、投递记录、operator fallback（`not_sent`）、审计 hash 链、`queryExplain` / export。
+- **连接器**：契约、执行策略 / 幂等；**near-real** Moltbook `feed.read` + EvoMap `work.discover` 与 dry `task.claim`（T3.3.1）。
 
-这里坐实的是 plugin surface 本身，以及背后的最小 runtime spine。
-这不应该被理解成 full heartbeat bridge、connector orchestration 或 Quiet 闭环已经全部完成。
+### 目标（v5 设计意图；CI 不证明「你的宿主」）
 
-云端宿主闭环仍需按专用 checklist 继续复测。
+- 在生产 OpenClaw 上可验证的 **用户可见投递**、完整 ack / channel / hook 矩阵。
+- 超出 near-real smoke 的 **EvoMap** 等全生命周期。
+- **云端**持久化与运维收口。
 
-**已发布的 npm 包（Gateway）**：插件在进程内注册的是 **host-safe** 路由（`runtime_carrier_only`）。`status` 里空的 `connectors`、凭证占位、以及受限的 `policy` / `audit` 路径在该模式下是**预期行为**，不能单独当作「连接器坏了」。`second_nature_ops` 的 smoke 场景与 JSON 形态见 `.anws/v4/04_SYSTEM_DESIGN/cli-system.md` 的 **§5.1.1、§5.1.2**。
+### 待宿主验证（必须由你在目标环境执行）
 
-### 仍然值得继续补强的地方
+- 模型/工具链是否实际调用 `heartbeat_check`（`heartbeat_tool_not_invoked` 风险）。
+- 真实 **delivery target** vs `target_none`、ack / 策略丢弃行为。
+- 你的凭证、`workspace/` 锚点与连接器可达性。
 
-- 更清楚的平台能力说明，尤其是 EvoMap 任务流
-- connector 执行链路与运行时闭环的进一步打磨
-- 云端部署时的持久化与宿主环境收口
+见 **`reports/int-s4-release-readiness.md`**、**`reports/release-gate-v5-s4.md`**（T1.4.2）。
 
-### 当前已知但不阻塞的问题
+### 示例：历史机器上的宿主清单
+
+曾在 `D:\QClaw` 等环境做过的 install surface 检查，仅代表**当时该机**；**不是** v5 契约本身。
+
+### 示例：已知但不阻塞的宿主告警
 
 - `plugin id mismatch`
 - `plugins.allow is empty`
+
+**Gateway / 仅 carrier**：仅加载 carrier 时，空的 `connectors`、占位凭据、受限 `policy` / `audit` 可为**预期**。操作者 JSON 形态见 **`.anws/v5/04_SYSTEM_DESIGN/cli-system.md`**（§5）。
 
 ---
 
@@ -273,34 +277,31 @@ CLI 目前也提供这些读与恢复入口：
 - `session`
 - `explain`
 
-这些入口已经够做基础检查和恢复。`audit` 这类更完整的审计视图还在后续收口中。
+这些入口已经够做基础检查和恢复。更深审计与 explain 与 v5 observability 任务对齐；见 `.anws/v5/05_TASKS.md`。
 
 ---
 
 ## 架构快照
 
-Second Nature 当前分成六个系统：
+**v5** 六大系统（见 `.anws/v5/02_ARCHITECTURE_OVERVIEW.md`）：
 
-- `cli-system` 负责配置、解释、恢复和 operator-facing 视图
-- `control-plane-system` 负责节律、意图、Quiet、恢复和主动联系编排
-- `connector-system` 负责能力契约和执行适配层
-- `state-system` 负责本地状态、记忆资产、治理写入和凭证所有权
-- `observability-system` 负责证据、遥测、脱敏和治理审计
-- `behavioral-guidance-system` 负责 runtime atmosphere、behavioral impulses、persona reinforcement 与 output guard
+- `cli-system` — OpenClaw command/tool/service、打包 runtime、能力探测、宿主 smoke、operator 读模型
+- `control-plane-system` — 心跳决策链、节律窗口、主动联系裁决、投递策略、Quiet 编排
+- `connector-system` — manifest、执行适配、幂等 / 策略层、near-real smoke
+- `state-system` — life evidence、快照、投递持久化、Quiet 产物、repair gate
+- `observability-system` — 决策痕迹、投递审计、hash 链、explain/export
+- `behavioral-guidance-system` — evidence pack、outreach 草稿、Quiet 引导（不拥有投递权）
 
-架构与任务的真相源统一在 `.anws/v3`。
+**真相源**：`.anws/v5/`（不是 v3）。
 
-### 一次运行大致会经过什么
+### 一次运行（设计级）
 
-如果把当前已经验证过的运行链压成一条直线去看，大概是这样：
+1. OpenClaw 加载插件并完成表面注册。
+2. 完整 runtime 可用时，`heartbeat_check` 可进入 lived-experience：快照 → 节律窗口 → 候选 → 守卫 → 可选主动联系 / Quiet。
+3. runtime **不可用** 时，响应保持 **host-safe**（`runtime_carrier_only`），**不**暗示完整决策链已跑完。
+4. 可观测性记录决策、投递结果、fallback 与连接器尝试，供 explain 使用。
 
-1. OpenClaw 先通过 command / tool / service surface 加载 plugin。
-2. 注册流程会在宿主返回前同步完成，不再依赖被忽略的 async register。
-3. runtime spine 会把 activation / reload evidence 写进 observability。
-4. `status` 会把 runtime liveness 和 connector execution attempts 分开读取。
-5. 更深的 control-plane rhythm、connector 执行链和 Quiet 闭环仍在后续阶段继续收口。
-
-节律层给系统的是硬窗口，窗口里的动作依然保留弹性。这样跑起来会更有方向感，也更像一个长期存在的 agent。
+节律层约束「何时可出现何类意图」；守卫与策略决定「是否允许」——尤其是用户可见主动联系。
 
 ---
 
@@ -328,19 +329,23 @@ Second Nature 当前分成六个系统：
 
 ## 验证与报告
 
-验证产物位于 `docs/validation/`。当前与 v3 guidance 相关的报告包括：
+**v5 里程碑报告**（本仓库、CI 支撑）：
+
+- `reports/int-s1-host-state-foundation.md` — S1 宿主与状态基础
+- `reports/int-s2-evidence-rhythm-loop.md` — S2 证据与节律
+- `reports/int-s3-outreach-delivery-quiet.md` — S3 联系、投递、Quiet
+- `reports/int-s4-release-readiness.md` — S4 发布就绪（**真实宿主**部分需现场补全）
+- `reports/release-gate-v5-s4.md` — 发布门禁汇总（T1.4.2）
+- `reports/t7-1-1-documentation-traceability-checklist.md` — 文档追溯（T7.1.1）
+
+**历史** v3 guidance 报告（仍在树中，非 v5 契约）：
 
 - `docs/validation/v3-s1-guidance-core-report.md`
 - `docs/validation/v3-s2-humanized-runtime-report.md`
 
-端到端 operator 路径记录在 `docs/operator-walkthrough.md`。
+operator 路径：`docs/operator-walkthrough.md`。
 
-如果你想直接回到架构与任务账本，建议从这里开始：
-
-- `.anws/v3/02_ARCHITECTURE_OVERVIEW.md`
-- `.anws/v3/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
-- `.anws/v3/05_TASKS.md`
-- `AGENTS.md`
+**下一步阅读**：`.anws/v5/02_ARCHITECTURE_OVERVIEW.md`、`.anws/v5/05_TASKS.md`、`AGENTS.md`。
 
 ---
 
