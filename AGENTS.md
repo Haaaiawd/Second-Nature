@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-03` (Wave 13)
+- **最近一次更新**: `2026-05-03` (Wave 14)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -175,9 +175,9 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 40, P0: 27, P1: 9, P2: 0
+- 总任务数: 40, P0: 27, P1: 9, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟）
 - Sprint 数: 4
-- Wave 13 建议: T1.4.1, T1.4.2, T7.1.1 → 收口 INT-S4（真实宿主冒烟）；INT-S1 / INT-S2 追溯报告已落地
+- Wave 14 建议: 在目标 OpenClaw 宿主执行 INT-S4 真实冒烟并勾选里程碑；其余 Level-3 与文档门禁已闭合
 - 最近更新: `2026-05-03`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -218,6 +218,9 @@ T3.3.1（`runNearRealConnectorSmoke`：Moltbook `feed.read` + EvoMap `work.disco
 
 ### 🌊 Wave 13 ✅ — S1/S2 integration verification reports
 INT-S1（`reports/int-s1-host-state-foundation.md`）：capability probe 持久化、storage mode smoke、repair gate、packaged `storage_smoke` 与 runtime 边界测试映射。INT-S2（`reports/int-s2-evidence-rhythm-loop.md`）：heartbeat 脊柱 + decision loop 与 connector/evidence 契约测试映射。
+
+### 🌊 Wave 14 ✅ — README truth + release gate + doc traceability
+T1.4.1（`README.md` / `README.zh-CN.md`：`.anws/v5` 为契约、current / target / validation-needed）；T1.4.2（`reports/release-gate-v5-s4.md`）；T7.1.1（`reports/t7-1-1-documentation-traceability-checklist.md`）；`reports/int-s4-release-readiness.md` 阻塞表同步。未决：**INT-S4** 真实宿主冒烟与里程碑勾选。
 
 <!-- AUTO:END -->
 

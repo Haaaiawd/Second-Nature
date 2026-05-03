@@ -190,7 +190,7 @@ graph TD
 
 ### Phase 4: Documentation Boundary
 
-- [ ] **T1.4.1** [REQ-026]: README current / target / validation-needed 边界更新
+- [x] **T1.4.1** [REQ-026]: README current / target / validation-needed 边界更新
   - **描述**: 更新 README，明确当前已验证能力、v5 target 能力和 host validation needed，不再把 v4 heartbeat ack 表述成完整生活闭环。
   - **输入**: `01_PRD.md` US-008；`04_SYSTEM_DESIGN/cli-system.md` §2.1；`07_CHALLENGE_REPORT.md` P1 建议；T1.1.2 capability report；T1.3.1 host smoke report；T1.2.2 fallback view
   - **输出**: README current shape / target / validation-needed 章节
@@ -206,7 +206,7 @@ graph TD
   - **依赖**: T1.1.2, T1.3.1, T1.2.2
   - **优先级**: P1
 
-- [ ] **T1.4.2** [REQ-026]: 发布门禁报告与 package host smoke 汇总
+- [x] **T1.4.2** [REQ-026]: 发布门禁报告与 package host smoke 汇总
   - **描述**: 生成 release gate 报告，汇总 package contents、plugin install/load、heartbeat_check、target none、ack drop、delivery target availability、fallback visibility。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §12.2；T1.3.1 host smoke；T4.1.4 storage mode smoke；T1.4.1 README 更新
   - **输出**: release gate report artifact
@@ -710,7 +710,7 @@ graph TD
 
 ### Phase 1: Traceability Review
 
-- [ ] **T7.1.1** [REQ-026]: 文档契约一致性检查
+- [x] **T7.1.1** [REQ-026]: 文档契约一致性检查
   - **描述**: 对 PRD、ADR、System Design、05_TASKS、README 进行 traceability review，确认 current truth 指向 `.anws/v5`，且 challenge 必须承接项均在任务中。
   - **输入**: `01_PRD.md` US-008；`07_CHALLENGE_REPORT.md` P0/P1 建议；T1.4.1 README；本文件 Contract Coverage Overlay
   - **输出**: documentation traceability checklist
@@ -840,7 +840,7 @@ graph TD
 **涉及任务**: T1.4.1 → T1.4.2 → T7.1.1 → INT-S4  
 **关键路径**: T1.4.1 → T7.1.1  
 **独立可测**: ✅ S4 文档审查可验  
-**覆盖状态**: ✅ 完整
+**覆盖状态**: ✅ 文档与门禁已落地；真实宿主验证 ⏳ INT-S4
 
 ---
 
@@ -864,7 +864,7 @@ graph TD
 | `queryExplain` / `exportAuditBundle` | operator explain / audit export | T5.3.1 | T5.3.1 | ✅ |
 | `OperatorFallbackArtifact.status = not_sent` | fallback 文件格式 | T4.3.1, T1.2.2 | T1.2.2, T4.3.1 | ✅ |
 | Quiet empty evidence | 关键用户路径 | T4.4.1, T6.1.2, T2.3.3 | T4.4.1, T6.1.2, T2.3.3, INT-S3 | ✅ |
-| README truth boundary | 文档契约 | T1.4.1 | T7.1.1, INT-S4 | ✅ |
+| README truth boundary | 文档契约 | T1.4.1, T1.4.2, T7.1.1 | T7.1.1, INT-S4（宿主 ⏳） | ✅ |
 
 ---
 

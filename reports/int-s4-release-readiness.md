@@ -1,7 +1,7 @@
 # INT-S4 — Release readiness (partial)
 
-**Date**: 2026-05-03  
-**状态**: **里程碑 INT-S4 未勾选完成** — 依赖任务 `T1.2.2`, `T3.3.1`, `T1.4.1`, `T1.4.2`, `T7.1.1` 仍待交付；本文件记录**本波次已绿**项与阻塞项。
+**Date**: 2026-05-03（更新）  
+**状态**: **里程碑 INT-S4 仍未勾选完成** — 代码侧 S4 依赖任务已交付；**真实宿主冒烟**与 INT-S4 报告勾选仍待操作者在生产/准生产 OpenClaw 上补证据。
 
 ## 本波次已交付（可自动化证据）
 
@@ -9,18 +9,20 @@
 |----|------|
 | T5.3.1 `queryExplain` / `exportAuditBundle` | `tests/integration/observability/explain-query-export.test.ts`；`pnpm test` |
 | T1.2.1 ops explain surface + `explainSurfaceSubject` + 可选 `livedExperienceAuditStore` | `tests/integration/cli/t1-2-1-explain-read-models.test.ts`；`explainSurfaceSubject`：`src/cli/explain/explain-surface-subject.ts` |
+| T1.2.2 `showOperatorFallback` / CLI `fallback` | `tests/unit/cli/operator-fallback-view.test.ts`；相关 CLI 集成测 |
 | T1.3.1 `runHostSmoke`（含 `heartbeat_tool_invocation` / `docs_vs_observed_conflict` fixture） | `tests/integration/cli/host-smoke-heartbeat-tool.test.ts`；`src/cli/host-smoke/run-host-smoke.ts` |
+| T3.3.1 near-real connector smoke | `tests/integration/connectors/near-real-connector-smoke.test.ts` |
+| T1.4.1 README current / target / validation-needed | `README.md`、`README.zh-CN.md` |
+| T1.4.2 release gate 汇总 | `reports/release-gate-v5-s4.md` |
+| T7.1.1 文档追溯 checklist | `reports/t7-1-1-documentation-traceability-checklist.md` |
 | `pnpm exec tsc --noEmit` + `pnpm test`（含 `pnpm build:plugin`） | 全绿 |
 
-## 仍为 `validation-needed` / `blocked_by`（INT-S4 退出标准）
+## 仍为 `validation-needed`（INT-S4 退出标准）
 
 | 阻塞 | 说明 |
 |------|------|
-| `T1.2.2` | operator `showOperatorFallback` / CLI fallback 视图 — INT-S4「fallback visibility」完整证据链 |
-| `T3.3.1` | platform near-real path |
-| `T1.4.1` / `T1.4.2` | README 边界 + release gate 报告模板 |
-| `T7.1.1` | 文档 traceability review |
-| **真实宿主冒烟** | `05_TASKS.md` INT-S4 要求仅在本 INT 执行；当前为 **fixture / near-real 逻辑**，非生产 OpenClaw E2E |
+| **真实宿主冒烟** | `05_TASKS.md` INT-S4：仅在目标 OpenClaw 宿主执行并记录 pass/fail/unknown；CI fixture **不**闭合此项 |
+| **INT-S4 里程碑勾选** | 需在完成上项后更新 `.anws/v5/05_TASKS.md` 中 `INT-S4` 与 `AGENTS.md` Wave 结算 |
 
 ## 命令
 
