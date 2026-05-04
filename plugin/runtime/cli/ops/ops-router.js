@@ -3,6 +3,10 @@
  */
 import { heartbeatCheck } from "./heartbeat-surface.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError } from "./show-operator-fallback.js";
+function coerceProbeOnlyFlag(input) {
+    const v = input?.probeOnly;
+    return v === true || v === "true" || v === 1 || v === "1";
+}
 export function createOpsRouter(deps) {
     return {
         heartbeatCheck: (input) => heartbeatCheck({
@@ -14,12 +18,12 @@ export function createOpsRouter(deps) {
             if (command === "heartbeat_check") {
                 const runtimeAvailable = typeof input?.runtimeAvailable === "boolean" ? input.runtimeAvailable : deps.runtimeAvailable;
                 return heartbeatCheck({
-                    probeOnly: Boolean(input?.probeOnly),
+                    probeOnly: coerceProbeOnlyFlag(input),
                     runtimeAvailable,
                     fakeControlPlanePassthrough: input?.fakeControlPlanePassthrough && typeof input.fakeControlPlanePassthrough === "object"
                         ? input.fakeControlPlanePassthrough
                         : undefined,
-                    readModels: deps.readModels,
+                    readModels: input?.readModels ?? deps.readModels,
                     timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
                     sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
                     scopeHint: input?.scopeHint,

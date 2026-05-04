@@ -233,6 +233,47 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
   assert.equal(toolPayload.data.bridge.serviceEntryMode, commandPayload.data.bridge.serviceEntryMode);
 });
 
+test("T1.2.3 carrier heartbeat_check honors probeOnly via tool (capability_probe)", async () => {
+  delete process.env.SECOND_NATURE_WORKSPACE_ROOT;
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown> },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const toolResult = await tool.execute("1", {
+    command: "heartbeat_check",
+    args: { probeOnly: true, timestamp: "2026-04-28T10:00:00.000Z" },
+  });
+  const payload = JSON.parse(toolResult.content[0]?.text ?? "{}") as {
+    ok: boolean;
+    status: string;
+    surfaceMode: string;
+    reasons: string[];
+    livedExperienceLoopClaimed?: boolean;
+    data?: { bridge?: { serviceEntryMode?: string } };
+  };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.status, "heartbeat_ok");
+  assert.equal(payload.surfaceMode, "capability_probe");
+  assert.equal(payload.livedExperienceLoopClaimed, false);
+  assert.ok(payload.reasons.includes("probe_only"));
+  assert.equal(payload.data?.bridge?.serviceEntryMode, "capability_probe");
+});
+
 test("T4.1.4 second_nature_ops storage_smoke uses packaged runtime path", async () => {
   const plugin = await loadPlugin();
   let tool:

@@ -5,6 +5,11 @@ import { heartbeatCheck, type HeartbeatCheckInput, type HeartbeatSurfaceResult }
 import { showOperatorFallback, OperatorFallbackNotFoundError } from "./show-operator-fallback.js";
 import type { CliReadModels } from "../read-models/index.js";
 
+function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
+  const v = input?.probeOnly;
+  return v === true || v === "true" || v === 1 || v === "1";
+}
+
 export interface OpsRouterDeps {
   /** When true, packaged runtime artifacts resolved and full graph is loadable */
   runtimeAvailable: boolean;
@@ -37,13 +42,13 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         const runtimeAvailable =
           typeof input?.runtimeAvailable === "boolean" ? input.runtimeAvailable : deps.runtimeAvailable;
         return heartbeatCheck({
-          probeOnly: Boolean(input?.probeOnly),
+          probeOnly: coerceProbeOnlyFlag(input),
           runtimeAvailable,
           fakeControlPlanePassthrough:
             input?.fakeControlPlanePassthrough && typeof input.fakeControlPlanePassthrough === "object"
               ? (input.fakeControlPlanePassthrough as Record<string, unknown>)
               : undefined,
-          readModels: deps.readModels,
+          readModels: (input as Partial<HeartbeatCheckInput> | undefined)?.readModels ?? deps.readModels,
           timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
           sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
           scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],

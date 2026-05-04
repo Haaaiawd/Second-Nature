@@ -53,7 +53,8 @@
 ### D3 — 「这一轮心跳算跑完了吗？」
 
 - **问**：`heartbeat_check` 让我安心还是让我误以为跑完了一整轮 lived experience？  
-- **新语义期望**：应感到 **「 ack 了载体，但没 claim 闭环」** — 顶层 `status: "runtime_carrier_only"`，`surfaceMode: "host_safe_carrier"`（与其它 carrier 命令一致），`livedExperienceLoopClaimed: false`，`nextAction: "continue_carrier_surface_only"`，`reasons` 含 `runtime_carrier_only` / `host_safe_bridge_ack`；**没有** `HEARTBEAT_OK` 字符串当成功图腾。  
+- **新语义期望**：应感到 **「 ack 了载体，但没 claim 闭环」** — 顶层 `status: "runtime_carrier_only"`，`surfaceMode: "host_safe_carrier"`（与其它 carrier 命令一致），`livedExperienceLoopClaimed: false`，`nextAction: "continue_carrier_surface_only"`，`reasons` 含 `runtime_carrier_only` / `host_safe_bridge_ack`；**没有** `HEARTBEAT_OK` 字符串当成功图腾。
+- **probeOnly**：若在 `args` 里设 `probeOnly: true`（或字符串 `"true"`），carrier 与 CLI 一致为 `status: "heartbeat_ok"` + `surfaceMode: "capability_probe"` + `reasons` 含 `probe_only`，**不**再走 `runtime_carrier_only` ack 形状；这与「探活 / 探针」语义一致，仍 **`livedExperienceLoopClaimed: false`**。  
 - **若仍出现 `HEARTBEAT_OK` / `heartbeat_ok` 当顶层成功**：旧包。
 
 ### D4 — 「根目录对不对？」
@@ -89,7 +90,7 @@
 你是操作者验收 Second Nature（post carrier-honesty 版本）。请只做工具调用、不要编故事：
 1) second_nature_ops command=status — 把完整 JSON 贴出。判断：若 ok 为 true 且出现大量空 connectors/credentials，判 FAIL（旧语义）。
 2) second_nature_ops command=quiet — 贴完整 JSON。判断：若 ok 为 false 且含 evaluated:false 与 unavailableReason，判 PASS（诚实）；若 quiet.mode 为 unknown 且 ok 为 true，判 FAIL（旧包）。
-3) second_nature_ops command=heartbeat_check — 贴完整 JSON。判断：若顶层 `status` 为 `runtime_carrier_only` 且含 `surfaceMode: "host_safe_carrier"`、无 `HEARTBEAT_OK`，判 PASS；否则 FAIL。
+3) second_nature_ops command=heartbeat_check — 贴完整 JSON（默认无 `probeOnly`）。判断：若顶层 `status` 为 `runtime_carrier_only` 且含 `surfaceMode: "host_safe_carrier"`、无 `HEARTBEAT_OK`，判 PASS。另测一轮 `args` 含 `probeOnly: true`：期望 `heartbeat_ok` + `capability_probe` + `probe_only`，且仍 `livedExperienceLoopClaimed: false`。
 4) second_nature_ops command=storage_smoke args={} — 贴摘要。判 sql_js / native 结论是否存在。
 5) second_nature_ops command=explain args={"subject":"probe:int-s4-human"} — 贴完整 JSON。判断：若根 unknown 且顶层 ok 为 false 且含 `EXPLAIN_READ_SURFACE_UNAVAILABLE`（或同类明确拒绝码），判 PASS（CH-11-02）；若 ok 为 true 且无 error，判 FAIL（旧半成功形状）。
 6) 若网关可设环境变量：说明是否已设置 SECOND_NATURE_WORKSPACE_ROOT（**推荐** 与 `agents.defaults.workspace` / 默认 `~/.openclaw/workspace` 一致），并解释 `workspaceRootResolution` 字段含义。

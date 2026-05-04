@@ -382,11 +382,46 @@ function buildFallbackHostSafePayload(ref) {
     }
     return createUnavailableActionError("HOST_SAFE_FALLBACK_VIEW_UNAVAILABLE", "Operator fallback view requires workspace state database; host-safe plugin cannot read persisted fallback artifacts.", ["ref"], "run_workspace_second_nature_cli_or_full_runtime_package");
 }
+function isProbeOnlyInput(input) {
+    const v = input?.probeOnly;
+    return v === true || v === "true" || v === 1 || v === "1";
+}
 function buildHeartbeatCheckPayload(spine, input) {
     const runtimeEvidence = latestRuntimeEvidence(spine);
     const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
     const timestamp = typeof input?.timestamp === "string" && input.timestamp.trim().length > 0 ? input.timestamp : updatedAt;
     const wr = spine.workspaceRootContext;
+    if (isProbeOnlyInput(input)) {
+        return {
+            ok: true,
+            status: "heartbeat_ok",
+            surfaceMode: "capability_probe",
+            reasons: ["probe_only"],
+            livedExperienceLoopClaimed: false,
+            scope: "rhythm",
+            trigger: "heartbeat_bridge",
+            message: "Capability probe only on the host-safe carrier surface; does not claim a full lived-experience decision loop.",
+            data: {
+                workspaceRootResolution: wr.resolution,
+                runtime: {
+                    host: "openclaw-plugin",
+                    serviceStatus: spine.runtimeHandle.ready ? "running" : "idle",
+                    updatedAt,
+                },
+                surface: {
+                    tool: "second_nature_ops",
+                    command: "second-nature heartbeat_check",
+                },
+                bridge: {
+                    timestamp,
+                    probeOnly: true,
+                    sessionContextProvided: typeof input?.sessionContext === "string" && input.sessionContext.trim().length > 0,
+                    heartbeatChecklistProvided: typeof input?.heartbeatChecklist === "string" && input.heartbeatChecklist.trim().length > 0,
+                    serviceEntryMode: "capability_probe",
+                },
+            },
+        };
+    }
     return {
         ok: true,
         status: "runtime_carrier_only",

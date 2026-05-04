@@ -175,6 +175,131 @@ test("T1.1.4 carrier-only baseline — no workspaceRoot still yields runtime_car
   assert.equal(payload.nextAction, "continue_carrier_surface_only");
 });
 
+test("T1.1.4 carrier heartbeat_check honors probeOnly (capability_probe, root unknown)", async () => {
+  delete process.env.SECOND_NATURE_WORKSPACE_ROOT;
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const text = (
+    await tool.execute("1", {
+      command: "heartbeat_check",
+      args: { probeOnly: true, timestamp: "2026-05-05T10:00:00.000Z" },
+    })
+  ).content[0]?.text ?? "{}";
+  const payload = JSON.parse(text) as {
+    ok: boolean;
+    status: string;
+    surfaceMode: string;
+    reasons: string[];
+    livedExperienceLoopClaimed?: boolean;
+    nextAction?: string;
+    data?: { bridge?: { serviceEntryMode?: string; probeOnly?: boolean } };
+  };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.status, "heartbeat_ok");
+  assert.equal(payload.surfaceMode, "capability_probe");
+  assert.equal(payload.livedExperienceLoopClaimed, false);
+  assert.ok(payload.reasons.includes("probe_only"));
+  assert.equal(payload.data?.bridge?.serviceEntryMode, "capability_probe");
+  assert.equal(payload.data?.bridge?.probeOnly, true);
+  assert.equal(payload.nextAction, undefined);
+});
+
+test("T1.1.4 known workspace + probeOnly bridges to capability_probe", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-probe-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const text = (
+    await tool.execute("1", {
+      command: "heartbeat_check",
+      args: { probeOnly: true },
+      workspaceRoot: tmp,
+    })
+  ).content[0]?.text ?? "{}";
+  const payload = JSON.parse(text) as { ok: boolean; status: string; surfaceMode: string; reasons: string[] };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.status, "heartbeat_ok");
+  assert.equal(payload.surfaceMode, "capability_probe");
+  assert.ok(payload.reasons.includes("probe_only"));
+});
+
+test("T1.1.4 workspaceRoot pointing to a file fails bridge (negative)", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-badroot-"));
+  const bogusFile = path.join(tmp, "not-a-directory");
+  fs.writeFileSync(bogusFile, "x", "utf-8");
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const text = (
+    await tool.execute("1", {
+      command: "heartbeat_check",
+      args: { timestamp: "2026-05-05T11:00:00.000Z" },
+      workspaceRoot: bogusFile,
+    })
+  ).content[0]?.text ?? "{}";
+  const payload = JSON.parse(text) as {
+    ok: boolean;
+    error?: { code?: string; message?: string };
+    data?: { bridgeAttempted?: boolean };
+  };
+  assert.equal(payload.ok, false);
+  assert.equal(payload.data?.bridgeAttempted, true);
+  assert.equal(payload.error?.code, "WORKSPACE_FULL_OPS_BRIDGE_FAILED");
+  assert.ok(typeof payload.error?.message === "string" && payload.error.message.length > 0);
+});
+
 test("T1.1.4 CH-13-01 — bridge: fallback + report + session + credential + explain (tool workspaceRoot)", async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-matrix-"));
   const dataDir = path.join(tmp, "data");
