@@ -27,7 +27,7 @@
 | Target              | OpenClaw 网关 / 隧道 URL / 会话 ID                                 |
 | Human               | 谁在看（你自己 / 运维）                                                |
 | Plugin commit / 包来源 | `git rev-parse HEAD` 或构建产物路径                                 |
-| Workspace root 意识   | 是否设置 `SECOND_NATURE_WORKSPACE_ROOT` 或在工具参数里传 `workspaceRoot` |
+| Workspace root 意识   | 是否设置 `SECOND_NATURE_WORKSPACE_ROOT` 或在工具参数里传 `workspaceRoot`；**推荐** 与 OpenClaw **agent workspace** 同一路径（默认 `~/.openclaw/workspace` 或 `openclaw.json` → `agents.defaults.workspace`）；sandbox / 多 agent 时以**实际落库路径**为准（见 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`） |
 | 情绪基线                | 你期望的是「诚实拒绝」还是「看起来像仪表盘全绿」——后者在 **carrier-only** 下应 **失败**     |
 
 
@@ -61,6 +61,7 @@
 - **问**：插件读的是我 **以为** 的那个 workspace 吗？  
 - **新语义期望**：看 `workspaceRootResolution`：`env` / `tool_args` / `unknown`。`unknown` 时应伴随 **可理解的 nextStep**（提示 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot`），而不是静默用错目录还给你一堆假状态。  
 - **人类动作**：故意不设 env 调一次，再设 env 调一次 — **观感应从「心里没底」变成「根对齐了」**（若仍跑 carrier 读面，至少 **resolution 诚实**）。
+- **路径对齐（T1.1.4 运维约定）**：根已知验收时，在 E2E Plan 或证据里写清所设路径是否 **等于** 宿主 **OpenClaw agent workspace**（`agents.defaults.workspace` 或沙箱内实际挂载根），避免「口头说是默认 `~/.openclaw/workspace`」与网关真实 cwd 漂移；详见 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`。
 
 ### D5 — 「存储至少硬吗？」
 
@@ -91,8 +92,14 @@
 3) second_nature_ops command=heartbeat_check — 贴完整 JSON。判断：若顶层 status 为 runtime_carrier_only 且无 HEARTBEAT_OK，判 PASS；否则 FAIL。
 4) second_nature_ops command=storage_smoke args={} — 贴摘要。判 sql_js / native 结论是否存在。
 5) second_nature_ops command=explain args={"subject":"probe:int-s4-human"} — 贴完整 JSON。判断：若根 unknown 且顶层 ok 为 false 且含 `EXPLAIN_READ_SURFACE_UNAVAILABLE`（或同类明确拒绝码），判 PASS（CH-11-02）；若 ok 为 true 且无 error，判 FAIL（旧半成功形状）。
-6) 若网关可设环境变量：说明是否已设置 SECOND_NATURE_WORKSPACE_ROOT，并解释 workspaceRootResolution 字段含义。
+6) 若网关可设环境变量：说明是否已设置 SECOND_NATURE_WORKSPACE_ROOT（**推荐** 与 `agents.defaults.workspace` / 默认 `~/.openclaw/workspace` 一致），并解释 `workspaceRootResolution` 字段含义。
+7) **真源声明**：若模型自然语言（如口头「HEARTBEAT_OK」「闭环跑完」）与 **本条 1–5 步贴出的 `second_nature_ops` JSON** 冲突 —— **以 JSON 为准** 判 PASS/FAIL，并把口语漂移记为 Finding（不要求模型当场改口，但报告里不得用口语覆盖 JSON）。
 ```
+
+### D8 — 「助手说的」和「工具 JSON」谁说了算？
+
+- **问**：宿主会话里模型仍用旧话术（例如顶层 `HEARTBEAT_OK` 叙事），和工具返回一致吗？  
+- **期望**：**验收与 E2E 表以 `second_nature_ops` 原始 JSON 为真源**；自然语言与 JSON 不一致时，记 **Finding**（网关 env 脱敏 / 未采集时 E2E 表可不标全 PASS，与证据报告一致即可）。
 
 ---
 

@@ -16,10 +16,16 @@
  * - structured mutating flows such as policy set / credential verify remain unavailable here
  * - full evidence-backed workspace runtime can be reintroduced later behind a host-safe boundary
  *
+ * OpenClaw operator norm (T1.1.4 / T1.1.5): set `SECOND_NATURE_WORKSPACE_ROOT` or tool `workspaceRoot` to the
+ * **same absolute path** as the OpenClaw **agent workspace** (default `~/.openclaw/workspace`, or
+ * `agents.defaults.workspace` in `~/.openclaw/openclaw.json`). Do **not** infer that root from the plugin
+ * install directory. With **sandbox** or **per-agent workspaces**, use the path where `data/state.db` and
+ * `workspace/` anchors actually live. See `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`.
+ *
  * Test coverage:
  * - tests/integration/cli/plugin-runtime-registration.test.ts
  * - tests/integration/cli/plugin-packaging-walkthrough.test.ts
- * - tests/integration/cli/plugin-workspace-ops-bridge.test.ts (T1.1.4)
+ * - tests/integration/cli/plugin-workspace-ops-bridge.test.ts (T1.1.4 / CH-13 matrix, T1.1.5 ops docs cross-ref)
  */
 import { startRuntimeService, } from "./runtime/core/second-nature/runtime/service-entry.js";
 import { getLifecycleState, recordRegistration, } from "./runtime/core/second-nature/runtime/lifecycle-service.js";

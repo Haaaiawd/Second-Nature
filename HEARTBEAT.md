@@ -2,6 +2,10 @@
 
 Use the shipping Second Nature bridge by calling `second_nature_ops` with command `heartbeat_check` once per heartbeat round.
 
+## OpenClaw workspace root (operator)
+
+For **full read-bridge** behavior (`workspaceRootResolution` → `env` / `tool_args`), set **`SECOND_NATURE_WORKSPACE_ROOT`** on the gateway **or** pass **`workspaceRoot`** on each `second_nature_ops` call to the **same absolute path** as the OpenClaw **agent workspace** (default `~/.openclaw/workspace`, or `agents.defaults.workspace` in `~/.openclaw/openclaw.json`). That is where `workspace/SOUL.md`, `HEARTBEAT.md`, and Second Nature `data/` should live together. **Sandbox** or **per-agent** layouts: use the **actual** directory where the agent’s files and DB are mounted — see `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md` and `.anws/v5/05_TASKS.md` T1.1.4 **运维约定 (OpenClaw 宿主)**.
+
 ## Tool call
 
 ```json

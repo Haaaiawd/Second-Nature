@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-04` (Wave 15)
+- **最近一次更新**: `2026-05-04` (Wave 16)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -176,9 +176,9 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 41, P0: 28, P1: 9, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 已闭合）
+- 总任务数: 42, P0: 28, P1: 10, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 / T1.1.5 已闭合）
 - Sprint 数: 4
-- **下一步**: 在目标 OpenClaw 宿主执行 **INT-S4** 并勾选里程碑（`docs/validation/int-s4-human-operator-testing-guide.md`，含 T1.1.4 后 §D7 根已知 / `unknown` 对照）；Level-3 任务在 `05_TASKS.md` 内已全部 `[x]`
+- **下一步**: 在目标 OpenClaw 宿主执行 **INT-S4** 并勾选里程碑（`docs/validation/int-s4-human-operator-testing-guide.md`，含 §D7 / §D8、模板项 6–7）；**根已知** 时将 `SECOND_NATURE_WORKSPACE_ROOT` / `workspaceRoot` 与 **agent workspace** 对齐（T1.1.4 / **T1.1.5**）；**验收以工具 JSON 为准**（口语与 JSON 冲突 → Finding）。除 **INT-S4** 里程碑外，Level-3 任务在 `05_TASKS.md` 内已全部 `[x]`
 - 最近更新: `2026-05-04`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -225,6 +225,9 @@ T1.4.1（`README.md` / `README.zh-CN.md`：`.anws/v5` 为契约、current / targ
 
 ### 🌊 Wave 15 ✅ — Plugin workspace read bridge (T1.1.4)
 T1.1.4：`plugin/workspace-ops-bridge.ts` 惰性装配 `createCliRuntimeDeps` + `createOpsRouter` + `createCliCommands`；`second_nature_ops` 在 `workspaceRootResolution` 为 `env`/`tool_args` 时走与 CLI 同构读路径；CH-11-02 carrier `explain` 诚实 `ok: false`；集成测 `plugin-workspace-ops-bridge.test.ts`（根已知桥接 + carrier 基线）。**INT-S4** 仍待真实宿主证据。
+
+### 🌊 Wave 16 ✅ — OpenClaw workspace ops norm + JSON-first acceptance (T1.1.5)
+T1.1.5：README / README.zh-CN / `HEARTBEAT.md` / INT-S4 人类指南（E2E Plan、§D4/D8、模板 6–7）与 `plugin/index.ts` 头注释回流 **agent workspace** 对齐约定；根 `package.json` version **0.1.10** 与插件包一致；`openclaw.plugin.json` 描述补丁。**INT-S4** 仍待真实宿主证据。
 
 <!-- AUTO:END -->
 

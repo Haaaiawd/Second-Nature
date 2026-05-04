@@ -133,6 +133,8 @@ Second Nature 不只是让 agent 去行动，也会把关键过程留下来。
 - **控制面**：节律路由、候选规划、主动联系裁决、投递失败 / 策略丢弃兜底、带 source gate 的 Quiet 编排。
 - **状态与可观测性**：life evidence 快照、投递记录、operator fallback（`not_sent`）、审计 hash 链、`queryExplain` / export。
 - **连接器**：契约、执行策略 / 幂等；**near-real** Moltbook `feed.read` + EvoMap `work.discover` 与 dry `task.claim`（T3.3.1）。
+- **OpenClaw 插件 + 可解析 workspace 根**：当 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot` 指向工作区时，打包的 `second_nature_ops` 只读命令走与 workspace CLI 相同的 `plugin/runtime` + `createCliCommands` 路径（见 `plugin/workspace-ops-bridge.ts` 与 `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`）。具体宿主 VM 是否允许惰性 `import` + sql.js 仍属 **INT-S4 / CH-11-01** 验证项。
+- **根路径怎么设（OpenClaw）**：**推荐** 将 env 或 `workspaceRoot` 设为与 OpenClaw **agent workspace** 相同的**绝对路径**（常见 `~/.openclaw/workspace`，或 `~/.openclaw/openclaw.json` 中 `agents.defaults.workspace`），使 Second Nature 的 `data/` 与 `SOUL.md`、`HEARTBEAT.md` 同一张「书桌」。**不要**从插件安装目录相对推导该根。启用 **sandbox** 或 **多 agent** 时，以**实际落库**的 workspace 为准。依据：`explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`。**宿主验收**以 **`second_nature_ops` 返回的 JSON** 为准；助手自然语言若仍混旧语义（如口头 `HEARTBEAT_OK`），与 JSON 冲突时 **信 JSON**。
 
 ### 目标（v5 设计意图；CI 不证明「你的宿主」）
 

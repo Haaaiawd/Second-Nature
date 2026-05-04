@@ -59,6 +59,8 @@ graph TD
     T4_1_3[T4.1.3 startup repair gate] --> T4_2_1
     T4_1_4[T4.1.4 storage mode smoke] --> INT_S1[INT-S1]
     T1_1_3 --> T2_2_1[T2.2.1 heartbeat integration]
+    T1_1_3 --> T1_1_4[T1.1.4 plugin workspace read bridge]
+    T1_1_4 --> T1_1_5[T1.1.5 OpenClaw workspace ops docs]
     T4_2_1 --> T2_1_1
     T2_1_2 --> T2_1_3[T2.1.3 candidate planner and guards]
     T3_1_1[T3.1.1 connector manifest contract] --> T3_1_2[T3.1.2 LifeEvidenceCandidate mapping]
@@ -151,9 +153,25 @@ graph TD
     - Then 仍不得返回「已评估读模型」形状（保持 CH-10 诚实语义）；**且** `explain` 必须与 `status`/`quiet` 同族：`ok: false` + 明确 `error.code` **或** 任务实施前在 `05_TASKS` 中写死并评审通过的单一替代信封（默认推荐 `ok: false` 对齐 CH-11-02）
   - **验证类型**: 集成测试（fixture workspace）+ 文档；**真实宿主** 归入 INT-S4
   - **验证说明**: 新增/扩展 `plugin-runtime-registration` 或专用集成测覆盖「根已知桥接」与「根 unknown 仍拒绝」；不得删除现有 carrier-only 基线测例。
+  - **运维约定 (OpenClaw 宿主)**: **推荐** 将 `SECOND_NATURE_WORKSPACE_ROOT` 与工具 `workspaceRoot` 设为 **与 OpenClaw agent workspace 相同的绝对路径**（默认 `~/.openclaw/workspace`，或 `~/.openclaw/openclaw.json` → `agents.defaults.workspace`），使 state / `data/` 与 `SOUL.md`、`HEARTBEAT.md` 等同桌；**不得**假设可从插件安装目录相对推出该根。若启用 **sandbox** 或 **每 agent 独立 workspace**，以 **实际承载 Second Nature state 的路径** 为准。详见 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`。
   - **估时**: 12h（含沙箱风险缓冲）
   - **依赖**: T1.1.1, T1.1.3, T2.2.1（decision loop 行为以现有 `runHeartbeatCycle` 为准）
   - **优先级**: P0
+
+- [x] **T1.1.5** [REQ-019]: OpenClaw 宿主 — **agent workspace** 与 SN 根对齐的运维文档回流 + semver 对齐
+  - **描述**: 将 T1.1.4「运维约定 (OpenClaw 宿主)」显式写入 README / README.zh-CN / `HEARTBEAT.md` / `docs/validation/int-s4-human-operator-testing-guide.md`（E2E Plan、§D4/D8、对话模板）与 `plugin/index.ts` 头注释；强调 sandbox / 多 agent 下以**实际落库路径**为准；声明 **宿主验收以 `second_nature_ops` JSON 为真源**，助手自然语言漂移记 Finding。根 `package.json` **version** 与 `plugin/package.json` / `openclaw.plugin.json` 对齐（当前 **0.1.10**）。
+  - **输入**: T1.1.4 运维约定段；`explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`
+  - **输出**: 上述文档与 manifest 描述补丁；无行为变更时以静态审阅 + 既有测试绿为证
+  - **契约承接**: 与 T1.1.4 同一运维边界；支撑 INT-S4 人类指南与 CH-11 证据口径
+  - **验收标准**:
+    - Given 操作者阅读 README / HEARTBEAT / INT-S4 指南
+    - When 配置 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot`
+    - Then 能识别应设为 OpenClaw **agent workspace** 同路径，且不以插件安装目录推断；并知悉 JSON-first 验收规则
+  - **验证类型**: 文档审阅 + `pnpm test`（仓库门禁）
+  - **验证说明**: 无代码路径变更时可不增测例；若有注释/版本号变更，跑全量测试防回归。
+  - **估时**: 1h
+  - **依赖**: T1.1.4
+  - **优先级**: P1
 
 ### Phase 2: Read Models
 
@@ -805,7 +823,7 @@ graph TD
     - When 执行 release readiness 验证
     - Then package load、heartbeat_check、target none、ack drop、heartbeat_tool_not_invoked、fallback visibility、README boundary 均有 pass/fail/unknown 证据
   - **验证类型**: 冒烟测试 / 手动验证
-  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。
+  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。**根已知** 证据中宜注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。
   - **估时**: 4h
   - **依赖**: T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
 
@@ -900,12 +918,12 @@ graph TD
 
 ## 📊 任务统计
 
-- Level 3 任务数: 36
+- Level 3 任务数: 37
 - INT 任务数: 4
-- 总任务数: 40
+- 总任务数: 41
 - P0 任务: 27
-- P1 任务: 9
+- P1 任务: 10
 - P2 任务: 0
 - Milestone 任务: 4
-- 总预估工时: 207h
+- 总预估工时: 208h
 
