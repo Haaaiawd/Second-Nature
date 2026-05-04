@@ -2,10 +2,11 @@
 
 > **审查日期**: 2026-05-03  
 > **审查范围**: `.anws/v5` + `src/` + `plugin/`（CODE 静态审查）  
-> **累计轮次**: 12  
+> **累计轮次**: 13  
 > **Round 10 执行**: `/challenge` CODE 脉络审查（宿主 `second_nature_ops` 真实观测 → shipping plugin）；子代理模型 **GPT‑5.4（medium）**，主会话已交叉核对关键 `path:line`。  
 > **Round 11**: T1.1.4（插件 workspace 桥）**可行性 + 同类读面对齐**（`/challenge` 静态审查，2026-05-03）。  
-> **Round 12**: **文档与任务回流闭合**（`/challenge` 对照 `05_TASKS` / explore / T7.1.1 / 本报告自洽性，2026-05-03）。
+> **Round 12**: **文档与任务回流闭合**（`/challenge` 对照 `05_TASKS` / explore / T7.1.1 / 本报告自洽性，2026-05-03）。  
+> **Round 13**: **T1.1.4 交付后子代理静态核对**（只读 `explore` 子代理 Composer 2 Fast + 主会话抽样；`/challenge` 2026-05-03）。
 
 ---
 
@@ -45,17 +46,19 @@
 | Low      | 0   | —                                                                                                                                                                                           | ✅ 无 |
 
 
-### 第 11 轮（T1.1.4 方案与同类表面）
+### 第 11 轮（T1.1.4 — CH-11-02 已随实现闭合）
 
 
 | 严重度      | 数量  | 摘要                                                                                                                             | 状态              |
 | -------- | --- | ------------------------------------------------------------------------------------------------------------------------------ | --------------- |
 | Critical | 0   | —                                                                                                                              | ✅ 无             |
 | High     | 0   | —                                                                                                                              | ✅ 无             |
-| Medium   | 2   | 宿主沙箱内惰性 `import`+sql.js 启动链 **无法静态证伪/证实**；`explain` 在 carrier 上 `**ok: true`** 与其它读面 `**ok: false`** 语义不对称，应在 T1.1.4 或紧后任务显式收敛 | ⏳ 待 `/forge` 消化 |
+| Medium   | 1   | **CH-11-01**：宿主沙箱内惰性 `import`+sql.js 启动链 **仍无法静态证伪/证实**（INT-S4 / 根已知宿主证据）                                                                 | ⏳ 待 INT-S4      |
+
+> **CH-11-02** ✅ **已闭合**（T1.1.4 实现后）：carrier `explain` 为 `ok: false` + `EXPLAIN_READ_SURFACE_UNAVAILABLE`（`plugin/index.ts:451-468`）；根已知且桥成功时走 `createCliCommands` / `explainSurfaceSubject`。
 
 
-### 第 12 轮（当前活跃 — 文档 / 任务回流）
+### 第 12 轮（已回流 — 文档 / 任务回流）
 
 
 | 严重度      | 数量  | 摘要                                                                                         | 状态                |
@@ -66,32 +69,43 @@
 | Low      | 2   | 本报告旧版「审查摘要」与 Round 11 指标矛盾；human 指南未单列 `explain` carrier 观感（CH-12-03✅ / CH-12-04✅） | 见 CH-12-03 / CH-12-04 |
 
 
+### 第 13 轮（当前活跃 — 子代理 POST-T1.1.4 核对）
+
+
+| 严重度      | 数量  | 摘要                                                                                         | 状态     |
+| -------- | --- | ------------------------------------------------------------------------------------------ | ------ |
+| Critical | 0   | —                                                                                          | ✅ 无    |
+| High     | 0   | —                                                                                          | ✅ 无    |
+| Medium   | 2   | **CH-11-01** 仍依赖真实宿主；**CH-13-01** 集成测未矩阵化桥接下 `fallback`/`report`/`session`/`credential` 与 **仅 env 根** | ⏳ 验证债 |
+| Low      | 1   | **CH-13-02**：`README.md`「根已知 ⇒ full read bridge」运维句仍弱于 `05_TASKS` T1.1.4 输出承诺                                           | ⏳ 可选   |
+
+
 ---
 
 ## 📊 审查摘要
 
-**审查模式**: `CODE` + **文档回流核对**（Round 12）  
-**整体判断**: 🟢 **无 Critical**，可按门禁进入 `/forge` 实现 T1.1.4；🟡 **Medium 文档/任务承接缺口**已识别，**已在仓库内部分回流**（见 Round 12 / `05_TASKS.md` / `reports/t7-1-1-documentation-traceability-checklist.md`）。  
-**高信号结论**: Round 9–10 所指实现层失真已闭合；Round 11 的 **CH-11-01/02** 仍待实现侧消化；Round 12 确认 **T1.1.4 任务正文此前未显式绑定 `explain` 与 CH-11 对照表**，且 **本报告旧版「审查摘要」曾误写 Medium=0**（与 Round 11 矛盾）— 已更正。
+**审查模式**: `CODE` + Round 12 文档核对 + **Round 13 子代理静态核对**（`explore` / Composer 2 Fast）  
+**整体判断**: 🟢 **无 Critical**；**T1.1.4 已在 `05_TASKS.md` 勾选完成**；🟡 **CH-11-01**（宿主 VM + 惰性加载）与 **CH-13-01**（桥接矩阵集成测缺口）为 **Medium 验证债**；**INT-S4** 仍 ⏳。  
+**高信号结论**: **CH-11-02** 已在 **`plugin/index.ts`**（carrier `explain` → `ok: false` + `EXPLAIN_READ_SURFACE_UNAVAILABLE`，约 `451-468`）；读桥见 **`plugin/workspace-ops-bridge.ts`** 与 **`routeSecondNatureCommand`**。下文 Round 12「Code review」中 **carrier `explain` `ok:true` 一句已过时**。
 
 
 | 指标                        | 数值                          |
 | ------------------------- | --------------------------- |
 | Critical（活跃）                | 0                           |
 | High（活跃）                  | 0                           |
-| Medium（活跃，Round 11+12 合计） | 4（Round 11：**2** 实现风险仍 ⏳；Round 12：**2** 文档项 ✅ 已回流） |
-| Low                       | 0                           |
+| Medium（活跃，Round 13）      | 2（CH-11-01；CH-13-01）        |
+| Low（活跃，Round 13）        | 1（CH-13-02）                 |
 | Total Findings（历史 Round 9–10） | 10（均已处理或证伪）                |
 
 
 
 | 证据来源            | 结论                                                                                 |
 | --------------- | ---------------------------------------------------------------------------------- |
-| design-reviewer | Round 12 跳过（本轮焦点为文档与任务对齐）                                                          |
-| task-reviewer   | Round 12 **轻量执行**：对照 `05_TASKS.md` T1.1.4 / INT-S4、`explore/reports`、`t7-1-1` checklist |
-| code-reviewer   | Round 12 执行：**纯静态**；对照 `plugin/index.ts`、`src/cli/ops/heartbeat-surface.ts` 验证 CH-11 主张仍成立 |
-| Pre-Mortem      | 若 T1.1.4 验收字面上仍只写 `quiet`/`status`，`/forge` 可能 **漏接 explain** 或漏测 **carrier `ok:true` 误判面**        |
-| 承诺闭合检查          | **Partial（文档侧）** — 任务与追溯清单已补；**宿主与惰性加载**仍依 CH-11-01 / INT-S4                                     |
+| design-reviewer | Round 13 跳过                                                                 |
+| task-reviewer   | Round 13 **轻量**：子代理对照 `05_TASKS` T1.1.4 `[x]` 与验收子集 vs `plugin-workspace-ops-bridge.test.ts` |
+| code-reviewer   | Round 13：**子代理只读** + 主会话抽样 `plugin/index.ts`、`workspace-ops-bridge.ts`                    |
+| Pre-Mortem      | 无矩阵集成测时，桥接下 **`explain`/`fallback` 等**仍可能在回归中静默漂移                              |
+| 承诺闭合检查          | **Partial** — CH-11-02 已闭合；**CH-11-01 / CH-13-01** 仍 Partial                                     |
 
 
 ---
@@ -154,7 +168,7 @@
 - [ ] 🟡 项目可继续，但需先解决 P0 问题
 - [ ] 🔴 项目需要重新评估
 
-**判断依据（更新）**: CH-09-01 在静态复核时 **未发现** `host_message_id_missing` 占位写入路径（以 `hasDeliveryProof` + `writeDeliveryAttempt` 校验为准）；CH-09-02/03 与 CH-10-01～04 已在 2026-05-03 提交中修复并附测试/文档更新。**Round 12**：文档与任务承接缺口已通过更新 `05_TASKS.md`（T1.1.4）与 `reports/t7-1-1-documentation-traceability-checklist.md` 部分闭合；CH-12-04（human 指南 explain 观感）仍为 **可选** Low。
+**判断依据（更新）**: CH-09-01 在静态复核时 **未发现** `host_message_id_missing` 占位写入路径（以 `hasDeliveryProof` + `writeDeliveryAttempt` 校验为准）；CH-09-02/03 与 CH-10-01～04 已在 2026-05-03 提交中修复并附测试/文档更新。**Round 12**：文档与任务承接缺口已通过更新 `05_TASKS.md`（T1.1.4）与 `reports/t7-1-1-documentation-traceability-checklist.md` 部分闭合。**Round 13**：T1.1.4 **实现已交付**（`05_TASKS` `[x]`）；CH-11-02 **已闭合**；CH-11-01 / CH-13-01 / CH-13-02 见第 13 轮表与下文。
 
 ---
 
@@ -172,6 +186,7 @@
 | 并发态 | Pass | connector 执行策略含并发冲突/重放语义。                                                                                    | —    |
 | 观测态 | Pass | `ack_dropped` 计入 `no_user_visible_contact` 警告链；`hostProofRef` 单测；plugin carrier 读表面 `ok: false` + tri-state。 | —    |
 | 文档态 | Partial→Pass | Round 12：`05_TASKS` T1.1.4 显式绑定 explain/同类读面；T7 US-001 含 T1.1.4；human 指南 §D7；本报告摘要自洽。 | CH-12-01～04 |
+| 文档态 | Partial | Round 13：质疑报告正文已纠偏 CH-11-02；`README` 仍可加强（CH-13-02）。 | CH-13-02 |
 
 
 ### B. ADR 影响追踪
@@ -192,7 +207,7 @@
 | ID       | 类别                    | 严重度    | 位置                                                                                                                           | 发现                                                                                                                                                                                                                                                                                                          | 影响                                                                 | 建议                                                                                                                                                               |
 | -------- | --------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CH-11-01 | 架构 / 验证缺口             | Medium | `plugin/index.ts:1-22`（边界注释）；`src/cli/index.ts:32-54`；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md` | **T1.1.4 在架构上可行**：CLI 已具备 `createCliRuntimeDeps` → `createOpsRouter` → `heartbeatCheck(readModels)` → `runHeartbeatCycle`（`src/cli/ops/heartbeat-surface.ts:98-123`、`src/cli/ops/workspace-heartbeat-runner.ts:28-36`）。**风险**在于插件进程内 **惰性加载** 打包图 + **sql.js 异步引导** 是否被 OpenClaw **VM/沙箱**允许 — **纯静态无法闭合**。 | 若沙箱禁止，Plan B（子进程 CLI）成本上升；INT-S4 必须补一条 **根已知** 宿主证据。               | `/forge` 实现 T1.1.4 时先做 **fixture 集成测**，再 **目标 OpenClaw** 冒烟；失败则切子进程方案并回流任务验收。                                                                                    |
-| CH-11-02 | 观测语义 / Contract Drift | Medium | `plugin/index.ts:327-391` vs `plugin/index.ts:197-224`                                                                       | `**explain`** 在 carrier 上仍 `**ok: true`** 且仅 `data.evaluated: false`；`**status`/`quiet`/`report`/`session`/`credential**` 已统一 `**ok: false` + `workspaceReadModelsEvaluated: false**`。人类观感上仍可能把 explain 当成「成功读了点东西」。                                                                                        | 与「读面一律诚实拒绝或真读」叙事略不一致；T1.1.4 若只接 heartbeat/quiet 可能 **漏改 explain**。 | 在 T1.1.4 验收中 **显式包含**：根已知时 `explain` 走 `explainSurfaceSubject(..., readModels)`；根 unknown 时 `**ok: false`** 或与 status 同构的 `surfaceMode`/`error.code`（二选一应写死进任务）。 |
+| CH-11-02 | 观测语义 / Contract Drift | ~~Medium~~ → **✅ 已闭合** | `plugin/index.ts:409-469`（`buildExplainPayload`）                                                                               | **（历史）** carrier `explain` 曾 `ok: true`。**（当前）** 有效 subject 且未走桥：`ok: false`、`EXPLAIN_READ_SURFACE_UNAVAILABLE`、`workspaceReadModelsEvaluated: false`。根已知且桥成功：`createCliCommands` → `explainSurfaceSubject`。                                                                                        | — | Round 13 归档；本行作时间线。 |
 
 
 ### 与 `quiet` 同类、应在 **同一 workspace 桥** 下对齐的命令（插件 `createHostSafeRouter`）
@@ -207,7 +222,7 @@
 | `credential`（show） | `ok: false` + `CREDENTIAL_READ_SURFACE_UNAVAILABLE`          | `readModels.loadCredential(platformId)`                                | 同族                                                   |
 | `fallback`         | `HOST_SAFE_FALLBACK_VIEW_UNAVAILABLE`                        | `showOperatorFallback(ref, readModels)`                                | **同族**（需 DB）                                         |
 | `heartbeat_check`  | `runtime_carrier_only` + `livedExperienceLoopClaimed: false` | `opsRouter.heartbeatCheck` / `heartbeatCheck({ readModels })`          | T1.1.4 核心接线点                                         |
-| `explain`          | `**ok: true`** + `evaluated: false`                          | `explainSurfaceSubject(subject, readModels)`                           | **应纳入同一方案**（CH-11-02）                                |
+| `explain`          | **根 unknown**：`ok: false` + `EXPLAIN_READ_SURFACE_UNAVAILABLE`（`plugin/index.ts:451-468`）；**根已知+桥**：CLI 同路径                          | `explainSurfaceSubject(subject, readModels)`                           | CH-11-02 **已闭合**                                |
 | `policy`（show）     | `notImplemented` 泛化 `ok: false`                              | `src/cli/commands/index.ts:55-62` 亦为 `notImplemented("policy")`（与插件一致） | **低优先**：仅文案/错误码显式化；**不等同**于 Quiet 读库缺口               |
 | `audit`            | `notImplemented`                                             | `src/cli/commands/index.ts:117-119` 亦为未实现                              | **低优先**：待 T1.2.1 扩展后再谈桥接                             |
 | `storage_smoke`    | `ok: true`（独立 smoke）                                         | 非 read model 冒充类                                                       | **不强制** 纳入同一 read-bridge；已通过 `workspaceRoot` 参数对齐物理根 |
@@ -229,9 +244,25 @@
 | CH-12-04 | 验证指南 / Handoff Gap     | Low    | INT-S4 human guide              | `docs/validation/int-s4-human-operator-testing-guide.md` §D7；对话模板第 5 步（`explain` + `subject`）                                                                                                                                                                        | （回流前）未单列 `explain` 的 carrier `ok:true` 陷阱。                                                                                                                                                                                                                  | INT-S4 证据链易缺一角。                                                                         | **已补**：§D7 + 模板；INT-S4 任务验证说明已引用。                                                                                                                                                                                |
 
 
-### Code review（Round 12，纯静态摘要）
+### Code review（Round 12，纯静态摘要）— **已过时常态**
 
-- **总结结论**: **Partial Pass**（实现未改；CH-11 相关代码与 `src/cli` 链与先前审查一致）。  
-- **Lens 1 契约**: `plugin/index.ts:371-391` 仍 `ok: true` carrier explain；`heartbeat-surface.ts:98-106` 仍要求 `readModels` 才进入 `runHeartbeatCycle`。  
-- **Lens 2 任务**: T1.1.4 文本已补强承接 CH-11-02（见 `05_TASKS.md`）。  
-- **Lens 6 回流**: CH-12-01～03 覆盖；`int-s4-human-operator-testing-guide` 对 explain 仍为 **Low** 缺口（CH-12-04）。
+- 其中 **「carrier `explain` `ok: true`」** 与当前 `plugin/index.ts` **不符**（以 Round 13 为准）。
+
+
+### Code review（Round 13，子代理 + 主会话抽样）
+
+- **总结结论**: **Partial Pass** — T1.1.4 **已落地**；**TASKS 验收 vs 集成测矩阵**仍 **Partial**（CH-13-01）。  
+- **Lens 1**: carrier `explain` **`ok: false`**（`plugin/index.ts:451-468`）；CH-11-02 **闭合**。  
+- **Lens 5**: `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` 覆盖 unknown `explain`、桥接 `heartbeat_check` / `status` / `quiet`；**未**矩阵化桥接下 `fallback` / `report` / `session` / `credential` 与 **仅 `SECOND_NATURE_WORKSPACE_ROOT`**。  
+- **Lens 6**: 本文件 CH-11-02 行与 `explain` 对照表 **已更新**；`README.md` 仍弱（CH-13-02）。
+
+
+## 第 13 轮 — 核心发现清单（子代理 POST-T1.1.4）
+
+
+| ID       | 类别              | 严重度    | 位置 / 证据                                                                                                                                           | 发现                                                                                                                                     | 影响                          | 建议                                                                                    |
+| -------- | --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------- |
+| CH-13-01 | 验证承接 / Test Drift | Medium | `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`                                                                                         | 桥接矩阵未覆盖 **fallback / report / session / credential** 与 **env 根** 全量断言。                                                                  | 回归静默漂移风险                | P1：每类最小 1 条 + env 根 1 条。                                                     |
+| CH-13-02 | 文档回流            | Low    | `README.md`                                                                                                                                        | 「根已知 ⇒ `second_nature_ops` full read bridge」运维句弱于 `05_TASKS` T1.1.4 输出。                                                                                        | 冷启动低估插件能力                  | P2：README current 补一句边界。                                          |
+| （继承）     | 架构 / 验证缺口        | Medium | CH-11-01；`plugin/workspace-ops-bridge.ts`                                                                                                            | Plan B 子进程 CLI **未**实现；惰性加载 **仅 INT-S4** 可闭合。                                                                                | 特定宿主桥接失败                  | INT-S4 根已知证据；失败再 `/change` 评 Plan B。 |
+
