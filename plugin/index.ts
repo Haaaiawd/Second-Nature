@@ -525,6 +525,7 @@ function buildHeartbeatCheckPayload(spine: ActivationSpine, input?: Record<strin
   return {
     ok: true,
     status: "runtime_carrier_only",
+    surfaceMode: "host_safe_carrier",
     livedExperienceLoopClaimed: false,
     scope: "rhythm",
     trigger: "heartbeat_bridge",

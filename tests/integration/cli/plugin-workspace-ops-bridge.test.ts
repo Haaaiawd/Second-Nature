@@ -168,9 +168,10 @@ test("T1.1.4 carrier-only baseline — no workspaceRoot still yields runtime_car
       args: { timestamp: "2026-05-04T12:00:00.000Z" },
     })
   ).content[0]?.text ?? "{}";
-  const payload = JSON.parse(text) as { ok: boolean; status: string; nextAction?: string };
+  const payload = JSON.parse(text) as { ok: boolean; status: string; surfaceMode?: string; nextAction?: string };
   assert.equal(payload.ok, true);
   assert.equal(payload.status, "runtime_carrier_only");
+  assert.equal(payload.surfaceMode, "host_safe_carrier");
   assert.equal(payload.nextAction, "continue_carrier_surface_only");
 });
 

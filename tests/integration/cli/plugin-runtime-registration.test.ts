@@ -193,6 +193,7 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
   const commandPayload = JSON.parse(commandResult.text) as {
     ok: boolean;
     status: string;
+    surfaceMode: string;
     livedExperienceLoopClaimed?: boolean;
     nextAction: string;
     data: {
@@ -209,6 +210,7 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
 
   assert.equal(commandPayload.ok, true);
   assert.equal(commandPayload.status, "runtime_carrier_only");
+  assert.equal(commandPayload.surfaceMode, "host_safe_carrier");
   assert.equal(commandPayload.livedExperienceLoopClaimed, false);
   assert.equal(commandPayload.nextAction, "continue_carrier_surface_only");
   assert.equal(commandPayload.data.surface.tool, "second_nature_ops");
@@ -220,6 +222,7 @@ test("T1.2.3 heartbeat_check is exposed on command/tool surfaces with consumable
 
   assert.equal(toolPayload.ok, true);
   assert.equal(toolPayload.status, "runtime_carrier_only");
+  assert.equal(toolPayload.surfaceMode, "host_safe_carrier");
   assert.equal(toolPayload.livedExperienceLoopClaimed, false);
   assert.equal(toolPayload.nextAction, "continue_carrier_surface_only");
   assert.equal(toolPayload.data.surface.tool, commandPayload.data.surface.tool);

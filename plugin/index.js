@@ -390,6 +390,7 @@ function buildHeartbeatCheckPayload(spine, input) {
     return {
         ok: true,
         status: "runtime_carrier_only",
+        surfaceMode: "host_safe_carrier",
         livedExperienceLoopClaimed: false,
         scope: "rhythm",
         trigger: "heartbeat_bridge",

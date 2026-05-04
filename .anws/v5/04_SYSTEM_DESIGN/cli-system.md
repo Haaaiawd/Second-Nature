@@ -410,6 +410,10 @@ export interface HeartbeatSurfaceResult {
   capabilityReportRef?: string;
   fallbackRef?: string;
   reasons: string[];
+  /** When false, callers must not treat the round as lived-experience loop completion */
+  livedExperienceLoopClaimed?: boolean;
+  /** True when structured fields mirror a fake adapter for schema parity only */
+  schemaParityOnly?: boolean;
 }
 
 export interface OperatorFallbackView {

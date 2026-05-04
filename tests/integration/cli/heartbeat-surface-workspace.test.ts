@@ -13,6 +13,7 @@ import { createObservabilityDatabase } from "../../../src/observability/db/index
 test("T1.1.3 heartbeatCheck runtime unavailable returns runtime_carrier_only without lived-experience claim", async () => {
   const r = await heartbeatCheck({ runtimeAvailable: false });
   assert.equal(r.status, "runtime_carrier_only");
+  assert.equal(r.surfaceMode, "host_safe_carrier");
   assert.equal(r.livedExperienceLoopClaimed, false);
 });
 
