@@ -255,7 +255,7 @@
 
 - **总结结论**: **Partial Pass** — T1.1.4 **已落地**；**TASKS 验收 vs 集成测矩阵** 已于 2026-05-04 补 **CH-13-01** 最小覆盖；宿主惰性链仍 **Partial**（CH-11-01 / INT-S4）。  
 - **Lens 1**: carrier `explain` **`ok: false`**（`plugin/index.ts:451-468`）；CH-11-02 **闭合**。  
-- **Lens 5**: `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` 覆盖 unknown `explain`、桥接 `heartbeat_check` / `status` / `quiet`；**未**矩阵化桥接下 `fallback` / `report` / `session` / `credential` 与 **仅 `SECOND_NATURE_WORKSPACE_ROOT`**。  
+- **Lens 5**: `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` 已覆盖 unknown `explain`、桥接 `heartbeat_check` / `status` / `quiet`、**CH-13-01** 矩阵（`fallback` / `report` / `session` / `credential` / `explain`）与 **env-only** `SECOND_NATURE_WORKSPACE_ROOT` 子进程 `heartbeat_check`（与 Round 13 表 CH-13-01 ✅ 一致）。  
 - **Lens 6**: 本文件 CH-11-02 行与 `explain` 对照表 **已更新**；`README.md` Current **已补**（CH-13-02 ✅）。
 
 
