@@ -59,8 +59,8 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
         maintenance: "maintenance";
     }>>;
     riskLevel: z.ZodEnum<{
-        low: "low";
         medium: "medium";
+        low: "low";
         high: "high";
     }>;
     sourceRefs: z.ZodArray<z.ZodObject<{
@@ -113,8 +113,8 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
         maintenance: "maintenance";
     }>>;
     riskLevel: z.ZodEnum<{
-        low: "low";
         medium: "medium";
+        low: "low";
         high: "high";
     }>;
     sourceRefs: z.ZodArray<z.ZodObject<{
@@ -185,7 +185,7 @@ export declare function parseOutreachDraftRequest(input: unknown): OutreachDraft
 export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafeParseResult<{
     requestId: string;
     runtimeScope: "rhythm" | "user_reply" | "user_task";
-    riskLevel: "low" | "medium" | "high";
+    riskLevel: "medium" | "low" | "high";
     sourceRefs: {
         id: string;
         kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";

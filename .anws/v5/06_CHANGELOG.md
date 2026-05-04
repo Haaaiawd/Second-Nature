@@ -9,6 +9,14 @@
 
 ---
 
+## 2026-05-03 - /change + /explore: 插件 Quiet 路径承接任务
+
+- [CHANGE] `05_TASKS.md`: 新增 **T1.1.4**（OpenClaw 插件 workspace 根已知时 full ops / Quiet 读路径桥接）
+  - 用户原话: 「那这就不行，不允许」仅 host-safe carrier 无 Quiet；「/change /explore 来找找解决办法」
+  - 修改内容: 新增 P0 任务 T1.1.4：惰性装配 `readModels`+`opsRouter` 或子进程 CLI 备选；验收区分 `workspaceRootResolution` known vs unknown；指向探索报告 `explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`
+  - 影响范围: `.anws/v5/05_TASKS.md`；新增 `explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`
+  - PRD 追溯: [REQ-019]；US-001 / US-006（可观测性）；不改变 ADR 核心前提
+
 ## 2026-05-02 - IDE 提示词与审查技能对齐
 
 - [CHANGE] `.cursor/`、`.windsurf/`：纳入仓库并收紧设计契约源口径
