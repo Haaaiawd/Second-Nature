@@ -12,8 +12,19 @@ export class CredentialRepository {
         });
     }
     async findByPlatformId(platformId) {
-        return this.database.db.query.credentialRecords.findFirst({
+        const row = await this.database.db.query.credentialRecords.findFirst({
             where: eq(credentialRecords.platformId, platformId),
         });
+        if (row == null) {
+            return undefined;
+        }
+        const r = row;
+        const pid = (r.platformId ?? r.platform_id);
+        const enc = (r.encryptedValue ?? r.encrypted_value);
+        // sql.js + Drizzle: no-match can still return a "shell" row (keys present, values undefined).
+        if (pid == null || pid === "" || enc == null || enc === "") {
+            return undefined;
+        }
+        return row;
     }
 }

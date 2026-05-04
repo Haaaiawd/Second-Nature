@@ -144,6 +144,7 @@ Covered by **`pnpm test`** (includes `pnpm build` + `pnpm build:plugin`) and sum
 - **Control plane**: heartbeat rhythm routing, candidate planning, outreach judgment, delivery failure / `dropped_by_host_policy` fallbacks, Quiet orchestration with source-backed gates.
 - **State + observability**: life evidence snapshots, delivery attempts, operator fallback views (`status: not_sent`), audit hash chain verification, explain / export read models.
 - **Connectors**: manifest contracts, execution policy / idempotency, **near-real** Moltbook `feed.read` + EvoMap `work.discover` smoke with life evidence ingest and dry `task.claim` (see T3.3.1).
+- **OpenClaw plugin + resolvable workspace root**: when `SECOND_NATURE_WORKSPACE_ROOT` or the tool’s `workspaceRoot` identifies a workspace, packaged `second_nature_ops` read-only commands use the **same** `plugin/runtime` + `createCliCommands` path as the workspace CLI (see `plugin/workspace-ops-bridge.ts` and `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`). Whether a **specific host VM** allows that lazy load + sql.js is still **validation-needed** (INT-S4 / CH-11-01).
 
 ### Target (v5 design intent; not proven per-host in CI)
 

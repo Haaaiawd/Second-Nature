@@ -1,9 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+
+import { createStateDatabase } from "../../../src/storage/db/index.js";
+import { writeOperatorFallback } from "../../../src/storage/fallback/write-operator-fallback.js";
 
 interface ServiceRegistration {
   id: string;
@@ -168,4 +172,127 @@ test("T1.1.4 carrier-only baseline — no workspaceRoot still yields runtime_car
   assert.equal(payload.ok, true);
   assert.equal(payload.status, "runtime_carrier_only");
   assert.equal(payload.nextAction, "continue_carrier_surface_only");
+});
+
+test("T1.1.4 CH-13-01 — bridge: fallback + report + session + credential + explain (tool workspaceRoot)", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-matrix-"));
+  const dataDir = path.join(tmp, "data");
+  fs.mkdirSync(dataDir, { recursive: true });
+  const statePath = path.join(dataDir, "state.db");
+  const state = createStateDatabase(statePath);
+  const { fallbackRef } = await writeOperatorFallback(state, {
+    reason: "target_none",
+    decisionId: "dec-ch13-matrix",
+    sourceRefs: [{ id: "sr-1", kind: "decision_record", uri: "uri:ch13" }],
+    candidateMessage: "redacted-ch13",
+    nextStep: "next-ch13",
+  });
+  state.close();
+
+  const day = "2026-05-04";
+  const reportDir = path.join(tmp, "workspace", "memory", "reports");
+  fs.mkdirSync(reportDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(reportDir, `${day}.md`),
+    ["# Daily Report", "", "## Summary", "CH-13 report line", "", "## Highlights", "- h1", "", "## Sources", "- s1"].join("\n"),
+    "utf-8",
+  );
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const fb = JSON.parse(
+    (await tool.execute("1", { command: "fallback", args: { ref: fallbackRef }, workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { status?: string; reason?: string } };
+  assert.equal(fb.ok, true);
+  assert.equal(fb.data?.status, "not_sent");
+  assert.equal(fb.data?.reason, "target_none");
+
+  const rep = JSON.parse(
+    (await tool.execute("1", { command: "report", args: { day }, workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { summary?: string } };
+  assert.equal(rep.ok, true);
+  assert.ok((rep.data?.summary ?? "").includes("CH-13"));
+
+  const sess = JSON.parse(
+    (await tool.execute("1", {
+      command: "session",
+      args: { sessionId: "sn-trace-ch13" },
+      workspaceRoot: tmp,
+    })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { requestedSessionId?: string } };
+  assert.equal(sess.ok, true);
+  assert.equal(sess.data?.requestedSessionId, "sn-trace-ch13");
+
+  const cred = JSON.parse(
+    (await tool.execute("1", { command: "credential", args: { platformId: "nonexistent-platform" }, workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { status?: string; platformId?: string } };
+  assert.equal(cred.ok, true);
+  assert.equal(cred.data?.status, "missing");
+  assert.equal(cred.data?.platformId, "nonexistent-platform");
+
+  const ex = JSON.parse(
+    (await tool.execute("1", { command: "explain", args: { subject: "probe:ch13-matrix" }, workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { conclusion?: string; subjectType?: string } };
+  assert.equal(ex.ok, true);
+  assert.equal(ex.data?.subjectType, "probe");
+  assert.ok(typeof ex.data?.conclusion === "string");
+});
+
+test("T1.1.4 CH-13-01 — env-only SECOND_NATURE_WORKSPACE_ROOT bridges heartbeat_check (fresh process)", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-env-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const pluginHref = pathToFileURL(path.join(process.cwd(), "plugin", "index.js")).href;
+  const runnerPath = path.join(tmp, "plugin-env-heartbeat.mjs");
+  fs.writeFileSync(
+    runnerPath,
+    `
+const pluginUrl = ${JSON.stringify(pluginHref)};
+const mod = await import(pluginUrl);
+let tool;
+mod.default.register({
+  registerService() {},
+  registerCommand() {},
+  registerTool(t) { tool = t; },
+});
+const text = (await tool.execute("1", {
+  command: "heartbeat_check",
+  args: { timestamp: "2026-05-04T16:00:00.000Z" },
+})).content[0].text;
+const p = JSON.parse(text);
+if (p.surfaceMode !== "workspace_full_runtime") {
+  console.error(JSON.stringify(p));
+  process.exit(1);
+}
+process.stdout.write("ok");
+`,
+    "utf-8",
+  );
+
+  const result = spawnSync(process.execPath, ["--experimental-vm-modules", runnerPath], {
+    cwd: process.cwd(),
+    encoding: "utf-8",
+    env: { ...process.env, SECOND_NATURE_WORKSPACE_ROOT: tmp },
+  });
+
+  assert.equal(result.status, 0, `stderr: ${result.stderr}\nstdout: ${result.stdout}`);
+  assert.equal(result.stdout.trim(), "ok");
 });

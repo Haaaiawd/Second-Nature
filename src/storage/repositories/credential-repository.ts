@@ -14,8 +14,19 @@ export class CredentialRepository {
   }
 
   async findByPlatformId(platformId: string): Promise<CredentialRecord | undefined> {
-    return this.database.db.query.credentialRecords.findFirst({
+    const row = await this.database.db.query.credentialRecords.findFirst({
       where: eq(credentialRecords.platformId, platformId),
     });
+    if (row == null) {
+      return undefined;
+    }
+    const r = row as Record<string, unknown>;
+    const pid = (r.platformId ?? r.platform_id) as string | undefined;
+    const enc = (r.encryptedValue ?? r.encrypted_value) as string | undefined;
+    // sql.js + Drizzle: no-match can still return a "shell" row (keys present, values undefined).
+    if (pid == null || pid === "" || enc == null || enc === "") {
+      return undefined;
+    }
+    return row;
   }
 }

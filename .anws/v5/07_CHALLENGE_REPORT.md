@@ -76,8 +76,10 @@
 | -------- | --- | ------------------------------------------------------------------------------------------ | ------ |
 | Critical | 0   | —                                                                                          | ✅ 无    |
 | High     | 0   | —                                                                                          | ✅ 无    |
-| Medium   | 2   | **CH-11-01** 仍依赖真实宿主；**CH-13-01** 集成测未矩阵化桥接下 `fallback`/`report`/`session`/`credential` 与 **仅 env 根** | ⏳ 验证债 |
-| Low      | 1   | **CH-13-02**：`README.md`「根已知 ⇒ full read bridge」运维句仍弱于 `05_TASKS` T1.1.4 输出承诺                                           | ⏳ 可选   |
+| Medium   | 1   | **CH-11-01** 仍依赖真实宿主（惰性 `import` + sql.js 仅 INT-S4 可证）                                                                 | ⏳ INT-S4 |
+| Low      | 0   | —                                                                                                                                  | ✅ 无    |
+
+> **CH-13 跟进（2026-05-04 `/forge`）**: **CH-13-01** 已补最小集成矩阵（`fallback` / `report` / `session` / `credential` / `explain` + 子进程 **仅 env 根** `heartbeat_check`）见 `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`。**CH-13-02** 已在 `README.md` §Current 补一句根已知读桥与 INT-S4 边界。
 
 
 ---
@@ -85,7 +87,7 @@
 ## 📊 审查摘要
 
 **审查模式**: `CODE` + Round 12 文档核对 + **Round 13 子代理静态核对**（`explore` / Composer 2 Fast）  
-**整体判断**: 🟢 **无 Critical**；**T1.1.4 已在 `05_TASKS.md` 勾选完成**；🟡 **CH-11-01**（宿主 VM + 惰性加载）与 **CH-13-01**（桥接矩阵集成测缺口）为 **Medium 验证债**；**INT-S4** 仍 ⏳。  
+**整体判断**: 🟢 **无 Critical**；**T1.1.4 已在 `05_TASKS.md` 勾选完成**；🟡 **CH-11-01**（宿主 VM + 惰性加载）为 **Medium 验证债**（仅 INT-S4）；**CH-13-01/02** 已在 2026-05-04 `/forge` 小波次闭合；**INT-S4** 仍 ⏳。  
 **高信号结论**: **CH-11-02** 已在 **`plugin/index.ts`**（carrier `explain` → `ok: false` + `EXPLAIN_READ_SURFACE_UNAVAILABLE`，约 `451-468`）；读桥见 **`plugin/workspace-ops-bridge.ts`** 与 **`routeSecondNatureCommand`**。下文 Round 12「Code review」中 **carrier `explain` `ok:true` 一句已过时**。
 
 
@@ -93,8 +95,8 @@
 | ------------------------- | --------------------------- |
 | Critical（活跃）                | 0                           |
 | High（活跃）                  | 0                           |
-| Medium（活跃，Round 13）      | 2（CH-11-01；CH-13-01）        |
-| Low（活跃，Round 13）        | 1（CH-13-02）                 |
+| Medium（活跃，Round 13）      | 1（CH-11-01）                  |
+| Low（活跃，Round 13）        | 0                             |
 | Total Findings（历史 Round 9–10） | 10（均已处理或证伪）                |
 
 
@@ -105,7 +107,7 @@
 | task-reviewer   | Round 13 **轻量**：子代理对照 `05_TASKS` T1.1.4 `[x]` 与验收子集 vs `plugin-workspace-ops-bridge.test.ts` |
 | code-reviewer   | Round 13：**子代理只读** + 主会话抽样 `plugin/index.ts`、`workspace-ops-bridge.ts`                    |
 | Pre-Mortem      | 无矩阵集成测时，桥接下 **`explain`/`fallback` 等**仍可能在回归中静默漂移                              |
-| 承诺闭合检查          | **Partial** — CH-11-02 已闭合；**CH-11-01 / CH-13-01** 仍 Partial                                     |
+| 承诺闭合检查          | **Partial** — CH-11-02、CH-13 已闭合；**CH-11-01** 仍待 INT-S4 宿主证据                                     |
 
 
 ---
@@ -168,7 +170,7 @@
 - [ ] 🟡 项目可继续，但需先解决 P0 问题
 - [ ] 🔴 项目需要重新评估
 
-**判断依据（更新）**: CH-09-01 在静态复核时 **未发现** `host_message_id_missing` 占位写入路径（以 `hasDeliveryProof` + `writeDeliveryAttempt` 校验为准）；CH-09-02/03 与 CH-10-01～04 已在 2026-05-03 提交中修复并附测试/文档更新。**Round 12**：文档与任务承接缺口已通过更新 `05_TASKS.md`（T1.1.4）与 `reports/t7-1-1-documentation-traceability-checklist.md` 部分闭合。**Round 13**：T1.1.4 **实现已交付**（`05_TASKS` `[x]`）；CH-11-02 **已闭合**；CH-11-01 / CH-13-01 / CH-13-02 见第 13 轮表与下文。
+**判断依据（更新）**: CH-09-01 在静态复核时 **未发现** `host_message_id_missing` 占位写入路径（以 `hasDeliveryProof` + `writeDeliveryAttempt` 校验为准）；CH-09-02/03 与 CH-10-01～04 已在 2026-05-03 提交中修复并附测试/文档更新。**Round 12**：文档与任务承接缺口已通过更新 `05_TASKS.md`（T1.1.4）与 `reports/t7-1-1-documentation-traceability-checklist.md` 部分闭合。**Round 13**：T1.1.4 **实现已交付**（`05_TASKS` `[x]`）；CH-11-02 **已闭合**；**CH-13-01/02** 于 2026-05-04 `/forge` 补矩阵测与 README；**CH-11-01** 仍待 INT-S4。
 
 ---
 
@@ -186,7 +188,7 @@
 | 并发态 | Pass | connector 执行策略含并发冲突/重放语义。                                                                                    | —    |
 | 观测态 | Pass | `ack_dropped` 计入 `no_user_visible_contact` 警告链；`hostProofRef` 单测；plugin carrier 读表面 `ok: false` + tri-state。 | —    |
 | 文档态 | Partial→Pass | Round 12：`05_TASKS` T1.1.4 显式绑定 explain/同类读面；T7 US-001 含 T1.1.4；human 指南 §D7；本报告摘要自洽。 | CH-12-01～04 |
-| 文档态 | Partial | Round 13：质疑报告正文已纠偏 CH-11-02；`README` 仍可加强（CH-13-02）。 | CH-13-02 |
+| 文档态 | Pass | Round 13：`README` §Current 已补根已知读桥（CH-13-02 ✅）。 | — |
 
 
 ### B. ADR 影响追踪
@@ -251,10 +253,10 @@
 
 ### Code review（Round 13，子代理 + 主会话抽样）
 
-- **总结结论**: **Partial Pass** — T1.1.4 **已落地**；**TASKS 验收 vs 集成测矩阵**仍 **Partial**（CH-13-01）。  
+- **总结结论**: **Partial Pass** — T1.1.4 **已落地**；**TASKS 验收 vs 集成测矩阵** 已于 2026-05-04 补 **CH-13-01** 最小覆盖；宿主惰性链仍 **Partial**（CH-11-01 / INT-S4）。  
 - **Lens 1**: carrier `explain` **`ok: false`**（`plugin/index.ts:451-468`）；CH-11-02 **闭合**。  
 - **Lens 5**: `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` 覆盖 unknown `explain`、桥接 `heartbeat_check` / `status` / `quiet`；**未**矩阵化桥接下 `fallback` / `report` / `session` / `credential` 与 **仅 `SECOND_NATURE_WORKSPACE_ROOT`**。  
-- **Lens 6**: 本文件 CH-11-02 行与 `explain` 对照表 **已更新**；`README.md` 仍弱（CH-13-02）。
+- **Lens 6**: 本文件 CH-11-02 行与 `explain` 对照表 **已更新**；`README.md` Current **已补**（CH-13-02 ✅）。
 
 
 ## 第 13 轮 — 核心发现清单（子代理 POST-T1.1.4）
@@ -262,7 +264,7 @@
 
 | ID       | 类别              | 严重度    | 位置 / 证据                                                                                                                                           | 发现                                                                                                                                     | 影响                          | 建议                                                                                    |
 | -------- | --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------- |
-| CH-13-01 | 验证承接 / Test Drift | Medium | `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`                                                                                         | 桥接矩阵未覆盖 **fallback / report / session / credential** 与 **env 根** 全量断言。                                                                  | 回归静默漂移风险                | P1：每类最小 1 条 + env 根 1 条。                                                     |
-| CH-13-02 | 文档回流            | Low    | `README.md`                                                                                                                                        | 「根已知 ⇒ `second_nature_ops` full read bridge」运维句弱于 `05_TASKS` T1.1.4 输出。                                                                                        | 冷启动低估插件能力                  | P2：README current 补一句边界。                                          |
+| CH-13-01 | 验证承接 / Test Drift | ~~Medium~~ → **✅** | `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`                                                                                         | **（历史）**矩阵未覆盖。**（当前）** 已补 `fallback`/`report`/`session`/`credential`/`explain` + 子进程 env 根 `heartbeat_check`（2026-05-04）。                                                                  | — | 已闭合 |
+| CH-13-02 | 文档回流            | ~~Low~~ → **✅** | `README.md` §Current                                                                                                                                        | **（历史）**运维句偏弱。**（当前）** 已补根已知读桥与 INT-S4 边界一句。                                                                                        | — | 已闭合 |
 | （继承）     | 架构 / 验证缺口        | Medium | CH-11-01；`plugin/workspace-ops-bridge.ts`                                                                                                            | Plan B 子进程 CLI **未**实现；惰性加载 **仅 INT-S4** 可闭合。                                                                                | 特定宿主桥接失败                  | INT-S4 根已知证据；失败再 `/change` 评 Plan B。 |
 
