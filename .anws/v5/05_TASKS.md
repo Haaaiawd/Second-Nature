@@ -136,7 +136,7 @@ graph TD
   - **依赖**: T1.1.1
   - **优先级**: P0
 
-- [ ] **T1.1.4** [REQ-019]: OpenClaw 插件 — workspace 根已知时的 **full ops / Quiet 读路径桥接**（受控）
+- [x] **T1.1.4** [REQ-019]: OpenClaw 插件 — workspace 根已知时的 **full ops / Quiet 读路径桥接**（受控）
   - **用户原话承接**: 「不允许」插件面仅 carrier 拒绝 Quiet；须在 **可解析 workspace** 条件下提供 **真实 Quiet / heartbeat 读结果或诚实失败**，不得回退假读模型。
   - **描述**: 在 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot` 解析为 `env`/`tool_args` 时，经 **惰性动态加载**（保持 `register()` 同步）装配与 CLI 等价的 `CliReadModels` + `createOpsRouter`，使 `second_nature_ops` 的 `heartbeat_check` 与 **同一读桥** 下的只读命令可走与 CLI 一致的 read model 路径（含 `heartbeatCheck(..., readModels)` → `runHeartbeatCycle`）；`workspaceRootResolution === "unknown"` 时 **维持** 当前 `ok: false` / `evaluated: false` 诚实语义（含 CH-11-02：`explain` 不得维持 carrier 上 `ok: true` 半成功形状）。备选实现：受控 **子进程** 调用 workspace CLI（Plan B），须在任务验收中二选其一或并列说明宿主约束。
   - **输入**: `plugin/index.ts`；`src/cli/index.ts`；`src/cli/ops/heartbeat-surface.ts`；`src/cli/ops/workspace-heartbeat-runner.ts`；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`；`explore/reports/2026-05-03_t1-1-4-bridge-prd-feasibility.md`；`.anws/v5/07_CHALLENGE_REPORT.md`（Round 11 CH-11-01/02）；`docs/validation/int-s4-human-operator-testing-guide.md`

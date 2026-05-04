@@ -76,7 +76,7 @@
 
 - **问**：我只看 `ok: true`，会不会以为已经查了证据链？  
 - **carrier（根 unknown 或未桥接）期望**：`explain` **不得**单独用 `ok: true` + `evaluated: false` 冒充「读到了 explain 索引」；应与 `status`/`quiet` 同族诚实（`ok: false` + `error.code`，见 `07_CHALLENGE_REPORT.md` CH-11-02）— **T1.1.4 交付后**，根已知且 DB 可开时应与 CLI `explainSurfaceSubject` 一致或同级显式错误。  
-- **人类动作**：用有效 `subject`（如 `probe:test`）在 **未设** `SECOND_NATURE_WORKSPACE_ROOT` 下调一次 — 若仍顶层 `ok: true` 且无 `error`，记下为 **待 T1.1.4 收敛项**。
+- **人类动作**：用有效 `subject`（如 `probe:test`）在 **未设** `SECOND_NATURE_WORKSPACE_ROOT` 下调一次 — 期望顶层 `ok: false` 且含 `error.code`（与仓库集成测 `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` 中 CH-11-02 用例一致）。
 
 ---
 
@@ -90,7 +90,7 @@
 2) second_nature_ops command=quiet — 贴完整 JSON。判断：若 ok 为 false 且含 evaluated:false 与 unavailableReason，判 PASS（诚实）；若 quiet.mode 为 unknown 且 ok 为 true，判 FAIL（旧包）。
 3) second_nature_ops command=heartbeat_check — 贴完整 JSON。判断：若顶层 status 为 runtime_carrier_only 且无 HEARTBEAT_OK，判 PASS；否则 FAIL。
 4) second_nature_ops command=storage_smoke args={} — 贴摘要。判 sql_js / native 结论是否存在。
-5) second_nature_ops command=explain args={"subject":"probe:int-s4-human"} — 贴完整 JSON。判断：若根 unknown 且顶层 ok 为 true 且无与 status 同族的 error.code，判 **待收敛**（CH-11-02）；若 ok 为 false 且含明确拒绝码，判 PASS（诚实 carrier）。
+5) second_nature_ops command=explain args={"subject":"probe:int-s4-human"} — 贴完整 JSON。判断：若根 unknown 且顶层 ok 为 false 且含 `EXPLAIN_READ_SURFACE_UNAVAILABLE`（或同类明确拒绝码），判 PASS（CH-11-02）；若 ok 为 true 且无 error，判 FAIL（旧半成功形状）。
 6) 若网关可设环境变量：说明是否已设置 SECOND_NATURE_WORKSPACE_ROOT，并解释 workspaceRootResolution 字段含义。
 ```
 

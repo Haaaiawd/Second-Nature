@@ -19,12 +19,79 @@
  * Test coverage:
  * - tests/integration/cli/plugin-runtime-registration.test.ts
  * - tests/integration/cli/plugin-packaging-walkthrough.test.ts
+ * - tests/integration/cli/plugin-workspace-ops-bridge.test.ts (T1.1.4)
  */
 import { startRuntimeService, } from "./runtime/core/second-nature/runtime/service-entry.js";
 import { getLifecycleState, recordRegistration, } from "./runtime/core/second-nature/runtime/lifecycle-service.js";
+import { openWorkspaceOpsBridge } from "./workspace-ops-bridge.js";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 const HOST_SAFE_LIMITATION_MESSAGE = "Host-safe plugin package keeps synchronous register/load semantics, but mutating workspace runtime flows remain unavailable here.";
 let activationSpine = null;
+/** T1.1.4 — lazily opened full read bridge; closed when workspace root / resolution changes. */
+let workspaceOpsBridge = null;
+function disposeWorkspaceOpsBridge() {
+    if (workspaceOpsBridge) {
+        workspaceOpsBridge.close();
+        workspaceOpsBridge = null;
+    }
+}
+const WORKSPACE_BRIDGE_COMMANDS = new Set([
+    "status",
+    "quiet",
+    "report",
+    "session",
+    "explain",
+    "heartbeat_check",
+    "fallback",
+    "storage_smoke",
+]);
+function isWorkspaceBridgeCommand(command, input) {
+    if (command === "credential") {
+        const action = typeof input?.action === "string" ? input.action : "show";
+        return action !== "verify";
+    }
+    return WORKSPACE_BRIDGE_COMMANDS.has(command);
+}
+async function ensureWorkspaceOpsBridge(spine) {
+    const root = spine.workspaceRootContext.runtimeRoot;
+    if (workspaceOpsBridge?.root === root) {
+        return { ok: true, dispatch: workspaceOpsBridge.dispatch };
+    }
+    disposeWorkspaceOpsBridge();
+    const opened = await openWorkspaceOpsBridge(root);
+    if (!opened.ok) {
+        return opened;
+    }
+    workspaceOpsBridge = { root, close: opened.close, dispatch: opened.dispatch };
+    return { ok: true, dispatch: opened.dispatch };
+}
+async function routeSecondNatureCommand(spine, command, input) {
+    const wr = spine.workspaceRootContext;
+    const useBridge = wr.resolution !== "unknown" && isWorkspaceBridgeCommand(command, input);
+    if (useBridge) {
+        const bridge = await ensureWorkspaceOpsBridge(spine);
+        if (!bridge.ok) {
+            return {
+                ok: false,
+                surfaceMode: "host_safe_carrier",
+                workspaceReadModelsEvaluated: false,
+                message: HOST_SAFE_LIMITATION_MESSAGE,
+                error: bridge.error,
+                data: {
+                    workspaceRootResolution: wr.resolution,
+                    bridgeAttempted: true,
+                    declaredRoot: wr.declaredRoot,
+                },
+            };
+        }
+        return (await bridge.dispatch(command, input));
+    }
+    const def = spine.router.resolve(command);
+    if (!def) {
+        return { ok: false, message: `Unknown Second Nature command: ${command}` };
+    }
+    return def.execute(input);
+}
 function resolveWorkspaceRoot(toolWorkspaceRoot) {
     const env = process.env.SECOND_NATURE_WORKSPACE_ROOT?.trim();
     if (env) {
@@ -40,6 +107,9 @@ function syncWorkspaceRootFromTool(spine, toolWorkspaceRoot) {
     const next = resolveWorkspaceRoot(toolWorkspaceRoot);
     const prev = spine.workspaceRootContext;
     const changed = next.runtimeRoot !== prev.runtimeRoot || next.resolution !== prev.resolution;
+    if (changed) {
+        disposeWorkspaceOpsBridge();
+    }
     spine.workspaceRootContext = next;
     if (changed) {
         spine.runtimeHandle = startRuntimeService({ workspaceRoot: next.runtimeRoot });
@@ -253,27 +323,22 @@ function buildExplainPayload(spine, subjectRaw) {
         }
         return createUnavailableActionError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject", ["subject"], "reinvoke_explain_with_supported_subject");
     }
-    const runtimeEvidence = latestRuntimeEvidence(spine);
     const wr = spine.workspaceRootContext;
     return {
-        ok: true,
+        ok: false,
         surfaceMode: "host_safe_carrier",
+        workspaceReadModelsEvaluated: false,
+        message: HOST_SAFE_LIMITATION_MESSAGE,
+        error: {
+            code: "EXPLAIN_READ_SURFACE_UNAVAILABLE",
+            message: "Evidence-backed explain requires persisted workspace read models; host-safe carrier did not evaluate operator explain (CH-11-02).",
+            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
+        },
         data: {
             subjectType: subject.subjectType,
             evaluated: false,
             workspaceRootResolution: wr.resolution,
-            conclusion: "Plugin surface is loaded in host-safe mode with a minimal activation spine; this is not an evidence-backed workspace explain.",
-            keyFactors: [
-                "synchronous_register",
-                `subject:${subject.subjectId}`,
-                runtimeEvidence?.capability ?? "runtime.activate",
-            ],
-            evidenceRefs: [
-                runtimeEvidence?.traceId ?? `${INTERNAL_RUNTIME_TRACE_PREFIX}none`,
-                `subject:${subjectRaw.trim()}`,
-                "host_safe_mode",
-            ],
-            nextStep: "use full workspace runtime for evidence-backed explain details",
         },
     };
 }
@@ -486,6 +551,11 @@ function recordRuntimeEvidence(spine, origin) {
 function refreshRegistrationState() {
     const spine = ensureActivationSpine();
     const workspaceRootContext = resolveWorkspaceRoot(undefined);
+    const prev = spine.workspaceRootContext;
+    const changed = workspaceRootContext.runtimeRoot !== prev.runtimeRoot || workspaceRootContext.resolution !== prev.resolution;
+    if (changed) {
+        disposeWorkspaceOpsBridge();
+    }
     spine.workspaceRootContext = workspaceRootContext;
     spine.runtimeHandle = startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot });
     spine.lifecycleState = recordRegistration();
@@ -640,7 +710,7 @@ export default {
                         text: JSON.stringify({ ok: false, command: parsed.command, message: "Unknown Second Nature command." }),
                     };
                 }
-                const result = await resolved.execute(parsed.input);
+                const result = await routeSecondNatureCommand(spine, parsed.command, parsed.input);
                 return {
                     text: JSON.stringify(result),
                 };
@@ -676,7 +746,7 @@ export default {
                         ],
                     };
                 }
-                const result = await resolved.execute(params.args);
+                const result = await routeSecondNatureCommand(spine, params.command, params.args);
                 return {
                     content: [
                         {

@@ -18,7 +18,8 @@ Use the shipping Second Nature bridge by calling `second_nature_ops` with comman
 ## Success semantics
 
 - **Workspace CLI / full runtime** (read models wired): if the result contains `status: "heartbeat_ok"` (or another explicit lived-experience outcome from the decision loop), treat it per that surface’s contract.
-- **Shipping host-safe plugin** (`second_nature_ops` on the packaged carrier): expect `status: "runtime_carrier_only"` with `data.bridge.serviceEntryMode: "runtime_carrier_only"`. That means the carrier acknowledged the round — **not** that a full lived-experience decision loop ran on workspace state.
+- **OpenClaw plugin + known workspace root** (`SECOND_NATURE_WORKSPACE_ROOT` or tool `workspaceRoot` resolving to `env` / `tool_args`, state DB openable): `heartbeat_check`, `quiet`, `status`, `explain`, `fallback`, `report`, `session`, and `credential` **show** use the **same read path as the workspace CLI** (lazy-loaded packaged runtime). Results match CLI-shaped payloads or return an explicit error — not carrier placeholders.
+- **Shipping host-safe plugin** (`second_nature_ops` on the packaged carrier): when the workspace root is **unknown**, expect `status: "runtime_carrier_only"` with `data.bridge.serviceEntryMode: "runtime_carrier_only"`. That means the carrier acknowledged the round — **not** that a full lived-experience decision loop ran on workspace state.
 - Treat the carrier-only result as “no additional action is required **from this carrier surface** for this round”; do not infer rhythm health or empty workspace telemetry from it.
 
 ## Next-step semantics

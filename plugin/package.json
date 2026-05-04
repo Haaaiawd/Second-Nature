@@ -17,6 +17,7 @@
   "main": "./index.js",
   "files": [
     "index.js",
+    "workspace-ops-bridge.js",
     "openclaw.plugin.json",
     "runtime/"
   ],

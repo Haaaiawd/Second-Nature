@@ -47,6 +47,17 @@ function compilePluginEntry() {
 
   fs.copyFileSync(compiledEntry, targetEntry);
   console.log(`✅ Copied ${compiledEntry} → ${targetEntry}`);
+
+  const distPluginDir = path.resolve(distDir, "plugin");
+  if (fs.existsSync(distPluginDir)) {
+    for (const file of fs.readdirSync(distPluginDir)) {
+      if (!file.endsWith(".js") || file === "index.js") continue;
+      const from = path.join(distPluginDir, file);
+      const to = path.join(pluginDir, file);
+      fs.copyFileSync(from, to);
+      console.log(`✅ Copied plugin helper ${file} → plugin/`);
+    }
+  }
 }
 
 // ─── Step 2: Copy runtime artifacts ──────────────────────────────────────────
