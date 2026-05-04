@@ -11,7 +11,7 @@
 
 | 公共契约 | 类型 | 契约层级 | 实现承接 | 验证承接 |
 | --- | --- | --- | --- | --- |
-| `second_nature_ops("heartbeat_check")` / `HeartbeatSurfaceResult` | CLI / 操作契约 | 关键用户路径契约 | T1.1.3, T2.1.1, T2.2.1 | T1.3.1, INT-S1, INT-S2 |
+| `second_nature_ops("heartbeat_check")` / `HeartbeatSurfaceResult` | CLI / 操作契约 | 关键用户路径契约 | T1.1.3, T1.1.4, T2.1.1, T2.2.1 | T1.3.1, INT-S1, INT-S2, INT-S4 |
 | OpenClaw capability probe / `HostCapabilityReport` | 宿主能力契约 | 跨系统契约 | T1.1.2 | T1.1.2, INT-S1 |
 | `heartbeat_tool_not_invoked` | 宿主默认态契约 | 关键用户路径契约 | T1.1.2 | T1.3.1 |
 | Runtime artifact boundary | Packaging / 文件结构 | 基础规则层契约 | T1.1.1 | T1.1.1, INT-S4 |

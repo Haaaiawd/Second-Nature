@@ -176,9 +176,9 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 41, P0: 28, P1: 9, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟）
+- 总任务数: 41, P0: 28, P1: 9, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 已闭合）
 - Sprint 数: 4
-- Wave 14 建议: 在目标 OpenClaw 宿主执行 INT-S4 真实冒烟并勾选里程碑；其余 Level-3 与文档门禁已闭合
+- **下一步**: 在目标 OpenClaw 宿主执行 **INT-S4** 并勾选里程碑（`docs/validation/int-s4-human-operator-testing-guide.md`，含 T1.1.4 后 §D7 根已知 / `unknown` 对照）；Level-3 任务在 `05_TASKS.md` 内已全部 `[x]`
 - 最近更新: `2026-05-04`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
