@@ -148,18 +148,19 @@ graph TD
     - Given `workspaceRootResolution` 为 `env` 或 `tool_args` 且 state DB 可打开
     - When 调用 `second_nature_ops` 的 `heartbeat_check`、`quiet`、聚合 `status`，以及 **至少** `explain`（有效 `subject`）、`fallback`（有效 `ref`）、`report` / `session` / `credential`（show）中与桥接实现范围一致的子集
     - Then 返回结果与 **同路径 CLI** 的 `HeartbeatSurfaceResult`、对应 read model（`loadQuiet` / `loadStatus` / `explainSurfaceSubject` / `showOperatorFallback` / `loadDailyReport` / `loadSession` / `loadCredential`）语义一致或给出 **同级的显式错误**（非假空）；且 `livedExperienceLoopClaimed` 与事实一致
+    - **根对齐验证（新增，承接 survey + subagent review）**: 证据中**必须**记录所设 `SECOND_NATURE_WORKSPACE_ROOT` / `workspaceRoot` 是否与实际 OpenClaw agent workspace（含可打开 `data/state.db` + `SOUL.md` / `HEARTBEAT.md`）一致；sandbox / 多 agent 场景下须注明实际落库路径而非默认 `~/.openclaw/workspace`。
     - Given `workspaceRootResolution === "unknown"`
     - When 调用上述命令（含带参数的 `explain`）
     - Then 仍不得返回「已评估读模型」形状（保持 CH-10 诚实语义）；**且** `explain` 必须与 `status`/`quiet` 同族：`ok: false` + 明确 `error.code` **或** 任务实施前在 `05_TASKS` 中写死并评审通过的单一替代信封（默认推荐 `ok: false` 对齐 CH-11-02）
   - **验证类型**: 集成测试（fixture workspace）+ 文档；**真实宿主** 归入 INT-S4
-  - **验证说明**: 新增/扩展 `plugin-runtime-registration` 或专用集成测覆盖「根已知桥接」与「根 unknown 仍拒绝」；不得删除现有 carrier-only 基线测例。
-  - **运维约定 (OpenClaw 宿主)**: **推荐** 将 `SECOND_NATURE_WORKSPACE_ROOT` 与工具 `workspaceRoot` 设为 **与 OpenClaw agent workspace 相同的绝对路径**（默认 `~/.openclaw/workspace`，或 `~/.openclaw/openclaw.json` → `agents.defaults.workspace`），使 state / `data/` 与 `SOUL.md`、`HEARTBEAT.md` 等同桌；**不得**假设可从插件安装目录相对推出该根。若启用 **sandbox** 或 **每 agent 独立 workspace**，以 **实际承载 Second Nature state 的路径** 为准。详见 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`。
+  - **验证说明**: 新增/扩展 `plugin-runtime-registration` 或专用集成测覆盖「根已知桥接」与「根 unknown 仍拒绝」；不得删除现有 carrier-only 基线测例。**新增**：验收时须附 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md`（含 subagent 48/100 审查）作为风险评估输入；bridge dispatch 中 `process.chdir` 的全局副作用须在测试报告中显式说明（若宿主支持并发工具调用，未来建议采用 subprocess Plan B 隔离）。
+  - **运维约定 (OpenClaw 宿主)**: **推荐** 将 `SECOND_NATURE_WORKSPACE_ROOT` 与工具 `workspaceRoot` 设为 **与 OpenClaw agent workspace 相同的绝对路径**（默认 `~/.openclaw/workspace`，或 `~/.openclaw/openclaw.json` → `agents.defaults.workspace`），使 state / `data/` 与 `SOUL.md`、`HEARTBEAT.md` 等同桌；**不得**假设可从插件安装目录相对推出该根。若启用 **sandbox** 或 **每 agent 独立 workspace**，以 **实际承载 Second Nature state 的路径** 为准。详见 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md` 及 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` §8（subagent 审查）。
   - **估时**: 12h（含沙箱风险缓冲）
   - **依赖**: T1.1.1, T1.1.3, T2.2.1（decision loop 行为以现有 `runHeartbeatCycle` 为准）
   - **优先级**: P0
 
 - [x] **T1.1.5** [REQ-019]: OpenClaw 宿主 — **agent workspace** 与 SN 根对齐的运维文档回流 + semver 对齐
-  - **描述**: 将 T1.1.4「运维约定 (OpenClaw 宿主)」显式写入 README / README.zh-CN / `HEARTBEAT.md` / `docs/validation/int-s4-human-operator-testing-guide.md`（E2E Plan、§D4/D8、对话模板）与 `plugin/index.ts` 头注释；强调 sandbox / 多 agent 下以**实际落库路径**为准；声明 **宿主验收以 `second_nature_ops` JSON 为真源**，助手自然语言漂移记 Finding。根 `package.json` **version** 与 `plugin/package.json` / `openclaw.plugin.json` 对齐（当前 **0.1.10**）。
+  - **描述**: 将 T1.1.4「运维约定 (OpenClaw 宿主)」显式写入 README / README.zh-CN / `HEARTBEAT.md` / `docs/validation/int-s4-human-operator-testing-guide.md`（E2E Plan、§D4/D8、对话模板）与 `plugin/index.ts` 头注释；强调 sandbox / 多 agent 下以**实际落库路径**为准；声明 **宿主验收以 `second_nature_ops` JSON 为真源**，助手自然语言漂移记 Finding。根 `package.json` **version** 与 `plugin/package.json` / `openclaw.plugin.json` 对齐（当前 **0.1.13**）。
   - **输入**: T1.1.4 运维约定段；`explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`
   - **输出**: 上述文档与 manifest 描述补丁；无行为变更时以静态审阅 + 既有测试绿为证
   - **契约承接**: 与 T1.1.4 同一运维边界；支撑 INT-S4 人类指南与 CH-11 证据口径
@@ -220,7 +221,7 @@ graph TD
     - When 模型/host 未调用 tool
     - Then smoke report 标记 `heartbeat_tool_not_invoked`，不得当作 `HEARTBEAT_OK`；如官方文档与实测冲突，报告必须记录 doc link、doc checked date、host version 与 observed behavior
   - **验证类型**: 冒烟测试
-  - **验证说明**: 使用可复现 host smoke fixture；若真实 host 不可用，near-real adapter 必须输出 fail/unknown，而不是 pass；覆盖 docs-vs-observed conflict fixture。
+  - **验证说明**: 使用可复现 host smoke fixture；若真实 host 不可用，near-real adapter 必须输出 fail/unknown，而不是 pass；覆盖 docs-vs-observed conflict fixture。**新增（承接 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md`）**：真实宿主上若当前 agent 会话的工具枚举**不包含** `second_nature_ops`，则不得将失败仅解释为「模型未调用 tool」并记入 `heartbeat_tool_not_invoked`；须先排除插件加载链、宿主 profile / tool allowlist、网关实例与插件版本对齐等问题（背景见 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`）。
   - **估时**: 6h
   - **依赖**: T1.1.2, T1.1.3
   - **优先级**: P0
@@ -823,7 +824,7 @@ graph TD
     - When 执行 release readiness 验证
     - Then package load、heartbeat_check、target none、ack drop、heartbeat_tool_not_invoked、fallback visibility、README boundary 均有 pass/fail/unknown 证据
   - **验证类型**: 冒烟测试 / 手动验证
-  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。**根已知** 证据中宜注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。
+  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。**根已知** 证据中**必须**注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。**新增（承接 2026-05-05 survey + subagent 48/100 审查）**：真实宿主 transcript 须同时覆盖 carrier-only 与 full-bridge 两种路径；bridge 成功案例须附 root 红acted 截图 + chdir 影响声明；若 sandbox 下 dynamic import + sql.js 失败，须记录 `WORKSPACE_FULL_OPS_BRIDGE_FAILED` 详情并触发 Plan B 讨论。参考 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` §8。**新增（承接 2026-05-06 干系人报告）**：在验收以 `second_nature_ops` 为真源前，须确认**当前 agent 会话**（或宿主等价 API）工具枚举**包含** `second_nature_ops`；若仅见内置工具而第三方插件工具缺失，**不得**将 E2E / INT-S4 标为通过，须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 与 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 排查工具注册与合并链路（与「心跳/HEARTBEAT 正常但工具表无 SN」现象区分）。
   - **估时**: 4h
   - **依赖**: T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
 
