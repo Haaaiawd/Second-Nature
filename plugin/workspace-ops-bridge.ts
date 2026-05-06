@@ -6,6 +6,8 @@
  * `process.chdir(workspaceRoot)` during dispatch so `memory/workspace` paths match CLI cwd semantics.
  *
  * Boundaries: no static imports from `./runtime/*` (sql.js top-level await stays out of register() graph).
+ * VM safety: do not read `import.meta.url` at module scope — some OpenClaw loaders evaluate this file in contexts
+ * where top-level `import.meta` breaks before `register()` runs; compute package root only inside `openWorkspaceOpsBridge`.
  *
  * Plan B (CH-11-01): if the host VM blocks dynamic import + sql.js, fall back to a subprocess invoking
  * the workspace `second-nature` CLI — not implemented here; bridge failures surface as explicit errors.
@@ -15,8 +17,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-const PLUGIN_PACKAGE_ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 export type WorkspaceOpsBridgeOpenResult =
   | {
@@ -38,6 +38,7 @@ export type WorkspaceOpsBridgeOpenResult =
 export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<WorkspaceOpsBridgeOpenResult> {
   const resolvedRoot = path.resolve(workspaceRoot);
   try {
+    const pluginPackageRoot = path.dirname(fileURLToPath(import.meta.url));
     interface PackagedCliModule {
       createCliRuntimeDeps: (overrides?: Record<string, unknown>) => {
         readModels: unknown;
@@ -80,7 +81,7 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
     const observabilityDb = obsDb.createObservabilityDatabase(obsPath);
 
     const deps = cliIndex.createCliRuntimeDeps({ stateDb, observabilityDb });
-    const runtimeResolved = boundary.resolvePackagedRuntime(PLUGIN_PACKAGE_ROOT);
+    const runtimeResolved = boundary.resolvePackagedRuntime(pluginPackageRoot);
     const opsRouter = cliIndex.createOpsRouter({
       runtimeAvailable: runtimeResolved.ok,
       readModels: deps.readModels,

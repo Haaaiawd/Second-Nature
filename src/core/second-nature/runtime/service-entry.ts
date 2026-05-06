@@ -45,7 +45,8 @@ export function startRuntimeService(ctx?: RuntimeServiceContext): RuntimeService
   // - observability-system (event store setup)
   // - control-plane-system (heartbeat bridge preparation)
   const workspaceRoot = ctx?.workspaceRoot ?? process.cwd();
-  const version = "0.1.0";
+  /** Keep in sync with `plugin/package.json` when cutting releases. */
+  const version = "0.1.12";
 
   activeHandle = {
     ready: true,
