@@ -16,6 +16,30 @@
  * - structured mutating flows such as policy set / credential verify remain unavailable here
  * - full evidence-backed workspace runtime can be reintroduced later behind a host-safe boundary
  *
+ * Plugin classification (verified against OpenClaw 2026.5.4 internals, see
+ * docs/validation/openclaw-plugin-classification.md and the explore reports
+ * dated 2026-05-06):
+ * - Second Nature is a TOOL plugin (exposes `second_nature_ops` to agent
+ *   sessions). It is intentionally NOT a channel/provider/context-engine.
+ * - OpenClaw's `loadGatewayStartupPluginPlan` only loads plugins that opt in
+ *   via `manifest.activation.onStartup === true`, occupy a configured slot
+ *   (channel/contextEngine/provider), or declare an explicit hook intent. A
+ *   tool-only plugin without `activation.onStartup` will be enabled in the
+ *   registry yet never loaded by the gateway daemon — register(api) only fires
+ *   inside the `openclaw plugins enable` CLI process, which produces the
+ *   illusion of a working plugin while agent sessions see no tool. We hit
+ *   exactly that on 2026-05-06; the fix lives in plugin/openclaw.plugin.json
+ *   under the `activation` block.
+ * - `Shape: non-capability` reported by `openclaw plugins info` is EXPECTED
+ *   for this plugin. OpenClaw counts capabilities only across cli-backend /
+ *   text-inference / speech / realtime-* / media-understanding /
+ *   image-generation / web-search / agent-harness / context-engine / channel.
+ *   Tool/command/service contributions never bump that count. Pretending to
+ *   be a context engine with a stub factory just to flip the label would lie
+ *   to the host (ContextEngine.ingest/assemble/compact get called for real).
+ *   When Second Nature ships a genuine context-engine layer in a future
+ *   release, the shape will move to plain-capability honestly.
+ *
  * OpenClaw operator norm (T1.1.4 / T1.1.5): set `SECOND_NATURE_WORKSPACE_ROOT` or tool `workspaceRoot` to the
  * **same absolute path** as the OpenClaw **agent workspace** (default `~/.openclaw/workspace`, or
  * `agents.defaults.workspace` in `~/.openclaw/openclaw.json`). Do **not** infer that root from the plugin
@@ -30,6 +54,28 @@
 import { startRuntimeService, } from "./runtime/core/second-nature/runtime/service-entry.js";
 import { getLifecycleState, recordRegistration, } from "./runtime/core/second-nature/runtime/lifecycle-service.js";
 import { openWorkspaceOpsBridge } from "./workspace-ops-bridge.js";
+// definePluginEntry is OpenClaw's canonical factory for non-channel plugins
+// (provider/tool/command/service/memory/context-engine). At runtime it returns
+// a plain options object; it does NOT add a brand symbol — earlier debugging
+// rounds wrongly assumed the factory was the "plain-capability" marker. The
+// real classification happens via manifest fields (see file header). We still
+// use the factory because it is the documented, supported entry shape, and
+// keeping it future-proof against SDK option-processing changes.
+//
+// IMPORTANT — keep this a STATIC import. The packaged runtime is loaded inside
+// OpenClaw's vm sandbox, which rejects top-level await (manifests as
+// "SyntaxError: Unexpected identifier 'Promise'" at host load time). The same
+// constraint applies to the sql.js async bootstrap noted in the file header.
+// In production the host always provides `openclaw` as a sibling module under
+// ~/.openclaw/npm/node_modules/, so this resolves synchronously. Locally,
+// `openclaw` is declared as a devDependency so build and tests resolve via
+// the same import path.
+import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+// Stderr sentinels make daemon load-path observable in `gateway.log`. Three
+// lines should appear at startup: "module evaluated", "register() entered ...",
+// "register() completed". Their absence after `openclaw gateway run` proves
+// the daemon never reached this entry — typically a manifest activation gap.
+process.stderr.write("[second-nature] module evaluated\n");
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 const HOST_SAFE_LIMITATION_MESSAGE = "Host-safe plugin package keeps synchronous register/load semantics, but mutating workspace runtime flows remain unavailable here.";
 let activationSpine = null;
@@ -725,11 +771,25 @@ function createLifecycleService() {
         },
     };
 }
-export default {
+const SECOND_NATURE_TOOL_SCHEMA = {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+        command: { type: "string" },
+        args: { type: "object", additionalProperties: true },
+        workspaceRoot: {
+            type: "string",
+            description: "Workspace root for packaged smoke/runtime alignment (optional; prefer SECOND_NATURE_WORKSPACE_ROOT).",
+        },
+    },
+    required: ["command"],
+};
+export default definePluginEntry({
     id: "second-nature",
     name: "Second Nature",
     description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
     register(api) {
+        process.stderr.write(`[second-nature] register() entered, api keys=${Object.keys(api).join(",")}\n`);
         const runtimeService = createRuntimeService();
         const lifecycleService = createLifecycleService();
         api.registerService(runtimeService);
@@ -758,46 +818,38 @@ export default {
                 };
             },
         });
-        api.registerTool({
-            name: "second_nature_ops",
-            description: "Access the Second Nature command surface through a single tool shell.",
-            parameters: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                    command: { type: "string" },
-                    args: { type: "object", additionalProperties: true },
-                    workspaceRoot: {
-                        type: "string",
-                        description: "Workspace root for packaged smoke/runtime alignment (optional; prefer SECOND_NATURE_WORKSPACE_ROOT).",
-                    },
-                },
-                required: ["command"],
-            },
-            async execute(_id, params) {
-                const spine = ensureActivationSpine();
-                syncWorkspaceRootFromTool(spine, params.workspaceRoot);
-                const resolved = spine.router.resolve(params.command);
-                if (!resolved) {
-                    return {
-                        content: [
-                            {
-                                type: "text",
-                                text: JSON.stringify({ ok: false, message: "Unknown Second Nature command." }),
-                            },
-                        ],
-                    };
-                }
-                const result = await routeSecondNatureCommand(spine, params.command, params.args);
+        const executeSecondNatureTool = async (params) => {
+            const spine = ensureActivationSpine();
+            syncWorkspaceRootFromTool(spine, params.workspaceRoot);
+            const resolved = spine.router.resolve(params.command);
+            if (!resolved) {
                 return {
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify(result),
+                            text: JSON.stringify({ ok: false, message: "Unknown Second Nature command." }),
                         },
                     ],
                 };
+            }
+            const result = await routeSecondNatureCommand(spine, params.command, params.args);
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: JSON.stringify(result),
+                    },
+                ],
+            };
+        };
+        api.registerTool({
+            name: "second_nature_ops",
+            description: "Access the Second Nature command surface through a single tool shell.",
+            parameters: SECOND_NATURE_TOOL_SCHEMA,
+            async execute(_id, params) {
+                return executeSecondNatureTool(params);
             },
         });
+        process.stderr.write("[second-nature] register() completed\n");
     },
-};
+});
