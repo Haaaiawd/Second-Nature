@@ -50,7 +50,7 @@ export class LeaseManager {
         };
     }
     resolveScope(effectClass, scopeHint) {
-        if (effectClass === "external_platform_action" || effectClass === "user_outreach") {
+        if (effectClass === "external_platform_action" || effectClass === "connector_action" || effectClass === "user_outreach") {
             return scopeHint && scopeHint.length > 0 ? `${GLOBAL_SCOPE}:${scopeHint}` : GLOBAL_SCOPE;
         }
         return null;

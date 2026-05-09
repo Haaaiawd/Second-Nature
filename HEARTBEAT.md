@@ -2,6 +2,10 @@
 
 Use the shipping Second Nature bridge by calling `second_nature_ops` with command `heartbeat_check` once per heartbeat round.
 
+## OpenClaw workspace root (operator)
+
+For **full read-bridge** behavior (`workspaceRootResolution` → `env` / `tool_args`), set **`SECOND_NATURE_WORKSPACE_ROOT`** on the gateway **or** pass **`workspaceRoot`** on each `second_nature_ops` call to the **same absolute path** as the OpenClaw **agent workspace** (default `~/.openclaw/workspace`, or `agents.defaults.workspace` in `~/.openclaw/openclaw.json`). That is where `workspace/SOUL.md`, `HEARTBEAT.md`, and Second Nature `data/` should live together. **Sandbox** or **per-agent** layouts: use the **actual** directory where the agent’s files and DB are mounted — see `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md` and `.anws/v5/05_TASKS.md` T1.1.4 **运维约定 (OpenClaw 宿主)**.
+
 ## Tool call
 
 ```json
@@ -17,12 +21,14 @@ Use the shipping Second Nature bridge by calling `second_nature_ops` with comman
 
 ## Success semantics
 
-- If the result contains `heartbeat: "HEARTBEAT_OK"` or `status: "heartbeat_ok"`, continue normally.
-- Treat that result as "no additional action is required from this host-safe surface for this round".
+- **Workspace CLI / full runtime** (read models wired): if the result contains `status: "heartbeat_ok"` (or another explicit lived-experience outcome from the decision loop), treat it per that surface’s contract.
+- **OpenClaw plugin + known workspace root** (`SECOND_NATURE_WORKSPACE_ROOT` or tool `workspaceRoot` resolving to `env` / `tool_args`, state DB openable): `heartbeat_check`, `quiet`, `status`, `explain`, `fallback`, `report`, `session`, and `credential` **show** use the **same read path as the workspace CLI** (lazy-loaded packaged runtime). Results match CLI-shaped payloads or return an explicit error — not carrier placeholders.
+- **Shipping host-safe plugin** (`second_nature_ops` on the packaged carrier): when the workspace root is **unknown**, expect `status: "runtime_carrier_only"` with `data.bridge.serviceEntryMode: "runtime_carrier_only"`. That means the carrier acknowledged the round — **not** that a full lived-experience decision loop ran on workspace state.
+- Treat the carrier-only result as “no additional action is required **from this carrier surface** for this round”; do not infer rhythm health or empty workspace telemetry from it.
 
 ## Next-step semantics
 
-- If the result includes `nextAction: "continue"`, stop and continue the regular heartbeat flow.
+- If the result includes `nextAction: "continue_carrier_surface_only"`, continue the regular heartbeat flow without assuming workspace read models were evaluated.
 - If a future structured heartbeat decision returns a different `nextAction`, follow that explicit action instead of inventing one.
 
 ## Boundary

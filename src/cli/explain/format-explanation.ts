@@ -7,6 +7,8 @@ export interface FormattedExplanation {
   evidenceRefs: string[];
   requiredUserInput?: string[];
   nextStep?: string;
+  warnings?: string[];
+  relatedAuditEventIds?: string[];
 }
 
 export function formatExplanation(model: ExplainReadModel): FormattedExplanation {
@@ -17,5 +19,7 @@ export function formatExplanation(model: ExplainReadModel): FormattedExplanation
     evidenceRefs: model.evidenceRefs,
     requiredUserInput: model.requiredUserInput,
     nextStep: model.nextStep,
+    warnings: model.warnings,
+    relatedAuditEventIds: model.relatedAuditEventIds,
   };
 }

@@ -1,4 +1,5 @@
 import { classifyFailure } from "./failure-taxonomy.js";
+import { enforceExecutionPolicy } from "./execution-policy.js";
 const DEFAULT_RETRY_MAX = 3;
 const DEFAULT_BASE_DELAY_MS = 1000;
 const DEFAULT_MAX_DELAY_MS = 30000;
@@ -103,6 +104,21 @@ export function createConnectorPolicyLayer(ctx) {
                         channel: plan.channel,
                         latencyMs: 0,
                         degraded: true,
+                    },
+                };
+            }
+            const policyGate = await enforceExecutionPolicy(plan, intent, request, {
+                effectCommitLedger: ctx.effectCommitLedger,
+            });
+            if (policyGate.skipAdapter && policyGate.existingOutcomeRef) {
+                return {
+                    status: "success",
+                    data: { replayedCommit: true, outcomeRef: policyGate.existingOutcomeRef },
+                    metadata: {
+                        platformId: request.platformId,
+                        channel: plan.channel,
+                        latencyMs: 0,
+                        degraded: plan.degraded,
                     },
                 };
             }

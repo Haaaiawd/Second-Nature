@@ -171,7 +171,7 @@ test("T2.2.1 has obligation and allow → intent_selected", async () => {
   assert.ok(result.selectedIntentId?.startsWith("intent-obligation"));
 });
 
-test("T2.2.1 duplicate intent is blocked → denied", async () => {
+test("T2.2.1 duplicate hard-guard defers single maintenance candidate → deferred", async () => {
   const signal: HeartbeatSignal = {
     trigger: "heartbeat_bridge",
     scopeHint: "rhythm",
@@ -180,24 +180,21 @@ test("T2.2.1 duplicate intent is blocked → denied", async () => {
 
   const deps: HeartbeatDeps = {
     loadSnapshotInputs: async () => ({
-      mode: "active",
+      mode: "paused_for_interrupt",
       currentWindowId: "window-default",
       pendingObligations: [],
       recentOutreachHashes: [],
-      deniedIntents: [
-        { intentHash: "exploration:scan platform opportunities", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-        { intentHash: "social:engage social platforms", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-        { intentHash: "outreach:consider proactive user outreach", reason: "duplicate_intent", at: "2026-03-31T09:00:00Z" },
-      ],
+      deniedIntents: [],
       budgets: { socialUsed: 0, socialLimit: 5 },
       awaitingUserInput: false,
+      duplicateIntentKeys: ["maintenance:checks"],
     }),
   };
 
   const result = await ingestRhythmSignal(signal, deps);
 
   assert.equal(result.scope, "rhythm");
-  assert.equal(result.status, "denied");
+  assert.equal(result.status, "deferred");
   assert.ok(result.reasons.some((r) => r.includes("duplicate_intent")));
 });
 

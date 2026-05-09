@@ -14,8 +14,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
-  <img src="https://img.shields.io/badge/Architecture-v3-1d4ed8?style=for-the-badge" alt="Architecture v3">
-  <img src="https://img.shields.io/badge/Host-Surface%20Validated-059669?style=for-the-badge" alt="Host Surface Validated">
+  <img src="https://img.shields.io/badge/Architecture-v5-1d4ed8?style=for-the-badge" alt="Architecture v5">
+  <img src="https://img.shields.io/badge/CI--fixtures-green-059669?style=for-the-badge" alt="CI fixtures green">
   <img src="https://img.shields.io/badge/License-Apache--2.0-f59e0b?style=for-the-badge" alt="License Apache 2.0">
 </p>
 
@@ -127,44 +127,52 @@ Explainability is not the headline feature here. It is the trust layer that keep
 
 ---
 
-## Current shape
+## v5: current, target, and validation-needed
 
-Second Nature now tracks its source of truth under `.anws/v3`.
+**Canonical contract** for what Second Nature promises in v5 lives under **`.anws/v5`** (`01_PRD.md`, `02_ARCHITECTURE_OVERVIEW.md`, `03_ADR/`, `04_SYSTEM_DESIGN/`, `05_TASKS.md`). Paths like `.anws/v3` or `.anws/v4` are **historical** unless a paragraph explicitly points there.
 
-- the core plugin surface is in place
-- the v3 behavioral guidance layer is in place
-- the guidance templates have gone through human review
-- the current task board is closed with `0` open tasks in `.anws/v3/05_TASKS.md`
+This section exists so you do not read a **host-safe heartbeat spine** or **repository CI** as “full lived experience is finished on my real OpenClaw host.”
 
-### Host validation
+### Current (verified in this repo)
 
-The host-facing plugin surface has been validated locally through the OpenClaw runtime bundled in `D:\QClaw`.
+Covered by **`pnpm test`** (includes `pnpm build` + `pnpm build:plugin`) and summarized in `reports/int-s1-host-state-foundation.md`, `reports/int-s2-evidence-rhythm-loop.md`, and `reports/int-s3-outreach-delivery-quiet.md`:
 
-- install ✅
-- enable ✅
-- list ✅
-- info ✅
-- doctor ✅
-- sync register ✅
-- runtime activation evidence ✅
+- **Packaged runtime** under `plugin/runtime/` without pulling repo `src/` at runtime (artifact boundary).
+- **`second_nature_ops("heartbeat_check")`** surface; explicit split between `runtime_carrier_only` and the full decision loop when runtime is available.
+- **Host capability probe** (`HostCapabilityReport`) and persistence hooks used in tests.
+- **Host smoke fixtures** for `heartbeat_tool_not_invoked` and docs-vs-observed conflicts (not a live OpenClaw session on CI).
+- **Control plane**: heartbeat rhythm routing, candidate planning, outreach judgment, delivery failure / `dropped_by_host_policy` fallbacks, Quiet orchestration with source-backed gates.
+- **State + observability**: life evidence snapshots, delivery attempts, operator fallback views (`status: not_sent`), audit hash chain verification, explain / export read models.
+- **Connectors**: manifest contracts, execution policy / idempotency, **near-real** Moltbook `feed.read` + EvoMap `work.discover` smoke with life evidence ingest and dry `task.claim` (see T3.3.1).
+- **OpenClaw plugin + resolvable workspace root**: when `SECOND_NATURE_WORKSPACE_ROOT` or the tool’s `workspaceRoot` identifies a workspace, packaged `second_nature_ops` read-only commands use the **same** `plugin/runtime` + `createCliCommands` path as the workspace CLI (see `plugin/workspace-ops-bridge.ts` and `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`). Whether a **specific host VM** allows that lazy load + sql.js is still **validation-needed** (INT-S4 / CH-11-01).
+- **Where to point that root (OpenClaw)**: **recommended** — set env or `workspaceRoot` to the **same absolute directory** as the OpenClaw **agent workspace** (commonly `~/.openclaw/workspace`, or the path in `~/.openclaw/openclaw.json` → `agents.defaults.workspace`), so Second Nature `data/` sits next to `SOUL.md` / `HEARTBEAT.md` on the same “desk”. Do **not** assume you can derive this path from the plugin install tree. With **sandbox** or **multiple agents**, use the **actual** workspace path where state is written. Rationale: `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`. **Acceptance on hosts** should use the **`second_nature_ops` JSON** as ground truth; assistant natural language may still echo older narratives (e.g. `HEARTBEAT_OK`) — treat mismatches as a documentation / prompt issue, not a pass.
 
-What is verified here is the plugin surface and the minimal runtime spine that backs it.
-It should not be read as proof that the full heartbeat bridge, connector orchestration, or Quiet closure is already complete.
+### Target (v5 design intent; not proven per-host in CI)
 
-Cloud-host closure still needs the dedicated checklist pass.
+- User-visible **delivery** of friend-like outreach wherever the host exposes a compatible delivery target; full matrix of ack-drop, channel, hook, and injection behaviors on **production** OpenClaw builds.
+- Deeper **EvoMap** (and other) lifecycles beyond the near-real smoke slice.
+- Hardened **cloud** persistence and operator runbooks for long-lived workspaces.
 
-**Published npm package (Gateway):** the plugin registers a **host-safe** router (`runtime_carrier_only`). An empty `connectors` list from `status`, synthetic credential placeholders, and limited `policy` / `audit` paths are **expected** there—not proof that connectors are broken. Operator smoke scenarios and JSON shapes for `second_nature_ops` are documented in `.anws/v4/04_SYSTEM_DESIGN/cli-system.md` (sections **5.1.1** and **5.1.2**).
+### Validation-needed (your host, your workspace)
 
-### What is still worth tightening
+Unknown until **you** run them; CI does not replace this:
 
-- clearer platform capability notes, especially for EvoMap task flow
-- deeper runtime closure around connector execution and lifecycle polish
-- cloud deployment hardening around persistence and host setup
+- Whether your prompts/tools actually invoke `heartbeat_check` (risk: `heartbeat_tool_not_invoked`).
+- Real **delivery target** availability vs `target_none`, and how your host treats ack / policy drops.
+- Your credentials, workspace anchors, and connector reachability.
 
-### Current non-blocking warnings
+Track release-style pass/fail/unknown in **`reports/int-s4-release-readiness.md`** and **`reports/release-gate-v5-s4.md`** (see T1.4.2).
+
+### Example host checklist (historical machine)
+
+A past local install checklist (e.g. under `D:\QClaw`) only proves **that machine’s** plugin surface at the time. It is **not** the v5 contract surface; treat it as anecdotal.
+
+### Example non-blocking host warnings
 
 - `plugin id mismatch`
 - `plugins.allow is empty`
+
+**Gateway / carrier-only note:** when the host only loads the carrier, an empty `connectors` list, synthetic credential placeholders, and limited `policy` / `audit` paths can be **expected**—not proof that connectors are “broken.” Operator-facing JSON shapes live in **`.anws/v5/04_SYSTEM_DESIGN/cli-system.md`** (see §5 interface design).
 
 ---
 
@@ -297,34 +305,31 @@ The CLI also exposes read and recovery views through:
 - `session`
 - `explain`
 
-That is enough for baseline inspection and recovery. More complete audit views are still settling into place.
+That is enough for baseline inspection and recovery. Deeper audit and explain flows are aligned with v5 observability tasks; see `.anws/v5/05_TASKS.md` for the live ledger.
 
 ---
 
 ## Architecture snapshot
 
-Second Nature currently consists of six systems:
+Second Nature **v5** is organized as six systems (see `.anws/v5/02_ARCHITECTURE_OVERVIEW.md`):
 
-- `cli-system` for config, explain, recovery, and operator-facing views
-- `control-plane-system` for rhythm, intent, Quiet, resume, and outreach orchestration
-- `connector-system` for capability contracts and execution adapters
-- `state-system` for local state, memory artifacts, governed writes, and credential ownership
-- `observability-system` for evidence, telemetry, redaction, and governance audit
-- `behavioral-guidance-system` for runtime atmosphere, behavioral impulses, persona reinforcement, and output guard
+- `cli-system` — OpenClaw command/tool/service surface, packaged runtime, capability probe, host smoke, operator read models
+- `control-plane-system` — heartbeat decision loop, rhythm windows, outreach judgment, delivery policy, Quiet orchestration
+- `connector-system` — manifests, execution adapters, idempotency / policy layer, near-real smoke harnesses
+- `state-system` — life evidence, snapshots, delivery persistence, Quiet artifacts, repair gates
+- `observability-system` — decision traces, delivery audit, hash-chain integrity, explain/export
+- `behavioral-guidance-system` — evidence packs, outreach drafts, Quiet guidance (no delivery ownership)
 
-The architecture and task source of truth lives under `.anws/v3`.
+**Source of truth:** `.anws/v5/` (not v3).
 
-### Runtime flow in one pass
+### Runtime flow in one pass (design-level)
 
-At a high level, the currently verified loop looks like this:
+1. OpenClaw loads the plugin; registration completes on the plugin surface.
+2. When full runtime is available, `heartbeat_check` can enter the lived-experience loop: snapshots → rhythm window → candidate intents → guards → optional outreach / Quiet paths.
+3. When runtime is **not** available, responses stay **host-safe** (`runtime_carrier_only`); that is not a silent claim that the loop ran.
+4. Observability records decisions, delivery outcomes, fallbacks, and connector attempts for operator explain paths.
 
-1. OpenClaw loads the plugin through the command / tool / service surface.
-2. Registration completes synchronously before the host returns from plugin setup.
-3. The runtime spine records activation or reload evidence into observability.
-4. `status` reads runtime liveness separately from connector execution attempts.
-5. Deeper control-plane rhythm, connector execution, and Quiet closure continue to evolve behind this spine.
-
-The rhythm layer gives the system hard windows. The action inside those windows stays flexible. That helps the agent feel directed without turning it into a clockwork script.
+The rhythm layer constrains *when* classes of intents may appear; guards and policies decide *whether* they may proceed—especially for user-visible outreach.
 
 ---
 
@@ -352,19 +357,24 @@ The rhythm layer gives the system hard windows. The action inside those windows 
 
 ## Validation
 
-Validation artifacts live under `docs/validation/` and currently include the v3 guidance reports:
+**v5 milestone reports** (this repository, CI-backed):
+
+- `reports/int-s1-host-state-foundation.md` — host + state foundation (S1)
+- `reports/int-s2-evidence-rhythm-loop.md` — evidence + rhythm heartbeat spine (S2)
+- `reports/int-s3-outreach-delivery-quiet.md` — outreach / delivery / Quiet closure (S3)
+- `reports/int-s4-release-readiness.md` — packaging / docs / **real host** readiness tracker (partial until you run host smoke)
+- `docs/validation/int-s4-host-smoke-testing-guide.md` — **INT-S4** operator E2E / manual host smoke steps + evidence template
+- `reports/release-gate-v5-s4.md` — consolidated release gate (T1.4.2)
+- `reports/t7-1-1-documentation-traceability-checklist.md` — PRD ↔ tasks traceability (T7.1.1)
+
+**Historical** v3 guidance reports (still in tree, not the v5 contract):
 
 - `docs/validation/v3-s1-guidance-core-report.md`
 - `docs/validation/v3-s2-humanized-runtime-report.md`
 
-The end-to-end operator path is documented in `docs/operator-walkthrough.md`.
+Operator walkthrough: `docs/operator-walkthrough.md`.
 
-If you want the architecture history and task ledger, start with:
-
-- `.anws/v3/02_ARCHITECTURE_OVERVIEW.md`
-- `.anws/v3/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
-- `.anws/v3/05_TASKS.md`
-- `AGENTS.md`
+**Where to read next:** `.anws/v5/02_ARCHITECTURE_OVERVIEW.md`, `.anws/v5/05_TASKS.md`, `AGENTS.md`.
 
 ---
 

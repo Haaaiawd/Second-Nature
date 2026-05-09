@@ -2,7 +2,7 @@
  * Heartbeat Decision Loop
  *
  * Main entry point for the heartbeat runtime. Accepts a HeartbeatSignal,
- * builds a ContinuitySnapshot, plans candidate intents, evaluates guards,
+ * builds runtime snapshot, plans candidate intents, evaluates hard guards,
  * and returns a HeartbeatCycleResult.
  *
  * Per design doc §4.3: heartbeat round follows the sequence:
@@ -12,89 +12,197 @@
  * implements the default conservative path where HEARTBEAT_OK is
  * the first-class result when no action is warranted.
  */
-import type { CandidateIntent, ContinuitySnapshot, GuardEvaluation } from "../types.js";
-import type { HeartbeatSignal, HeartbeatCycleResult } from "./signal.js";
+import type { HeartbeatSignal, HeartbeatCycleResult, HeartbeatCycleStatus, RuntimeScope, RuntimeTrigger } from "./signal.js";
+import type { CandidateIntent, ContinuitySnapshot, IntentKind } from "../types.js";
 import { buildContinuitySnapshot, type SnapshotInputs } from "./snapshot-builder.js";
-import { planIntent } from "../orchestrator/intent-planner.js";
-import { evaluateGuards } from "../orchestrator/guard-layer.js";
+import { buildHeartbeatRuntimeSnapshot, type HeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
+import { planCandidateIntents } from "../orchestrator/intent-planner.js";
+import { evaluateHardGuards } from "../orchestrator/guard-layer.js";
+import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.js";
+import type { StateDatabase } from "../../../storage/db/index.js";
+import { dispatchUserOutreachIntent, type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
+import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
+import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
+
+export interface HeartbeatDecisionTracePayload {
+  scope: RuntimeScope;
+  status: HeartbeatCycleStatus;
+  reasons: string[];
+  selectedIntentId?: string;
+  rhythmWindowId: string;
+  allowedIntentKinds: IntentKind[];
+  candidateCount: number;
+  lifeEvidenceEmpty: boolean;
+  trigger: RuntimeTrigger;
+}
+
+/** Optional outreach delivery chain: when set, first allowed `user_outreach` runs dispatch (CR-M1). */
+export interface HeartbeatOutreachDispatchDeps {
+  state: StateDatabase;
+  guidance: GuidanceDraftPort;
+  delivery: OpenClawDeliveryPort;
+}
+
+/** Optional Quiet orchestration: when set, quiet/reflection allows run source-backed Quiet writer (T2.3.3). */
+export interface HeartbeatQuietWorkflowDeps {
+  workspaceRoot: string;
+}
+
+/**
+ * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
+ * Exported for unit tests (CR-M1 wiring).
+ */
+export async function resolveAllowedIntentResult(
+  intent: CandidateIntent,
+  runtime: HeartbeatRuntimeSnapshot,
+  inputs: SnapshotInputs,
+  signal: HeartbeatSignal,
+  deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow">,
+): Promise<HeartbeatCycleResult> {
+  const day = typeof signal.payload.timestamp === "string" ? signal.payload.timestamp.slice(0, 10) : "1970-01-01";
+  if (intent.effectClass === "user_outreach" && deps.outreachDispatch) {
+    return dispatchUserOutreachIntent({
+      candidate: intent,
+      snapshot: runtime,
+      judgeInput: buildJudgeOutreachInputFromSnapshot(intent, runtime, inputs),
+      guidance: deps.outreachDispatch.guidance,
+      delivery: deps.outreachDispatch.delivery,
+      state: deps.outreachDispatch.state,
+    });
+  }
+  if (
+    deps.quietWorkflow &&
+    (intent.kind === "quiet" || (intent.kind === "reflection" && intent.effectClass === "narrative_reflection"))
+  ) {
+    const quietRun = await runSourceBackedQuiet({
+      candidate: intent,
+      runtime,
+      day,
+      userInterestSnapshot: inputs.userInterestSnapshot,
+      workspaceRoot: deps.quietWorkflow.workspaceRoot,
+    });
+    return quietRun.result;
+  }
+  return {
+    scope: "rhythm",
+    status: "intent_selected",
+    selectedIntentId: intent.id,
+    reasons: [],
+  };
+}
 
 export interface HeartbeatDeps {
   /** Load snapshot inputs from state-system */
   loadSnapshotInputs: () => Promise<SnapshotInputs>;
+  /** Optional observability hook (T2.2.1): one record per completed cycle. */
+  recordDecisionTrace?: (payload: HeartbeatDecisionTracePayload) => Promise<void>;
+  outreachDispatch?: HeartbeatOutreachDispatchDeps;
+  quietWorkflow?: HeartbeatQuietWorkflowDeps;
 }
 
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.
- *
- * Decision flow:
- * 1. Build continuity snapshot from state-system inputs
- * 2. Plan candidate intents from snapshot
- * 3. Evaluate guards for each candidate in priority order
- * 4. Return one of:
- *    - intent_selected: a candidate passed all guards
- *    - denied: candidates existed but all were rejected by guards
- *    - heartbeat_ok: no candidates or no action warranted (conservative default)
- *
- * Per ADR-005: heartbeat is the free-rhythm main entry; this loop
- * implements the default conservative path where HEARTBEAT_OK is
- * the first-class result when no action is warranted.
  */
 export async function ingestRhythmSignal(
   signal: HeartbeatSignal,
   deps: HeartbeatDeps,
 ): Promise<HeartbeatCycleResult> {
-  // Step 1: Build continuity snapshot
   const inputs = await deps.loadSnapshotInputs();
   const snapshot = buildContinuitySnapshot(inputs);
+  const timestamp = signal.payload.timestamp;
+  const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
+  const candidates = planCandidateIntents(runtime);
 
-  // Step 2: Plan candidate intents
-  const candidates = planIntent(snapshot);
+  const emitTrace = async (result: HeartbeatCycleResult): Promise<void> => {
+    if (!deps.recordDecisionTrace) return;
+    await deps.recordDecisionTrace({
+      scope: result.scope,
+      status: result.status,
+      reasons: result.reasons,
+      selectedIntentId: result.selectedIntentId,
+      rhythmWindowId: runtime.rhythmWindow.windowId,
+      allowedIntentKinds: [...runtime.rhythmWindow.allowedIntentKinds],
+      candidateCount: candidates.length,
+      lifeEvidenceEmpty:
+        runtime.lifeEvidence.evidenceRefs.length === 0 &&
+        runtime.lifeEvidence.platformEventCount === 0 &&
+        runtime.lifeEvidence.workEventCount === 0,
+      trigger: signal.trigger,
+    });
+  };
 
-  // Step 3: Evaluate guards for each candidate (priority order)
   let hasCandidates = false;
   let anyAllow = false;
+  let anyDefer = false;
+  let anyDeny = false;
   const denyReasons: string[] = [];
 
   for (const intent of candidates) {
     hasCandidates = true;
-    const evaluation = evaluateGuards(intent, snapshot);
+    const evaluation = evaluateHardGuards(intent, runtime);
     if (evaluation.verdict === "allow") {
       anyAllow = true;
-      return {
+      const base: HeartbeatCycleResult = {
         scope: "rhythm",
         status: "intent_selected",
         selectedIntentId: intent.id,
         reasons: evaluation.reasons,
       };
+      const resolved = await resolveAllowedIntentResult(intent, runtime, inputs, signal, deps);
+      const result: HeartbeatCycleResult =
+        resolved.status === "intent_selected" && resolved.reasons.length === 0 && evaluation.reasons.length > 0
+          ? { ...resolved, reasons: evaluation.reasons }
+          : resolved;
+
+      await emitTrace(result);
+      return result;
     }
+    if (evaluation.verdict === "defer") {
+      anyDefer = true;
+      denyReasons.push(`${intent.id}:${evaluation.verdict}(${evaluation.reasons.join(",")})`);
+      continue;
+    }
+    anyDeny = true;
     denyReasons.push(`${intent.id}:${evaluation.verdict}(${evaluation.reasons.join(",")})`);
   }
 
-  // Step 4: No viable intent path
   if (!hasCandidates) {
-    // No candidates at all → heartbeat_ok (nothing to do)
-    return {
+    const result: HeartbeatCycleResult = {
       scope: "rhythm",
       status: "heartbeat_ok",
-      reasons: ["no_candidates"],
+      reasons: ["silent_no_candidates"],
     };
+    await emitTrace(result);
+    return result;
+  }
+
+  if (!anyAllow && anyDefer && !anyDeny) {
+    const result: HeartbeatCycleResult = {
+      scope: "rhythm",
+      status: "deferred",
+      reasons: denyReasons.length > 0 ? denyReasons : ["all_candidates_deferred"],
+    };
+    await emitTrace(result);
+    return result;
   }
 
   if (!anyAllow && denyReasons.length > 0) {
-    // Candidates existed but all denied/deferred/escalated → denied
-    return {
+    const result: HeartbeatCycleResult = {
       scope: "rhythm",
       status: "denied",
       reasons: denyReasons,
     };
+    await emitTrace(result);
+    return result;
   }
 
-  // Fallback: conservative heartbeat_ok
-  return {
+  const result: HeartbeatCycleResult = {
     scope: "rhythm",
     status: "heartbeat_ok",
     reasons: ["no_allow_verdict"],
   };
+  await emitTrace(result);
+  return result;
 }
 
 /**

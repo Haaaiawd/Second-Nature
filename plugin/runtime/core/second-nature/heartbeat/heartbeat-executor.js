@@ -12,6 +12,8 @@ function intentKindToScene(kind) {
             return "outreach";
         case "exploration":
             return "explain";
+        case "quiet":
+            return null;
         default:
             return null;
     }

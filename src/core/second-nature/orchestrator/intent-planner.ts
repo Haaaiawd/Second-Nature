@@ -1,20 +1,62 @@
-import type { CandidateIntent, ContinuitySnapshot, DecisionBasis } from "../types.js";
+/**
+ * Candidate intent planner (T2.1.3): window-biased planning + priority cap.
+ * `planCandidateIntents` is the contract name; `planIntent` bridges legacy continuity-only tests.
+ */
+import type {
+  CandidateIntent,
+  ContinuitySnapshot,
+  ControlPlaneSourceRef,
+  DecisionBasis,
+  IntentKind,
+} from "../types.js";
+import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
+import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
+import type { SnapshotInputs } from "../heartbeat/snapshot-builder.js";
+import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 
-const MAX_CANDIDATES = 6;
+const MAX_CANDIDATE_INTENTS = 6;
 
-function planObligationIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
-  return snapshot.pendingObligations.map((obligation, index) => ({
+const OBLIGATION_SOURCE: ControlPlaneSourceRef[] = [
+  { id: "obligation-anchor", kind: "workspace_artifact", uri: "workspace://obligations/pending" },
+];
+
+function evidenceRefsForConnector(runtime: HeartbeatRuntimeSnapshot): ControlPlaneSourceRef[] {
+  if (!isLifeEvidenceSliceEmpty(runtime.lifeEvidence) && runtime.lifeEvidence.evidenceRefs.length > 0) {
+    return runtime.lifeEvidence.evidenceRefs.slice(0, 8);
+  }
+  if (!isLifeEvidenceSliceEmpty(runtime.lifeEvidence)) {
+    return [
+      {
+        id: "life-evidence-summary",
+        kind: "connector_result",
+        uri: `workspace://life-evidence/counts/${runtime.lifeEvidence.platformEventCount}/${runtime.lifeEvidence.workEventCount}`,
+      },
+    ];
+  }
+  return [];
+}
+
+function isAllowedKind(kind: IntentKind, runtime: HeartbeatRuntimeSnapshot): boolean {
+  return runtime.rhythmWindow.allowedIntentKinds.includes(kind);
+}
+
+function planWorkIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+  if (!isAllowedKind("work", runtime)) return [];
+  return runtime.continuity.pendingObligations.map((obligation, index) => ({
     id: `intent-obligation-${index}`,
-    kind: "work",
+    kind: "work" as const,
     priority: 100 - index,
-    source: "obligation",
+    source: "obligation" as const,
     summary: `fulfill obligation: ${obligation}`,
-    effectClass: "external_platform_action",
+    effectClass: "connector_action" as const,
+    sourceRefs: [...OBLIGATION_SOURCE],
+    idempotencyKey: `obligation:${obligation}:${index}`,
   }));
 }
 
-function planPlatformIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
-  const socialPriorityBase = snapshot.budgets && snapshot.budgets.socialUsed >= snapshot.budgets.socialLimit ? 10 : 60;
+function planExplorationIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+  if (!isAllowedKind("exploration", runtime)) return [];
+  const refs = evidenceRefsForConnector(runtime);
   return [
     {
       id: "intent-exploration",
@@ -22,47 +64,81 @@ function planPlatformIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
       priority: 70,
       source: "tick",
       summary: "scan platform opportunities",
-      effectClass: "external_platform_action",
+      effectClass: "connector_action",
+      sourceRefs: refs,
+      idempotencyKey: "exploration:scan platform opportunities",
     },
+  ];
+}
+
+function planSocialIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+  if (!isAllowedKind("social", runtime)) return [];
+  const refs = evidenceRefsForConnector(runtime);
+  return [
     {
       id: "intent-social",
       kind: "social",
-      priority: socialPriorityBase,
+      priority: runtime.continuity.budgets && runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit ? 10 : 60,
       source: "tick",
       summary: "engage social platforms",
-      effectClass: "external_platform_action",
+      effectClass: "connector_action",
+      sourceRefs: refs,
+      idempotencyKey: "social:engage social platforms",
     },
   ];
 }
 
-function planQuietIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
-  if (snapshot.mode !== "quiet") {
+function planQuietReflectionIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+  if (!runtime.rhythmWindow.quietBias && runtime.continuity.mode !== "quiet") {
     return [];
   }
-  return [
-    {
+  const out: CandidateIntent[] = [];
+  if (isAllowedKind("quiet", runtime)) {
+    out.push({
+      id: "intent-quiet",
+      kind: "quiet",
+      priority: 55,
+      source: "quiet_plan",
+      summary: "quiet window bookkeeping",
+      effectClass: "no_effect",
+      sourceRefs: [],
+      idempotencyKey: "quiet:bookkeeping",
+    });
+  }
+  if (isAllowedKind("maintenance", runtime)) {
+    out.push({
       id: "intent-maintenance",
       kind: "maintenance",
-      priority: 90,
+      priority: 50,
       source: "quiet_plan",
       summary: "run maintenance checks",
       effectClass: "maintenance",
-    },
-    {
+      sourceRefs: [],
+      idempotencyKey: "maintenance:checks",
+    });
+  }
+  if (isAllowedKind("reflection", runtime)) {
+    const refs = evidenceRefsForConnector(runtime);
+    out.push({
       id: "intent-reflection",
       kind: "reflection",
-      priority: 80,
+      priority: 45,
       source: "quiet_plan",
       summary: "run narrative reflection",
       effectClass: "narrative_reflection",
-    },
-  ];
+      sourceRefs: refs,
+      idempotencyKey: "reflection:narrative",
+    });
+  }
+  return out;
 }
 
-function planOutreachIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
-  if (snapshot.recentOutreachHashes.length > 3) {
+function planOutreachIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+  if (!isAllowedKind("outreach", runtime)) return [];
+  if (runtime.continuity.recentOutreachHashes.length > 3) {
     return [];
   }
+  const refs = evidenceRefsForConnector(runtime);
   return [
     {
       id: "intent-outreach",
@@ -71,26 +147,72 @@ function planOutreachIntents(snapshot: ContinuitySnapshot): CandidateIntent[] {
       source: "tick",
       summary: "consider proactive user outreach",
       effectClass: "user_outreach",
+      sourceRefs: refs,
+      idempotencyKey: "outreach:consider proactive user outreach",
     },
   ];
 }
 
-export function planIntent(snapshot: ContinuitySnapshot): CandidateIntent[] {
-  const intents = [
-    ...planObligationIntents(snapshot),
-    ...planPlatformIntents(snapshot),
-    ...planQuietIntents(snapshot),
-    ...planOutreachIntents(snapshot),
+/**
+ * Plan ordered candidates for one heartbeat turn using rhythm window + life evidence slice.
+ */
+export function planCandidateIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+  if (runtime.continuity.mode === "paused_for_interrupt") {
+    const pausedMaintenance: CandidateIntent[] = [
+      {
+        id: "intent-maintenance",
+        kind: "maintenance",
+        priority: 40,
+        source: "tick",
+        summary: "run maintenance checks",
+        effectClass: "maintenance",
+        sourceRefs: [],
+        idempotencyKey: "maintenance:checks",
+      },
+    ];
+    return pausedMaintenance
+      .filter((intent) => runtime.rhythmWindow.allowedIntentKinds.includes(intent.kind))
+      .slice(0, MAX_CANDIDATE_INTENTS);
+  }
+
+  if (runtime.continuity.mode === "maintenance_only") {
+    return planWorkIntents(runtime).sort((a, b) => b.priority - a.priority).slice(0, MAX_CANDIDATE_INTENTS);
+  }
+
+  const intents: CandidateIntent[] = [
+    ...planWorkIntents(runtime),
+    ...planExplorationIntents(runtime),
+    ...planSocialIntents(runtime),
+    ...planQuietReflectionIntents(runtime),
+    ...planOutreachIntents(runtime),
   ];
 
   return intents
+    .filter((intent) => runtime.rhythmWindow.allowedIntentKinds.includes(intent.kind))
     .sort((a, b) => b.priority - a.priority)
-    .slice(0, MAX_CANDIDATES);
+    .slice(0, MAX_CANDIDATE_INTENTS);
+}
+
+/** @deprecated Continuity-only helper for tests; prefer `planCandidateIntents` + `buildHeartbeatRuntimeSnapshot`. */
+export function planIntent(snapshot: ContinuitySnapshot): CandidateIntent[] {
+  const inputs: SnapshotInputs = {
+    mode: snapshot.mode,
+    currentWindowId: snapshot.currentWindowId,
+    pendingObligations: snapshot.pendingObligations,
+    recentOutreachHashes: snapshot.recentOutreachHashes,
+    deniedIntents: snapshot.deniedIntents,
+    budgets: snapshot.budgets,
+    awaitingUserInput: snapshot.awaitingUserInput,
+    riskSuppressed: snapshot.riskSuppressed,
+    quietEnabledBridge: snapshot.mode === "quiet",
+  };
+  const runtime = buildHeartbeatRuntimeSnapshot("2026-03-25T12:00:00.000Z", inputs, snapshot);
+  return planCandidateIntents(runtime);
 }
 
 export function decideDecisionBasis(intent: CandidateIntent): DecisionBasis {
   if (intent.source === "obligation") return "rule_only";
-  if (intent.kind === "maintenance") return "rule_only";
+  if (intent.effectClass === "maintenance" || intent.effectClass === "no_effect") return "rule_only";
   if (intent.kind === "outreach" || intent.kind === "reflection") return "model_assisted";
   if (intent.kind === "exploration" || intent.kind === "social" || intent.kind === "work") return "score_based";
   return "rule_only";

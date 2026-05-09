@@ -34,6 +34,8 @@ function intentKindToScene(kind: CandidateIntent["kind"]): GuidanceSceneType | n
       return "outreach";
     case "exploration":
       return "explain";
+    case "quiet":
+      return null;
     default:
       return null;
   }

@@ -26,7 +26,7 @@ export interface HeartbeatDecisionEvent {
     traceId: string;
     runtimeScope: "rhythm" | "user_task" | "user_reply";
     triggerSource: "heartbeat_bridge" | "user_task" | "user_reply" | "interrupt" | "resume";
-    decisionStatus: "heartbeat_ok" | "intent_selected" | "denied" | "deferred";
+    decisionStatus: "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
     reasons: string[];
     intentId?: string;
     mode: "active" | "quiet" | "maintenance_only" | "paused_for_interrupt";

@@ -17,6 +17,7 @@
       "installedVersion": "2.2.1",
       "managedFiles": [
         "AGENTS.md",
+        ".cursor/README.md",
         ".cursor/commands/blueprint.md",
         ".cursor/commands/challenge.md",
         ".cursor/commands/change.md",
@@ -58,6 +59,7 @@
         ".cursor/skills/tech-evaluator/references/ADR_TEMPLATE.md"
       ],
       "ownership": [
+        "cursor:.cursor/README.md",
         "cursor:.cursor/commands/blueprint.md",
         "cursor:.cursor/commands/challenge.md",
         "cursor:.cursor/commands/change.md",
@@ -114,6 +116,7 @@
       "installedVersion": "2.2.1",
       "managedFiles": [
         "AGENTS.md",
+        ".windsurf/README.md",
         ".windsurf/workflows/blueprint.md",
         ".windsurf/workflows/challenge.md",
         ".windsurf/workflows/change.md",
@@ -155,6 +158,7 @@
         ".windsurf/skills/tech-evaluator/references/ADR_TEMPLATE.md"
       ],
       "ownership": [
+        "windsurf:.windsurf/README.md",
         "windsurf:.windsurf/workflows/blueprint.md",
         "windsurf:.windsurf/workflows/challenge.md",
         "windsurf:.windsurf/workflows/change.md",

@@ -93,6 +93,7 @@ export class ConnectorRoutePlanner {
             channel: selected,
             endpointMode: endpointModeFor(selected),
             idempotencyKey: request.idempotencyKey,
+            degraded: isDegradedChannel(selected, manifest.degradedChannels),
         };
     }
 }

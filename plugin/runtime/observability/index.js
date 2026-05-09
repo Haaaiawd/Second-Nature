@@ -1,10 +1,18 @@
 export { createObservabilityDatabase } from "./db/index.js";
 export * as obsSchema from "./db/schema/index.js";
+export { buildAuditEnvelope, computeAuditRecordHash, redactAuditEvent, auditManifestFromFieldManifest, } from "./audit/audit-envelope.js";
+export { AppendOnlyAuditStore } from "./audit/append-only-audit-store.js";
+export { verifyAuditHashChain, createAppendOnlyAuditStoreRangeLoader, } from "./audit/verify-audit-hash-chain.js";
 export { REDACTION_CONFIG, DEFAULT_REDACTION_POLICY, getFieldRedactionRule, } from "./redaction/policy.js";
 export { redactEvent, createEmptyManifest, mergeManifests, } from "./redaction/manifest.js";
 export { DecisionLedger } from "./services/decision-ledger.js";
 export { GovernanceAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry } from "./services/execution-telemetry.js";
+export { createRuntimeDecisionRecorder, RUNTIME_DECISION_TRACE_PREFIX, RUNTIME_INTERNAL_PLATFORM_ID, } from "./services/runtime-decision-recorder.js";
+export { LivedExperienceAuditRecorder, createLivedExperienceAuditRecorder, } from "./services/lived-experience-audit.js";
+export { GovernancePlaneRecorder, createGovernancePlaneRecorder, } from "./services/governance-plane-recorder.js";
+export { queryExplain, } from "./query/explain-query.js";
+export { exportAuditBundle } from "./query/export-audit-bundle.js";
 export { EvidenceQueryEngine, } from "./query/evidence-query-engine.js";
 export { projectReflectionAudit, } from "./projections/reflection-audit.js";
 export { projectOutreachQualityAudit, } from "./projections/outreach-quality-audit.js";

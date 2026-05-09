@@ -26,6 +26,21 @@ export function resolveExplainSubject(raw: string): ExplainSubject {
   if (prefix === "soul") {
     return { kind: "soul-change", id };
   }
+  if (prefix === "fallback") {
+    return { kind: "fallback", id };
+  }
+  if (prefix === "probe") {
+    return { kind: "probe", id };
+  }
+  if (prefix === "report") {
+    return { kind: "report", id };
+  }
+  if (prefix === "delivery") {
+    return { kind: "delivery", id };
+  }
+  if (prefix === "source" || prefix === "source_ref") {
+    return { kind: "source_ref", id };
+  }
 
   throw new Error("explain_subject_unsupported");
 }

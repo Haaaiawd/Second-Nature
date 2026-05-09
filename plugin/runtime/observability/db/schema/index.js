@@ -68,3 +68,4 @@ export const redactionManifest = sqliteTable("redaction_manifest", {
 }, (table) => [
     index("redact_event_idx").on(table.eventId),
 ]);
+export { hostCapabilityReports, } from "./host-capability-reports.js";

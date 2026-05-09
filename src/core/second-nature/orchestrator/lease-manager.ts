@@ -2,10 +2,12 @@ import * as crypto from "crypto";
 
 export type EffectClass =
   | "external_platform_action"
+  | "connector_action"
   | "memory_curation"
   | "narrative_reflection"
   | "user_outreach"
-  | "maintenance";
+  | "maintenance"
+  | "no_effect";
 
 export interface LeaseHandle {
   id: string;
@@ -75,7 +77,7 @@ export class LeaseManager {
   }
 
   private resolveScope(effectClass: EffectClass, scopeHint?: string): string | null {
-    if (effectClass === "external_platform_action" || effectClass === "user_outreach") {
+    if (effectClass === "external_platform_action" || effectClass === "connector_action" || effectClass === "user_outreach") {
       return scopeHint && scopeHint.length > 0 ? `${GLOBAL_SCOPE}:${scopeHint}` : GLOBAL_SCOPE;
     }
     return null;

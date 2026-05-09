@@ -1,6 +1,8 @@
 import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
-import { resolveExplainSubject } from "../explain/resolve-subject.js";
+import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
+import { showOperatorFallback, OperatorFallbackNotFoundError } from "../ops/show-operator-fallback.js";
+import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.js";
 import { policySet } from "./policy.js";
 const notImplemented = async (command) => ({
     ok: false,
@@ -19,7 +21,7 @@ function explainSubjectError(code, message) {
     };
 }
 export function createCliCommands(deps) {
-    const { readModels, actionBridge } = deps;
+    const { readModels, actionBridge, opsRouter } = deps;
     return [
         {
             name: "status",
@@ -113,9 +115,9 @@ export function createCliCommands(deps) {
                         },
                     };
                 }
-                let subject;
+                let model;
                 try {
-                    subject = resolveExplainSubject(subjectRaw);
+                    model = await explainSurfaceSubject(subjectRaw, readModels);
                 }
                 catch (error) {
                     const code = error.message;
@@ -123,15 +125,68 @@ export function createCliCommands(deps) {
                         return explainSubjectError("EXPLAIN_SUBJECT_REQUIRES_ID", "subject must include identifier");
                     }
                     if (code === "explain_subject_unsupported") {
-                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects are decision:<id>, platform:<id>, outreach:<id>, soul:<id>");
+                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:");
                     }
                     return explainSubjectError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject");
                 }
-                const model = await readModels.explain(subject);
                 return {
                     ok: true,
                     data: formatExplanation(model),
                 };
+            },
+        },
+        {
+            name: "heartbeat_check",
+            description: "Workspace heartbeat_check ops surface (v5 HeartbeatSurfaceResult)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("heartbeat_check", input));
+                return surface;
+            },
+        },
+        {
+            name: "storage_smoke",
+            description: "T4.1.4 — report sql.js vs native SQLite probe and optional artifact→index repair fixture",
+            execute: async (input) => {
+                const runRepairFixture = Boolean(input?.runRepairFixture);
+                const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
+                const data = await runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+                return { ok: true, data };
+            },
+        },
+        {
+            name: "fallback",
+            description: "Operator-visible delivery fallback view (status always not_sent)",
+            execute: async (input) => {
+                const ref = typeof input?.ref === "string" ? input.ref.trim() : "";
+                if (!ref) {
+                    return {
+                        ok: false,
+                        error: {
+                            code: "MISSING_FALLBACK_REF",
+                            message: "fallback requires ref (e.g. fallback:…)",
+                            requiredUserInput: ["ref"],
+                            nextStep: "reinvoke_with_ref",
+                        },
+                    };
+                }
+                try {
+                    const data = await showOperatorFallback(ref, readModels);
+                    return { ok: true, data };
+                }
+                catch (error) {
+                    if (error instanceof OperatorFallbackNotFoundError) {
+                        return {
+                            ok: false,
+                            error: {
+                                code: error.code,
+                                message: error.message,
+                                requiredUserInput: ["ref"],
+                                nextStep: "verify_fallback_ref_from_delivery_audit",
+                            },
+                        };
+                    }
+                    throw error;
+                }
             },
         },
     ];

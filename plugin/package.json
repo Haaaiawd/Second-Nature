@@ -1,6 +1,6 @@
 {
   "name": "@haaaiawd/second-nature",
-  "version": "0.1.8",
+  "version": "0.1.18",
   "description": "OpenClaw native plugin with synchronous registration, a packaged runtime artifact, and operator-facing status/explain flows.",
   "keywords": [
     "openclaw",
@@ -17,6 +17,7 @@
   "main": "./index.js",
   "files": [
     "index.js",
+    "workspace-ops-bridge.js",
     "openclaw.plugin.json",
     "runtime/"
   ],
@@ -27,7 +28,21 @@
     "manifest": "./openclaw.plugin.json",
     "extensions": [
       "./index.js"
-    ]
+    ],
+    "runtimeExtensions": [
+      "./index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.5.4"
+    }
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.5.4"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
   },
   "dependencies": {
     "drizzle-orm": "^0.44.4",

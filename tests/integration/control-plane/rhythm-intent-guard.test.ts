@@ -91,7 +91,7 @@ test("guard layer applies duplicate budget quiet awaiting_user guards", () => {
   const social = intents.find((intent) => intent.kind === "social");
   assert.ok(social);
 
-  const denied = evaluateGuards(social!, {
+  const evaluation = evaluateGuards(social!, {
     ...baseSnapshot,
     mode: "quiet",
     budgets: { socialUsed: 10, socialLimit: 10 },
@@ -99,21 +99,26 @@ test("guard layer applies duplicate budget quiet awaiting_user guards", () => {
     awaitingUserInput: true,
   });
 
-  assert.equal(denied.verdict, "deny");
-  assert.ok(denied.reasons.includes("duplicate_intent"));
-  assert.ok(denied.reasons.includes("budget_exceeded"));
-  assert.ok(denied.reasons.includes("quiet_window"));
-  assert.ok(denied.reasons.includes("awaiting_user"));
+  assert.equal(evaluation.verdict, "defer", "duplicate_intent maps to defer before other deny reasons");
+  assert.ok(evaluation.reasons.includes("duplicate_intent"));
+  assert.ok(evaluation.reasons.includes("budget_exceeded"));
+  assert.ok(evaluation.reasons.includes("quiet_window_suppression"));
+  assert.ok(evaluation.reasons.includes("awaiting_user"));
 });
 
 test("decision basis stratification keeps rule_only/score_based/model_assisted paths", () => {
-  const intents = planIntent({ ...baseSnapshot, mode: "quiet", pendingObligations: ["duty"] });
-  const maintenance = intents.find((item) => item.kind === "maintenance");
-  const exploration = intents.find((item) => item.kind === "exploration");
-  const outreach = intents.find((item) => item.kind === "outreach");
-  const obligation = intents.find((item) => item.source === "obligation");
+  const activeDuty = planIntent({ ...baseSnapshot, mode: "active", pendingObligations: ["duty"] });
+  const exploration = activeDuty.find((item) => item.kind === "exploration");
+  const outreach = activeDuty.find((item) => item.kind === "outreach");
+  const obligation = activeDuty.find((item) => item.source === "obligation");
 
-  assert.equal(decideDecisionBasis(maintenance!), "rule_only");
+  const quietLayered = planIntent({ ...baseSnapshot, mode: "quiet", pendingObligations: ["heartbeat"] });
+  const maintenance = quietLayered.find((item) => item.kind === "maintenance");
+
+  assert.ok(maintenance, "quiet window should still surface maintenance");
+  assert.ok(exploration && outreach && obligation, "active duty plan should surface exploration/outreach/obligation");
+
+  assert.equal(decideDecisionBasis(maintenance), "rule_only");
   assert.equal(decideDecisionBasis(exploration!), "score_based");
   assert.equal(decideDecisionBasis(outreach!), "model_assisted");
   assert.equal(decideDecisionBasis(obligation!), "rule_only");

@@ -36,6 +36,8 @@ export interface ExecutionPlan {
   channel: ChannelType;
   endpointMode: "rest_json" | "a2a_envelope" | "cli_stdout" | "skill_call";
   idempotencyKey?: string;
+  /** True when selected channel is manifest-marked degraded (cli/skill/browser). */
+  degraded?: boolean;
 }
 
 export interface ConnectorResult<T> {
@@ -77,6 +79,10 @@ export interface ConnectorManifestLike {
   channelPriority: ChannelType[];
   credentialTypes: string[];
   degradedChannels?: ChannelType[];
+  sourceRefPolicy?: {
+    minSourceRefs?: number;
+    rejectInlineSensitivePayload?: boolean;
+  };
 }
 
 export interface ConnectorManifestLoader {

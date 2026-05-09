@@ -1,4 +1,5 @@
 import { ConnectorPolicyError, classifyFailure, type FailureClass } from "./failure-taxonomy.js";
+import { enforceExecutionPolicy, type EffectCommitLedgerPort } from "./execution-policy.js";
 import type {
   CapabilityIntent,
   ChannelType,
@@ -33,6 +34,7 @@ export interface ConnectorPolicyContext {
   cooldownPort?: CooldownPort;
   retryPolicy?: Partial<RetryPolicy>;
   allowDegradedFallback?: (plan: ExecutionPlan, request: ConnectorRequest) => boolean;
+  effectCommitLedger?: EffectCommitLedgerPort;
 }
 
 function resolveRetryPolicy(input?: Partial<RetryPolicy>): RetryPolicy {
@@ -147,6 +149,22 @@ export function createConnectorPolicyLayer(ctx: ConnectorPolicyContext) {
             channel: plan.channel,
             latencyMs: 0,
             degraded: true,
+          },
+        };
+      }
+
+      const policyGate = await enforceExecutionPolicy(plan, intent, request, {
+        effectCommitLedger: ctx.effectCommitLedger,
+      });
+      if (policyGate.skipAdapter && policyGate.existingOutcomeRef) {
+        return {
+          status: "success",
+          data: { replayedCommit: true, outcomeRef: policyGate.existingOutcomeRef },
+          metadata: {
+            platformId: request.platformId,
+            channel: plan.channel,
+            latencyMs: 0,
+            degraded: plan.degraded,
           },
         };
       }

@@ -25,7 +25,18 @@ const STATE_SCHEMA_SQL = `
     platform_id TEXT PRIMARY KEY,
     social_daily_limit INTEGER NOT NULL,
     quiet_enabled INTEGER NOT NULL,
+    outreach_daily_budget INTEGER NOT NULL DEFAULT 2,
     updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS life_evidence_index (
+    id TEXT PRIMARY KEY,
+    timestamp TEXT NOT NULL,
+    evidence_type TEXT NOT NULL,
+    sensitivity TEXT NOT NULL,
+    producer TEXT NOT NULL,
+    artifact_path TEXT NOT NULL,
+    platform_id TEXT,
+    source_refs_json TEXT NOT NULL
   );
   CREATE TABLE IF NOT EXISTS asset_registry (
     id TEXT PRIMARY KEY,
@@ -67,6 +78,30 @@ const STATE_SCHEMA_SQL = `
     kind TEXT NOT NULL,
     created_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS delivery_attempts (
+    attempt_id TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL,
+    target TEXT,
+    channel TEXT,
+    status TEXT NOT NULL,
+    message_id TEXT,
+    host_proof_ref_json TEXT,
+    error_class TEXT,
+    fallback_ref TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS delivery_attempt_decision_idx ON delivery_attempts(decision_id);
+  CREATE TABLE IF NOT EXISTS operator_fallback_artifacts (
+    fallback_ref TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    source_refs_json TEXT NOT NULL,
+    candidate_message TEXT,
+    next_step TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS operator_fallback_decision_idx ON operator_fallback_artifacts(decision_id);
 `;
 
 export interface StateDatabase {
@@ -91,6 +126,20 @@ function resolveDbPath(filename: string): string {
 
 function bootstrapStateSchema(sqlite: Database): void {
   sqlite.exec(STATE_SCHEMA_SQL);
+  applyStateSchemaMigrations(sqlite);
+}
+
+function applyStateSchemaMigrations(sqlite: Database): void {
+  const migrations = [
+    "ALTER TABLE policy_records ADD COLUMN outreach_daily_budget INTEGER NOT NULL DEFAULT 2",
+  ] as const;
+  for (const sql of migrations) {
+    try {
+      sqlite.exec(sql);
+    } catch {
+      /* duplicate column / already migrated */
+    }
+  }
 }
 
 export function createStateDatabase(filename = "state.db"): StateDatabase {

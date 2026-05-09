@@ -288,7 +288,11 @@ test("whole-loop validation covers active/quiet/interrupt/outreach/deny and dura
   const denyEvidence = await evidenceQuery.queryEvidence({ decisionId: denyDecision!.id });
   assert.equal(denyEvidence.decisions.length, 1);
   assert.equal(denyEvidence.decisions[0]?.verdict, "deny");
-  assert.ok((denyEvidence.decisions[0]?.reasonCodes ?? []).includes("quiet_window"));
+  assert.ok(
+    (denyEvidence.decisions[0]?.reasonCodes ?? []).some(
+      (c) => c.includes("quiet_window") || c.includes("quiet_window_suppression"),
+    ),
+  );
 
   const outreachEvidence = await evidenceQuery.queryEvidence({ decisionId: outreachResult.decisionId! });
   assert.equal(outreachEvidence.decisions.length, 1);

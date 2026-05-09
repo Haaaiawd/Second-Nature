@@ -47,6 +47,17 @@ function compilePluginEntry() {
 
   fs.copyFileSync(compiledEntry, targetEntry);
   console.log(`✅ Copied ${compiledEntry} → ${targetEntry}`);
+
+  const distPluginDir = path.resolve(distDir, "plugin");
+  if (fs.existsSync(distPluginDir)) {
+    for (const file of fs.readdirSync(distPluginDir)) {
+      if (!file.endsWith(".js") || file === "index.js") continue;
+      const from = path.join(distPluginDir, file);
+      const to = path.join(pluginDir, file);
+      fs.copyFileSync(from, to);
+      console.log(`✅ Copied plugin helper ${file} → plugin/`);
+    }
+  }
 }
 
 // ─── Step 2: Copy runtime artifacts ──────────────────────────────────────────
@@ -54,6 +65,10 @@ function compilePluginEntry() {
 const RUNTIME_ARTIFACTS = [
   { src: "src/cli/index.js", dest: "cli/index.js" },
   { src: "src/cli/action-bridge.js", dest: "cli/action-bridge.js" },
+  { src: "src/cli/runtime/", dest: "cli/runtime/" },
+  { src: "src/cli/host-capability/", dest: "cli/host-capability/" },
+  { src: "src/cli/host-smoke/", dest: "cli/host-smoke/" },
+  { src: "src/cli/ops/", dest: "cli/ops/" },
   { src: "src/cli/commands/", dest: "cli/commands/" },
   { src: "src/cli/read-models/", dest: "cli/read-models/" },
   { src: "src/cli/explain/", dest: "cli/explain/" },

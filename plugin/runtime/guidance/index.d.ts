@@ -6,3 +6,6 @@ export * from "./fallback.js";
 export * from "./template-registry.js";
 export * from "./review-workflow.js";
 export * from "./guidance-assembler.js";
+export * from "./outreach-draft-schema.js";
+export * from "./draft-outreach-message.js";
+export * from "./evidence-guidance.js";

@@ -70,6 +70,8 @@ export function createDecisionCycleHarness(input: {
             summary: "handle high-value interrupt",
             effectClass: "maintenance" as const,
             platformId: undefined,
+            sourceRefs: [],
+            idempotencyKey: `interrupt:${signal.id}`,
           }]
         : [];
 

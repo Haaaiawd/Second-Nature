@@ -1,9 +1,12 @@
 import * as crypto from "crypto";
 function needsLease(effectClass) {
-    return effectClass === "external_platform_action" || effectClass === "user_outreach";
+    return effectClass === "external_platform_action" || effectClass === "connector_action" || effectClass === "user_outreach";
 }
 function needsCheckpoint(effectClass) {
-    return effectClass !== "maintenance";
+    return effectClass !== "maintenance" && effectClass !== "no_effect";
+}
+function isConnectorEffect(effectClass) {
+    return effectClass === "external_platform_action" || effectClass === "connector_action";
 }
 function toCapabilityIntent(intent) {
     if (intent.kind === "work")
@@ -14,6 +17,8 @@ function toCapabilityIntent(intent) {
         return "comment.reply";
     if (intent.kind === "outreach")
         return "message.send";
+    if (intent.kind === "quiet")
+        return "feed.read";
     return "feed.read";
 }
 export class EffectDispatcher {
@@ -43,7 +48,7 @@ export class EffectDispatcher {
                 id: decision.checkpointId,
                 tickId: decision.tickId,
                 intentId: decision.intentId,
-                phase: intent.effectClass === "external_platform_action" ? "before_effect" : "before_quiet_write",
+                phase: isConnectorEffect(intent.effectClass) ? "before_effect" : "before_quiet_write",
                 snapshotRef: decision.traceId,
             });
         }
@@ -54,7 +59,7 @@ export class EffectDispatcher {
             state: "planned",
         });
         try {
-            if (intent.effectClass === "external_platform_action") {
+            if (isConnectorEffect(intent.effectClass)) {
                 await this.commitPort.advanceIntentCommitState(commit.id, "dispatched");
                 const result = await this.connectorExecutor.executeEffect({
                     platformId: intent.platformId ?? "unknown",
