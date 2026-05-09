@@ -7,6 +7,7 @@
 import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
 import type { HeartbeatSignal } from "../../core/second-nature/heartbeat/signal.js";
 import type { CliReadModels } from "../read-models/index.js";
+import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 export type HeartbeatSurfaceStatus = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export interface HeartbeatSurfaceResult {
     ok: boolean;
@@ -28,6 +29,8 @@ export interface HeartbeatCheckInput {
     fakeControlPlanePassthrough?: Record<string, unknown>;
     /** When set, full-runtime heartbeat_check runs the control-plane decision loop (US-001). */
     readModels?: CliReadModels;
+    /** When set, full-runtime cycles are persisted so `loadStatus` exits unknown (T1.2.3). */
+    runtimeRecorder?: RuntimeDecisionRecorder;
     timestamp?: string;
     sessionContext?: string;
     scopeHint?: HeartbeatSignal["scopeHint"];

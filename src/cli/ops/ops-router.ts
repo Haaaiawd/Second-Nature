@@ -4,6 +4,7 @@
 import { heartbeatCheck, type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError } from "./show-operator-fallback.js";
 import type { CliReadModels } from "../read-models/index.js";
+import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
@@ -15,6 +16,8 @@ export interface OpsRouterDeps {
   runtimeAvailable: boolean;
   /** Workspace read models: fallback view + heartbeat decision loop inputs (T1.2.2 / US-001). */
   readModels?: CliReadModels;
+  /** Persists full-runtime heartbeat cycles so `loadStatus` exits the unknown baseline (T1.2.3). */
+  runtimeRecorder?: RuntimeDecisionRecorder;
 }
 
 export interface OpsRouter {
@@ -36,6 +39,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         ...input,
         runtimeAvailable: input.runtimeAvailable ?? deps.runtimeAvailable,
         readModels: input.readModels ?? deps.readModels,
+        runtimeRecorder: input.runtimeRecorder ?? deps.runtimeRecorder,
       }),
     dispatch(command, input) {
       if (command === "heartbeat_check") {
@@ -49,6 +53,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
               ? (input.fakeControlPlanePassthrough as Record<string, unknown>)
               : undefined,
           readModels: (input as Partial<HeartbeatCheckInput> | undefined)?.readModels ?? deps.readModels,
+          runtimeRecorder:
+            (input as Partial<HeartbeatCheckInput> | undefined)?.runtimeRecorder ?? deps.runtimeRecorder,
           timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
           sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
           scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],

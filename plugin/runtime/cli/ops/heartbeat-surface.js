@@ -65,7 +65,9 @@ export async function heartbeatCheck(input) {
             sessionContext: typeof input.sessionContext === "string" ? input.sessionContext : undefined,
         },
     };
-    const run = createWorkspaceHeartbeatRunner(input.readModels);
+    const run = createWorkspaceHeartbeatRunner(input.readModels, {
+        runtimeRecorder: input.runtimeRecorder,
+    });
     const cycle = await run(signal);
     return mapCycleToSurface(cycle, "workspace_full_runtime");
 }

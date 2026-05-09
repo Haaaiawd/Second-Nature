@@ -31,6 +31,7 @@
 | side-effect idempotency / effect commit ledger | 外部副作用恢复 | 关键用户路径契约 | T3.2.1, T4.1.1 | T3.2.1, INT-S2 |
 | native SQLite vs sql.js storage mode | 存储运行模式 | 基础设施契约 | T4.1.4 | T4.1.4, INT-S1 |
 | README current / target / validation-needed | 文档边界 | 关键用户路径契约 | T1.4.1 | T7.1.1 |
+| `loadStatus` 聚合（`rhythm` / `runtime` / `quiet` 摘要）与 `data/observability.db` | operator 面板 / 读模型一致 | 基础规则层契约 | T1.2.1, T1.2.3, T2.2.1 | T1.2.3, INT-S4 |
 
 ---
 
@@ -67,6 +68,9 @@ graph TD
     T3_1_2 --> T4_2_1
     T2_1_1 --> T2_2_1[T2.2.1 heartbeat integration]
     T2_1_3 --> T2_2_1
+    T1_2_1[T1.2.1 ops read models] --> T1_2_2[T1.2.2 fallback view]
+    T1_2_1 --> T1_2_3[T1.2.3 status aggregate observability writeback]
+    T2_2_1 --> T1_2_3
     T4_2_2[T4.2.2 UserInterest insufficient downgrade] --> T2_3_1[T2.3.1 OutreachJudgment and delivery policy]
     T4_2_2 --> T6_1_2[T6.1.2 interest and Quiet downgrade]
     T6_1_1[T6.1.1 guidance interfaces] --> T6_2_1[T6.2.1 OutreachDraftRequest contract test]
@@ -78,7 +82,6 @@ graph TD
     T4_2_1 --> T4_4_1[T4.4.1 Quiet artifact writer]
     T4_4_1 --> T6_1_2
     T4_4_1 --> T2_3_3[T2.3.3 Quiet orchestration]
-    T1_2_1[T1.2.1 ops read models] --> T1_2_2[T1.2.2 fallback view]
     T1_3_1 --> INT_S4[INT-S4]
     T1_3_1 --> T1_4_1[T1.4.1 README truth boundary]
     T1_4_1 --> T7_1_1[T7.1.1 documentation review]
@@ -187,7 +190,7 @@ graph TD
     - When CLI 或 tool 请求 explain/report/audit
     - Then 返回脱敏结构化视图，并包含 no user-visible contact 警告（如适用）
   - **验证类型**: 集成测试
-  - **验证说明**: 使用 fake state/observability read models 验证 subject 路由、missing subject、unsupported subject。
+  - **验证说明**: 使用 fake state/observability read models 验证 subject 路由、missing subject、unsupported subject。**注**：聚合 `loadStatus()` 的 `rhythm` / `runtime.serviceStatus` 等字段依赖 `observability.db` 中 **具名写入**（`sn-runtime-*` ledger、`second-nature-runtime` attempt）；空表回落 `unknown` 的闭合由 **T1.2.3** 承接，非 read model 单点故障。
   - **估时**: 6h
   - **依赖**: T5.3.1, T4.3.1
   - **优先级**: P1
@@ -207,6 +210,23 @@ graph TD
   - **估时**: 5h
   - **依赖**: T4.3.1
   - **优先级**: P1
+
+- [x] **T1.2.3** [REQ-019]: `loadStatus` 聚合观测写回 — 与 workspace 心跳路径融洽闭合
+  - **用户原话承接**: 「让其融洽即可」— 使 operator `status` 读模型与 **真实运行路径** 写入同一 `data/observability.db`，避免因 **无写入方** 导致 `rhythm` / `runtime.serviceStatus` / `status.quiet` 摘要长期 `unknown` 而被误判为节律或 Quiet 损坏。
+  - **描述**: 在 **工作区 full runtime** `heartbeat_check`（`createWorkspaceHeartbeatRunner` → `runHeartbeatCycle`）完成可审计的一轮结果后，写入 `DecisionLedger.recordHeartbeatDecision`：`traceId` 前缀 **`sn-runtime-`**（与 `src/cli/read-models/index.ts` 聚合筛选一致），`mode` / `decisionStatus` 与 `HeartbeatCycleResult` 及快照节律对齐；并（最小）写入 `ExecutionTelemetry` **`platformId === "second-nature-runtime"`** 的一条 attempt，使 `runtime.serviceStatus` 可收敛为 `running`/`degraded`。可选：`deps.recordDecisionTrace` 转调 ledger。明确 **status 中 `quiet` 摘要** 仅当 ledger `mode` 为 `quiet`/`maintenance_only`/`paused_for_interrupt` 时非 `unknown`；与 **`loadQuiet` 命令** 的语义分界在验收中注明（必要时仅文档 + 单行注释，不改 PRD 边界）。
+  - **输入**: `src/cli/read-models/index.ts`；`src/cli/ops/workspace-heartbeat-runner.ts`；`src/observability/services/decision-ledger.ts`；`src/observability/services/execution-telemetry.ts`；`src/core/second-nature/heartbeat/heartbeat-loop.ts`；ADR-005 / `observability-system.md` §决策 trace
+  - **输出**: 接线后的 workspace runner（及插件 bridge 若共享同路径）+ 集成测：`status` 在至少一次成功 `heartbeat_check` 后 **`rhythm.mode` 非 `unknown`**（在正常 `active` 窗口），**`runtime.serviceStatus` 非 `unknown`**
+  - **契约承接**: Contract Mapping 表「`loadStatus` 聚合与 observability.db」；`HeartbeatCycleResult` → 持久化观测一致
+  - **验收标准**:
+    - Given 可写 `data/observability.db` 的工作区 fixture
+    - When 执行一次完整 `heartbeat_check`（非 probeOnly carrier）
+    - Then `decision_ledger` 存在 `traceId` 以 `sn-runtime-` 开头的记录，且 `execution_attempts` 存在 `platformId === "second-nature-runtime"` 的最新一条可供 `loadStatus` 选取；随后 CLI / 插件桥接 `status` 中 **`rhythm.mode` 不为 `unknown`**，**`runtime.serviceStatus` 不为 `unknown`**
+    - **说明**: `status.quiet.mode` 在节律为 `active` 时按当前聚合规则仍可能为 `unknown` —— 验收中须记录该预期或 T1.2.3 实施时一并调整读模型（仅在同任务内文档化，不扩展 PRD 需求）
+  - **验证类型**: 集成测试（fixture workspace DB）
+  - **验证说明**: 复用或扩展 `cli-ops-surface` / plugin workspace 桥接测；回归空 DB 基线（未跑心跳时仍可 `unknown`）。INT-S4 真实宿主：根已知场景下抽样确认 `status` JSON 与心跳执行顺序一致。
+  - **估时**: 4h
+  - **依赖**: T1.2.1, T2.2.1, T5.1.1
+  - **优先级**: P0
 
 ### Phase 3: Host Smoke
 
@@ -815,7 +835,7 @@ graph TD
 
 - [ ] **INT-S4** [MILESTONE]: S4 集成验证 — Packaging / Host Smoke / Docs
   - **描述**: 验证 S4 退出标准，确认 packaged plugin、host smoke、ops explain、platform near-real path、README 边界和 release gate 可复现；**若 T1.1.4 已交付**：在真实宿主上增加 **workspace 根已知** 场景下 `heartbeat_check` / `quiet` 与 CLI 语义对齐或诚实失败的证据（见 `docs/validation/int-s4-human-operator-testing-guide.md`）。
-  - **输入**: S4 所有任务产出：T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1；**T1.1.4**（插件 workspace 桥接，可选纳入同一宿主波次）
+  - **输入**: S4 所有任务产出：T1.2.1, T1.2.2, **T1.2.3**（`loadStatus` 观测写回，与根已知宿主 `status` 证据强相关）, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1；**T1.1.4**（插件 workspace 桥接，可选纳入同一宿主波次）
   - **输出**: `reports/int-s4-release-readiness.md`
   - **契约承接**: host smoke report、fallback visibility、README truth boundary、release gate
   - **📎 参考**: `cli-system.md` §12.2；`01_PRD.md` US-008；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`
@@ -824,9 +844,9 @@ graph TD
     - When 执行 release readiness 验证
     - Then package load、heartbeat_check、target none、ack drop、heartbeat_tool_not_invoked、fallback visibility、README boundary 均有 pass/fail/unknown 证据
   - **验证类型**: 冒烟测试 / 手动验证
-  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。**根已知** 证据中**必须**注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。**新增（承接 2026-05-05 survey + subagent 48/100 审查）**：真实宿主 transcript 须同时覆盖 carrier-only 与 full-bridge 两种路径；bridge 成功案例须附 root 红acted 截图 + chdir 影响声明；若 sandbox 下 dynamic import + sql.js 失败，须记录 `WORKSPACE_FULL_OPS_BRIDGE_FAILED` 详情并触发 Plan B 讨论。参考 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` §8。**新增（承接 2026-05-06 干系人报告）**：在验收以 `second_nature_ops` 为真源前，须确认**当前 agent 会话**（或宿主等价 API）工具枚举**包含** `second_nature_ops`；若仅见内置工具而第三方插件工具缺失，**不得**将 E2E / INT-S4 标为通过，须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 与 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 排查工具注册与合并链路（与「心跳/HEARTBEAT 正常但工具表无 SN」现象区分）。
+  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.2.3 完成后**（或在 INT 证据中单列为 Finding）：根已知场景下在至少一次 **full-bridge `heartbeat_check`** 后，`second_nature_ops status` 的 **`rhythm.mode` / `runtime.serviceStatus` 不得仅因 observability 表空而全系 `unknown`**（与空 workspace 对照区分）。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。**根已知** 证据中**必须**注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。**新增（承接 2026-05-05 survey + subagent 48/100 审查）**：真实宿主 transcript 须同时覆盖 carrier-only 与 full-bridge 两种路径；bridge 成功案例须附 root 红acted 截图 + chdir 影响声明；若 sandbox 下 dynamic import + sql.js 失败，须记录 `WORKSPACE_FULL_OPS_BRIDGE_FAILED` 详情并触发 Plan B 讨论。参考 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` §8。**新增（承接 2026-05-06 干系人报告）**：在验收以 `second_nature_ops` 为真源前，须确认**当前 agent 会话**（或宿主等价 API）工具枚举**包含** `second_nature_ops`；若仅见内置工具而第三方插件工具缺失，**不得**将 E2E / INT-S4 标为通过，须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 与 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 排查工具注册与合并链路（与「心跳/HEARTBEAT 正常但工具表无 SN」现象区分）。
   - **估时**: 4h
-  - **依赖**: T1.2.1, T1.2.2, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
+  - **依赖**: T1.2.1, T1.2.2, T1.2.3, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
 
 ---
 
@@ -869,7 +889,7 @@ graph TD
 **覆盖状态**: ✅ 完整
 
 ### US-007: 验证 OpenClaw 主动联系能力与兜底路径 (P0)
-**涉及任务**: T1.1.2 → T1.3.1 → T2.3.2 → T1.2.2 → INT-S1 → INT-S4  
+**涉及任务**: T1.1.2 → T1.3.1 → T2.3.2 → T1.2.2 → **T1.2.3** → INT-S1 → INT-S4  
 **关键路径**: T1.1.2 → T1.3.1  
 **独立可测**: ✅ S1 即可先出 capability report；S4 出真实 host smoke 汇总  
 **覆盖状态**: ✅ 完整
@@ -903,6 +923,7 @@ graph TD
 | `OperatorFallbackArtifact.status = not_sent` | fallback 文件格式 | T4.3.1, T1.2.2 | T1.2.2, T4.3.1 | ✅ |
 | Quiet empty evidence | 关键用户路径 | T4.4.1, T6.1.2, T2.3.3 | T4.4.1, T6.1.2, T2.3.3, INT-S3 | ✅ |
 | README truth boundary | 文档契约 | T1.4.1, T1.4.2, T7.1.1 | T7.1.1, INT-S4（宿主 ⏳） | ✅ |
+| `loadStatus` 聚合与 `observability.db` 写入一致 | operator 面板 | T1.2.1, T1.2.3, T2.2.1 | T1.2.3, INT-S4（宿主 ⏳） | ✅（单测/集成）｜⏳（宿主 INT-S4） |
 
 ---
 
@@ -919,12 +940,12 @@ graph TD
 
 ## 📊 任务统计
 
-- Level 3 任务数: 37
+- Level 3 任务数: 38
 - INT 任务数: 4
-- 总任务数: 41
-- P0 任务: 27
+- 总任务数: 42
+- P0 任务: 28
 - P1 任务: 10
 - P2 任务: 0
 - Milestone 任务: 4
-- 总预估工时: 208h
+- 总预估工时: 212h
 

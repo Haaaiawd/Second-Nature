@@ -7,6 +7,7 @@
 import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
 import type { HeartbeatCycleResult, HeartbeatSignal } from "../../core/second-nature/heartbeat/signal.js";
 import type { CliReadModels } from "../read-models/index.js";
+import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
 
 export type HeartbeatSurfaceStatus =
@@ -38,6 +39,8 @@ export interface HeartbeatCheckInput {
   fakeControlPlanePassthrough?: Record<string, unknown>;
   /** When set, full-runtime heartbeat_check runs the control-plane decision loop (US-001). */
   readModels?: CliReadModels;
+  /** When set, full-runtime cycles are persisted so `loadStatus` exits unknown (T1.2.3). */
+  runtimeRecorder?: RuntimeDecisionRecorder;
   timestamp?: string;
   sessionContext?: string;
   scopeHint?: HeartbeatSignal["scopeHint"];
@@ -118,7 +121,9 @@ export async function heartbeatCheck(input: HeartbeatCheckInput): Promise<Heartb
     },
   };
 
-  const run = createWorkspaceHeartbeatRunner(input.readModels);
+  const run = createWorkspaceHeartbeatRunner(input.readModels, {
+    runtimeRecorder: input.runtimeRecorder,
+  });
   const cycle = await run(signal);
   return mapCycleToSurface(cycle, "workspace_full_runtime");
 }

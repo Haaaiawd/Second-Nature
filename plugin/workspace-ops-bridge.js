@@ -39,6 +39,7 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
         const opsRouter = cliIndex.createOpsRouter({
             runtimeAvailable: runtimeResolved.ok,
             readModels: deps.readModels,
+            runtimeRecorder: deps.runtimeRecorder,
         });
         const commands = commandsMod.createCliCommands({
             readModels: deps.readModels,

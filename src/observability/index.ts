@@ -45,6 +45,14 @@ export {
 export { DecisionLedger, type QuietLifecycleEvent, type OutreachDecision, type HeartbeatDecisionEvent } from "./services/decision-ledger.js";
 export { GovernanceAudit, type CredentialLifecycleAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry, type ExecutionAttemptInput } from "./services/execution-telemetry.js";
+export {
+  createRuntimeDecisionRecorder,
+  RUNTIME_DECISION_TRACE_PREFIX,
+  RUNTIME_INTERNAL_PLATFORM_ID,
+  type RuntimeDecisionRecorder,
+  type RecordHeartbeatCycleInput,
+  type RecordHeartbeatCycleOutput,
+} from "./services/runtime-decision-recorder.js";
 
 export {
   LivedExperienceAuditRecorder,

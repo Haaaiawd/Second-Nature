@@ -13,6 +13,7 @@ export function createOpsRouter(deps) {
             ...input,
             runtimeAvailable: input.runtimeAvailable ?? deps.runtimeAvailable,
             readModels: input.readModels ?? deps.readModels,
+            runtimeRecorder: input.runtimeRecorder ?? deps.runtimeRecorder,
         }),
         dispatch(command, input) {
             if (command === "heartbeat_check") {
@@ -24,6 +25,7 @@ export function createOpsRouter(deps) {
                         ? input.fakeControlPlanePassthrough
                         : undefined,
                     readModels: input?.readModels ?? deps.readModels,
+                    runtimeRecorder: input?.runtimeRecorder ?? deps.runtimeRecorder,
                     timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
                     sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
                     scopeHint: input?.scopeHint,

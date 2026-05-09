@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-06` (semver **0.1.13**：根包 / 插件包 / manifest / `service-entry` 对齐，待发 npm)
+- **最近一次更新**: `2026-05-09` (semver **0.1.13**；`/change` 新增 **T1.2.3** `loadStatus` 观测写回任务)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -178,8 +178,8 @@ src/
 - 任务清单: `.anws/v5/05_TASKS.md`
 - 总任务数: 42, P0: 28, P1: 10, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 / T1.1.5 已闭合）
 - Sprint 数: 4
-- **下一步**: 在目标 OpenClaw 宿主执行 **INT-S4** 并勾选里程碑（`docs/validation/int-s4-human-operator-testing-guide.md`，含 §D7 / §D8、模板项 6–7）；**根已知** 时将 `SECOND_NATURE_WORKSPACE_ROOT` / `workspaceRoot` 与 **agent workspace** 对齐（T1.1.4 / **T1.1.5**）；**验收以工具 JSON 为准**（口语与 JSON 冲突 → Finding）。除 **INT-S4** 里程碑外，Level-3 任务在 `05_TASKS.md` 内已全部 `[x]`
-- 最近更新: `2026-05-04`
+- **下一步**: 在目标 OpenClaw 宿主执行 **INT-S4** 并勾选里程碑（`docs/validation/int-s4-human-operator-testing-guide.md`，含 §D7 / §D8、模板项 6–7；**T1.2.3** 已闭合 → 真实宿主须采集 `status` JSON 中 `rhythm.mode` / `runtime.serviceStatus` 不再仅因空表而全系 `unknown` 的证据）；**根已知** 时将 `SECOND_NATURE_WORKSPACE_ROOT` / `workspaceRoot` 与 **agent workspace** 对齐（T1.1.4 / **T1.1.5**）；**验收以工具 JSON 为准**（口语与 JSON 冲突 → Finding）。除 **INT-S4** 里程碑外，Level-3 任务在 `05_TASKS.md` 内已全部 `[x]`
+- 最近更新: `2026-05-09`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
@@ -231,6 +231,9 @@ T1.1.5：README / README.zh-CN / `HEARTBEAT.md` / INT-S4 人类指南（E2E Plan
 
 ### 🌊 Wave 17 ✅ — Plugin bridge VM-safe module scope (T1.1.4)
 T1.1.4：`plugin/workspace-ops-bridge` 将包根（`import.meta.url`）计算移入 `openWorkspaceOpsBridge()`，避免部分宿主 VM 在 `register()` 执行前因模块顶层求值失败而导致整包未加载；`service-entry` runtime 版本串对齐 **0.1.13**。集成测 `plugin-workspace-ops-bridge`、`plugin-runtime-registration` 通过。**INT-S4** 仍须在目标宿主复验会话工具表是否出现 `second_nature_ops`。
+
+### 🌊 Wave 18 ✅ — Status aggregate observability writeback (T1.2.3)
+T1.2.3：新增 `createRuntimeDecisionRecorder`（`src/observability/services/runtime-decision-recorder.ts`），在 `createCliRuntimeDeps` 注入并经 `OpsRouterDeps.runtimeRecorder` → `HeartbeatCheckInput.runtimeRecorder` → `createWorkspaceHeartbeatRunner` 接线；workspace `heartbeat_check` 完成后写入 `sn-runtime-*` ledger + `second-nature-runtime` execution attempt。`probeOnly` / 无 `readModels` / `runtimeAvailable=false` 路径不写入，保留 host-safe carrier 语义。覆盖：集成 `tests/integration/cli/t1-2-3-status-observability-writeback.test.ts`、单测 `tests/unit/observability/runtime-decision-recorder.test.ts`；plugin bridge 透传 `runtimeRecorder`。**INT-S4** 仍待真实宿主验证。
 
 <!-- AUTO:END -->
 

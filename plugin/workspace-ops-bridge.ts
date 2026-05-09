@@ -45,9 +45,15 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
         actionBridge: unknown;
         stateDb: { close: () => void };
         observabilityDb: { close: () => void };
+        /** Optional in older packaged runtimes (pre-T1.2.3); undefined is tolerated. */
+        runtimeRecorder?: unknown;
       };
       closeCliRuntimeDeps: (deps: { stateDb: { close: () => void }; observabilityDb: { close: () => void } }) => void;
-      createOpsRouter: (opts: { runtimeAvailable: boolean; readModels?: unknown }) => {
+      createOpsRouter: (opts: {
+        runtimeAvailable: boolean;
+        readModels?: unknown;
+        runtimeRecorder?: unknown;
+      }) => {
         dispatch: (command: string, input?: Record<string, unknown>) => unknown;
       };
     }
@@ -85,6 +91,7 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
     const opsRouter = cliIndex.createOpsRouter({
       runtimeAvailable: runtimeResolved.ok,
       readModels: deps.readModels,
+      runtimeRecorder: deps.runtimeRecorder,
     });
     const commands = commandsMod.createCliCommands({
       readModels: deps.readModels,

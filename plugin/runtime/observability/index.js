@@ -8,6 +8,7 @@ export { redactEvent, createEmptyManifest, mergeManifests, } from "./redaction/m
 export { DecisionLedger } from "./services/decision-ledger.js";
 export { GovernanceAudit } from "./services/governance-audit.js";
 export { ExecutionTelemetry } from "./services/execution-telemetry.js";
+export { createRuntimeDecisionRecorder, RUNTIME_DECISION_TRACE_PREFIX, RUNTIME_INTERNAL_PLATFORM_ID, } from "./services/runtime-decision-recorder.js";
 export { LivedExperienceAuditRecorder, createLivedExperienceAuditRecorder, } from "./services/lived-experience-audit.js";
 export { GovernancePlaneRecorder, createGovernancePlaneRecorder, } from "./services/governance-plane-recorder.js";
 export { queryExplain, } from "./query/explain-query.js";

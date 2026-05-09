@@ -6,18 +6,21 @@ import { createCliCommands } from "./commands/index.js";
 import { createOpsRouter } from "./ops/ops-router.js";
 import { createCliReadModels } from "./read-models/index.js";
 import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
+import { createRuntimeDecisionRecorder, } from "../observability/services/runtime-decision-recorder.js";
 export function createCliRuntimeDeps(overrides = {}) {
     const stateDb = overrides.stateDb ?? createStateDatabase();
     const observabilityDb = overrides.observabilityDb ?? createObservabilityDatabase();
     const stateApi = overrides.stateApi ?? createStateAPI(stateDb);
     const readModels = overrides.readModels ?? createCliReadModels({ stateDb, observabilityDb });
     const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
+    const runtimeRecorder = overrides.runtimeRecorder ?? createRuntimeDecisionRecorder(observabilityDb);
     return {
         stateDb,
         observabilityDb,
         stateApi,
         readModels,
         actionBridge,
+        runtimeRecorder,
     };
 }
 export function createCommandRouter(options = {}) {
@@ -26,6 +29,7 @@ export function createCommandRouter(options = {}) {
     const opsRouter = createOpsRouter({
         runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok,
         readModels: runtime.readModels,
+        runtimeRecorder: runtime.runtimeRecorder,
     });
     const commands = createCliCommands({
         readModels: runtime.readModels,

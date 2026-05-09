@@ -9,6 +9,46 @@
 
 ---
 
+## 2026-05-09 - /change: `loadStatus` 聚合观测写回任务（T1.2.3）
+
+- [CHANGE] `05_TASKS.md`: 新增 **T1.2.3**（P0）：workspace `heartbeat_check` 路径写入 `decision_ledger`（`sn-runtime-*`）与 `execution_attempts`（`second-nature-runtime`），与 `loadStatus` 读模型融洽；**Contract Mapping** 与 **Contract Coverage Overlay** 增补；**依赖图** 接入 T2.2.1 → T1.2.3；**T1.2.1** 验证说明注明空表回落由 T1.2.3 闭合；**INT-S4** 输入/依赖/验证说明纳入 T1.2.3；任务统计 +1 Level-3、+1 P0、+4h
+  - 用户原话: 「让其融洽即可...批准了 /change」
+  - 修改内容: 将根因分析（观测表无写入导致 status unknown）落实为可 `/forge` 的单一任务；不改变 PRD 需求边界或 ADR 核心前提
+  - 影响范围: `.anws/v5/05_TASKS.md`
+  - PRD 追溯: [REQ-019]（operator 可观测性 / ops surface）
+
+## 2026-05-06 - /change: `second_nature_ops` 会话工具可见性与 INT-S4 门禁承接
+
+- [CHANGE] `05_TASKS.md`: **INT-S4**、**T1.3.1** 验证说明增补 **会话工具枚举须含 `second_nature_ops`** 的前置门禁；**T1.1.5** semver 对齐表述更新为 **0.1.12**
+  - 用户原话: 「已经写好并落盘了。路径: reports/second-nature-ops-tool-visibility-issue-2026-05-06.md有问题检查和 /change」
+  - 修改内容: INT-S4 禁止在工具表缺失 `second_nature_ops` 时仍将宿主 E2E 标绿；T1.3.1 区分「工具不可见」与「heartbeat_tool_not_invoked」；交叉引用干系人报告与既有 ops-registration-gap 探索报告
+  - 影响范围: `.anws/v5/05_TASKS.md`（INT-S4、T1.3.1、T1.1.5）；可选交叉引用 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md`
+  - PRD 追溯: [REQ-019], [REQ-025]；不改变需求边界或 ADR 核心前提；仅加强宿主验证承接与失败归因口径
+
+## 2026-05-05 - /change: OpenClaw 插件 carrier + lazy bridge 机制 survey 全量应用 + 真实宿主确定性优化
+
+- [CHANGE] `05_TASKS.md`: **T1.1.4** 验收标准增补 **根对齐验证**、**chdir 副作用风险** 提示与 subagent 审查引用；**INT-S4** 验证说明强化真实宿主 full-bridge transcript + root 红acted 证据要求
+  - 用户原话: 「/change 批准了，请你修改我们的文档，继续优化和全量的应用和修改这部分的技术架构以及tasks等等...」（承接 2026-05-05 /explore survey + gpt-5.4-medium subagent 审查）
+  - 修改内容: 
+    - T1.1.4 验收标准新增根对齐验证条款、chdir 全局影响声明、Plan B 建议；验证说明引用 survey §8（48/100 certainty）。
+    - INT-S4 验证说明要求真实宿主 transcript 覆盖 carrier + full-bridge 路径，并附 root 证据。
+    - 全量应用 subagent 审查洞察（root misalignment 假信心风险、sandbox dynamic import 未闭合、并发 chdir 竞态）。
+  - 影响范围: `.anws/v5/05_TASKS.md`（T1.1.4、INT-S4）；`explore/reports/2026-05-05_openclaw-plugin-support-survey.md`（追加 subagent 审查章节）；`docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`、`reports/openclaw-carrier-host-brief.md`（同步更新 findings 与确定性表述）
+  - PRD 追溯: [REQ-019]；不改变需求边界、系统边界或 ADR-006/007 核心前提；仅加强验证承接与风险披露
+- [CHANGE] `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` 及相关验证文档: 追加 subagent 审查摘要（48/100、部分有效），更新结论为保守表述
+  - 用户原话: 同上
+  - 修改内容: 将原 “中等偏高 real-host certainty” 下调；增加 §8 Subagent Review 完整记录审查发现与调整建议
+  - 影响范围: 上述报告 + 交叉引用的 e2e 验证文档与 carrier brief
+  - PRD 追溯: [REQ-019]；不改变架构基线
+
+## 2026-05-04 - /change: OpenClaw agent workspace 与 SN 根对齐（运维约定）
+
+- [CHANGE] `05_TASKS.md`: **T1.1.4** 增补 **运维约定 (OpenClaw 宿主)**；**INT-S4** 验证说明增补根已知路径与 OpenClaw workspace 一致性记录建议
+  - 用户原话: 「/change 那还说啥了，太性情了，走你」（承接会话结论：将 SN 根与 OpenClaw workspace 同目录的推荐写入版本化契约）
+  - 修改内容: 明确推荐 `SECOND_NATURE_WORKSPACE_ROOT` / `workspaceRoot` 与 OpenClaw `agents.defaults.workspace`（及沙箱/多 agent 例外）对齐；交叉引用 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`
+  - 影响范围: `.anws/v5/05_TASKS.md`（T1.1.4、INT-S4）
+  - PRD 追溯: [REQ-019]；不改变需求边界与 ADR 核心前提
+
 ## 2026-05-03 - /change + /explore: 插件 Quiet 路径承接任务
 
 - [CHANGE] `05_TASKS.md`: 新增 **T1.1.4**（OpenClaw 插件 workspace 根已知时 full ops / Quiet 读路径桥接）

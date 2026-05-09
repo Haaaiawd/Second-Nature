@@ -7,6 +7,10 @@ import { createCliCommands, type CliCommandDefinition } from "./commands/index.j
 import { createOpsRouter } from "./ops/ops-router.js";
 import { createCliReadModels, type CliReadModels } from "./read-models/index.js";
 import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
+import {
+  createRuntimeDecisionRecorder,
+  type RuntimeDecisionRecorder,
+} from "../observability/services/runtime-decision-recorder.js";
 
 export interface CommandRouter {
   commands: CliCommandDefinition[];
@@ -23,6 +27,8 @@ export interface CliRuntimeDeps {
   stateApi: StateAPI;
   readModels: CliReadModels;
   actionBridge: ActionBridge;
+  /** T1.2.3 — write back full-runtime heartbeat cycles into observability so `loadStatus` exits unknown. */
+  runtimeRecorder: RuntimeDecisionRecorder;
 }
 
 export interface CreateCommandRouterOptions {
@@ -35,6 +41,7 @@ export function createCliRuntimeDeps(overrides: Partial<CliRuntimeDeps> = {}): C
   const stateApi = overrides.stateApi ?? createStateAPI(stateDb);
   const readModels = overrides.readModels ?? createCliReadModels({ stateDb, observabilityDb });
   const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
+  const runtimeRecorder = overrides.runtimeRecorder ?? createRuntimeDecisionRecorder(observabilityDb);
 
   return {
     stateDb,
@@ -42,6 +49,7 @@ export function createCliRuntimeDeps(overrides: Partial<CliRuntimeDeps> = {}): C
     stateApi,
     readModels,
     actionBridge,
+    runtimeRecorder,
   };
 }
 
@@ -51,6 +59,7 @@ export function createCommandRouter(options: CreateCommandRouterOptions = {}): C
   const opsRouter = createOpsRouter({
     runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok,
     readModels: runtime.readModels,
+    runtimeRecorder: runtime.runtimeRecorder,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,

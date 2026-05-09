@@ -15,12 +15,25 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels) {
         deliveryCapability: { target: "none" },
     };
 }
-export function createWorkspaceHeartbeatRunner(readModels) {
-    return (signal) => runHeartbeatCycle({
-        signal,
-        runtimeAvailable: true,
-        deps: {
-            loadSnapshotInputs: () => loadSnapshotInputsForWorkspaceHeartbeat(readModels),
-        },
-    });
+export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
+    return async (signal) => {
+        const cycle = await runHeartbeatCycle({
+            signal,
+            runtimeAvailable: true,
+            deps: {
+                loadSnapshotInputs: () => loadSnapshotInputsForWorkspaceHeartbeat(readModels),
+            },
+        });
+        if (options.runtimeRecorder) {
+            try {
+                await options.runtimeRecorder.recordHeartbeatCycle({ cycle, signal });
+            }
+            catch {
+                // T1.2.3: recorder must never break the heartbeat surface response.
+                // Failure here means status simply remains at its previous aggregate; the
+                // cycle outcome itself is still returned to the caller.
+            }
+        }
+        return cycle;
+    };
 }
