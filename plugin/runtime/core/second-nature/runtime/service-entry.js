@@ -27,7 +27,7 @@ export function startRuntimeService(ctx) {
     // - control-plane-system (heartbeat bridge preparation)
     const workspaceRoot = ctx?.workspaceRoot ?? process.cwd();
     /** Keep in sync with `plugin/package.json` when cutting releases. */
-    const version = "0.1.13";
+    const version = "0.1.18";
     activeHandle = {
         ready: true,
         version,
