@@ -42,7 +42,11 @@ const baseInputs: SnapshotInputs = {
 
 function makeRuntime(inputs: SnapshotInputs) {
   const continuity = buildContinuitySnapshot(inputs);
-  return buildHeartbeatRuntimeSnapshot("2026-05-10T10:00:00.000Z", inputs, continuity);
+  return buildHeartbeatRuntimeSnapshot(
+    "2026-05-10T10:00:00.000Z",
+    inputs,
+    continuity,
+  );
 }
 
 // ─── Case A: maintenance effectClass → internal_tick ─────────────────────────
@@ -59,7 +63,13 @@ test("T2.2.3 A — maintenance effectClass → reasons includes internal_tick", 
     idempotencyKey: "maint:a",
   };
   const runtime = makeRuntime(baseInputs);
-  const result = await resolveAllowedIntentResult(intent, runtime, baseInputs, signal, {});
+  const result = await resolveAllowedIntentResult(
+    intent,
+    runtime,
+    baseInputs,
+    signal,
+    {},
+  );
 
   assert.equal(result.status, "intent_selected");
   assert.ok(
@@ -82,7 +92,13 @@ test("T2.2.3 B — no_effect effectClass → reasons includes internal_tick", as
     idempotencyKey: "noeffect:b",
   };
   const runtime = makeRuntime(baseInputs);
-  const result = await resolveAllowedIntentResult(intent, runtime, baseInputs, signal, {});
+  const result = await resolveAllowedIntentResult(
+    intent,
+    runtime,
+    baseInputs,
+    signal,
+    {},
+  );
 
   assert.equal(result.status, "intent_selected");
   assert.ok(
@@ -105,7 +121,13 @@ test("T2.2.3 C — maintenance kind → reasons includes internal_tick", async (
     idempotencyKey: "maint:c",
   };
   const runtime = makeRuntime(baseInputs);
-  const result = await resolveAllowedIntentResult(intent, runtime, baseInputs, signal, {});
+  const result = await resolveAllowedIntentResult(
+    intent,
+    runtime,
+    baseInputs,
+    signal,
+    {},
+  );
 
   assert.equal(result.status, "intent_selected");
   assert.ok(
@@ -129,13 +151,24 @@ test("T2.2.3 D — connector_action without dispatch wired → reasons empty (no
     idempotencyKey: "conn:d",
   };
   const runtime = makeRuntime(baseInputs);
-  const result = await resolveAllowedIntentResult(intent, runtime, baseInputs, signal, {});
+  const result = await resolveAllowedIntentResult(
+    intent,
+    runtime,
+    baseInputs,
+    signal,
+    {},
+  );
 
   assert.equal(result.status, "intent_selected");
-  // connector_action is not maintenance/no_effect → should NOT have internal_tick
+  // CH-15-01: connector_action without dispatch wired must carry "connector_dispatch_unwired"
+  // so operators can distinguish "no dispatch configured" from "dispatch executed".
+  assert.ok(
+    result.reasons.includes("connector_dispatch_unwired"),
+    `Expected reasons to include 'connector_dispatch_unwired' for unwired connector_action, got: ${JSON.stringify(result.reasons)}`,
+  );
   assert.ok(
     !result.reasons.includes("internal_tick"),
-    `Expected no 'internal_tick' for connector_action, got: ${JSON.stringify(result.reasons)}`,
+    `Expected no 'internal_tick' for connector_action (not maintenance), got: ${JSON.stringify(result.reasons)}`,
   );
 });
 

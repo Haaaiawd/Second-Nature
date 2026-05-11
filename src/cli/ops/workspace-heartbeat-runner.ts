@@ -47,7 +47,13 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
 ): Promise<SnapshotInputs> {
   const status = await readModels.loadStatus();
   const mode = status.rhythm.mode === "unknown" ? "active" : status.rhythm.mode;
-  const quietEnabledBridge = status.quiet.mode === "quiet";
+  // CH-15-03: quietEnabledBridge should reflect whether the quiet *execution path* is wired
+  // (workspaceRoot available), not whether the last observed rhythm decision was "quiet".
+  // status.quiet.mode is typically "unknown" until a Quiet artifact has been persisted, which
+  // means binding to it would permanently suppress the quiet window — the opposite of intent.
+  // We instead enable the bridge whenever workspaceRoot is provided (same condition as
+  // `createWorkspaceHeartbeatRunner` uses for injecting quietWorkflow).
+  const quietEnabledBridge = !!(options && options.workspaceRoot);
 
   // T2.2.2: Load life evidence from state DB when available so SnapshotInputs carries real refs.
   let lifeEvidenceRefs: ControlPlaneSourceRef[] | undefined;

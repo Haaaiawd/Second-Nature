@@ -52,12 +52,23 @@ export interface RiskSummary {
 /**
  * T1.2.5 (CH-14-04): delivery posture summarises why `deliveryCapability.target` is `none`
  * and which layer set it — workspace heartbeat default vs OpenClaw cron config vs host probe.
+ *
+ * CH-15-02 implementation note: `loadStatus` currently always emits `workspace_default_none`
+ * because the workspace heartbeat hardcodes `target: none` and no T1.1.2 HostCapabilityReport
+ * probe is wired into the read model path yet.  The other two `source` values are reserved for
+ * future integration:
+ *   - `openclaw_cron_delivery_none`: when the OpenClaw cron layer exposes `delivery.mode: none`
+ *     in the host config and that value is surfaced via a new probe or bridge field.
+ *   - `host_capability_probe`: when `HostCapabilityReport.deliveryTarget` is read from the DB
+ *     (T1.1.2) and routed into `loadStatus`.
+ * Do NOT infer either value without a real observation — see ADR-007 "no proof, not sent".
  */
 export interface DeliveryPosture {
   /** Current effective verdict: none = no delivery channel; available = a valid target exists. */
   verdict: "none" | "available";
   /**
-   * Stable reason code for operator tooling:
+   * Stable source discriminator for operator tooling (CH-15-02: only workspace_default_none
+   * is emitted today; cron/probe values require additional host-side wiring):
    *   workspace_default_none — workspace heartbeat hardcodes target:none (no host probe ran).
    *   openclaw_cron_delivery_none — cron layer has delivery.mode:none (host config decision).
    *   host_capability_probe — a HostCapabilityReport probe determined the posture.

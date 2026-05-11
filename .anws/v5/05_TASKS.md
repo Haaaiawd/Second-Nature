@@ -943,7 +943,7 @@ graph TD
 **涉及任务**: T1.1.1 → T1.1.3 → T5.1.1 → T4.2.1 → T2.1.1 → T2.2.1 → **T2.2.2** → **T2.2.3** → INT-S2  
 **关键路径**: T1.1.3 → T4.2.1 → T2.1.1 → T2.2.1 → **T2.2.2**（workspace 快照并入 life evidence）  
 **独立可测**: ✅ S2 结束可用 near-real workspace 状态验证；**OpenClaw workspace 全运行时** 与 Nyx 场测 parity 由 **T2.2.2–T2.2.3** + INT-S4 追加验证  
-**覆盖状态**: ✅ 设计完整；**workspace 路径证据输入 / connector 效应** ⏳ **T2.2.2、T2.2.3**（Round 14）
+**覆盖状态**: ✅ 完整；**T2.2.2**（workspace 快照并入 life evidence）+ **T2.2.3**（connector_dispatch_unwired / internal_tick 诚实 reasons）已由 Wave 19 闭合；宿主 INT-S4 端到端验证 ⏳
 
 ### US-002: 建立 life evidence 入库与查询契约 (P0)
 **涉及任务**: T3.1.2 → T4.1.1 → T4.2.1 → T5.1.2 → T3.3.1  
@@ -973,7 +973,7 @@ graph TD
 **涉及任务**: T4.2.1 → T4.4.1 → T6.1.2 → T2.3.3 → T5.2.1 → INT-S3 → **T1.2.4**  
 **关键路径**: T4.4.1 → T6.1.2 → T2.3.3 → **T1.2.4**（operator 读面与 workspace `quietWorkflow`）  
 **独立可测**: ✅ S3 可验证空/非空 evidence 两条路径  
-**覆盖状态**: ✅ 编排完整；**operator `report`/`quiet` 与 JSON 工件对齐** ⏳ **T1.2.4**（CH-14-07）
+**覆盖状态**: ✅ 完整；**T1.2.4**（loadQuiet + loadDailyReport FS 合并）已由 Wave 19 闭合；宿主 INT-S4 端到端验证 ⏳
 
 ### US-007: 验证 OpenClaw 主动联系能力与兜底路径 (P0)
 **涉及任务**: T1.1.2 → T1.3.1 → T2.3.2 → T1.2.2 → **T1.2.3** → INT-S1 → INT-S4  
@@ -1011,10 +1011,10 @@ graph TD
 | Quiet empty evidence | 关键用户路径 | T4.4.1, T6.1.2, T2.3.3 | T4.4.1, T6.1.2, T2.3.3, INT-S3 | ✅ |
 | README truth boundary | 文档契约 | T1.4.1, T1.4.2, T7.1.1 | T7.1.1, INT-S4（宿主 ⏳） | ✅ |
 | `loadStatus` 聚合与 `observability.db` 写入一致 | operator 面板 | T1.2.1, T1.2.3, T2.2.1, **T1.2.5** | T1.2.3, INT-S4（宿主 ⏳） | ✅（单测/集成）｜⏳（宿主 INT-S4） |
-| workspace `SnapshotInputs` life evidence | 控制面输入 | **T2.2.2** | T2.2.2, INT-S4 | ⏳ |
-| workspace `connector_action` 效应/telemetry | 控制面 + 观测 | **T2.2.3** | T2.2.3, INT-S4 | ⏳ |
-| Quiet JSON ↔ operator report/quiet | 读模型 | **T1.2.4** | T1.2.4, INT-S4 | ⏳（Claw：**无工件目录时** 首验 **写路径**；**已写** 后验读合并） |
-| `deliveryPosture` + 默认 audit explain deps | operator JSON | **T1.2.5** | T1.2.5, INT-S4 | ⏳ |
+| workspace `SnapshotInputs` life evidence | 控制面输入 | **T2.2.2** | T2.2.2, INT-S4 | ✅（集成）｜⏳（宿主 INT-S4） |
+| workspace `connector_action` 效应/telemetry | 控制面 + 观测 | **T2.2.3** | T2.2.3, INT-S4 | ✅（connector_dispatch_unwired + internal_tick；集成）｜⏳（宿主 INT-S4） |
+| Quiet JSON ↔ operator report/quiet | 读模型 | **T1.2.4** | T1.2.4, INT-S4 | ✅（loadQuiet + loadDailyReport FS 合并；集成）｜⏳（宿主 INT-S4） |
+| `deliveryPosture` + 默认 audit explain deps | operator JSON | **T1.2.5** | T1.2.5, INT-S4 | ✅（deliveryPosture + default store；集成）｜⏳（宿主 INT-S4） |
 
 ---
 

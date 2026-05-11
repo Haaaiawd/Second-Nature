@@ -107,19 +107,26 @@ export async function resolveAllowedIntentResult(
     });
     return quietRun.result;
   }
-  // T2.2.3 (CH-14-02/03): when the selected intent has no external effects
-  // (maintenance / no_effect effectClass, or maintenance kind), surface an
-  // explicit `internal_tick` reason so operators can distinguish "no external
-  // side-effects this cycle" from a vacuous empty-reasons result.
+  // T2.2.3 (CH-14-02/03 / CH-15-01): all intent_selected results must carry at least one
+  // machine-readable reason so operators can distinguish between effect classes:
+  //   - maintenance / no_effect → "internal_tick" (no external side-effects)
+  //   - connector_action without dispatch wired → "connector_dispatch_unwired"
+  //   - other (future: outreach paths caught above) → should not reach here
   const noExternalEffect =
     intent.effectClass === "maintenance" ||
     intent.effectClass === "no_effect" ||
     intent.kind === "maintenance";
+  const connectorUnwired = intent.effectClass === "connector_action";
+  const reasons: string[] = noExternalEffect
+    ? ["internal_tick"]
+    : connectorUnwired
+      ? ["connector_dispatch_unwired"]
+      : [];
   return {
     scope: "rhythm",
     status: "intent_selected",
     selectedIntentId: intent.id,
-    reasons: noExternalEffect ? ["internal_tick"] : [],
+    reasons,
   };
 }
 

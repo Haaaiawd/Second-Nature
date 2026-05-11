@@ -239,6 +239,11 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       const latestRuntimeAttempt = recentAttempts.find(
         (attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID,
       );
+      // CH-15-04 (CH-14-03): latestConnectorAttempt is the most recent execution attempt whose
+      // platformId is NOT the internal sn-runtime sentinel — i.e. a real connector platform
+      // (Moltbook, EvoMap, etc.). The `connectors` array in StatusReadModel reflects this single
+      // most-recent non-runtime attempt, NOT the full connector manifest. An empty array means
+      // no connector attempt has been recorded yet, not that connectors are misconfigured.
       const latestConnectorAttempt = recentAttempts.find(
         (attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID,
       );
