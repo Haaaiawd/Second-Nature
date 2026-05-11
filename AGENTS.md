@@ -176,10 +176,10 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 46, P0: 30, P1: 12, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 / T1.1.5 已闭合）；**未完成 Level-3（Round 14 回流）**: **T2.2.2, T2.2.3, T1.2.4, T1.2.5**（`07_CHALLENGE_REPORT` Round 14 / Nyx v0.1.18 场测同源）
+- 总任务数: 46, P0: 30, P1: 12, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧全部已闭合）；**Level-3 全部完成**（Wave 19：T2.2.2 / T2.2.3 / T1.2.4 / T1.2.5 已交付，Round 15 review findings CH-15-01～05 已修复）
 - Sprint 数: 4
-- **下一步**: **`/forge` 优先波次**：**T2.2.2**（workspace 快照并入 life evidence；**勿**将初报 `silent_no_candidates` 写死为唯一形态）→ **T2.2.3**（`connector_action` **或** **maintenance 无外部效应** 的诚实 JSON）→ **T1.2.4**（Quiet：**无盘工件则先验写路径**；**已写** 再验读合并）→ **T1.2.5**（`deliveryPosture` 区分 **workspace vs OpenClaw cron** + 默认 audit explain deps）；再跑 **INT-S4**：支持 **cron+`openWorkspaceBridge`** 证据包或 **agent 工具**路径二选一声明；**验收以工具 JSON 为准**。Round 14 见 `07_CHALLENGE_REPORT.md` **场测勘误** 小节。
-- 最近更新: `2026-05-10`
+- **下一步**: **INT-S4** 真实宿主冒烟验证（在 OpenClaw 宿主中确认 `second_nature_ops` 工具可见、workspace bridge 正常、heartbeat 场测 JSON 形状与 v0.1.19 对齐）
+- 最近更新: `2026-05-11`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
