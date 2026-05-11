@@ -1,6 +1,16 @@
 export interface RuntimeSummary {
   host: "openclaw-plugin";
-  serviceStatus: "idle" | "running" | "degraded" | "unknown";
+  /**
+   * T1.2.9 (SN-CODE-04): `awaiting_sources` signals that the last runtime cycle was
+   * control-plane denied (decision_denied) — no eligible intent found, NOT a delivery
+   * or execution fault. Operators must not interpret this as a runtime crash.
+   */
+  serviceStatus:
+    | "idle"
+    | "running"
+    | "degraded"
+    | "awaiting_sources"
+    | "unknown";
   updatedAt: string;
 }
 
@@ -161,4 +171,18 @@ export interface ExplainReadModel {
   /** Operator / lived-experience audit warnings (e.g. no user-visible contact) */
   warnings?: string[];
   relatedAuditEventIds?: string[];
+}
+
+/** T1.2.7 (SN-CODE-02) — minimal audit read-side summary for operator `audit` command. */
+export interface AuditEventSummaryEntry {
+  eventId: string;
+  family: string;
+  plane: string;
+  createdAt: string;
+  sensitivity: string;
+}
+
+export interface AuditSummaryReadModel {
+  totalEvents: number;
+  events: AuditEventSummaryEntry[];
 }

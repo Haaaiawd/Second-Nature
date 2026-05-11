@@ -87,18 +87,25 @@ process.stderr.write("[second-nature] module evaluated\n");
 
 interface RegisterApi {
   registerService(service: { id: string; start: () => unknown }): void;
-  registerCli?(registrar: (ctx: { program: unknown }) => void, options?: { commands?: string[] }): void;
+  registerCli?(
+    registrar: (ctx: { program: unknown }) => void,
+    options?: { commands?: string[] },
+  ): void;
   registerCommand(command: {
     name: string;
     description: string;
     acceptsArgs?: boolean;
-    handler: (ctx: { args?: string }) => Promise<{ text: string }> | { text: string };
+    handler: (ctx: {
+      args?: string;
+    }) => Promise<{ text: string }> | { text: string };
   }): void;
   registerTool(tool: unknown, options?: unknown): void;
 }
 
 type CommandPayload = Record<string, unknown>;
-type CommandExecutor = (input?: Record<string, unknown>) => Promise<CommandPayload>;
+type CommandExecutor = (
+  input?: Record<string, unknown>,
+) => Promise<CommandPayload>;
 
 type ExplainSubjectType =
   | "decision"
@@ -156,8 +163,14 @@ const HOST_SAFE_LIMITATION_MESSAGE =
 let activationSpine: ActivationSpine | null = null;
 
 /** T1.1.4 — lazily opened full read bridge; closed when workspace root / resolution changes. */
-let workspaceOpsBridge: { root: string; close: () => void; dispatch: (c: string, i?: Record<string, unknown>) => Promise<Record<string, unknown>> } | null =
-  null;
+let workspaceOpsBridge: {
+  root: string;
+  close: () => void;
+  dispatch: (
+    c: string,
+    i?: Record<string, unknown>,
+  ) => Promise<Record<string, unknown>>;
+} | null = null;
 
 function disposeWorkspaceOpsBridge(): void {
   if (workspaceOpsBridge) {
@@ -175,9 +188,19 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "heartbeat_check",
   "fallback",
   "storage_smoke",
+  // T1.2.8 (SN-CODE-03): capability probe surface via workspace bridge
+  "capability_probe",
+  // T1.2.6 / T1.2.7: policy show + audit read surface
+  "policy",
+  "audit",
+  // T3.3.2: near-real connector smoke sentinel
+  "near_real_smoke",
 ]);
 
-function isWorkspaceBridgeCommand(command: string, input?: Record<string, unknown>): boolean {
+function isWorkspaceBridgeCommand(
+  command: string,
+  input?: Record<string, unknown>,
+): boolean {
   if (command === "credential") {
     const action = typeof input?.action === "string" ? input.action : "show";
     return action !== "verify";
@@ -205,7 +228,8 @@ async function routeSecondNatureCommand(
   input?: Record<string, unknown>,
 ): Promise<CommandPayload> {
   const wr = spine.workspaceRootContext;
-  const useBridge = wr.resolution !== "unknown" && isWorkspaceBridgeCommand(command, input);
+  const useBridge =
+    wr.resolution !== "unknown" && isWorkspaceBridgeCommand(command, input);
   if (useBridge) {
     const bridge = await ensureWorkspaceOpsBridge(spine);
     if (!bridge.ok) {
@@ -232,7 +256,9 @@ async function routeSecondNatureCommand(
   return def.execute(input);
 }
 
-function resolveWorkspaceRoot(toolWorkspaceRoot?: string): WorkspaceRootContext {
+function resolveWorkspaceRoot(
+  toolWorkspaceRoot?: string,
+): WorkspaceRootContext {
   const env = process.env.SECOND_NATURE_WORKSPACE_ROOT?.trim();
   if (env) {
     return { resolution: "env", declaredRoot: env, runtimeRoot: env };
@@ -241,19 +267,30 @@ function resolveWorkspaceRoot(toolWorkspaceRoot?: string): WorkspaceRootContext 
   if (tool) {
     return { resolution: "tool_args", declaredRoot: tool, runtimeRoot: tool };
   }
-  return { resolution: "unknown", declaredRoot: undefined, runtimeRoot: process.cwd() };
+  return {
+    resolution: "unknown",
+    declaredRoot: undefined,
+    runtimeRoot: process.cwd(),
+  };
 }
 
-function syncWorkspaceRootFromTool(spine: ActivationSpine, toolWorkspaceRoot?: string): void {
+function syncWorkspaceRootFromTool(
+  spine: ActivationSpine,
+  toolWorkspaceRoot?: string,
+): void {
   const next = resolveWorkspaceRoot(toolWorkspaceRoot);
   const prev = spine.workspaceRootContext;
-  const changed = next.runtimeRoot !== prev.runtimeRoot || next.resolution !== prev.resolution;
+  const changed =
+    next.runtimeRoot !== prev.runtimeRoot ||
+    next.resolution !== prev.resolution;
   if (changed) {
     disposeWorkspaceOpsBridge();
   }
   spine.workspaceRootContext = next;
   if (changed) {
-    spine.runtimeHandle = startRuntimeService({ workspaceRoot: next.runtimeRoot });
+    spine.runtimeHandle = startRuntimeService({
+      workspaceRoot: next.runtimeRoot,
+    });
   }
 }
 
@@ -263,7 +300,9 @@ function trimRuntimeEvidence(spine: ActivationSpine): void {
   }
 }
 
-function latestRuntimeEvidence(spine: ActivationSpine): RuntimeEvidence | undefined {
+function latestRuntimeEvidence(
+  spine: ActivationSpine,
+): RuntimeEvidence | undefined {
   return spine.runtimeEvidence[spine.runtimeEvidence.length - 1];
 }
 
@@ -285,7 +324,10 @@ function createUnavailableActionError(
   };
 }
 
-function parseExplainSubject(subjectRaw: string): { subjectType: ExplainSubjectType; subjectId: string } {
+function parseExplainSubject(subjectRaw: string): {
+  subjectType: ExplainSubjectType;
+  subjectId: string;
+} {
   const trimmed = subjectRaw.trim();
   if (!trimmed) {
     throw new Error("explain_subject_invalid");
@@ -331,7 +373,9 @@ function parseExplainSubject(subjectRaw: string): { subjectType: ExplainSubjectT
 
 function buildStatusPayload(spine: ActivationSpine): CommandPayload {
   const runtimeEvidence = latestRuntimeEvidence(spine);
-  const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
+  const updatedAt =
+    runtimeEvidence?.createdAt ??
+    new Date(spine.lifecycleState.lastChangedAt).toISOString();
   const wr = spine.workspaceRootContext;
   const needsRootHint = wr.resolution === "unknown";
 
@@ -344,7 +388,9 @@ function buildStatusPayload(spine: ActivationSpine): CommandPayload {
       code: "WORKSPACE_READ_SURFACE_UNAVAILABLE",
       message:
         "Aggregated status requires workspace state; the host-safe plugin does not load persisted read models on this surface.",
-      requiredUserInput: needsRootHint ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+      requiredUserInput: needsRootHint
+        ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+        : [],
       nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
     },
     data: {
@@ -359,7 +405,10 @@ function buildStatusPayload(spine: ActivationSpine): CommandPayload {
   };
 }
 
-function buildQuietPayload(spine: ActivationSpine, scope?: string): CommandPayload {
+function buildQuietPayload(
+  spine: ActivationSpine,
+  scope?: string,
+): CommandPayload {
   const wr = spine.workspaceRootContext;
   return {
     ok: false,
@@ -368,8 +417,12 @@ function buildQuietPayload(spine: ActivationSpine, scope?: string): CommandPaylo
     message: HOST_SAFE_LIMITATION_MESSAGE,
     error: {
       code: "QUIET_READ_SURFACE_UNAVAILABLE",
-      message: "Quiet read surface requires workspace runtime; not evaluated in host-safe carrier mode.",
-      requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+      message:
+        "Quiet read surface requires workspace runtime; not evaluated in host-safe carrier mode.",
+      requiredUserInput:
+        wr.resolution === "unknown"
+          ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+          : [],
       nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
     },
     data: {
@@ -381,7 +434,10 @@ function buildQuietPayload(spine: ActivationSpine, scope?: string): CommandPaylo
   };
 }
 
-function buildReportPayload(spine: ActivationSpine, day?: string): CommandPayload {
+function buildReportPayload(
+  spine: ActivationSpine,
+  day?: string,
+): CommandPayload {
   const wr = spine.workspaceRootContext;
   return {
     ok: false,
@@ -391,7 +447,10 @@ function buildReportPayload(spine: ActivationSpine, day?: string): CommandPayloa
     error: {
       code: "REPORT_READ_SURFACE_UNAVAILABLE",
       message: "Daily report artifacts require workspace runtime.",
-      requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+      requiredUserInput:
+        wr.resolution === "unknown"
+          ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+          : [],
       nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
     },
     data: {
@@ -403,7 +462,10 @@ function buildReportPayload(spine: ActivationSpine, day?: string): CommandPayloa
   };
 }
 
-function buildSessionPayload(spine: ActivationSpine, sessionId?: string): CommandPayload {
+function buildSessionPayload(
+  spine: ActivationSpine,
+  sessionId?: string,
+): CommandPayload {
   if (!sessionId) {
     return {
       ok: false,
@@ -425,7 +487,10 @@ function buildSessionPayload(spine: ActivationSpine, sessionId?: string): Comman
     error: {
       code: "SESSION_READ_SURFACE_UNAVAILABLE",
       message: "Session analytics require workspace state database.",
-      requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+      requiredUserInput:
+        wr.resolution === "unknown"
+          ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+          : [],
       nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
     },
     data: {
@@ -437,7 +502,10 @@ function buildSessionPayload(spine: ActivationSpine, sessionId?: string): Comman
   };
 }
 
-function buildCredentialPayload(spine: ActivationSpine, platformId?: string): CommandPayload {
+function buildCredentialPayload(
+  spine: ActivationSpine,
+  platformId?: string,
+): CommandPayload {
   const wr = spine.workspaceRootContext;
   return {
     ok: false,
@@ -446,8 +514,12 @@ function buildCredentialPayload(spine: ActivationSpine, platformId?: string): Co
     message: HOST_SAFE_LIMITATION_MESSAGE,
     error: {
       code: "CREDENTIAL_READ_SURFACE_UNAVAILABLE",
-      message: "Credential inspection requires workspace runtime on this surface.",
-      requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+      message:
+        "Credential inspection requires workspace runtime on this surface.",
+      requiredUserInput:
+        wr.resolution === "unknown"
+          ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+          : [],
       nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
     },
     data: {
@@ -459,7 +531,10 @@ function buildCredentialPayload(spine: ActivationSpine, platformId?: string): Co
   };
 }
 
-function buildExplainPayload(spine: ActivationSpine, subjectRaw?: string): CommandPayload {
+function buildExplainPayload(
+  spine: ActivationSpine,
+  subjectRaw?: string,
+): CommandPayload {
   if (!subjectRaw?.trim()) {
     return {
       ok: false,
@@ -511,7 +586,10 @@ function buildExplainPayload(spine: ActivationSpine, subjectRaw?: string): Comma
       code: "EXPLAIN_READ_SURFACE_UNAVAILABLE",
       message:
         "Evidence-backed explain requires persisted workspace read models; host-safe carrier did not evaluate operator explain (CH-11-02).",
-      requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+      requiredUserInput:
+        wr.resolution === "unknown"
+          ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+          : [],
       nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
     },
     data: {
@@ -522,12 +600,21 @@ function buildExplainPayload(spine: ActivationSpine, subjectRaw?: string): Comma
   };
 }
 
-async function buildStorageSmokePayload(input?: Record<string, unknown>): Promise<CommandPayload> {
+async function buildStorageSmokePayload(
+  input?: Record<string, unknown>,
+): Promise<CommandPayload> {
   try {
-    const mod = await import("./runtime/storage/bootstrap/storage-mode-smoke.js");
+    const mod =
+      await import("./runtime/storage/bootstrap/storage-mode-smoke.js");
     const runRepairFixture = Boolean(input?.runRepairFixture);
-    const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
-    const data = await mod.runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+    const workspaceRoot =
+      typeof input?.workspaceRoot === "string"
+        ? input.workspaceRoot
+        : undefined;
+    const data = await mod.runStorageModeSmoke({
+      runRepairFixture,
+      workspaceRoot,
+    });
     return { ok: true, data };
   } catch (error) {
     return {
@@ -567,11 +654,18 @@ function isProbeOnlyInput(input?: Record<string, unknown>): boolean {
   return v === true || v === "true" || v === 1 || v === "1";
 }
 
-function buildHeartbeatCheckPayload(spine: ActivationSpine, input?: Record<string, unknown>): CommandPayload {
+function buildHeartbeatCheckPayload(
+  spine: ActivationSpine,
+  input?: Record<string, unknown>,
+): CommandPayload {
   const runtimeEvidence = latestRuntimeEvidence(spine);
-  const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
+  const updatedAt =
+    runtimeEvidence?.createdAt ??
+    new Date(spine.lifecycleState.lastChangedAt).toISOString();
   const timestamp =
-    typeof input?.timestamp === "string" && input.timestamp.trim().length > 0 ? input.timestamp : updatedAt;
+    typeof input?.timestamp === "string" && input.timestamp.trim().length > 0
+      ? input.timestamp
+      : updatedAt;
   const wr = spine.workspaceRootContext;
 
   if (isProbeOnlyInput(input)) {
@@ -600,9 +694,11 @@ function buildHeartbeatCheckPayload(spine: ActivationSpine, input?: Record<strin
           timestamp,
           probeOnly: true,
           sessionContextProvided:
-            typeof input?.sessionContext === "string" && input.sessionContext.trim().length > 0,
+            typeof input?.sessionContext === "string" &&
+            input.sessionContext.trim().length > 0,
           heartbeatChecklistProvided:
-            typeof input?.heartbeatChecklist === "string" && input.heartbeatChecklist.trim().length > 0,
+            typeof input?.heartbeatChecklist === "string" &&
+            input.heartbeatChecklist.trim().length > 0,
           serviceEntryMode: "capability_probe",
         },
       },
@@ -634,9 +730,11 @@ function buildHeartbeatCheckPayload(spine: ActivationSpine, input?: Record<strin
       bridge: {
         timestamp,
         sessionContextProvided:
-          typeof input?.sessionContext === "string" && input.sessionContext.trim().length > 0,
+          typeof input?.sessionContext === "string" &&
+          input.sessionContext.trim().length > 0,
         heartbeatChecklistProvided:
-          typeof input?.heartbeatChecklist === "string" && input.heartbeatChecklist.trim().length > 0,
+          typeof input?.heartbeatChecklist === "string" &&
+          input.heartbeatChecklist.trim().length > 0,
         serviceEntryMode: "runtime_carrier_only",
       },
     },
@@ -660,7 +758,8 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       name: "policy",
       description: "Write or inspect policy state",
       execute: async (input) => {
-        const action = typeof input?.action === "string" ? input.action : "show";
+        const action =
+          typeof input?.action === "string" ? input.action : "show";
         if (action === "set") {
           return createUnavailableActionError(
             "HOST_SAFE_POLICY_SET_UNAVAILABLE",
@@ -676,7 +775,8 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       name: "credential",
       description: "Inspect or recover credential state",
       execute: async (input) => {
-        const action = typeof input?.action === "string" ? input.action : "show";
+        const action =
+          typeof input?.action === "string" ? input.action : "show";
         if (action === "verify") {
           return createUnavailableActionError(
             "HOST_SAFE_CREDENTIAL_VERIFY_UNAVAILABLE",
@@ -685,7 +785,8 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
             "run_workspace_runtime_or_reinstall_full_build",
           );
         }
-        const platformId = typeof input?.platformId === "string" ? input.platformId : undefined;
+        const platformId =
+          typeof input?.platformId === "string" ? input.platformId : undefined;
         return buildCredentialPayload(spine, platformId);
       },
     },
@@ -693,7 +794,8 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       name: "quiet",
       description: "Inspect Quiet lifecycle state",
       execute: async (input) => {
-        const scope = typeof input?.scope === "string" ? input.scope : undefined;
+        const scope =
+          typeof input?.scope === "string" ? input.scope : undefined;
         return buildQuietPayload(spine, scope);
       },
     },
@@ -709,7 +811,8 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       name: "session",
       description: "Inspect continuity session details",
       execute: async (input) => {
-        const sessionId = typeof input?.sessionId === "string" ? input.sessionId : undefined;
+        const sessionId =
+          typeof input?.sessionId === "string" ? input.sessionId : undefined;
         return buildSessionPayload(spine, sessionId);
       },
     },
@@ -722,7 +825,8 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       name: "explain",
       description: "Answer why-question explain requests",
       execute: async (input) => {
-        const subject = typeof input?.subject === "string" ? input.subject : undefined;
+        const subject =
+          typeof input?.subject === "string" ? input.subject : undefined;
         return buildExplainPayload(spine, subject);
       },
     },
@@ -733,9 +837,11 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
     },
     {
       name: "fallback",
-      description: "Operator-visible delivery fallback view (full workspace runtime required)",
+      description:
+        "Operator-visible delivery fallback view (full workspace runtime required)",
       execute: async (input) => {
-        const ref = typeof input?.ref === "string" ? input.ref.trim() : undefined;
+        const ref =
+          typeof input?.ref === "string" ? input.ref.trim() : undefined;
         return buildFallbackHostSafePayload(ref);
       },
     },
@@ -758,7 +864,9 @@ function createActivationSpine(): ActivationSpine {
   const workspaceRootContext = resolveWorkspaceRoot(undefined);
   const spine = {
     router: undefined as unknown as CommandRouter,
-    runtimeHandle: startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot }),
+    runtimeHandle: startRuntimeService({
+      workspaceRoot: workspaceRootContext.runtimeRoot,
+    }),
     lifecycleState: getLifecycleState(),
     serviceStartRecorded: false,
     runtimeEvidence: [],
@@ -778,7 +886,10 @@ function ensureActivationSpine(): ActivationSpine {
   return activationSpine;
 }
 
-function recordRuntimeEvidence(spine: ActivationSpine, origin: "register" | "service_start"): void {
+function recordRuntimeEvidence(
+  spine: ActivationSpine,
+  origin: "register" | "service_start",
+): void {
   if (origin === "service_start" && spine.serviceStartRecorded) {
     return;
   }
@@ -807,19 +918,24 @@ function refreshRegistrationState(): ActivationSpine {
   const workspaceRootContext = resolveWorkspaceRoot(undefined);
   const prev = spine.workspaceRootContext;
   const changed =
-    workspaceRootContext.runtimeRoot !== prev.runtimeRoot || workspaceRootContext.resolution !== prev.resolution;
+    workspaceRootContext.runtimeRoot !== prev.runtimeRoot ||
+    workspaceRootContext.resolution !== prev.resolution;
   if (changed) {
     disposeWorkspaceOpsBridge();
   }
   spine.workspaceRootContext = workspaceRootContext;
-  spine.runtimeHandle = startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot });
+  spine.runtimeHandle = startRuntimeService({
+    workspaceRoot: workspaceRootContext.runtimeRoot,
+  });
   spine.lifecycleState = recordRegistration();
   spine.serviceStartRecorded = false;
   recordRuntimeEvidence(spine, "register");
   return spine;
 }
 
-function parseCommandInput(rawArgs?: string):
+function parseCommandInput(
+  rawArgs?: string,
+):
   | { ok: true; command: string; input?: Record<string, unknown> }
   | { ok: false; result: Record<string, unknown> } {
   const tokens = rawArgs?.trim().split(/\s+/).filter(Boolean) ?? [];
@@ -838,7 +954,8 @@ function parseCommandInput(rawArgs?: string):
       result: {
         ok: false,
         command,
-        message: "policy set requires structured args; use second_nature_ops instead.",
+        message:
+          "policy set requires structured args; use second_nature_ops instead.",
       },
     };
   }
@@ -849,7 +966,8 @@ function parseCommandInput(rawArgs?: string):
       result: {
         ok: false,
         command,
-        message: "credential verify requires structured args; use second_nature_ops instead.",
+        message:
+          "credential verify requires structured args; use second_nature_ops instead.",
       },
     };
   }
@@ -888,7 +1006,8 @@ function parseCommandInput(rawArgs?: string):
           rest.length > 0
             ? {
                 timestamp: rest[0],
-                sessionContext: rest.length > 1 ? rest.slice(1).join(" ") : undefined,
+                sessionContext:
+                  rest.length > 1 ? rest.slice(1).join(" ") : undefined,
               }
             : undefined,
       };
@@ -957,7 +1076,8 @@ const SECOND_NATURE_TOOL_SCHEMA = {
     args: { type: "object", additionalProperties: true },
     workspaceRoot: {
       type: "string",
-      description: "Workspace root for packaged smoke/runtime alignment (optional; prefer SECOND_NATURE_WORKSPACE_ROOT).",
+      description:
+        "Workspace root for packaged smoke/runtime alignment (optional; prefer SECOND_NATURE_WORKSPACE_ROOT).",
     },
   },
   required: ["command"],
@@ -966,7 +1086,8 @@ const SECOND_NATURE_TOOL_SCHEMA = {
 export default definePluginEntry({
   id: "second-nature",
   name: "Second Nature",
-  description: "Registers command/tool/service surface with load-reload lifecycle semantics.",
+  description:
+    "Registers command/tool/service surface with load-reload lifecycle semantics.",
   register(api: RegisterApi) {
     process.stderr.write(
       `[second-nature] register() entered, api keys=${Object.keys(api as object).join(",")}\n`,
@@ -993,11 +1114,19 @@ export default definePluginEntry({
         const resolved = spine.router.resolve(parsed.command);
         if (!resolved) {
           return {
-            text: JSON.stringify({ ok: false, command: parsed.command, message: "Unknown Second Nature command." }),
+            text: JSON.stringify({
+              ok: false,
+              command: parsed.command,
+              message: "Unknown Second Nature command.",
+            }),
           };
         }
 
-        const result = await routeSecondNatureCommand(spine, parsed.command, parsed.input);
+        const result = await routeSecondNatureCommand(
+          spine,
+          parsed.command,
+          parsed.input,
+        );
         return {
           text: JSON.stringify(result),
         };
@@ -1017,13 +1146,20 @@ export default definePluginEntry({
           content: [
             {
               type: "text",
-              text: JSON.stringify({ ok: false, message: "Unknown Second Nature command." }),
+              text: JSON.stringify({
+                ok: false,
+                message: "Unknown Second Nature command.",
+              }),
             },
           ],
         };
       }
 
-      const result = await routeSecondNatureCommand(spine, params.command, params.args);
+      const result = await routeSecondNatureCommand(
+        spine,
+        params.command,
+        params.args,
+      );
 
       return {
         content: [
@@ -1037,9 +1173,17 @@ export default definePluginEntry({
 
     api.registerTool({
       name: "second_nature_ops",
-      description: "Access the Second Nature command surface through a single tool shell.",
+      description:
+        "Access the Second Nature command surface through a single tool shell.",
       parameters: SECOND_NATURE_TOOL_SCHEMA,
-      async execute(_id: string, params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string }) {
+      async execute(
+        _id: string,
+        params: {
+          command: string;
+          args?: Record<string, unknown>;
+          workspaceRoot?: string;
+        },
+      ) {
         return executeSecondNatureTool(params);
       },
     });

@@ -13,6 +13,14 @@ import {
 import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
+import type { ObservabilityDatabase } from "../../observability/db/index.js";
+import { probeHostCapability } from "../host-capability/probe-host-capability.js";
+import { recordHostCapability } from "../host-capability/record-host-capability.js";
+import type {
+  HostCapabilityAdapter,
+  CapabilityCheckResult,
+} from "../host-capability/types.js";
+import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
@@ -32,6 +40,35 @@ export interface OpsRouterDeps {
    */
   state?: StateDatabase;
   workspaceRoot?: string;
+  /**
+   * T1.2.8 (SN-CODE-03): observability DB for persisting capability probe reports.
+   * When absent, `capability_probe` still runs but skips persistence.
+   */
+  observabilityDb?: ObservabilityDatabase;
+}
+
+/**
+ * T1.2.8 — static local adapter: all checks return `unknown` when no real host is available.
+ * Allows `capability_probe` to be called from CLI / workspace bridge without requiring a live host.
+ */
+function createStaticUnknownAdapter(): HostCapabilityAdapter {
+  const now = new Date().toISOString();
+  const unknownResult = (name: string): CapabilityCheckResult => ({
+    name,
+    verdict: "unknown",
+    observedAt: now,
+    reason: "static_local_probe_no_host_context",
+    evidenceRefs: [],
+  });
+  return {
+    checkPluginLoad: () => unknownResult("plugin_load"),
+    checkHeartbeatBridge: () => unknownResult("heartbeat_bridge"),
+    checkHeartbeatToolInvocation: () =>
+      unknownResult("heartbeat_tool_invocation"),
+    checkDeliveryTarget: () => ({ status: "unknown", evidenceRefs: [] }),
+    checkAckDropBehavior: () => unknownResult("ack_drop"),
+    checkHookSupport: () => [],
+  };
 }
 
 export interface OpsRouter {
@@ -135,6 +172,68 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             }
             throw error;
           }
+        })();
+      }
+      if (command === "capability_probe") {
+        // T1.2.8 (SN-CODE-03): run host capability probe with static unknown adapter (CLI context).
+        // Persists report when observabilityDb is available; returns safe JSON subset.
+        return (async () => {
+          const adapter = createStaticUnknownAdapter();
+          const docCheckedAt = new Date().toISOString();
+          const report = probeHostCapability({
+            adapter,
+            docLinks: [],
+            docCheckedAt,
+          });
+          if (deps.observabilityDb) {
+            await recordHostCapability(deps.observabilityDb, report);
+          }
+          return {
+            ok: true,
+            command: "capability_probe" as const,
+            data: {
+              reportId: report.reportId,
+              generatedAt: report.generatedAt,
+              deliveryTarget: report.deliveryTarget,
+              pluginLoad: { verdict: report.pluginLoad.verdict },
+              heartbeatBridge: { verdict: report.heartbeatBridge.verdict },
+              heartbeatToolInvocation: {
+                verdict: report.heartbeatToolInvocation.verdict,
+              },
+              ackDropBehavior: { verdict: report.ackDropBehavior.verdict },
+              conflictCount: report.conflictRecords.length,
+              recommendedNextStep: report.recommendedNextStep,
+              note: "static_local_probe: all verdicts are unknown without live host context",
+            },
+          };
+        })();
+      }
+      if (command === "near_real_smoke") {
+        // T3.3.2 (SN-CODE-05): wrap runNearRealConnectorSmoke as an ops surface command.
+        // Requires state + observabilityDb + workspaceRoot to be wired into OpsRouterDeps.
+        if (!deps.state || !deps.observabilityDb || !deps.workspaceRoot) {
+          return {
+            ok: false,
+            command: "near_real_smoke" as const,
+            error: {
+              code: "NEAR_REAL_SMOKE_DEPS_UNAVAILABLE",
+              message:
+                "near_real_smoke requires state, observabilityDb, and workspaceRoot in OpsRouterDeps",
+              nextStep: "wire_deps_into_ops_router",
+            },
+          };
+        }
+        return (async () => {
+          const result = await runNearRealConnectorSmoke({
+            state: deps.state!,
+            observabilityDb: deps.observabilityDb!,
+            workspaceRoot: deps.workspaceRoot!,
+          });
+          return {
+            ok: true,
+            command: "near_real_smoke" as const,
+            data: result,
+          };
         })();
       }
       return {

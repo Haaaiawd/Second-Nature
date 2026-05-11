@@ -26,7 +26,9 @@ import type {
   CredentialReadModel,
   ExplainReadModel,
   ExplainSubjectKind,
+  AuditSummaryReadModel,
 } from "./types.js";
+export type { AuditSummaryReadModel } from "./types.js";
 
 export type { ExplainSubjectKind } from "./types.js";
 import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
@@ -35,6 +37,12 @@ import {
   toOperatorFallbackView,
 } from "../../storage/fallback/load-operator-fallback.js";
 import type { OperatorFallbackView } from "../../storage/fallback/operator-fallback-view.js";
+import {
+  loadRhythmPolicySnapshot,
+  type RhythmPolicySnapshot,
+} from "../../storage/rhythm/rhythm-policy-snapshot.js";
+
+export type { RhythmPolicySnapshot };
 
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
@@ -48,6 +56,14 @@ export interface CliReadModels {
   explain(subject: ExplainSubject): Promise<ExplainReadModel>;
   /** T1.2.2 — persisted operator fallback; view status is always not_sent. */
   loadFallbackView(ref: string): Promise<OperatorFallbackView | null>;
+  /** T1.2.6 — rhythm policy snapshot for operator `policy show`. */
+  loadPolicy(): Promise<RhythmPolicySnapshot>;
+  /**
+   * T1.2.7 (SN-CODE-02) — minimal audit read-side view for operator `audit` command.
+   * Returns a summary of all in-memory audit events in the default store.
+   * Empty store returns `{ totalEvents: 0, events: [] }` (honest empty, not an error).
+   */
+  loadAuditSummary(): Promise<AuditSummaryReadModel>;
 }
 
 /** T1.2.1 / T1.2.2 — operator-facing read surface (subset of full CLI read models). */
@@ -168,6 +184,11 @@ function mapRuntimeStatus(
 ): StatusReadModel["runtime"]["serviceStatus"] {
   if (!attempt) {
     return "unknown";
+  }
+  // T1.2.9 (SN-CODE-04): control-plane denial (no eligible intent) is NOT a runtime fault.
+  // Return `awaiting_sources` so operators do not misread a clean denied cycle as a crash/degraded.
+  if (attempt.failureClass === "decision_denied") {
+    return "awaiting_sources";
   }
   if (attempt.failureClass || attempt.status === "failed") {
     return "degraded";
@@ -447,6 +468,28 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       const row = await loadOperatorFallbackRow(deps.stateDb, ref);
       if (!row) return null;
       return toOperatorFallbackView(row);
+    },
+
+    // T1.2.6 (SN-CODE-01): return the current workspace rhythm policy snapshot so that
+    // `policy show` is no longer a notImplemented shell. Returns defaults if no policy row exists.
+    async loadPolicy(): Promise<RhythmPolicySnapshot> {
+      return loadRhythmPolicySnapshot(deps.stateDb);
+    },
+
+    // T1.2.7 (SN-CODE-02): minimal audit read-side for operator `audit` command.
+    // Lists all in-memory envelopes with safe redacted fields; empty store returns honest empty.
+    async loadAuditSummary(): Promise<AuditSummaryReadModel> {
+      const events = auditStore.list();
+      return {
+        totalEvents: events.length,
+        events: events.map((e) => ({
+          eventId: e.eventId,
+          family: e.family,
+          plane: e.plane,
+          createdAt: e.createdAt,
+          sensitivity: e.redaction.sensitivity,
+        })),
+      };
     },
 
     async explain(subject: ExplainSubject): Promise<ExplainReadModel> {

@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-11` (semver **0.1.19**；Wave 19 完成：**T2.2.2**（life evidence snapshot）、**T2.2.3**（internal_tick reasons）、**T1.2.4**（Quiet FS canonical）、**T1.2.5**（deliveryPosture + default auditStore）；286 测试全绿)
+- **最近一次更新**: `2026-05-11` (semver **0.1.19**；Wave 20 完成：**T1.2.9**（decision_denied → awaiting_sources）、**T1.2.6**（policy show）、**T1.2.7**（audit 最小闭环）、**T1.2.8**（capability_probe ops surface）、**T3.3.2**（near_real_smoke ops entry）；**303 测试全绿**)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -176,9 +176,9 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 46, P0: 30, P1: 12, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧全部已闭合）；**Level-3 全部完成**（Wave 19：T2.2.2 / T2.2.3 / T1.2.4 / T1.2.5 已交付，Round 15 review findings CH-15-01～05 已修复）
+- 总任务数: 51, P0: 31, P1: 16, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧 Wave 19+20 已闭合）；所有 Level-3 编码任务已完成（T1.2.6～T1.2.9、T3.3.2 由 Wave 20 闭合）
 - Sprint 数: 4
-- **下一步**: **INT-S4** 真实宿主冒烟验证（在 OpenClaw 宿主中确认 `second_nature_ops` 工具可见、workspace bridge 正常、heartbeat 场测 JSON 形状与 v0.1.19 对齐）
+- **下一步**: **INT-S4**（核对宿主 **`tools.allow` / `tools.profile`** 与会话工具表 — 宿主验收以 `second_nature_ops` JSON 为真源）
 - 最近更新: `2026-05-11`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
@@ -237,6 +237,9 @@ T1.2.3：新增 `createRuntimeDecisionRecorder`（`src/observability/services/ru
 
 ### 🌊 Wave 19 ✅ — Field parity（Round 14 / CH-14，`/change` 2026-05-10）
 **T2.2.2**：`loadSnapshotInputsForWorkspaceHeartbeat` 现调用 `loadLifeEvidenceSnapshot`，填充 `lifeEvidenceRefs`/`platformEventCount`/`workEventCount`/`lifeEvidenceEmptyReason`；`state` + `workspaceRoot` 经 `HeartbeatCheckInput` → `OpsRouterDeps` → `createCommandRouter` 完整透传。**T2.2.3**：`resolveAllowedIntentResult` 对 maintenance/通用 `intent_selected` 新增 `internal_tick`、`maintenance_no_outreach_dispatch`、`connector_action_no_attempt` 机读原因，消除 `reasons: []` 歧义。**T1.2.4**：`loadQuiet()` 新增 FS 扫描路径——合并 `.second-nature/quiet/{day}/*.json` 工件计数，修复 Quiet 写入后 read model 不反映的 canonical 断裂。**T1.2.5**：`StatusReadModel` 新增 `DeliveryPosture`（`verdict`/`reasonCode`/`source`）；`createCliReadModels` 默认注入 `AppendOnlyAuditStore`，使 `explain()` 对所有 audit-only subject 返回 `no_matching_audit_events` 而非 `lived_experience_audit_store_unavailable` 骨架；T1.2.1 测试同步更新以反映新行为。新增集成测 4 套（t2-2-2/t2-2-3/t1-2-4/t1-2-5），286 测试全绿。**INT-S4** 仍待真实宿主验证。
+
+### 🌊 Wave 20 ✅ — Code-side gap closure（`/change` 2026-05-11，SN-CODE-01～05）
+**T1.2.9** [P0]：`mapRuntimeStatus` 新增 `decision_denied → awaiting_sources` 分支，控制面拒绝不再冒充 runtime `degraded`；`RuntimeSummary.serviceStatus` 枚举扩展；集成测 t1-2-9（3 cases）。**T1.2.6**：`policy show` 非空壳——`loadPolicy()` 委托 `loadRhythmPolicySnapshot`；CLI `policy` 默认路径返回 `RhythmPolicySnapshot`；集成测 t1-2-6（3 cases）。**T1.2.7**：`audit` 最小闭环——`loadAuditSummary()` 读取 in-memory `AppendOnlyAuditStore`；`createCliRuntimeDeps` 支持 `livedExperienceAuditStore` 透传；集成测 t1-2-7（3 cases）。**T1.2.8**：`capability_probe` 接入 `createOpsRouter.dispatch`（静态 unknown 适配器 + `recordHostCapability` 持久化）、`createCliCommands`、`WORKSPACE_BRIDGE_COMMANDS`、`workspace-ops-bridge`；`OpsRouterDeps` 新增可选 `observabilityDb`；集成测 t1-2-8（4 cases）。**T3.3.2**：`near_real_smoke` 接入 `createOpsRouter.dispatch`（deps 校验 + 委托 `runNearRealConnectorSmoke`）、`createCliCommands`、`WORKSPACE_BRIDGE_COMMANDS`；集成测 t3-3-2（3 cases）。**303 测试全绿**（新增 16 个）。**INT-S4** 仍待真实宿主验证。
 
 <!-- AUTO:END -->
 

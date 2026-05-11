@@ -22,7 +22,10 @@ export type WorkspaceOpsBridgeOpenResult =
   | {
       ok: true;
       workspaceRoot: string;
-      dispatch(command: string, input?: Record<string, unknown>): Promise<Record<string, unknown>>;
+      dispatch(
+        command: string,
+        input?: Record<string, unknown>,
+      ): Promise<Record<string, unknown>>;
       close(): void;
     }
   | {
@@ -35,7 +38,9 @@ export type WorkspaceOpsBridgeOpenResult =
       };
     };
 
-export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<WorkspaceOpsBridgeOpenResult> {
+export async function openWorkspaceOpsBridge(
+  workspaceRoot: string,
+): Promise<WorkspaceOpsBridgeOpenResult> {
   const resolvedRoot = path.resolve(workspaceRoot);
   try {
     const pluginPackageRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -48,11 +53,17 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
         /** Optional in older packaged runtimes (pre-T1.2.3); undefined is tolerated. */
         runtimeRecorder?: unknown;
       };
-      closeCliRuntimeDeps: (deps: { stateDb: { close: () => void }; observabilityDb: { close: () => void } }) => void;
+      closeCliRuntimeDeps: (deps: {
+        stateDb: { close: () => void };
+        observabilityDb: { close: () => void };
+      }) => void;
       createOpsRouter: (opts: {
         runtimeAvailable: boolean;
         readModels?: unknown;
         runtimeRecorder?: unknown;
+        observabilityDb?: unknown;
+        state?: unknown;
+        workspaceRoot?: string;
       }) => {
         dispatch: (command: string, input?: Record<string, unknown>) => unknown;
       };
@@ -61,22 +72,40 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
       createCliCommands: (deps: {
         readModels: unknown;
         actionBridge: unknown;
-        opsRouter: { dispatch: (command: string, input?: Record<string, unknown>) => unknown };
-      }) => Array<{ name: string; execute: (input?: Record<string, unknown>) => Promise<Record<string, unknown>> }>;
+        opsRouter: {
+          dispatch: (
+            command: string,
+            input?: Record<string, unknown>,
+          ) => unknown;
+        };
+      }) => Array<{
+        name: string;
+        execute: (
+          input?: Record<string, unknown>,
+        ) => Promise<Record<string, unknown>>;
+      }>;
     }
     // Packaged `plugin/runtime` is emitted JS without sibling `.d.ts` in this repo layout.
-    // @ts-expect-error TS7016 — intentional dynamic import of artifact bundle
+    // Dynamic import of artifact bundle — typed via PackagedCliModule interface above.
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore TS7016 — intentional: runtime artifact has no adjacent .d.ts in this layout
     const cliIndex = (await import("./runtime/cli/index.js")) as unknown as PackagedCliModule;
-    const commandsMod = (await import("./runtime/cli/commands/index.js")) as unknown as CommandsModule;
-    const storageDb = (await import("./runtime/storage/db/index.js")) as unknown as {
-      createStateDatabase: (filename: string) => { close: () => void };
-    };
-    const obsDb = (await import("./runtime/observability/db/index.js")) as unknown as {
-      createObservabilityDatabase: (filename: string) => { close: () => void };
-    };
-    const boundary = (await import("./runtime/cli/runtime/runtime-artifact-boundary.js")) as unknown as {
-      resolvePackagedRuntime: (packageRoot: string) => { ok: boolean };
-    };
+    const commandsMod =
+      (await import("./runtime/cli/commands/index.js")) as unknown as CommandsModule;
+    const storageDb =
+      (await import("./runtime/storage/db/index.js")) as unknown as {
+        createStateDatabase: (filename: string) => { close: () => void };
+      };
+    const obsDb =
+      (await import("./runtime/observability/db/index.js")) as unknown as {
+        createObservabilityDatabase: (filename: string) => {
+          close: () => void;
+        };
+      };
+    const boundary =
+      (await import("./runtime/cli/runtime/runtime-artifact-boundary.js")) as unknown as {
+        resolvePackagedRuntime: (packageRoot: string) => { ok: boolean };
+      };
 
     const dataDir = path.join(resolvedRoot, "data");
     fs.mkdirSync(dataDir, { recursive: true });
@@ -92,6 +121,10 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
       runtimeAvailable: runtimeResolved.ok,
       readModels: deps.readModels,
       runtimeRecorder: deps.runtimeRecorder,
+      // T1.2.8 (SN-CODE-03): pass observabilityDb so capability_probe can persist reports
+      observabilityDb,
+      state: stateDb,
+      workspaceRoot: resolvedRoot,
     });
     const commands = commandsMod.createCliCommands({
       readModels: deps.readModels,
@@ -99,12 +132,18 @@ export async function openWorkspaceOpsBridge(workspaceRoot: string): Promise<Wor
       opsRouter,
     });
 
-    const dispatch = async (command: string, input?: Record<string, unknown>): Promise<Record<string, unknown>> => {
+    const dispatch = async (
+      command: string,
+      input?: Record<string, unknown>,
+    ): Promise<Record<string, unknown>> => {
       const def = commands.find((c) => c.name === command);
       if (!def) {
         return {
           ok: false,
-          error: { code: "unknown_command", message: `Unknown Second Nature command: ${command}` },
+          error: {
+            code: "unknown_command",
+            message: `Unknown Second Nature command: ${command}`,
+          },
         };
       }
       const prevCwd = process.cwd();

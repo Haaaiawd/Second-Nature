@@ -20,6 +20,7 @@ import {
   createCliReadModels,
   type CliReadModels,
 } from "./read-models/index.js";
+import type { AppendOnlyAuditStore } from "../observability/audit/append-only-audit-store.js";
 import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
 import {
   createRuntimeDecisionRecorder,
@@ -49,8 +50,13 @@ export interface CreateCommandRouterOptions {
   deps?: Partial<CliRuntimeDeps>;
 }
 
+export interface CreateCliRuntimeDepsOptions extends Partial<CliRuntimeDeps> {
+  /** T1.2.7 — pass an explicit audit store so `loadAuditSummary()` reflects test-injected events. */
+  livedExperienceAuditStore?: AppendOnlyAuditStore;
+}
+
 export function createCliRuntimeDeps(
-  overrides: Partial<CliRuntimeDeps> = {},
+  overrides: CreateCliRuntimeDepsOptions = {},
 ): CliRuntimeDeps {
   const stateDb = overrides.stateDb ?? createStateDatabase();
   const observabilityDb =
@@ -62,6 +68,7 @@ export function createCliRuntimeDeps(
       stateDb,
       observabilityDb,
       workspaceRoot: process.cwd(),
+      livedExperienceAuditStore: overrides.livedExperienceAuditStore,
     });
   const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
   const runtimeRecorder =
@@ -88,6 +95,7 @@ export function createCommandRouter(
     runtimeRecorder: runtime.runtimeRecorder,
     state: runtime.stateDb,
     workspaceRoot: process.cwd(),
+    observabilityDb: runtime.observabilityDb,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,
