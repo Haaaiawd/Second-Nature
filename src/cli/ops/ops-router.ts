@@ -1,10 +1,18 @@
 /**
  * Shared ops command dispatch for CLI + tool surfaces (T1.1.3, T1.2.2).
  */
-import { heartbeatCheck, type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
-import { showOperatorFallback, OperatorFallbackNotFoundError } from "./show-operator-fallback.js";
+import {
+  heartbeatCheck,
+  type HeartbeatCheckInput,
+  type HeartbeatSurfaceResult,
+} from "./heartbeat-surface.js";
+import {
+  showOperatorFallback,
+  OperatorFallbackNotFoundError,
+} from "./show-operator-fallback.js";
 import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
+import type { StateDatabase } from "../../storage/db/index.js";
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
@@ -18,6 +26,12 @@ export interface OpsRouterDeps {
   readModels?: CliReadModels;
   /** Persists full-runtime heartbeat cycles so `loadStatus` exits the unknown baseline (T1.2.3). */
   runtimeRecorder?: RuntimeDecisionRecorder;
+  /**
+   * T2.2.2: state DB + workspace root for life evidence loading in full-runtime heartbeat cycles.
+   * When set, `loadSnapshotInputsForWorkspaceHeartbeat` can fill `lifeEvidenceRefs` from real DB truth.
+   */
+  state?: StateDatabase;
+  workspaceRoot?: string;
 }
 
 export interface OpsRouter {
@@ -40,23 +54,41 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         runtimeAvailable: input.runtimeAvailable ?? deps.runtimeAvailable,
         readModels: input.readModels ?? deps.readModels,
         runtimeRecorder: input.runtimeRecorder ?? deps.runtimeRecorder,
+        state: input.state ?? deps.state,
+        workspaceRoot: input.workspaceRoot ?? deps.workspaceRoot,
       }),
     dispatch(command, input) {
       if (command === "heartbeat_check") {
         const runtimeAvailable =
-          typeof input?.runtimeAvailable === "boolean" ? input.runtimeAvailable : deps.runtimeAvailable;
+          typeof input?.runtimeAvailable === "boolean"
+            ? input.runtimeAvailable
+            : deps.runtimeAvailable;
         return heartbeatCheck({
           probeOnly: coerceProbeOnlyFlag(input),
           runtimeAvailable,
           fakeControlPlanePassthrough:
-            input?.fakeControlPlanePassthrough && typeof input.fakeControlPlanePassthrough === "object"
+            input?.fakeControlPlanePassthrough &&
+            typeof input.fakeControlPlanePassthrough === "object"
               ? (input.fakeControlPlanePassthrough as Record<string, unknown>)
               : undefined,
-          readModels: (input as Partial<HeartbeatCheckInput> | undefined)?.readModels ?? deps.readModels,
+          readModels:
+            (input as Partial<HeartbeatCheckInput> | undefined)?.readModels ??
+            deps.readModels,
           runtimeRecorder:
-            (input as Partial<HeartbeatCheckInput> | undefined)?.runtimeRecorder ?? deps.runtimeRecorder,
-          timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
-          sessionContext: typeof input?.sessionContext === "string" ? input.sessionContext : undefined,
+            (input as Partial<HeartbeatCheckInput> | undefined)
+              ?.runtimeRecorder ?? deps.runtimeRecorder,
+          state:
+            (input as Partial<HeartbeatCheckInput> | undefined)?.state ??
+            deps.state,
+          workspaceRoot:
+            (input as Partial<HeartbeatCheckInput> | undefined)
+              ?.workspaceRoot ?? deps.workspaceRoot,
+          timestamp:
+            typeof input?.timestamp === "string" ? input.timestamp : undefined,
+          sessionContext:
+            typeof input?.sessionContext === "string"
+              ? input.sessionContext
+              : undefined,
           scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],
         });
       }

@@ -35,20 +35,37 @@ test("T1.2.1 explainSurfaceSubject + read models: decisionId + delivery not_sent
 
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
-  const readModels = createCliReadModels({ stateDb, observabilityDb, livedExperienceAuditStore: store });
-  const model = await explainSurfaceSubject(`decision:${decisionId}`, readModels);
-  assert.ok(model.warnings?.includes("no_user_visible_contact_claim_prohibited"));
+  const readModels = createCliReadModels({
+    stateDb,
+    observabilityDb,
+    livedExperienceAuditStore: store,
+  });
+  const model = await explainSurfaceSubject(
+    `decision:${decisionId}`,
+    readModels,
+  );
+  assert.ok(
+    model.warnings?.includes("no_user_visible_contact_claim_prohibited"),
+  );
   assert.ok(model.relatedAuditEventIds?.length);
   stateDb.close();
   observabilityDb.close();
 });
 
-test("T1.2.1 unknown audit-only subject without store → unavailable conclusion", async () => {
+// T1.2.5 (CH-14-05): createCliReadModels now default-injects an empty AppendOnlyAuditStore,
+// so callers that don't explicitly provide a store still get a functional explain path.
+// The conclusion for an unknown subject with the default (empty) store is "no_matching_audit_events"
+// rather than "lived_experience_audit_store_unavailable" — this is the corrected behavior.
+test("T1.2.1 unknown audit-only subject without store → no_matching_audit_events (default store injected)", async () => {
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
   const readModels = createCliReadModels({ stateDb, observabilityDb });
-  const model = await explainSurfaceSubject("fallback:missing-ref-test", readModels);
-  assert.equal(model.conclusion, "lived_experience_audit_store_unavailable");
+  const model = await explainSurfaceSubject(
+    "fallback:missing-ref-test",
+    readModels,
+  );
+  // T1.2.5: default store is now always injected; empty store → no_matching_audit_events
+  assert.equal(model.conclusion, "no_matching_audit_events");
   stateDb.close();
   observabilityDb.close();
 });

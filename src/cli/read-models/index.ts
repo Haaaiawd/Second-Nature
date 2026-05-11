@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { desc } from "drizzle-orm";
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
@@ -5,10 +7,16 @@ import { createQuietInputLoader } from "../../storage/services/quiet-input-loade
 import { AssetRepository } from "../../storage/repositories/asset-repository.js";
 import { CredentialRepository } from "../../storage/repositories/credential-repository.js";
 import { EvidenceQueryEngine } from "../../observability/query/evidence-query-engine.js";
-import { decisionLedger, executionAttempts } from "../../observability/db/schema/index.js";
+import {
+  decisionLedger,
+  executionAttempts,
+} from "../../observability/db/schema/index.js";
 
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
-import { queryExplain, type ExplainQuery } from "../../observability/query/explain-query.js";
+import {
+  queryExplain,
+  type ExplainQuery,
+} from "../../observability/query/explain-query.js";
 
 import type {
   StatusReadModel,
@@ -22,7 +30,10 @@ import type {
 
 export type { ExplainSubjectKind } from "./types.js";
 import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
-import { loadOperatorFallbackRow, toOperatorFallbackView } from "../../storage/fallback/load-operator-fallback.js";
+import {
+  loadOperatorFallbackRow,
+  toOperatorFallbackView,
+} from "../../storage/fallback/load-operator-fallback.js";
 import type { OperatorFallbackView } from "../../storage/fallback/operator-fallback-view.js";
 
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
@@ -42,7 +53,13 @@ export interface CliReadModels {
 /** T1.2.1 / T1.2.2 — operator-facing read surface (subset of full CLI read models). */
 export type OpsReadModelPort = Pick<
   CliReadModels,
-  "loadStatus" | "loadDailyReport" | "loadQuiet" | "loadSession" | "loadCredential" | "explain" | "loadFallbackView"
+  | "loadStatus"
+  | "loadDailyReport"
+  | "loadQuiet"
+  | "loadSession"
+  | "loadCredential"
+  | "explain"
+  | "loadFallbackView"
 >;
 
 export interface ExplainSubject {
@@ -55,6 +72,12 @@ export interface CliReadModelsDeps {
   observabilityDb: ObservabilityDatabase;
   /** When set, explain can resolve delivery/fallback/report/source_ref and enrich decision subjects from lived-experience audit envelopes (T5.3.1 / T1.2.1). */
   livedExperienceAuditStore?: AppendOnlyAuditStore;
+  /**
+   * T1.2.4: when set, `loadQuiet` and `loadDailyReport` also scan `.second-nature/quiet/{day}/`
+   * for persisted Quiet artifact JSON files (from `persistQuietArtifactToWorkspace`) and merge
+   * them into the read model so operators see non-zero counts after Quiet actually runs.
+   */
+  workspaceRoot?: string;
 }
 
 function toExplainQuery(subject: ExplainSubject): ExplainQuery | undefined {
@@ -62,7 +85,9 @@ function toExplainQuery(subject: ExplainSubject): ExplainQuery | undefined {
     case "decision":
       return { kind: "decision", decisionId: subject.id };
     case "fallback": {
-      const ref = subject.id.startsWith("fallback:") ? subject.id : `fallback:${subject.id}`;
+      const ref = subject.id.startsWith("fallback:")
+        ? subject.id
+        : `fallback:${subject.id}`;
       return { kind: "fallback", fallbackRef: ref };
     }
     case "probe":
@@ -78,13 +103,64 @@ function toExplainQuery(subject: ExplainSubject): ExplainQuery | undefined {
 }
 
 function isAuditOnlySubjectKind(kind: ExplainSubjectKind): boolean {
-  return kind === "fallback" || kind === "probe" || kind === "report" || kind === "delivery" || kind === "source_ref";
+  return (
+    kind === "fallback" ||
+    kind === "probe" ||
+    kind === "report" ||
+    kind === "delivery" ||
+    kind === "source_ref"
+  );
 }
 
-function buildCredentialNextStep(status: CredentialReadModel["status"]): string | undefined {
+function buildCredentialNextStep(
+  status: CredentialReadModel["status"],
+): string | undefined {
   if (status === "pending_verification") return "submit_verification_answer";
-  if (status === "expired" || status === "revoked" || status === "failed") return "refresh_credential_context";
+  if (status === "expired" || status === "revoked" || status === "failed")
+    return "refresh_credential_context";
   return undefined;
+}
+
+/**
+ * T1.2.4: count persisted Quiet artifact JSON files under `.second-nature/quiet/{day}/`
+ * so `loadQuiet` / `loadDailyReport` can reflect Quiet artifacts in the read model.
+ */
+function countQuietArtifactsForDay(workspaceRoot: string, day: string): number {
+  try {
+    const dir = path.join(workspaceRoot, ".second-nature", "quiet", day);
+    if (!fs.existsSync(dir)) return 0;
+    return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).length;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * T1.2.4: scan the last N days under `.second-nature/quiet/` and count total JSON artifacts.
+ * Returns { totalArtifacts, recentDays } for merging into QuietReadModel.
+ */
+function countRecentQuietArtifacts(
+  workspaceRoot: string,
+  windowDays: number = 2,
+): { totalArtifacts: number; recentDays: string[] } {
+  try {
+    const quietRoot = path.join(workspaceRoot, ".second-nature", "quiet");
+    if (!fs.existsSync(quietRoot)) return { totalArtifacts: 0, recentDays: [] };
+    const now = Date.now();
+    const recentDays: string[] = [];
+    let total = 0;
+    for (let i = 0; i < windowDays; i++) {
+      const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
+      const count = countQuietArtifactsForDay(workspaceRoot, d);
+      if (count > 0) {
+        recentDays.push(d);
+        total += count;
+      }
+    }
+    return { totalArtifacts: total, recentDays };
+  } catch {
+    return { totalArtifacts: 0, recentDays: [] };
+  }
 }
 
 function mapRuntimeStatus(
@@ -116,19 +192,29 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
   const credentialRepository = new CredentialRepository(deps.stateDb);
   const quietLoader = createQuietInputLoader(assetRepository);
   const evidenceQuery = new EvidenceQueryEngine(deps.observabilityDb);
-  const auditStore = deps.livedExperienceAuditStore;
+  // T1.2.5 (CH-14-05): default-inject an empty AppendOnlyAuditStore so `explain` does not
+  // immediately return `lived_experience_audit_store_unavailable` for callers that don't supply
+  // an explicit store. The empty store means audit-only subjects return `no_matching_audit_events`
+  // instead of a configuration error — which is more accurate and less alarming to operators.
+  const auditStore =
+    deps.livedExperienceAuditStore ?? new AppendOnlyAuditStore();
 
   return {
     async loadStatus(_scope?: string): Promise<StatusReadModel> {
       let recentAttempts: Array<typeof executionAttempts.$inferSelect> = [];
       let recentDecisions: Array<typeof decisionLedger.$inferSelect> = [];
-      let credentials: Awaited<ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>> = [];
+      let credentials: Awaited<
+        ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>
+      > = [];
 
       try {
         recentAttempts = await deps.observabilityDb.db
           .select()
           .from(executionAttempts)
-          .orderBy(desc(executionAttempts.startedAt), desc(executionAttempts.finishedAt))
+          .orderBy(
+            desc(executionAttempts.startedAt),
+            desc(executionAttempts.finishedAt),
+          )
           .limit(50);
       } catch {
         recentAttempts = [];
@@ -150,31 +236,42 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         credentials = [];
       }
 
-      const latestRuntimeAttempt = recentAttempts.find((attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID);
-      const latestConnectorAttempt = recentAttempts.find((attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID);
-      const latestRuntimeDecision = recentDecisions.find((decision) => decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX));
+      const latestRuntimeAttempt = recentAttempts.find(
+        (attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID,
+      );
+      const latestConnectorAttempt = recentAttempts.find(
+        (attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID,
+      );
+      const latestRuntimeDecision = recentDecisions.find((decision) =>
+        decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX),
+      );
       const runtimeUpdatedAt =
-        latestRuntimeAttempt?.finishedAt ?? latestRuntimeAttempt?.startedAt ?? latestRuntimeDecision?.createdAt ?? "";
+        latestRuntimeAttempt?.finishedAt ??
+        latestRuntimeAttempt?.startedAt ??
+        latestRuntimeDecision?.createdAt ??
+        "";
       const quietMode =
         latestRuntimeDecision?.mode === "quiet" ||
         latestRuntimeDecision?.mode === "maintenance_only" ||
         latestRuntimeDecision?.mode === "paused_for_interrupt"
           ? latestRuntimeDecision.mode
           : "unknown";
-      const riskFlags = [latestRuntimeAttempt?.failureClass, latestConnectorAttempt?.failureClass].filter(
-        (value): value is string => Boolean(value),
-      );
+      const riskFlags = [
+        latestRuntimeAttempt?.failureClass,
+        latestConnectorAttempt?.failureClass,
+      ].filter((value): value is string => Boolean(value));
 
-      const connectorSummary: StatusReadModel["connectors"] = latestConnectorAttempt
-        ? [
-            {
-              platformId: latestConnectorAttempt.platformId,
-              status: mapConnectorStatus(latestConnectorAttempt),
-              channel: latestConnectorAttempt.channel,
-              failureClass: latestConnectorAttempt.failureClass ?? undefined,
-            },
-          ]
-        : [];
+      const connectorSummary: StatusReadModel["connectors"] =
+        latestConnectorAttempt
+          ? [
+              {
+                platformId: latestConnectorAttempt.platformId,
+                status: mapConnectorStatus(latestConnectorAttempt),
+                channel: latestConnectorAttempt.channel,
+                failureClass: latestConnectorAttempt.failureClass ?? undefined,
+              },
+            ]
+          : [];
 
       return {
         runtime: {
@@ -183,23 +280,41 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
           updatedAt: runtimeUpdatedAt,
         },
         rhythm: {
-          mode: (latestRuntimeDecision?.mode as StatusReadModel["rhythm"]["mode"] | undefined) ?? "unknown",
+          mode:
+            (latestRuntimeDecision?.mode as
+              | StatusReadModel["rhythm"]["mode"]
+              | undefined) ?? "unknown",
           windowId: undefined,
         },
         quiet: {
           mode: quietMode,
           lastEvent: latestRuntimeDecision?.traceId,
-          interrupted: latestRuntimeDecision?.mode === "paused_for_interrupt" ? true : undefined,
+          interrupted:
+            latestRuntimeDecision?.mode === "paused_for_interrupt"
+              ? true
+              : undefined,
         },
         connectors: connectorSummary,
         credentials: credentials.map((item) => ({
-          platformId: (item as unknown as { platformId: string }).platformId ?? (item as unknown as { platform_id: string }).platform_id,
+          platformId:
+            (item as unknown as { platformId: string }).platformId ??
+            (item as unknown as { platform_id: string }).platform_id,
           status: item.status as CredentialReadModel["status"],
-          nextStep: buildCredentialNextStep(item.status as CredentialReadModel["status"]),
+          nextStep: buildCredentialNextStep(
+            item.status as CredentialReadModel["status"],
+          ),
         })),
         risk: {
           level: riskFlags.length > 0 ? "medium" : "low",
           flags: riskFlags,
+        },
+        // T1.2.5 (CH-14-04): default delivery posture is workspace_default_none because the
+        // workspace heartbeat hardcodes `deliveryCapability: { target: "none" }` until a host
+        // capability probe explicitly sets a valid target.
+        deliveryPosture: {
+          verdict: "none",
+          source: "workspace_default_none",
+          reasonCode: "delivery_target_none",
         },
       };
     },
@@ -208,19 +323,40 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       let bundle;
       try {
         bundle = await quietLoader.loadQuietInputs({
-          dateRange: { start: `${day}T00:00:00.000Z`, end: `${day}T23:59:59.999Z` },
-          assetFilters: { includeJournal: false, includeReports: true, includeCurated: false },
+          dateRange: {
+            start: `${day}T00:00:00.000Z`,
+            end: `${day}T23:59:59.999Z`,
+          },
+          assetFilters: {
+            includeJournal: false,
+            includeReports: true,
+            includeCurated: false,
+          },
         });
       } catch {
         bundle = { dailyReports: [], journalEntries: [], sourceCount: 0 };
       }
 
+      // T1.2.4: merge persisted Quiet artifact JSON files from `.second-nature/quiet/{day}/`
+      // into the daily report sourceRefs so the read model reflects artifacts written by
+      // `persistQuietArtifactToWorkspace` (closes the canonical read/write gap for loadDailyReport).
+      const fsArtifactCount = deps.workspaceRoot
+        ? countQuietArtifactsForDay(deps.workspaceRoot, day)
+        : 0;
+
       const report = bundle.dailyReports[0];
+      const existingSources: string[] = report?.sources ?? [];
+      // Append synthetic source refs for each FS artifact not already in the list.
+      const fsSourceRefs: string[] = Array.from(
+        { length: fsArtifactCount },
+        (_, i) => `quiet_artifact:${day}:${i}`,
+      ).filter((ref) => !existingSources.includes(ref));
+
       return {
         day,
         summary: report?.summary ?? "",
         highlights: report?.highlights ?? [],
-        sourceRefs: report?.sources ?? [],
+        sourceRefs: [...existingSources, ...fsSourceRefs],
       };
     },
 
@@ -238,11 +374,24 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         bundle = { dailyReports: [], journalEntries: [], sourceCount: 0 };
       }
 
+      // T1.2.4 (CH-14-07): also count persisted Quiet artifact JSON files under
+      // `.second-nature/quiet/` so that once `runSourceBackedQuiet` has written
+      // artifacts to disk, the read model is non-zero even if the legacy memory/
+      // journal path is empty.
+      const quietArtifacts = deps.workspaceRoot
+        ? countRecentQuietArtifacts(deps.workspaceRoot, 2)
+        : { totalArtifacts: 0, recentDays: [] };
+
+      const totalSourceCount =
+        bundle.sourceCount + quietArtifacts.totalArtifacts;
+      const totalReportCount =
+        bundle.dailyReports.length + quietArtifacts.totalArtifacts;
+
       return {
         scope,
-        mode: bundle.sourceCount > 0 ? "quiet" : "unknown",
-        sourceCount: bundle.sourceCount,
-        reportCount: bundle.dailyReports.length,
+        mode: totalSourceCount > 0 ? "quiet" : "unknown",
+        sourceCount: totalSourceCount,
+        reportCount: totalReportCount,
         recentJournalCount: bundle.journalEntries.length,
       };
     },
@@ -277,11 +426,15 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       }
 
       return {
-        platformId: (record as unknown as { platformId: string }).platformId ?? (record as unknown as { platform_id: string }).platform_id,
+        platformId:
+          (record as unknown as { platformId: string }).platformId ??
+          (record as unknown as { platform_id: string }).platform_id,
         status: record.status as CredentialReadModel["status"],
         verificationDeadline: record.expiresAt ?? undefined,
         attemptsRemaining: record.attemptsRemaining ?? undefined,
-        nextStep: buildCredentialNextStep(record.status as CredentialReadModel["status"]),
+        nextStep: buildCredentialNextStep(
+          record.status as CredentialReadModel["status"],
+        ),
       };
     },
 
@@ -293,6 +446,9 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
 
     async explain(subject: ExplainSubject): Promise<ExplainReadModel> {
       const q = toExplainQuery(subject);
+      // T1.2.5: auditStore is always non-null (default-injected), so the explain path always
+      // has a store available. For audit-only subjects with no matching events the summary
+      // from queryExplain will be "no_matching_audit_events" — accurate and non-alarming.
       if (auditStore && q) {
         const op = queryExplain(q, auditStore);
         if (isAuditOnlySubjectKind(subject.kind)) {
@@ -305,14 +461,18 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       if (isAuditOnlySubjectKind(subject.kind)) {
         return {
           subjectType: subject.kind,
-          conclusion: auditStore ? "no_matching_audit_events" : "lived_experience_audit_store_unavailable",
-          keyFactors: auditStore ? [] : ["configure_lived_experience_audit_store_for_operator_explain"],
+          // auditStore is always present (default-injected by T1.2.5), so this branch is
+          // only reached when q is undefined (unresolvable subject kind).
+          conclusion: "no_matching_audit_events",
+          keyFactors: [],
           evidenceRefs: [],
         };
       }
 
       const query =
-        subject.kind === "decision" || subject.kind === "platform-selection" || subject.kind === "outreach"
+        subject.kind === "decision" ||
+        subject.kind === "platform-selection" ||
+        subject.kind === "outreach"
           ? { decisionId: subject.id }
           : { assetId: subject.id };
 

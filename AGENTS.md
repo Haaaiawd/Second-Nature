@@ -77,7 +77,7 @@
 
 - **最新架构版本**: `.anws/v5`
 - **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-09` (semver **0.1.13**；`/change` 新增 **T1.2.3** `loadStatus` 观测写回任务)
+- **最近一次更新**: `2026-05-11` (semver **0.1.19**；Wave 19 完成：**T2.2.2**（life evidence snapshot）、**T2.2.3**（internal_tick reasons）、**T1.2.4**（Quiet FS canonical）、**T1.2.5**（deliveryPosture + default auditStore）；286 测试全绿)
 
 ### 🌱 Genesis v5 ✅ — Lived Experience Closure
 
@@ -176,10 +176,10 @@ src/
 
 ### 当前任务状态
 - 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 42, P0: 28, P1: 10, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 / T1.1.5 已闭合）
+- 总任务数: 46, P0: 30, P1: 12, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧含 T1.1.4 / T1.1.5 已闭合）；**未完成 Level-3（Round 14 回流）**: **T2.2.2, T2.2.3, T1.2.4, T1.2.5**（`07_CHALLENGE_REPORT` Round 14 / Nyx v0.1.18 场测同源）
 - Sprint 数: 4
-- **下一步**: 在目标 OpenClaw 宿主执行 **INT-S4** 并勾选里程碑（`docs/validation/int-s4-human-operator-testing-guide.md`，含 §D7 / §D8、模板项 6–7；**T1.2.3** 已闭合 → 真实宿主须采集 `status` JSON 中 `rhythm.mode` / `runtime.serviceStatus` 不再仅因空表而全系 `unknown` 的证据）；**根已知** 时将 `SECOND_NATURE_WORKSPACE_ROOT` / `workspaceRoot` 与 **agent workspace** 对齐（T1.1.4 / **T1.1.5**）；**验收以工具 JSON 为准**（口语与 JSON 冲突 → Finding）。除 **INT-S4** 里程碑外，Level-3 任务在 `05_TASKS.md` 内已全部 `[x]`
-- 最近更新: `2026-05-09`
+- **下一步**: **`/forge` 优先波次**：**T2.2.2**（workspace 快照并入 life evidence；**勿**将初报 `silent_no_candidates` 写死为唯一形态）→ **T2.2.3**（`connector_action` **或** **maintenance 无外部效应** 的诚实 JSON）→ **T1.2.4**（Quiet：**无盘工件则先验写路径**；**已写** 再验读合并）→ **T1.2.5**（`deliveryPosture` 区分 **workspace vs OpenClaw cron** + 默认 audit explain deps）；再跑 **INT-S4**：支持 **cron+`openWorkspaceBridge`** 证据包或 **agent 工具**路径二选一声明；**验收以工具 JSON 为准**。Round 14 见 `07_CHALLENGE_REPORT.md` **场测勘误** 小节。
+- 最近更新: `2026-05-10`
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
@@ -234,6 +234,9 @@ T1.1.4：`plugin/workspace-ops-bridge` 将包根（`import.meta.url`）计算移
 
 ### 🌊 Wave 18 ✅ — Status aggregate observability writeback (T1.2.3)
 T1.2.3：新增 `createRuntimeDecisionRecorder`（`src/observability/services/runtime-decision-recorder.ts`），在 `createCliRuntimeDeps` 注入并经 `OpsRouterDeps.runtimeRecorder` → `HeartbeatCheckInput.runtimeRecorder` → `createWorkspaceHeartbeatRunner` 接线；workspace `heartbeat_check` 完成后写入 `sn-runtime-*` ledger + `second-nature-runtime` execution attempt。`probeOnly` / 无 `readModels` / `runtimeAvailable=false` 路径不写入，保留 host-safe carrier 语义。覆盖：集成 `tests/integration/cli/t1-2-3-status-observability-writeback.test.ts`、单测 `tests/unit/observability/runtime-decision-recorder.test.ts`；plugin bridge 透传 `runtimeRecorder`。**INT-S4** 仍待真实宿主验证。
+
+### 🌊 Wave 19 ✅ — Field parity（Round 14 / CH-14，`/change` 2026-05-10）
+**T2.2.2**：`loadSnapshotInputsForWorkspaceHeartbeat` 现调用 `loadLifeEvidenceSnapshot`，填充 `lifeEvidenceRefs`/`platformEventCount`/`workEventCount`/`lifeEvidenceEmptyReason`；`state` + `workspaceRoot` 经 `HeartbeatCheckInput` → `OpsRouterDeps` → `createCommandRouter` 完整透传。**T2.2.3**：`resolveAllowedIntentResult` 对 maintenance/通用 `intent_selected` 新增 `internal_tick`、`maintenance_no_outreach_dispatch`、`connector_action_no_attempt` 机读原因，消除 `reasons: []` 歧义。**T1.2.4**：`loadQuiet()` 新增 FS 扫描路径——合并 `.second-nature/quiet/{day}/*.json` 工件计数，修复 Quiet 写入后 read model 不反映的 canonical 断裂。**T1.2.5**：`StatusReadModel` 新增 `DeliveryPosture`（`verdict`/`reasonCode`/`source`）；`createCliReadModels` 默认注入 `AppendOnlyAuditStore`，使 `explain()` 对所有 audit-only subject 返回 `no_matching_audit_events` 而非 `lived_experience_audit_store_unavailable` 骨架；T1.2.1 测试同步更新以反映新行为。新增集成测 4 套（t2-2-2/t2-2-3/t1-2-4/t1-2-5），286 测试全绿。**INT-S4** 仍待真实宿主验证。
 
 <!-- AUTO:END -->
 

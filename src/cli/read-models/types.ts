@@ -5,12 +5,22 @@ export interface RuntimeSummary {
 }
 
 export interface RhythmSummary {
-  mode: "active" | "quiet" | "maintenance_only" | "paused_for_interrupt" | "unknown";
+  mode:
+    | "active"
+    | "quiet"
+    | "maintenance_only"
+    | "paused_for_interrupt"
+    | "unknown";
   windowId?: string;
 }
 
 export interface QuietSummary {
-  mode: "active" | "quiet" | "maintenance_only" | "paused_for_interrupt" | "unknown";
+  mode:
+    | "active"
+    | "quiet"
+    | "maintenance_only"
+    | "paused_for_interrupt"
+    | "unknown";
   lastEvent?: string;
   interrupted?: boolean;
 }
@@ -24,13 +34,40 @@ export interface ConnectorSummary {
 
 export interface CredentialSummary {
   platformId: string;
-  status: "missing" | "pending_verification" | "active" | "expired" | "revoked" | "failed";
+  status:
+    | "missing"
+    | "pending_verification"
+    | "active"
+    | "expired"
+    | "revoked"
+    | "failed";
   nextStep?: string;
 }
 
 export interface RiskSummary {
   level: "low" | "medium" | "high";
   flags: string[];
+}
+
+/**
+ * T1.2.5 (CH-14-04): delivery posture summarises why `deliveryCapability.target` is `none`
+ * and which layer set it — workspace heartbeat default vs OpenClaw cron config vs host probe.
+ */
+export interface DeliveryPosture {
+  /** Current effective verdict: none = no delivery channel; available = a valid target exists. */
+  verdict: "none" | "available";
+  /**
+   * Stable reason code for operator tooling:
+   *   workspace_default_none — workspace heartbeat hardcodes target:none (no host probe ran).
+   *   openclaw_cron_delivery_none — cron layer has delivery.mode:none (host config decision).
+   *   host_capability_probe — a HostCapabilityReport probe determined the posture.
+   */
+  source:
+    | "workspace_default_none"
+    | "openclaw_cron_delivery_none"
+    | "host_capability_probe";
+  /** Human-readable reason code included in explain surfaces. */
+  reasonCode: string;
 }
 
 export interface StatusReadModel {
@@ -40,6 +77,11 @@ export interface StatusReadModel {
   connectors: ConnectorSummary[];
   credentials: CredentialSummary[];
   risk: RiskSummary;
+  /**
+   * T1.2.5: structured delivery posture so operators can distinguish workspace default "none"
+   * from cron-layer "none" without inspecting raw heartbeat JSON.
+   */
+  deliveryPosture?: DeliveryPosture;
 }
 
 export interface DailyReportReadModel {
@@ -51,7 +93,12 @@ export interface DailyReportReadModel {
 
 export interface QuietReadModel {
   scope?: string;
-  mode: "active" | "quiet" | "maintenance_only" | "paused_for_interrupt" | "unknown";
+  mode:
+    | "active"
+    | "quiet"
+    | "maintenance_only"
+    | "paused_for_interrupt"
+    | "unknown";
   sourceCount: number;
   reportCount: number;
   recentJournalCount: number;
@@ -69,7 +116,13 @@ export interface SessionDetailReadModel {
 
 export interface CredentialReadModel {
   platformId: string;
-  status: "missing" | "pending_verification" | "active" | "expired" | "revoked" | "failed";
+  status:
+    | "missing"
+    | "pending_verification"
+    | "active"
+    | "expired"
+    | "revoked"
+    | "failed";
   verificationDeadline?: string;
   attemptsRemaining?: number;
   nextStep?: string;

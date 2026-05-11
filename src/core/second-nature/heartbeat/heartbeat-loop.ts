@@ -12,15 +12,34 @@
  * implements the default conservative path where HEARTBEAT_OK is
  * the first-class result when no action is warranted.
  */
-import type { HeartbeatSignal, HeartbeatCycleResult, HeartbeatCycleStatus, RuntimeScope, RuntimeTrigger } from "./signal.js";
-import type { CandidateIntent, ContinuitySnapshot, IntentKind } from "../types.js";
-import { buildContinuitySnapshot, type SnapshotInputs } from "./snapshot-builder.js";
-import { buildHeartbeatRuntimeSnapshot, type HeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
+import type {
+  HeartbeatSignal,
+  HeartbeatCycleResult,
+  HeartbeatCycleStatus,
+  RuntimeScope,
+  RuntimeTrigger,
+} from "./signal.js";
+import type {
+  CandidateIntent,
+  ContinuitySnapshot,
+  IntentKind,
+} from "../types.js";
+import {
+  buildContinuitySnapshot,
+  type SnapshotInputs,
+} from "./snapshot-builder.js";
+import {
+  buildHeartbeatRuntimeSnapshot,
+  type HeartbeatRuntimeSnapshot,
+} from "./runtime-snapshot.js";
 import { planCandidateIntents } from "../orchestrator/intent-planner.js";
 import { evaluateHardGuards } from "../orchestrator/guard-layer.js";
 import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
-import { dispatchUserOutreachIntent, type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
+import {
+  dispatchUserOutreachIntent,
+  type OpenClawDeliveryPort,
+} from "../outreach/dispatch-user-outreach.js";
 import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
 import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
 
@@ -59,7 +78,10 @@ export async function resolveAllowedIntentResult(
   signal: HeartbeatSignal,
   deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow">,
 ): Promise<HeartbeatCycleResult> {
-  const day = typeof signal.payload.timestamp === "string" ? signal.payload.timestamp.slice(0, 10) : "1970-01-01";
+  const day =
+    typeof signal.payload.timestamp === "string"
+      ? signal.payload.timestamp.slice(0, 10)
+      : "1970-01-01";
   if (intent.effectClass === "user_outreach" && deps.outreachDispatch) {
     return dispatchUserOutreachIntent({
       candidate: intent,
@@ -72,7 +94,9 @@ export async function resolveAllowedIntentResult(
   }
   if (
     deps.quietWorkflow &&
-    (intent.kind === "quiet" || (intent.kind === "reflection" && intent.effectClass === "narrative_reflection"))
+    (intent.kind === "quiet" ||
+      (intent.kind === "reflection" &&
+        intent.effectClass === "narrative_reflection"))
   ) {
     const quietRun = await runSourceBackedQuiet({
       candidate: intent,
@@ -83,11 +107,19 @@ export async function resolveAllowedIntentResult(
     });
     return quietRun.result;
   }
+  // T2.2.3 (CH-14-02/03): when the selected intent has no external effects
+  // (maintenance / no_effect effectClass, or maintenance kind), surface an
+  // explicit `internal_tick` reason so operators can distinguish "no external
+  // side-effects this cycle" from a vacuous empty-reasons result.
+  const noExternalEffect =
+    intent.effectClass === "maintenance" ||
+    intent.effectClass === "no_effect" ||
+    intent.kind === "maintenance";
   return {
     scope: "rhythm",
     status: "intent_selected",
     selectedIntentId: intent.id,
-    reasons: [],
+    reasons: noExternalEffect ? ["internal_tick"] : [],
   };
 }
 
@@ -95,7 +127,9 @@ export interface HeartbeatDeps {
   /** Load snapshot inputs from state-system */
   loadSnapshotInputs: () => Promise<SnapshotInputs>;
   /** Optional observability hook (T2.2.1): one record per completed cycle. */
-  recordDecisionTrace?: (payload: HeartbeatDecisionTracePayload) => Promise<void>;
+  recordDecisionTrace?: (
+    payload: HeartbeatDecisionTracePayload,
+  ) => Promise<void>;
   outreachDispatch?: HeartbeatOutreachDispatchDeps;
   quietWorkflow?: HeartbeatQuietWorkflowDeps;
 }
@@ -148,9 +182,17 @@ export async function ingestRhythmSignal(
         selectedIntentId: intent.id,
         reasons: evaluation.reasons,
       };
-      const resolved = await resolveAllowedIntentResult(intent, runtime, inputs, signal, deps);
+      const resolved = await resolveAllowedIntentResult(
+        intent,
+        runtime,
+        inputs,
+        signal,
+        deps,
+      );
       const result: HeartbeatCycleResult =
-        resolved.status === "intent_selected" && resolved.reasons.length === 0 && evaluation.reasons.length > 0
+        resolved.status === "intent_selected" &&
+        resolved.reasons.length === 0 &&
+        evaluation.reasons.length > 0
           ? { ...resolved, reasons: evaluation.reasons }
           : resolved;
 
@@ -159,11 +201,15 @@ export async function ingestRhythmSignal(
     }
     if (evaluation.verdict === "defer") {
       anyDefer = true;
-      denyReasons.push(`${intent.id}:${evaluation.verdict}(${evaluation.reasons.join(",")})`);
+      denyReasons.push(
+        `${intent.id}:${evaluation.verdict}(${evaluation.reasons.join(",")})`,
+      );
       continue;
     }
     anyDeny = true;
-    denyReasons.push(`${intent.id}:${evaluation.verdict}(${evaluation.reasons.join(",")})`);
+    denyReasons.push(
+      `${intent.id}:${evaluation.verdict}(${evaluation.reasons.join(",")})`,
+    );
   }
 
   if (!hasCandidates) {
@@ -180,7 +226,8 @@ export async function ingestRhythmSignal(
     const result: HeartbeatCycleResult = {
       scope: "rhythm",
       status: "deferred",
-      reasons: denyReasons.length > 0 ? denyReasons : ["all_candidates_deferred"],
+      reasons:
+        denyReasons.length > 0 ? denyReasons : ["all_candidates_deferred"],
     };
     await emitTrace(result);
     return result;
@@ -208,6 +255,8 @@ export async function ingestRhythmSignal(
 /**
  * Build a snapshot directly from inputs (for testing or when state-system is unavailable).
  */
-export function buildSnapshotFromInputs(inputs: SnapshotInputs): ContinuitySnapshot {
+export function buildSnapshotFromInputs(
+  inputs: SnapshotInputs,
+): ContinuitySnapshot {
   return buildContinuitySnapshot(inputs);
 }

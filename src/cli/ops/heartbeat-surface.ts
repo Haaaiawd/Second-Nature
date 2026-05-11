@@ -5,9 +5,13 @@
  * Workspace full runtime: delegates to `runHeartbeatCycle` when read models are wired (US-001 / CH-09-02).
  */
 import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
-import type { HeartbeatCycleResult, HeartbeatSignal } from "../../core/second-nature/heartbeat/signal.js";
+import type {
+  HeartbeatCycleResult,
+  HeartbeatSignal,
+} from "../../core/second-nature/heartbeat/signal.js";
 import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
+import type { StateDatabase } from "../../storage/db/index.js";
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
 
 export type HeartbeatSurfaceStatus =
@@ -41,14 +45,25 @@ export interface HeartbeatCheckInput {
   readModels?: CliReadModels;
   /** When set, full-runtime cycles are persisted so `loadStatus` exits unknown (T1.2.3). */
   runtimeRecorder?: RuntimeDecisionRecorder;
+  /**
+   * T2.2.2: when set together with `workspaceRoot`, life evidence from the state DB is loaded
+   * and merged into SnapshotInputs so planner/guard paths see real source-ref truth.
+   */
+  state?: StateDatabase;
+  workspaceRoot?: string;
   timestamp?: string;
   sessionContext?: string;
   scopeHint?: HeartbeatSignal["scopeHint"];
 }
 
-function mapCycleToSurface(cycle: HeartbeatCycleResult, surfaceMode: SurfaceMode): HeartbeatSurfaceResult {
+function mapCycleToSurface(
+  cycle: HeartbeatCycleResult,
+  surfaceMode: SurfaceMode,
+): HeartbeatSurfaceResult {
   const status: HeartbeatSurfaceStatus =
-    cycle.status === "runtime_carrier_only" ? "runtime_carrier_only" : (cycle.status as HeartbeatSurfaceStatus);
+    cycle.status === "runtime_carrier_only"
+      ? "runtime_carrier_only"
+      : (cycle.status as HeartbeatSurfaceStatus);
   return {
     ok: true,
     status,
@@ -61,7 +76,9 @@ function mapCycleToSurface(cycle: HeartbeatCycleResult, surfaceMode: SurfaceMode
   };
 }
 
-export async function heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult> {
+export async function heartbeatCheck(
+  input: HeartbeatCheckInput,
+): Promise<HeartbeatSurfaceResult> {
   if (!input.runtimeAvailable) {
     return {
       ok: true,
@@ -117,12 +134,17 @@ export async function heartbeatCheck(input: HeartbeatCheckInput): Promise<Heartb
     scopeHint: input.scopeHint,
     payload: {
       timestamp,
-      sessionContext: typeof input.sessionContext === "string" ? input.sessionContext : undefined,
+      sessionContext:
+        typeof input.sessionContext === "string"
+          ? input.sessionContext
+          : undefined,
     },
   };
 
   const run = createWorkspaceHeartbeatRunner(input.readModels, {
     runtimeRecorder: input.runtimeRecorder,
+    state: input.state,
+    workspaceRoot: input.workspaceRoot ?? process.cwd(),
   });
   const cycle = await run(signal);
   return mapCycleToSurface(cycle, "workspace_full_runtime");

@@ -34,7 +34,9 @@ let activeHandle: RuntimeServiceHandle | null = null;
  * It initializes the minimal runtime state and returns a handle that can be used
  * by the heartbeat host bridge.
  */
-export function startRuntimeService(ctx?: RuntimeServiceContext): RuntimeServiceHandle {
+export function startRuntimeService(
+  ctx?: RuntimeServiceContext,
+): RuntimeServiceHandle {
   if (activeHandle?.ready) {
     return activeHandle;
   }
@@ -46,7 +48,7 @@ export function startRuntimeService(ctx?: RuntimeServiceContext): RuntimeService
   // - control-plane-system (heartbeat bridge preparation)
   const workspaceRoot = ctx?.workspaceRoot ?? process.cwd();
   /** Keep in sync with `plugin/package.json` when cutting releases. */
-  const version = "0.1.18";
+  const version = "0.1.19";
 
   activeHandle = {
     ready: true,
