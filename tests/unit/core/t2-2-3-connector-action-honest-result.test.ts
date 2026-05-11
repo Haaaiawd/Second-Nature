@@ -8,8 +8,8 @@
  * A. `effectClass === "maintenance"` 时，周期 JSON 含 `internal_tick` reason。
  * B. `effectClass === "no_effect"` 时，周期 JSON 含 `internal_tick` reason。
  * C. `kind === "maintenance"` 时，周期 JSON 含 `internal_tick` reason。
- * D. `effectClass === "connector_action"` 但无 dispatch wired 时，reasons 为空
- *    （留给未来 connector dispatch 实现；本次不强制 internal_tick）。
+ * D. `effectClass === "connector_action"` 但无 dispatch wired 时，reasons 含
+ *    `connector_dispatch_unwired`（CH-15-01：禁止空 reasons 冒充已执行，需有可机读原因区分）。
  * E. 通过 `ingestRhythmSignal` 完整路径验证 maintenance intent 被选后
  *    其 reasons 包含 `internal_tick`。
  */

@@ -53,7 +53,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
   // means binding to it would permanently suppress the quiet window — the opposite of intent.
   // We instead enable the bridge whenever workspaceRoot is provided (same condition as
   // `createWorkspaceHeartbeatRunner` uses for injecting quietWorkflow).
-  const quietEnabledBridge = !!(options && options.workspaceRoot);
+  const quietEnabledBridge = !!options.workspaceRoot;
 
   // T2.2.2: Load life evidence from state DB when available so SnapshotInputs carries real refs.
   let lifeEvidenceRefs: ControlPlaneSourceRef[] | undefined;
