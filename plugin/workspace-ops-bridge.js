@@ -22,7 +22,9 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
     try {
         const pluginPackageRoot = path.dirname(fileURLToPath(import.meta.url));
         // Packaged `plugin/runtime` is emitted JS without sibling `.d.ts` in this repo layout.
-        // @ts-expect-error TS7016 — intentional dynamic import of artifact bundle
+        // Dynamic import of artifact bundle — typed via PackagedCliModule interface above.
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore TS7016 — intentional: runtime artifact has no adjacent .d.ts in this layout
         const cliIndex = (await import("./runtime/cli/index.js"));
         const commandsMod = (await import("./runtime/cli/commands/index.js"));
         const storageDb = (await import("./runtime/storage/db/index.js"));
@@ -40,6 +42,10 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
             runtimeAvailable: runtimeResolved.ok,
             readModels: deps.readModels,
             runtimeRecorder: deps.runtimeRecorder,
+            // T1.2.8 (SN-CODE-03): pass observabilityDb so capability_probe can persist reports
+            observabilityDb,
+            state: stateDb,
+            workspaceRoot: resolvedRoot,
         });
         const commands = commandsMod.createCliCommands({
             readModels: deps.readModels,
@@ -51,7 +57,10 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
             if (!def) {
                 return {
                     ok: false,
-                    error: { code: "unknown_command", message: `Unknown Second Nature command: ${command}` },
+                    error: {
+                        code: "unknown_command",
+                        message: `Unknown Second Nature command: ${command}`,
+                    },
                 };
             }
             const prevCwd = process.cwd();

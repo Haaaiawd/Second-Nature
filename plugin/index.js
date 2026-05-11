@@ -96,6 +96,13 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
     "heartbeat_check",
     "fallback",
     "storage_smoke",
+    // T1.2.8 (SN-CODE-03): capability probe surface via workspace bridge
+    "capability_probe",
+    // T1.2.6 / T1.2.7: policy show + audit read surface
+    "policy",
+    "audit",
+    // T3.3.2: near-real connector smoke sentinel
+    "near_real_smoke",
 ]);
 function isWorkspaceBridgeCommand(command, input) {
     if (command === "credential") {
@@ -153,18 +160,25 @@ function resolveWorkspaceRoot(toolWorkspaceRoot) {
     if (tool) {
         return { resolution: "tool_args", declaredRoot: tool, runtimeRoot: tool };
     }
-    return { resolution: "unknown", declaredRoot: undefined, runtimeRoot: process.cwd() };
+    return {
+        resolution: "unknown",
+        declaredRoot: undefined,
+        runtimeRoot: process.cwd(),
+    };
 }
 function syncWorkspaceRootFromTool(spine, toolWorkspaceRoot) {
     const next = resolveWorkspaceRoot(toolWorkspaceRoot);
     const prev = spine.workspaceRootContext;
-    const changed = next.runtimeRoot !== prev.runtimeRoot || next.resolution !== prev.resolution;
+    const changed = next.runtimeRoot !== prev.runtimeRoot ||
+        next.resolution !== prev.resolution;
     if (changed) {
         disposeWorkspaceOpsBridge();
     }
     spine.workspaceRootContext = next;
     if (changed) {
-        spine.runtimeHandle = startRuntimeService({ workspaceRoot: next.runtimeRoot });
+        spine.runtimeHandle = startRuntimeService({
+            workspaceRoot: next.runtimeRoot,
+        });
     }
 }
 function trimRuntimeEvidence(spine) {
@@ -229,7 +243,8 @@ function parseExplainSubject(subjectRaw) {
 }
 function buildStatusPayload(spine) {
     const runtimeEvidence = latestRuntimeEvidence(spine);
-    const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
+    const updatedAt = runtimeEvidence?.createdAt ??
+        new Date(spine.lifecycleState.lastChangedAt).toISOString();
     const wr = spine.workspaceRootContext;
     const needsRootHint = wr.resolution === "unknown";
     return {
@@ -240,7 +255,9 @@ function buildStatusPayload(spine) {
         error: {
             code: "WORKSPACE_READ_SURFACE_UNAVAILABLE",
             message: "Aggregated status requires workspace state; the host-safe plugin does not load persisted read models on this surface.",
-            requiredUserInput: needsRootHint ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            requiredUserInput: needsRootHint
+                ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+                : [],
             nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
         },
         data: {
@@ -264,7 +281,9 @@ function buildQuietPayload(spine, scope) {
         error: {
             code: "QUIET_READ_SURFACE_UNAVAILABLE",
             message: "Quiet read surface requires workspace runtime; not evaluated in host-safe carrier mode.",
-            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            requiredUserInput: wr.resolution === "unknown"
+                ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+                : [],
             nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
         },
         data: {
@@ -285,7 +304,9 @@ function buildReportPayload(spine, day) {
         error: {
             code: "REPORT_READ_SURFACE_UNAVAILABLE",
             message: "Daily report artifacts require workspace runtime.",
-            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            requiredUserInput: wr.resolution === "unknown"
+                ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+                : [],
             nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
         },
         data: {
@@ -317,7 +338,9 @@ function buildSessionPayload(spine, sessionId) {
         error: {
             code: "SESSION_READ_SURFACE_UNAVAILABLE",
             message: "Session analytics require workspace state database.",
-            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            requiredUserInput: wr.resolution === "unknown"
+                ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+                : [],
             nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
         },
         data: {
@@ -338,7 +361,9 @@ function buildCredentialPayload(spine, platformId) {
         error: {
             code: "CREDENTIAL_READ_SURFACE_UNAVAILABLE",
             message: "Credential inspection requires workspace runtime on this surface.",
-            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            requiredUserInput: wr.resolution === "unknown"
+                ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+                : [],
             nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
         },
         data: {
@@ -384,7 +409,9 @@ function buildExplainPayload(spine, subjectRaw) {
         error: {
             code: "EXPLAIN_READ_SURFACE_UNAVAILABLE",
             message: "Evidence-backed explain requires persisted workspace read models; host-safe carrier did not evaluate operator explain (CH-11-02).",
-            requiredUserInput: wr.resolution === "unknown" ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"] : [],
+            requiredUserInput: wr.resolution === "unknown"
+                ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+                : [],
             nextStep: "run_workspace_second_nature_cli_or_full_runtime_package",
         },
         data: {
@@ -398,8 +425,13 @@ async function buildStorageSmokePayload(input) {
     try {
         const mod = await import("./runtime/storage/bootstrap/storage-mode-smoke.js");
         const runRepairFixture = Boolean(input?.runRepairFixture);
-        const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
-        const data = await mod.runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+        const workspaceRoot = typeof input?.workspaceRoot === "string"
+            ? input.workspaceRoot
+            : undefined;
+        const data = await mod.runStorageModeSmoke({
+            runRepairFixture,
+            workspaceRoot,
+        });
         return { ok: true, data };
     }
     catch (error) {
@@ -434,8 +466,11 @@ function isProbeOnlyInput(input) {
 }
 function buildHeartbeatCheckPayload(spine, input) {
     const runtimeEvidence = latestRuntimeEvidence(spine);
-    const updatedAt = runtimeEvidence?.createdAt ?? new Date(spine.lifecycleState.lastChangedAt).toISOString();
-    const timestamp = typeof input?.timestamp === "string" && input.timestamp.trim().length > 0 ? input.timestamp : updatedAt;
+    const updatedAt = runtimeEvidence?.createdAt ??
+        new Date(spine.lifecycleState.lastChangedAt).toISOString();
+    const timestamp = typeof input?.timestamp === "string" && input.timestamp.trim().length > 0
+        ? input.timestamp
+        : updatedAt;
     const wr = spine.workspaceRootContext;
     if (isProbeOnlyInput(input)) {
         return {
@@ -461,8 +496,10 @@ function buildHeartbeatCheckPayload(spine, input) {
                 bridge: {
                     timestamp,
                     probeOnly: true,
-                    sessionContextProvided: typeof input?.sessionContext === "string" && input.sessionContext.trim().length > 0,
-                    heartbeatChecklistProvided: typeof input?.heartbeatChecklist === "string" && input.heartbeatChecklist.trim().length > 0,
+                    sessionContextProvided: typeof input?.sessionContext === "string" &&
+                        input.sessionContext.trim().length > 0,
+                    heartbeatChecklistProvided: typeof input?.heartbeatChecklist === "string" &&
+                        input.heartbeatChecklist.trim().length > 0,
                     serviceEntryMode: "capability_probe",
                 },
             },
@@ -491,8 +528,10 @@ function buildHeartbeatCheckPayload(spine, input) {
             },
             bridge: {
                 timestamp,
-                sessionContextProvided: typeof input?.sessionContext === "string" && input.sessionContext.trim().length > 0,
-                heartbeatChecklistProvided: typeof input?.heartbeatChecklist === "string" && input.heartbeatChecklist.trim().length > 0,
+                sessionContextProvided: typeof input?.sessionContext === "string" &&
+                    input.sessionContext.trim().length > 0,
+                heartbeatChecklistProvided: typeof input?.heartbeatChecklist === "string" &&
+                    input.heartbeatChecklist.trim().length > 0,
                 serviceEntryMode: "runtime_carrier_only",
             },
         },
@@ -600,7 +639,9 @@ function createActivationSpine() {
     const workspaceRootContext = resolveWorkspaceRoot(undefined);
     const spine = {
         router: undefined,
-        runtimeHandle: startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot }),
+        runtimeHandle: startRuntimeService({
+            workspaceRoot: workspaceRootContext.runtimeRoot,
+        }),
         lifecycleState: getLifecycleState(),
         serviceStartRecorded: false,
         runtimeEvidence: [],
@@ -640,12 +681,15 @@ function refreshRegistrationState() {
     const spine = ensureActivationSpine();
     const workspaceRootContext = resolveWorkspaceRoot(undefined);
     const prev = spine.workspaceRootContext;
-    const changed = workspaceRootContext.runtimeRoot !== prev.runtimeRoot || workspaceRootContext.resolution !== prev.resolution;
+    const changed = workspaceRootContext.runtimeRoot !== prev.runtimeRoot ||
+        workspaceRootContext.resolution !== prev.resolution;
     if (changed) {
         disposeWorkspaceOpsBridge();
     }
     spine.workspaceRootContext = workspaceRootContext;
-    spine.runtimeHandle = startRuntimeService({ workspaceRoot: workspaceRootContext.runtimeRoot });
+    spine.runtimeHandle = startRuntimeService({
+        workspaceRoot: workspaceRootContext.runtimeRoot,
+    });
     spine.lifecycleState = recordRegistration();
     spine.serviceStartRecorded = false;
     recordRuntimeEvidence(spine, "register");
@@ -809,7 +853,11 @@ export default definePluginEntry({
                 const resolved = spine.router.resolve(parsed.command);
                 if (!resolved) {
                     return {
-                        text: JSON.stringify({ ok: false, command: parsed.command, message: "Unknown Second Nature command." }),
+                        text: JSON.stringify({
+                            ok: false,
+                            command: parsed.command,
+                            message: "Unknown Second Nature command.",
+                        }),
                     };
                 }
                 const result = await routeSecondNatureCommand(spine, parsed.command, parsed.input);
@@ -827,7 +875,10 @@ export default definePluginEntry({
                     content: [
                         {
                             type: "text",
-                            text: JSON.stringify({ ok: false, message: "Unknown Second Nature command." }),
+                            text: JSON.stringify({
+                                ok: false,
+                                message: "Unknown Second Nature command.",
+                            }),
                         },
                     ],
                 };
