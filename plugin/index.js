@@ -557,7 +557,7 @@ function createHostSafeRouter(spine) {
                 if (action === "set") {
                     return createUnavailableActionError("HOST_SAFE_POLICY_SET_UNAVAILABLE", "policy set is unavailable in the host-safe plugin package", ["social_daily_limit", "quiet_enabled"], "run_workspace_runtime_or_reinstall_full_build");
                 }
-                return notImplemented("policy");
+                return createUnavailableActionError("HOST_SAFE_POLICY_SHOW_UNAVAILABLE", "Policy read requires workspace state database; host-safe plugin does not load persisted policy rows.", [], "run_workspace_second_nature_cli_or_full_runtime_package");
             },
         },
         {
@@ -599,7 +599,7 @@ function createHostSafeRouter(spine) {
         {
             name: "audit",
             description: "Inspect audit and evidence views",
-            execute: async () => notImplemented("audit"),
+            execute: async () => createUnavailableActionError("HOST_SAFE_AUDIT_UNAVAILABLE", "Audit read requires workspace observability database; host-safe plugin does not load persisted audit events.", [], "run_workspace_second_nature_cli_or_full_runtime_package"),
         },
         {
             name: "explain",
@@ -626,6 +626,16 @@ function createHostSafeRouter(spine) {
             name: "storage_smoke",
             description: "T4.1.4 storage mode smoke report (sql.js vs native probe)",
             execute: async (input) => buildStorageSmokePayload(input),
+        },
+        {
+            name: "capability_probe",
+            description: "Probe host capabilities (workspace runtime required for full report)",
+            execute: async () => createUnavailableActionError("HOST_SAFE_CAPABILITY_PROBE_UNAVAILABLE", "Full capability probe requires workspace observability database for persistence; host-safe carrier returns static unknown.", [], "run_workspace_second_nature_cli_or_full_runtime_package"),
+        },
+        {
+            name: "near_real_smoke",
+            description: "Run near-real connector smoke (workspace runtime + connectors required)",
+            execute: async () => createUnavailableActionError("HOST_SAFE_NEAR_REAL_SMOKE_UNAVAILABLE", "Near-real connector smoke requires workspace state and observability databases; host-safe plugin cannot run connector harness.", [], "run_workspace_second_nature_cli_or_full_runtime_package"),
         },
     ];
     return {
