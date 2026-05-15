@@ -42,6 +42,8 @@ import {
 } from "../outreach/dispatch-user-outreach.js";
 import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
 import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
+import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
+import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -76,7 +78,10 @@ export async function resolveAllowedIntentResult(
   runtime: HeartbeatRuntimeSnapshot,
   inputs: SnapshotInputs,
   signal: HeartbeatSignal,
-  deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow">,
+  deps: Pick<
+    HeartbeatDeps,
+    "outreachDispatch" | "quietWorkflow" | "connectorExecutor"
+  >,
 ): Promise<HeartbeatCycleResult> {
   const day =
     typeof signal.payload.timestamp === "string"
@@ -120,6 +125,31 @@ export async function resolveAllowedIntentResult(
     intent.effectClass === "no_effect" ||
     intent.kind === "maintenance";
   const connectorUnwired = intent.effectClass === "connector_action";
+
+  if (connectorUnwired && deps.connectorExecutor) {
+    const result = await deps.connectorExecutor.executeEffect({
+      platformId: intent.platformId ?? "unknown",
+      intent: toCapabilityIntent(intent),
+      payload: {},
+      decisionId: `decision:${intent.id}:${Date.now()}`,
+      intentId: intent.id,
+      idempotencyKey: `idem:${intent.id}:${Date.now()}`,
+    });
+    const base: HeartbeatCycleResult = {
+      scope: "rhythm",
+      status: "intent_selected",
+      selectedIntentId: intent.id,
+      decisionId: `decision:${intent.id}:${Date.now()}`,
+      reasons:
+        result.status === "success"
+          ? ["connector_effect_executed"]
+          : result.status === "retryable_failure"
+            ? ["connector_retryable_failure", result.failureClass ?? "unknown"]
+            : ["connector_terminal_failure", result.failureClass ?? "unknown"],
+    };
+    return base;
+  }
+
   const reasons: string[] = noExternalEffect
     ? ["internal_tick"]
     : connectorUnwired
@@ -142,6 +172,11 @@ export interface HeartbeatDeps {
   ) => Promise<void>;
   outreachDispatch?: HeartbeatOutreachDispatchDeps;
   quietWorkflow?: HeartbeatQuietWorkflowDeps;
+  /**
+   * When present, guard-allowed connector_action intents are dispatched
+   * through the connector-system instead of returning connector_dispatch_unwired.
+   */
+  connectorExecutor?: ConnectorExecutor;
 }
 
 /**

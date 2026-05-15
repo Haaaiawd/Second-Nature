@@ -14,6 +14,7 @@ import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
+import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import { probeHostCapability } from "../host-capability/probe-host-capability.js";
 import { recordHostCapability } from "../host-capability/record-host-capability.js";
 import type {
@@ -45,6 +46,11 @@ export interface OpsRouterDeps {
    * When absent, `capability_probe` still runs but skips persistence.
    */
   observabilityDb?: ObservabilityDatabase;
+  /**
+   * When present, guard-allowed connector_action intents are dispatched through the
+   * connector-system instead of returning connector_dispatch_unwired.
+   */
+  connectorExecutor?: ConnectorExecutor;
 }
 
 /**
@@ -93,6 +99,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         runtimeRecorder: input.runtimeRecorder ?? deps.runtimeRecorder,
         state: input.state ?? deps.state,
         workspaceRoot: input.workspaceRoot ?? deps.workspaceRoot,
+        connectorExecutor: input.connectorExecutor ?? deps.connectorExecutor,
       }),
     dispatch(command, input) {
       if (command === "heartbeat_check") {
@@ -127,6 +134,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
               ? input.sessionContext
               : undefined,
           scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],
+          connectorExecutor:
+            (input as Partial<HeartbeatCheckInput> | undefined)
+              ?.connectorExecutor ?? deps.connectorExecutor,
         });
       }
       if (command === "fallback") {

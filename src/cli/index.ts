@@ -26,6 +26,7 @@ import {
   createRuntimeDecisionRecorder,
   type RuntimeDecisionRecorder,
 } from "../observability/services/runtime-decision-recorder.js";
+import { createConnectorExecutorAdapter } from "../connectors/services/connector-executor-adapter.js";
 
 export interface CommandRouter {
   commands: CliCommandDefinition[];
@@ -89,6 +90,10 @@ export function createCommandRouter(
 ): CommandRouter {
   const runtime = createCliRuntimeDeps(options.deps);
   const pluginRoot = path.join(process.cwd(), "plugin");
+  const connectorExecutor = createConnectorExecutorAdapter({
+    stateDb: runtime.stateDb,
+    observabilityDb: runtime.observabilityDb,
+  });
   const opsRouter = createOpsRouter({
     runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok,
     readModels: runtime.readModels,
@@ -96,6 +101,7 @@ export function createCommandRouter(
     state: runtime.stateDb,
     workspaceRoot: process.cwd(),
     observabilityDb: runtime.observabilityDb,
+    connectorExecutor,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,

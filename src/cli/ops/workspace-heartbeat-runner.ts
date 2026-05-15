@@ -23,6 +23,7 @@ import type { RuntimeDecisionRecorder } from "../../observability/services/runti
 import type { StateDatabase } from "../../storage/db/index.js";
 import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-snapshot.js";
 import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
+import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 
 export interface WorkspaceHeartbeatRunnerOptions {
   /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
@@ -39,6 +40,11 @@ export interface WorkspaceHeartbeatRunnerOptions {
    * Defaults to true when workspaceRoot is provided, since this is the host-safe workspace path.
    */
   enableQuietWorkflow?: boolean;
+  /**
+   * When present, guard-allowed connector_action intents are dispatched through the
+   * connector-system instead of returning connector_dispatch_unwired.
+   */
+  connectorExecutor?: ConnectorExecutor;
 }
 
 export async function loadSnapshotInputsForWorkspaceHeartbeat(
@@ -132,6 +138,7 @@ export function createWorkspaceHeartbeatRunner(
         quietWorkflow: quietEnabled
           ? { workspaceRoot: options.workspaceRoot! }
           : undefined,
+        connectorExecutor: options.connectorExecutor,
       },
     });
 

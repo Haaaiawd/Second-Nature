@@ -13,6 +13,7 @@ import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
+import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 
 export type HeartbeatSurfaceStatus =
   | "heartbeat_ok"
@@ -54,6 +55,11 @@ export interface HeartbeatCheckInput {
   timestamp?: string;
   sessionContext?: string;
   scopeHint?: HeartbeatSignal["scopeHint"];
+  /**
+   * When present, guard-allowed connector_action intents are dispatched through the
+   * connector-system instead of returning connector_dispatch_unwired.
+   */
+  connectorExecutor?: ConnectorExecutor;
 }
 
 function mapCycleToSurface(
@@ -145,6 +151,7 @@ export async function heartbeatCheck(
     runtimeRecorder: input.runtimeRecorder,
     state: input.state,
     workspaceRoot: input.workspaceRoot ?? process.cwd(),
+    connectorExecutor: input.connectorExecutor,
   });
   const cycle = await run(signal);
   return mapCycleToSurface(cycle, "workspace_full_runtime");

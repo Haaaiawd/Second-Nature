@@ -1,9 +1,24 @@
 import { z } from "zod";
 
-import type { CredentialContext, CredentialState } from "../../shared/types/credential.js";
-import { classifyFailure, ConnectorPolicyError, type FailureClass } from "./failure-taxonomy.js";
+import type {
+  CredentialContext,
+  CredentialState,
+} from "../../shared/types/credential.js";
+import {
+  classifyFailure,
+  ConnectorPolicyError,
+  type FailureClass,
+} from "./failure-taxonomy.js";
 
-export const CHANNEL_TYPES = ["api_rest", "api_rpc", "a2a", "mcp", "cli", "skill", "browser"] as const;
+export const CHANNEL_TYPES = [
+  "api_rest",
+  "api_rpc",
+  "a2a",
+  "mcp",
+  "cli",
+  "skill",
+  "browser",
+] as const;
 export type ChannelType = (typeof CHANNEL_TYPES)[number];
 
 export const CAPABILITY_INTENTS = [
@@ -68,10 +83,14 @@ export interface CredentialContextPort {
 }
 
 export interface CooldownLedgerPort {
-  loadCooldownState(platformId: string, intent: CapabilityIntent): Promise<{ blocked: boolean; retryAfterMs?: number }>;
+  loadCooldownState(
+    platformId: string,
+    intent: CapabilityIntent,
+  ): Promise<{ blocked: boolean; retryAfterMs?: number }>;
 }
 
-export interface RouteContextPort extends CredentialContextPort, CooldownLedgerPort {}
+export interface RouteContextPort
+  extends CredentialContextPort, CooldownLedgerPort {}
 
 export interface ConnectorManifestLike {
   platformId: string;
@@ -90,7 +109,10 @@ export interface ConnectorManifestLoader {
 }
 
 export interface RoutePlanner {
-  planRoute(intent: CapabilityIntent, request: ConnectorRequest): Promise<ExecutionPlan>;
+  planRoute(
+    intent: CapabilityIntent,
+    request: ConnectorRequest,
+  ): Promise<ExecutionPlan>;
 }
 
 export interface ExecutionRunner {
@@ -98,7 +120,21 @@ export interface ExecutionRunner {
 }
 
 export interface ConnectorExecutionPort {
-  executeCapability(intent: CapabilityIntent, request: ConnectorRequest): Promise<ConnectorResult<unknown>>;
+  executeCapability(
+    intent: CapabilityIntent,
+    request: ConnectorRequest,
+  ): Promise<ConnectorResult<unknown>>;
+}
+
+export interface ConnectorExecutor {
+  executeEffect(input: {
+    platformId: string;
+    intent: CapabilityIntent;
+    payload: Record<string, unknown>;
+    decisionId: string;
+    intentId: string;
+    idempotencyKey: string;
+  }): Promise<ConnectorResult<unknown>>;
 }
 
 const connectorRequestSchema = z.object({
@@ -112,7 +148,9 @@ const connectorRequestSchema = z.object({
   intentId: z.string().min(1).optional(),
 });
 
-export function normalizeOutcome(attempt: RawAttempt): ConnectorResult<unknown> {
+export function normalizeOutcome(
+  attempt: RawAttempt,
+): ConnectorResult<unknown> {
   if (attempt.success) {
     return {
       status: "success",
@@ -148,7 +186,10 @@ export function createConnectorContractCore(input: {
   const { manifestLoader, routePlanner, executionRunner } = input;
 
   return {
-    async executeCapability(intent: CapabilityIntent, request: ConnectorRequest): Promise<ConnectorResult<unknown>> {
+    async executeCapability(
+      intent: CapabilityIntent,
+      request: ConnectorRequest,
+    ): Promise<ConnectorResult<unknown>> {
       connectorRequestSchema.parse(request);
       if (intent !== request.intent) {
         throw new Error("connector_intent_mismatch");
@@ -156,7 +197,10 @@ export function createConnectorContractCore(input: {
 
       const manifest = manifestLoader.loadManifest(request.platformId);
       if (!manifest.supportedCapabilities.includes(intent)) {
-        throw new ConnectorPolicyError("protocol_mismatch", "capability_not_supported_by_manifest");
+        throw new ConnectorPolicyError(
+          "protocol_mismatch",
+          "capability_not_supported_by_manifest",
+        );
       }
 
       const plan = await routePlanner.planRoute(intent, request);
