@@ -26,7 +26,10 @@ import {
   createRuntimeDecisionRecorder,
   type RuntimeDecisionRecorder,
 } from "../observability/services/runtime-decision-recorder.js";
-import { createConnectorExecutorAdapter } from "../connectors/services/connector-executor-adapter.js";
+import {
+  createConnectorExecutorAdapter,
+  type ConnectorExecutor,
+} from "../connectors/services/connector-executor-adapter.js";
 
 export interface CommandRouter {
   commands: CliCommandDefinition[];
@@ -45,6 +48,8 @@ export interface CliRuntimeDeps {
   actionBridge: ActionBridge;
   /** T1.2.3 — write back full-runtime heartbeat cycles into observability so `loadStatus` exits unknown. */
   runtimeRecorder: RuntimeDecisionRecorder;
+  /** Connector-system executor used by full-runtime heartbeat connector_action intents. */
+  connectorExecutor: ConnectorExecutor;
 }
 
 export interface CreateCommandRouterOptions {
@@ -74,6 +79,12 @@ export function createCliRuntimeDeps(
   const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
   const runtimeRecorder =
     overrides.runtimeRecorder ?? createRuntimeDecisionRecorder(observabilityDb);
+  const connectorExecutor =
+    overrides.connectorExecutor ??
+    createConnectorExecutorAdapter({
+      stateDb,
+      observabilityDb,
+    });
 
   return {
     stateDb,
@@ -82,6 +93,7 @@ export function createCliRuntimeDeps(
     readModels,
     actionBridge,
     runtimeRecorder,
+    connectorExecutor,
   };
 }
 
@@ -90,10 +102,6 @@ export function createCommandRouter(
 ): CommandRouter {
   const runtime = createCliRuntimeDeps(options.deps);
   const pluginRoot = path.join(process.cwd(), "plugin");
-  const connectorExecutor = createConnectorExecutorAdapter({
-    stateDb: runtime.stateDb,
-    observabilityDb: runtime.observabilityDb,
-  });
   const opsRouter = createOpsRouter({
     runtimeAvailable: resolvePackagedRuntime(pluginRoot).ok,
     readModels: runtime.readModels,
@@ -101,7 +109,7 @@ export function createCommandRouter(
     state: runtime.stateDb,
     workspaceRoot: process.cwd(),
     observabilityDb: runtime.observabilityDb,
-    connectorExecutor,
+    connectorExecutor: runtime.connectorExecutor,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,

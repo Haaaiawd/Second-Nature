@@ -46,6 +46,7 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
             observabilityDb,
             state: stateDb,
             workspaceRoot: resolvedRoot,
+            connectorExecutor: deps.connectorExecutor,
         });
         const commands = commandsMod.createCliCommands({
             readModels: deps.readModels,

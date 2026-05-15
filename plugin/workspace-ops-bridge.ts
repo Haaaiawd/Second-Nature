@@ -52,6 +52,8 @@ export async function openWorkspaceOpsBridge(
         observabilityDb: { close: () => void };
         /** Optional in older packaged runtimes (pre-T1.2.3); undefined is tolerated. */
         runtimeRecorder?: unknown;
+        /** Optional in older packaged runtimes; when present, heartbeat connector_action is wired. */
+        connectorExecutor?: unknown;
       };
       closeCliRuntimeDeps: (deps: {
         stateDb: { close: () => void };
@@ -64,6 +66,7 @@ export async function openWorkspaceOpsBridge(
         observabilityDb?: unknown;
         state?: unknown;
         workspaceRoot?: string;
+        connectorExecutor?: unknown;
       }) => {
         dispatch: (command: string, input?: Record<string, unknown>) => unknown;
       };
@@ -125,6 +128,7 @@ export async function openWorkspaceOpsBridge(
       observabilityDb,
       state: stateDb,
       workspaceRoot: resolvedRoot,
+      connectorExecutor: deps.connectorExecutor,
     });
     const commands = commandsMod.createCliCommands({
       readModels: deps.readModels,
