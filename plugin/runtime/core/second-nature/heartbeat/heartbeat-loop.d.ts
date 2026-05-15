@@ -19,6 +19,7 @@ import { type HeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
 import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
 import { type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
+import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 export interface HeartbeatDecisionTracePayload {
     scope: RuntimeScope;
     status: HeartbeatCycleStatus;
@@ -44,7 +45,7 @@ export interface HeartbeatQuietWorkflowDeps {
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
  */
-export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow">): Promise<HeartbeatCycleResult>;
+export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor">): Promise<HeartbeatCycleResult>;
 export interface HeartbeatDeps {
     /** Load snapshot inputs from state-system */
     loadSnapshotInputs: () => Promise<SnapshotInputs>;
@@ -52,6 +53,11 @@ export interface HeartbeatDeps {
     recordDecisionTrace?: (payload: HeartbeatDecisionTracePayload) => Promise<void>;
     outreachDispatch?: HeartbeatOutreachDispatchDeps;
     quietWorkflow?: HeartbeatQuietWorkflowDeps;
+    /**
+     * When present, guard-allowed connector_action intents are dispatched
+     * through the connector-system instead of returning connector_dispatch_unwired.
+     */
+    connectorExecutor?: ConnectorExecutor;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

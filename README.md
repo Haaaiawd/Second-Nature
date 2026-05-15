@@ -363,6 +363,7 @@ The rhythm layer constrains *when* classes of intents may appear; guards and pol
 - `reports/int-s2-evidence-rhythm-loop.md` — evidence + rhythm heartbeat spine (S2)
 - `reports/int-s3-outreach-delivery-quiet.md` — outreach / delivery / Quiet closure (S3)
 - `reports/int-s4-release-readiness.md` — packaging / docs / **real host** readiness tracker (partial until you run host smoke)
+- `reports/openclaw-carrier-host-brief.md` — **OpenClaw carrier** heartbeat semantics for agents + one-file JSON archive (replaces older INT-S4 host evidence splits)
 - `docs/validation/int-s4-host-smoke-testing-guide.md` — **INT-S4** operator E2E / manual host smoke steps + evidence template
 - `reports/release-gate-v5-s4.md` — consolidated release gate (T1.4.2)
 - `reports/t7-1-1-documentation-traceability-checklist.md` — PRD ↔ tasks traceability (T7.1.1)

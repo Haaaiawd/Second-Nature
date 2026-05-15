@@ -78,6 +78,16 @@ export interface ExecutionRunner {
 export interface ConnectorExecutionPort {
     executeCapability(intent: CapabilityIntent, request: ConnectorRequest): Promise<ConnectorResult<unknown>>;
 }
+export interface ConnectorExecutor {
+    executeEffect(input: {
+        platformId: string;
+        intent: CapabilityIntent;
+        payload: Record<string, unknown>;
+        decisionId: string;
+        intentId: string;
+        idempotencyKey: string;
+    }): Promise<ConnectorResult<unknown>>;
+}
 export declare function normalizeOutcome(attempt: RawAttempt): ConnectorResult<unknown>;
 export declare function createConnectorContractCore(input: {
     manifestLoader: ConnectorManifestLoader;

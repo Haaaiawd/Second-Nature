@@ -128,17 +128,27 @@ function updateManifests() {
   console.log("\n🔧 Updating manifests...");
 
   // Update openclaw.plugin.json
+  // Note: OpenClaw 2026.5.x identifies the runtime entry via package.json
+  // openclaw.runtimeExtensions, NOT via a top-level "entry" field in
+  // openclaw.plugin.json. We strip any legacy "entry" key here so old builds
+  // upgrading in place don't keep a stale field.
   const manifestPath = path.resolve(pluginDir, "openclaw.plugin.json");
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-  manifest.entry = "./index.js";
+  if ("entry" in manifest) {
+    delete manifest.entry;
+  }
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-  console.log("✅ openclaw.plugin.json entry → ./index.js");
+  console.log("✅ openclaw.plugin.json normalized (no legacy entry field)");
 
   // Update plugin/package.json
   const pkgPath = path.resolve(pluginDir, "package.json");
   const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
   pkg.main = "./index.js";
+  pkg.openclaw = pkg.openclaw ?? {};
+  pkg.openclaw.manifest = "./openclaw.plugin.json";
   pkg.openclaw.extensions = ["./index.js"];
+  pkg.openclaw.runtimeExtensions = ["./index.js"];
+  pkg.openclaw.compat = pkg.openclaw.compat ?? { pluginApi: ">=2026.5.4" };
   // Replace index.ts with index.js in files
   pkg.files = pkg.files.map((f: string) => (f === "index.ts" ? "index.js" : f));
   // Ensure index.js is in files
@@ -148,7 +158,7 @@ function updateManifests() {
   // Remove index.ts from files if present
   pkg.files = pkg.files.filter((f: string) => f !== "index.ts");
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
-  console.log("✅ plugin/package.json updated (main, extensions, files)");
+  console.log("✅ plugin/package.json updated (main, openclaw.{extensions,runtimeExtensions,compat}, files)");
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -175,8 +185,27 @@ function main() {
     console.error("❌ plugin/index.js not found");
     process.exit(1);
   }
-  if (manifest.entry !== "./index.js") {
-    console.error("❌ openclaw.plugin.json entry is not ./index.js");
+  if (!Array.isArray(pkg.openclaw?.runtimeExtensions) || !pkg.openclaw.runtimeExtensions.includes("./index.js")) {
+    console.error("❌ package.json openclaw.runtimeExtensions must include ./index.js");
+    process.exit(1);
+  }
+  if (manifest.contracts == null || typeof manifest.contracts !== "object") {
+    console.error("❌ openclaw.plugin.json missing 'contracts' (capability shape required by OpenClaw >= 2026.5.4)");
+    process.exit(1);
+  }
+  if (manifest.activation?.onStartup !== true) {
+    console.error(
+      "❌ openclaw.plugin.json missing activation.onStartup=true (gateway daemon will silently skip this plugin)",
+    );
+    process.exit(1);
+  }
+  if (
+    !Array.isArray(manifest.activation?.onCapabilities) ||
+    !manifest.activation.onCapabilities.includes("tool")
+  ) {
+    console.error(
+      "❌ openclaw.plugin.json missing activation.onCapabilities=['tool'] (Second Nature is a tool plugin per docs/validation/openclaw-plugin-classification.md)",
+    );
     process.exit(1);
   }
   if (pkg.main !== "./index.js") {

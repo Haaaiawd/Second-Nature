@@ -1,6 +1,14 @@
 import { z } from "zod";
-import { classifyFailure, ConnectorPolicyError } from "./failure-taxonomy.js";
-export const CHANNEL_TYPES = ["api_rest", "api_rpc", "a2a", "mcp", "cli", "skill", "browser"];
+import { classifyFailure, ConnectorPolicyError, } from "./failure-taxonomy.js";
+export const CHANNEL_TYPES = [
+    "api_rest",
+    "api_rpc",
+    "a2a",
+    "mcp",
+    "cli",
+    "skill",
+    "browser",
+];
 export const CAPABILITY_INTENTS = [
     "feed.read",
     "post.publish",

@@ -1,14 +1,17 @@
 import * as crypto from "crypto";
 function needsLease(effectClass) {
-    return effectClass === "external_platform_action" || effectClass === "connector_action" || effectClass === "user_outreach";
+    return (effectClass === "external_platform_action" ||
+        effectClass === "connector_action" ||
+        effectClass === "user_outreach");
 }
 function needsCheckpoint(effectClass) {
     return effectClass !== "maintenance" && effectClass !== "no_effect";
 }
 function isConnectorEffect(effectClass) {
-    return effectClass === "external_platform_action" || effectClass === "connector_action";
+    return (effectClass === "external_platform_action" ||
+        effectClass === "connector_action");
 }
-function toCapabilityIntent(intent) {
+export function toCapabilityIntent(intent) {
     if (intent.kind === "work")
         return "work.discover";
     if (intent.kind === "exploration")
@@ -48,7 +51,9 @@ export class EffectDispatcher {
                 id: decision.checkpointId,
                 tickId: decision.tickId,
                 intentId: decision.intentId,
-                phase: isConnectorEffect(intent.effectClass) ? "before_effect" : "before_quiet_write",
+                phase: isConnectorEffect(intent.effectClass)
+                    ? "before_effect"
+                    : "before_quiet_write",
                 snapshotRef: decision.traceId,
             });
         }

@@ -5,7 +5,7 @@
 > **契约来源**: `.anws/v5/05_TASKS.md` **INT-S4**；`01_PRD.md` US-007 / US-008；`04_SYSTEM_DESIGN/cli-system.md` §12.2。
 
 > **🧭 新版（人类观感 + carrier 诚实）**  
-> CH-09/10 回流后（仓库 **`3792d06`** 起），`second_nature_ops` 的 **`status` / `quiet` / `heartbeat_check`** 语义已变：**不再用「全绿空盘」冒充读模型**。若你关心「用起来心里踏不踏实、Quiet 有没有骗人」，请优先跟 **`docs/validation/int-s4-human-operator-testing-guide.md`**；本文件的 J2/J 表若与插件行为冲突，以该指南 + 当前 `plugin/index.ts` 为准。
+> CH-09/10 回流后（仓库 **`3792d06`** 起），`second_nature_ops` 的 **`status` / `quiet` / `heartbeat_check`** 语义已变：**不再用「全绿空盘」冒充读模型**。若你关心「用起来心里踏不踏实、Quiet 有没有骗人」，请优先跟 **`docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`**（J-HOST 表）+ **`reports/int-s4-release-readiness.md`**；本文件的 J2/J 表若与插件行为冲突，以 J-HOST 表 + 当前 `plugin/index.ts` 为准。
 
 ---
 
@@ -27,7 +27,7 @@
 
 **本文件在仓库内的生成状态**
 
-- **Execution（Cursor / CI）**: **PARTIAL** — 已在真实 OpenClaw 仪表盘会话（隧道）跑通 `second_nature_ops` 多命令；**J3–J5 仍未闭合**；**PRD US 主链未全开绿**。逐项证据与 US 对照见 `**reports/int-s4-e2e-prd-confirmation.md`**（以该报告为 E2E/PRD 确认 SoT，本文件表格可由操作者同步回填）。
+- **Execution（Cursor / CI）**: **PARTIAL** — 已在真实 OpenClaw 仪表盘会话（隧道）跑通 `second_nature_ops` 多命令；**J3–J5 仍未闭合**；**PRD US 主链未全开绿**。逐项证据与 US 对照见 **`docs/validation/e2e-v5-prd-full-lived-experience.md`**（RTM）并同步回填 **`reports/int-s4-release-readiness.md`**。
 
 ---
 

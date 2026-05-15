@@ -44,9 +44,30 @@ test("T5.3.1 plugin package + manifest are discoverable for host loading", () =>
   assert.ok((pluginPkg.files as string[]).includes("runtime/"));
 
   assert.equal(manifest.id, "second-nature");
-  assert.equal(manifest.entry, "./index.js");
-  assert.equal((manifest.capabilities as any).commands[0], "second-nature");
-  assert.equal((manifest.capabilities as any).tools[0], "second_nature_ops");
+  // OpenClaw 2026.5.x scans `contracts` (not the legacy `capabilities` key) to
+  // expose tools/commands/services. The runtime entry now lives in package.json
+  // `openclaw.runtimeExtensions`, so manifest.entry must NOT be present (it
+  // would mark the manifest as legacy and drop the new fields on the floor).
+  assert.equal(manifest.entry, undefined);
+  assert.equal((manifest.contracts as any).commands[0], "second-nature");
+  assert.equal((manifest.contracts as any).tools[0], "second_nature_ops");
+  assert.deepEqual(
+    (pluginPkg.openclaw as { runtimeExtensions?: string[] }).runtimeExtensions,
+    ["./index.js"],
+  );
+
+  // CRITICAL — manifest.activation gates whether the gateway daemon's
+  // `loadGatewayStartupPluginPlan` will load this plugin at all. Tool-only
+  // plugins (no channel / no provider / no context-engine slot) MUST opt in
+  // via `activation.onStartup: true`. Without it the plugin appears enabled
+  // in the registry yet never reaches register(api) inside the daemon, which
+  // is exactly the silent-failure mode we hit on 2026-05-06. The
+  // `onCapabilities: ["tool"]` declaration is a second, semantically honest
+  // ticket aligned with discovery-B9FIOZR8.js's onCapabilities allow-list
+  // ("provider" | "channel" | "tool" | "hook"). Do not relax these.
+  const activation = manifest.activation as { onStartup?: boolean; onCapabilities?: string[] } | undefined;
+  assert.equal(activation?.onStartup, true, "manifest.activation.onStartup must be true for tool-only plugins");
+  assert.deepEqual(activation?.onCapabilities, ["tool"], "manifest.activation.onCapabilities must declare ['tool']");
 });
 
 test("T5.3.1 plugin entry declares load/reload lifecycle registration markers", () => {

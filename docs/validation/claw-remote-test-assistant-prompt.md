@@ -8,30 +8,27 @@
 
 ## 必读契约（仓库内路径，相对仓库根）
 
-1. **`docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`**  
-   - 严格按其中的 **Journeys（J-HOST-01～04）** 与 **Step breakdown** 执行。  
-   - **不得**在未看到宿主返回前把 Step 结果写成 `PASS`。
-
-2. **`docs/validation/int-s4-human-operator-testing-guide.md`**（观感与对话模板，尤其 §D4、§D7）
-
-3. **`docs/validation/int-s4-host-smoke-testing-guide.md`**（若需与 J0–J7 对齐时引用）
-
+1. `**docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`**
+  - 严格按其中的 **Journeys（J-HOST-01～04）** 与 **Step breakdown** 执行。  
+  - **不得**在未看到宿主返回前把 Step 结果写成 `PASS`。
+2. `**docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`**（J-HOST 表；根对齐见 J-HOST-02；`explain` 见 J-HOST-01 Step 6）
+3. `**docs/validation/int-s4-host-smoke-testing-guide.md`**（若需与 J0–J7 对齐时引用）
 4. **可选**：`reports/int-s4-release-readiness.md` — 把宿主结果回填到对应行。
 
 ## 环境假设
 
-- 操作者已安装与本仓库 **`git rev-parse HEAD` 一致**（或由其声明）的 **Second Nature 插件**构建产物，并在 Claw 里启用 `second_nature_ops`。
+- 操作者已安装与本仓库 `**git rev-parse HEAD` 一致**（或由其声明）的 **Second Nature 插件**构建产物，并在 Claw 里启用 `second_nature_ops`。
 - 你通过 **SSH 穿透后的 Web URL** 操作 Claw：登录、找到 **Agent 对话 / 工具调用** 界面；若无法登录，在 **Findings** 里记 **BLOCKED** 并停止编造结果。
 
 ## 执行原则
 
 1. **一次只做一件事**：每条工具调用单独发；每次粘贴 **完整 JSON** 响应（可 redact 路径中的用户名）。
 2. **对照 JSON 字段**，不要凭叙事判断：重点字段 `ok`、`surfaceMode`、`status`、`livedExperienceLoopClaimed`、`workspaceRootResolution`、`error.code`、`data.evaluated`。
-3. **两组对照必做**：  
-   - **根 unknown**：不传 `workspaceRoot`、不设 `SECOND_NATURE_WORKSPACE_ROOT`（或操作者确认已清除）。  
-   - **根 known**：二选一或都做 — **(A)** 工具参数 `workspaceRoot` 指向真实 workspace；**(B)** 进程/网关环境变量 `SECOND_NATURE_WORKSPACE_ROOT` 指向同一根（见 J-HOST-04）。
-4. **`explain`（CH-11-02）**：根 unknown 且带有效 `subject` 时，**必须** `ok: false` 且含 `EXPLAIN_READ_SURFACE_UNAVAILABLE`；若仍为 `ok:true`，判 **FAIL / 旧包**，写入 Findings。
-5. **`heartbeat_check`（US-001 / CH-11-01）**：根 known 时应能进入 **`workspace_full_runtime`** 语义（非长期停在 `runtime_carrier_only` 冒充闭环）；若桥接加载被沙箱拦截，应出现 **显式错误载荷** 而非假成功 — 记 **Evidence** 与 **Suggested fix**（例如宿主策略 / Plan B）。
+3. **两组对照必做**：
+  - **根 unknown**：不传 `workspaceRoot`、不设 `SECOND_NATURE_WORKSPACE_ROOT`（或操作者确认已清除）。  
+  - **根 known**：二选一或都做 — **(A)** 工具参数 `workspaceRoot` 指向真实 workspace；**(B)** 进程/网关环境变量 `SECOND_NATURE_WORKSPACE_ROOT` 指向同一根（见 J-HOST-04）。
+4. `**explain`（CH-11-02）**：根 unknown 且带有效 `subject` 时，**必须** `ok: false` 且含 `EXPLAIN_READ_SURFACE_UNAVAILABLE`；若仍为 `ok:true`，判 **FAIL / 旧包**，写入 Findings。
+5. `**heartbeat_check`（US-001 / CH-11-01）**：根 known 时应能进入 `**workspace_full_runtime`** 语义（非长期停在 `runtime_carrier_only` 冒充闭环）；若桥接加载被沙箱拦截，应出现 **显式错误载荷** 而非假成功 — 记 **Evidence** 与 **Suggested fix**（例如宿主策略 / Plan B）。
 
 ## 输出格式（每轮宿主会话结束后交给人类）
 

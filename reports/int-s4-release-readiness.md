@@ -1,7 +1,7 @@
 # INT-S4 — Release readiness (partial)
 
-**Date**: 2026-05-03（更新）  
-**状态**: **里程碑 INT-S4 仍未勾选完成** — 代码侧 S4 依赖任务已交付；**真实宿主冒烟**与 INT-S4 报告勾选仍待操作者在生产/准生产 OpenClaw 上补证据。
+**Date**: 2026-05-04（更新）  
+**状态**: **里程碑 INT-S4 仍未勾选完成** — T1.1.4 相关 **J-HOST-01 与未设根工具链**已在 OpenClaw（隧道 UI）跑通并完成 JSON 归档；**J-HOST-02 Step1（网关 env 证明）** 与 **CH-11-01 宿主沙箱独占证** 仍 `partial/⏳`（宿主 JSON 与 Claw 节律见 **`reports/openclaw-carrier-host-brief.md`**；旅程表见 `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`）。
 
 ## 本波次已交付（可自动化证据）
 
@@ -17,6 +17,7 @@
 | T1.4.2 release gate 汇总                                                                     | `reports/release-gate-v5-s4.md`                                                                                                 |
 | T7.1.1 文档追溯 checklist                                                                      | `reports/t7-1-1-documentation-traceability-checklist.md`                                                                        |
 | `pnpm exec tsc --noEmit` + `pnpm test`（含 `pnpm build:plugin`）                              | 全绿                                                                                                                              |
+| T1.1.4 / INT-S4 **J-HOST-01 + 未设根四连调**（OpenClaw UI + 同提交 JSON 归档） | `reports/openclaw-carrier-host-brief.md`；`docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`（J-HOST-02/03/04 **partial**，网关 env 证明 **⏳**） |
 
 
 ## 仍为 `validation-needed`（INT-S4 退出标准）

@@ -29,10 +29,20 @@ function localPathResult(root: string): SmokeResult {
   const manifestPath = path.join(pluginDir, "openclaw.plugin.json");
   const entryPath = path.join(pluginDir, "index.js");
 
-  const pluginPkg = ensureFile(pluginPkgPath) ? JSON.parse(fs.readFileSync(pluginPkgPath, "utf-8")) as { main?: string } : undefined;
-  const manifest = ensureFile(manifestPath)
-    ? JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as { entry?: string }
+  const pluginPkg = ensureFile(pluginPkgPath)
+    ? (JSON.parse(fs.readFileSync(pluginPkgPath, "utf-8")) as {
+        main?: string;
+        openclaw?: { runtimeExtensions?: string[]; compat?: { pluginApi?: string } };
+      })
     : undefined;
+  const manifest = ensureFile(manifestPath)
+    ? (JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as {
+        contracts?: unknown;
+        activation?: { onStartup?: boolean; onCapabilities?: string[] };
+      })
+    : undefined;
+
+  const activation = manifest?.activation;
 
   const checks = {
     pluginDirExists: fs.existsSync(pluginDir),
@@ -40,7 +50,28 @@ function localPathResult(root: string): SmokeResult {
     manifestExists: ensureFile(manifestPath),
     entryExists: ensureFile(entryPath),
     packageMainIsIndexJs: pluginPkg?.main === "./index.js",
-    manifestEntryIsIndexJs: manifest?.entry === "./index.js",
+    // OpenClaw 2026.5.x discovers the runtime entry via openclaw.runtimeExtensions
+    // in package.json; the legacy manifest.entry field is no longer required.
+    packageRuntimeExtensionsHasIndexJs:
+      Array.isArray(pluginPkg?.openclaw?.runtimeExtensions) &&
+      pluginPkg.openclaw.runtimeExtensions.includes("./index.js"),
+    // contracts: { tools, commands, services } enumerates the agent-facing
+    // surface this plugin contributes. The host does not use it for shape
+    // classification — it just exposes the tools/commands/services to agents
+    // once the plugin is loaded.
+    manifestHasContracts:
+      manifest?.contracts !== undefined &&
+      manifest?.contracts !== null &&
+      typeof manifest.contracts === "object",
+    // CRITICAL — without activation.onStartup the gateway daemon's
+    // loadGatewayStartupPluginPlan will silently skip this plugin (it has no
+    // channel/provider/context-engine slot to ride). onCapabilities mirrors
+    // the discovery allow-list ("provider" | "channel" | "tool" | "hook") and
+    // is our second startup ticket.
+    manifestActivationOnStartupTrue: activation?.onStartup === true,
+    manifestActivationDeclaresToolCapability:
+      Array.isArray(activation?.onCapabilities) &&
+      activation.onCapabilities.includes("tool"),
   };
 
   return {

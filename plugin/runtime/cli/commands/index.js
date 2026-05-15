@@ -1,7 +1,7 @@
 import { credentialVerify } from "./credential.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
-import { showOperatorFallback, OperatorFallbackNotFoundError } from "../ops/show-operator-fallback.js";
+import { showOperatorFallback, OperatorFallbackNotFoundError, } from "../ops/show-operator-fallback.js";
 import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.js";
 import { policySet } from "./policy.js";
 const notImplemented = async (command) => ({
@@ -40,7 +40,10 @@ export function createCliCommands(deps) {
                 if (action === "set") {
                     return policySet(actionBridge, input);
                 }
-                return notImplemented("policy");
+                // T1.2.6 (SN-CODE-01): `policy show` (default) returns the current rhythm policy
+                // snapshot. Returns workspace defaults when no policy row has been persisted yet.
+                const data = await readModels.loadPolicy();
+                return { ok: true, data };
             },
         },
         {
@@ -69,7 +72,9 @@ export function createCliCommands(deps) {
             name: "report",
             description: "Show daily report artifacts",
             execute: async (input) => {
-                const day = typeof input?.day === "string" ? input.day : new Date().toISOString().slice(0, 10);
+                const day = typeof input?.day === "string"
+                    ? input.day
+                    : new Date().toISOString().slice(0, 10);
                 const data = await readModels.loadDailyReport(day);
                 return { ok: true, data };
             },
@@ -97,7 +102,12 @@ export function createCliCommands(deps) {
         {
             name: "audit",
             description: "Inspect audit and evidence views",
-            execute: () => notImplemented("audit"),
+            execute: async () => {
+                // T1.2.7 (SN-CODE-02): minimal read-side view — list all in-memory audit events.
+                // Empty store returns { totalEvents: 0, events: [] } (honest empty, not an error).
+                const data = await readModels.loadAuditSummary();
+                return { ok: true, data };
+            },
         },
         {
             name: "explain",
@@ -148,8 +158,13 @@ export function createCliCommands(deps) {
             description: "T4.1.4 — report sql.js vs native SQLite probe and optional artifact→index repair fixture",
             execute: async (input) => {
                 const runRepairFixture = Boolean(input?.runRepairFixture);
-                const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
-                const data = await runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+                const workspaceRoot = typeof input?.workspaceRoot === "string"
+                    ? input.workspaceRoot
+                    : undefined;
+                const data = await runStorageModeSmoke({
+                    runRepairFixture,
+                    workspaceRoot,
+                });
                 return { ok: true, data };
             },
         },
@@ -187,6 +202,22 @@ export function createCliCommands(deps) {
                     }
                     throw error;
                 }
+            },
+        },
+        {
+            name: "capability_probe",
+            description: "T1.2.8 — probe host capabilities and persist report (static unknown adapter in CLI context)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("capability_probe", input));
+                return surface;
+            },
+        },
+        {
+            name: "near_real_smoke",
+            description: "T3.3.2 — run near-real connector smoke (sentinel Moltbook + EvoMap, no live HTTP)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("near_real_smoke", input));
+                return surface;
             },
         },
     ];

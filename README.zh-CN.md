@@ -337,6 +337,7 @@ CLI 目前也提供这些读与恢复入口：
 - `reports/int-s2-evidence-rhythm-loop.md` — S2 证据与节律
 - `reports/int-s3-outreach-delivery-quiet.md` — S3 联系、投递、Quiet
 - `reports/int-s4-release-readiness.md` — S4 发布就绪（**真实宿主**部分需现场补全）
+- `reports/openclaw-carrier-host-brief.md` — **OpenClaw carrier** 侧助手节律说明 + 宿主 JSON 单行归档（合并原分散的 INT-S4 宿主证据）
 - `docs/validation/int-s4-host-smoke-testing-guide.md` — **INT-S4** 宿主冒烟 E2E / 手动步骤与证据模板
 - `reports/release-gate-v5-s4.md` — 发布门禁汇总（T1.4.2）
 - `reports/t7-1-1-documentation-traceability-checklist.md` — 文档追溯（T7.1.1）
