@@ -742,12 +742,6 @@ function buildHeartbeatCheckPayload(
 }
 
 function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
-  const notImplemented = async (command: string): Promise<CommandPayload> => ({
-    ok: false,
-    command,
-    message: HOST_SAFE_LIMITATION_MESSAGE,
-  });
-
   const commands: CommandDefinition[] = [
     {
       name: "status",

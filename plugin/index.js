@@ -538,11 +538,6 @@ function buildHeartbeatCheckPayload(spine, input) {
     };
 }
 function createHostSafeRouter(spine) {
-    const notImplemented = async (command) => ({
-        ok: false,
-        command,
-        message: HOST_SAFE_LIMITATION_MESSAGE,
-    });
     const commands = [
         {
             name: "status",
