@@ -608,7 +608,7 @@ graph TD
 
 ## System 7: Dream System (`dream-system`)
 
-- [ ] **T7.1.1** [REQ-001]: 实现 Dream Pipeline
+- [x] **T7.1.1** [REQ-001]: 实现 Dream Pipeline
   - **描述**: Dream core: rules consolidate -> sampling -> redaction -> optional model -> validation -> candidate output。
   - **输入**: `04_SYSTEM_DESIGN/dream-system.md` §pipeline；ADR-004；T4.1.1-T4.1.5 outputs。
   - **输出**: `dream-engine.ts`、`memory-consolidator.ts`、`dream-validator.ts`。
