@@ -631,7 +631,7 @@ graph TD
   - **依赖**: T4.1.1, T4.1.2, T4.1.3, T4.1.4, T4.1.5
   - **优先级**: P0
 
-- [ ] **T7.1.2** [REQ-001]: 实现 Dream 调度器
+- [x] **T7.1.2** [REQ-001]: 实现 Dream 调度器
   - **描述**: 支持 cron、evidence threshold、manual trigger，并通过 DreamRunLock 避免同 window 重复运行。
   - **输入**: `04_SYSTEM_DESIGN/dream-system.md` §scheduleDream；`04_SYSTEM_DESIGN/state-system.md` §DreamRunLease；T7.1.1 output。
   - **输出**: `dream-scheduler.ts`、trigger policy、lease integration。
@@ -653,7 +653,7 @@ graph TD
   - **依赖**: T7.1.1
   - **优先级**: P0
 
-- [ ] **T7.1.3** [REQ-001]: 实现 Insight Extraction
+- [x] **T7.1.3** [REQ-001]: 实现 Insight Extraction
   - **描述**: 从 sampled evidence 中提取 source-grounded insight candidates。
   - **输入**: `04_SYSTEM_DESIGN/dream-system.md` §insight extraction；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §ModelAssistPort；T7.1.1 output。
   - **输出**: `extractInsights()`、prompt contract、mockable model adapter。
@@ -675,7 +675,7 @@ graph TD
   - **依赖**: T7.1.1
   - **优先级**: P0
 
-- [ ] **T7.1.4** [REQ-001][REQ-002]: 实现 Narrative Update proposal
+- [x] **T7.1.4** [REQ-001][REQ-002]: 实现 Narrative Update proposal
   - **描述**: 基于 evidence + insight 生成 narrative update proposal，不直接绕过 state validation。
   - **输入**: `04_SYSTEM_DESIGN/dream-system.md` §narrative update；T4.1.2 output；T7.1.1 output。
   - **输出**: `draftNarrativeFromDream()`、NarrativeUpdateProposal。
@@ -695,7 +695,7 @@ graph TD
   - **依赖**: T7.1.1
   - **优先级**: P0
 
-- [ ] **T7.1.5** [REQ-001][REQ-003]: 实现 Relationship Update proposal
+- [x] **T7.1.5** [REQ-001][REQ-003]: 实现 Relationship Update proposal
   - **描述**: 基于 chronicle 生成 relationship update proposal，并防止单样本过度推断。
   - **输入**: `04_SYSTEM_DESIGN/dream-system.md` §relationship update；T4.1.3 output；T7.1.1 output。
   - **输出**: `draftRelationshipFromDream()`、RelationshipUpdateProposal。

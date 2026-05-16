@@ -66,9 +66,9 @@ export interface DreamInputBundle {
 }
 
 export interface DreamNarrativeUpdate {
-  focus?: string;
+  focus: string;
   progressAdditions: string[];
-  nextIntent?: string;
+  nextIntent: string;
   confidenceDelta: number;
   sourceRefs: string[];
   unsupportedClaims: string[];

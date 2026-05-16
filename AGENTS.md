@@ -275,6 +275,9 @@ T5.1.2：`NarrativeTracePayload` 类型；`LivedExperienceAuditRecorder.recordNa
 ### 🌊 Wave 29 ✅ — v6 S2 Dream Engine: Dream Pipeline
 T7.1.1：`src/dream/` 目录新建；`types.ts`（DreamRun/DreamOutput/DreamInputBundle/DreamTrace/DreamNarrativeUpdate/DreamRelationshipUpdate/DreamOutputValidation 与 Port 接口）；`memory-consolidator.ts`（规则去重/合并/过时清理/冲突标记）；`sampler.ts`（最近 7 天 + key events 采样）；`redaction-gate.ts`（credential/PII 模式脱敏 + sensitivity flag 阻断）；`output-validator.ts`（schema/source grounding/sensitivity/unsupported claim 验证）；`dream-engine.ts`（pipeline 编排：load→consolidate→sample→redact→budget gate→optional model→merge→validate→write output + trace）；`index.ts` 统一导出。集成测 `tests/integration/dream/t7-1-1-dream-pipeline.test.ts`（11 cases：rules-only candidate、budget exceeded fallback、no inputs skipped、model timeout partial、validation failure archived、input immutability、consolidator dedupe、sampler drop、redaction block、validator ungrounded source）。Build 通过，新增 11 测试全部 green。
 
+### 🌊 Wave 30 ✅ — v6 S2 Dream Engine: Scheduler + Insight + Narrative + Relationship
+T7.1.2：`dream-scheduler.ts`（`scheduleDream` 异步触发不阻塞 heartbeat；`DreamRunLockPort` + in-memory fallback；cron/evidence threshold/manual `shouldTrigger` 策略；并发同 window 返回 skipped）。T7.1.3：`insight-extractor.ts`（`extractInsights` rules-based：recurring word pattern、learning keyword、conflict/failure keyword、high-activity day observation；每个 insight 含 type/summary/sourceRefs/confidence）。T7.1.4：`narrative-update-proposal.ts`（`draftNarrativeFromDream` 从 evidence+insights 生成 focus/progress/nextIntent；conflict 存在时 nextIntent=resolve；低 confidence 降级；无 evidence 阻断）。T7.1.5：`relationship-update-proposal.ts`（`draftRelationshipFromDream` 从 chronicle 推断 tone/timing/topic；positive/negative/neutral tone 投票；busy/responsive/normal timing；work/personal/tech/social topic；单样本 unsupported claim 防过度推断；无 reply 返回 cooldown）。测试覆盖：scheduler 8 cases、insight 6 cases、narrative 5 cases、relationship 6 cases，全部 green。
+
 <!-- AUTO:END -->
 
 ---
