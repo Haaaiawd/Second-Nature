@@ -81,13 +81,14 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v5`
-- **活动任务清单**: `.anws/v5/05_TASKS.md`
-- **最近一次更新**: `2026-05-11` (semver **0.1.19**；Wave 20 完成：**T1.2.9**（decision_denied → awaiting_sources）、**T1.2.6**（policy show）、**T1.2.7**（audit 最小闭环）、**T1.2.8**（capability_probe ops surface）、**T3.3.2**（near_real_smoke ops entry）；**303 测试全绿**)
+- **最新架构版本**: `.anws/v6`
+- **活动任务清单**: `.anws/v6/05A_TASKS.md`
+- **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
+- **最近一次更新**: `2026-05-16` (Wave 22 `/forge`: T3.1.1 DynamicConnectorRegistry + T4.1.1 SessionChronicle 编码完成，25 测试全绿)
 
-### 🌱 Genesis v5 ✅ — Lived Experience Closure
+### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
 
-v5 将 Second Nature 从 host-safe heartbeat acknowledgment 推进为 lived-experience closure：heartbeat decision loop、life evidence、rhythm windows、Quiet source coverage、user interest snapshot 与 OpenClaw 用户可见主动联系闭环。
+v6 将 Second Nature 从 lived-experience closure 推进为 Agent Self Layer + Dream + Connector Ecosystem：NarrativeState、RelationshipMemory、AgentGoal、MemoryStore、Dream lifecycle、dynamic connector trust policy 与 JSON-first ops surface 已进入 canonical 任务/验证双文档。
 
 ---
 
@@ -118,21 +119,21 @@ src/
 └── shared/
 
 .anws/
-└── v5/
+└── v6/
    ├── 00_MANIFEST.md
    ├── 01_PRD.md
    ├── 02_ARCHITECTURE_OVERVIEW.md
    ├── 03_ADR/
    │   ├── ADR_001_TECH_STACK.md
-   │   ├── ADR_002_CONNECTOR_MODEL.md
-   │   ├── ADR_003_SECOND_NATURE_GOVERNANCE.md
-   │   ├── ADR_004_BEHAVIORAL_GUIDANCE_LAYER.md
-   │   ├── ADR_005_HEARTBEAT_RUNTIME_BOUNDARY.md
-   │   ├── ADR_006_DEPLOYABLE_PLUGIN_RUNTIME_PACKAGE.md
-   │   └── ADR_007_HEARTBEAT_DELIVERY_AND_LIFE_EVIDENCE_CLOSURE.md
+   │   ├── ADR_002_CONNECTOR_ECOSYSTEM.md
+   │   ├── ADR_003_AGENT_SELF_LAYER.md
+   │   └── ADR_004_DREAM_MECHANISM.md
    ├── 04_SYSTEM_DESIGN/
    │   └── _research/
+   ├── 05A_TASKS.md
+   ├── 05B_VERIFICATION_PLAN.md
    ├── 06_CHANGELOG.md
+   ├── 07_CHALLENGE_REPORT.md
    └── concept_model.json
 ```
 
@@ -142,12 +143,13 @@ src/
 
 > **注意**: 此部分由 `/genesis` 维护。
 
-- **架构总览**: `.anws/v5/02_ARCHITECTURE_OVERVIEW.md`
-- **PRD**: `.anws/v5/01_PRD.md`
-- **ADR**: `.anws/v5/03_ADR/` (跨系统决策的唯一记录源)
-- **OpenClaw capability research**: `.anws/v5/04_SYSTEM_DESIGN/_research/openclaw-lived-experience-closure-research.md`
-- **详细设计**: `control-plane-system`、`cli-system`、`state-system`、`behavioral-guidance-system`、`observability-system`、`connector-system` 已完成；任务清单已按第 8 轮 review 回流修复，可进入 `/forge`
-- **任务清单**: `.anws/v5/05_TASKS.md`
+- **架构总览**: `.anws/v6/02_ARCHITECTURE_OVERVIEW.md`
+- **PRD**: `.anws/v6/01_PRD.md`
+- **ADR**: `.anws/v6/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: `control-plane-system`、`cli-system`、`state-system`、`behavioral-guidance-system`、`observability-system`、`connector-system`、`dream-system` 已完成
+- **执行主清单**: `.anws/v6/05A_TASKS.md`
+- **验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
+- **质疑报告**: `.anws/v6/07_CHALLENGE_REPORT.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
@@ -164,12 +166,13 @@ src/
 - 主运行入口: OpenClaw heartbeat delivery + plugin hooks / injection
 
 ### 系统边界
-- `cli-system`: OpenClaw command/tool/service surface、runtime artifact、host capability probe — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/cli-system.md`
-- `control-plane-system`: heartbeat decision loop、rhythm windows、outreach judgment、delivery policy — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/control-plane-system.md`
-- `connector-system`: 平台读取、互动、任务发现、执行通道治理与 source-backed life evidence candidate 生产 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/connector-system.md`
-- `state-system`: life evidence、user interest snapshot、Quiet artifact、workspace memory 索引 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/state-system.md`
-- `observability-system`: heartbeat decision trace、delivery audit、source coverage、guidance grounding、host capability 与 fallback reason 证据层 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/observability-system.md`
-- `behavioral-guidance-system`: source-backed guidance assembly、friend-like outreach draft、Quiet narrative guidance 与 User Reply light continuity，不拥有行动决策权或投递权 — 详细设计见 `.anws/v5/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
+- `cli-system`: `narrative` / `goal` / `dream:recent` / `connector:*` / `cycle:recent` 与 JSON-first ops surface — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/cli-system.md`
+- `control-plane-system`: self-aware heartbeat、goal priority、narrative update 与 Dream trigger — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/control-plane-system.md`
+- `connector-system`: dynamic manifest registration、CapabilityContractRegistry、trust policy、v5 parity — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/connector-system.md`
+- `state-system`: SessionChronicle、NarrativeState、RelationshipMemory、AgentGoal、MemoryStore 与 Dream I/O lifecycle — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/state-system.md`
+- `observability-system`: DreamTrace、NarrativeTrace、ConnectorInventoryAudit、RedactionManifest 与 explain read models — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/observability-system.md`
+- `behavioral-guidance-system`: source-backed outreach、insight/narrative/relationship proposal 与 ModelAssistPort — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
+- `dream-system`: 异步记忆整理、candidate/accepted/archived/partial lifecycle、budget/timeout/redaction — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.md`
 
 ### 活跃 ADR
 - ADR-001: 主技术栈、宿主运行时与验证策略选择 — 继续 TypeScript/Node/OpenClaw plugin，验证重点转向 heartbeat delivery 与 source-backed outreach
@@ -181,11 +184,12 @@ src/
 - ADR-007: Heartbeat Delivery 与 Life Evidence 闭环 — delivery target 是主动联系成立的硬前提
 
 ### 当前任务状态
-- 任务清单: `.anws/v5/05_TASKS.md`
-- 总任务数: 51, P0: 31, P1: 16, P2: 0；**未完成里程碑**: `INT-S4`（真实宿主冒烟；编码侧 Wave 19+20 已闭合）；所有 Level-3 编码任务已完成（T1.2.6～T1.2.9、T3.3.2 由 Wave 20 闭合）
+- 执行主清单: `.anws/v6/05A_TASKS.md`
+- 验证计划: `.anws/v6/05B_VERIFICATION_PLAN.md`
+- 总任务数: 31, Level-3: 27, INT: 4, P0: 21, P1: 10, P2: 0
 - Sprint 数: 4
-- **下一步**: **INT-S4**（核对宿主 **`tools.allow` / `tools.profile`** 与会话工具表 — 宿主验收以 `second_nature_ops` JSON 为真源）
-- 最近更新: `2026-05-11`
+- **下一步**: `/forge` 从 **S1 Foundation & Connector Ecosystem** 起步，执行时必须同时读取 05A/05B；S1 关门任务为 **INT-S1**
+- 最近更新: `2026-05-16` (Round 6 `/change`: ops surface 任务承接闭合)
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
@@ -247,9 +251,24 @@ T1.2.3：新增 `createRuntimeDecisionRecorder`（`src/observability/services/ru
 ### 🌊 Wave 20 ✅ — Code-side gap closure（`/change` 2026-05-11，SN-CODE-01～05）
 **T1.2.9** [P0]：`mapRuntimeStatus` 新增 `decision_denied → awaiting_sources` 分支，控制面拒绝不再冒充 runtime `degraded`；`RuntimeSummary.serviceStatus` 枚举扩展；集成测 t1-2-9（3 cases）。**T1.2.6**：`policy show` 非空壳——`loadPolicy()` 委托 `loadRhythmPolicySnapshot`；CLI `policy` 默认路径返回 `RhythmPolicySnapshot`；集成测 t1-2-6（3 cases）。**T1.2.7**：`audit` 最小闭环——`loadAuditSummary()` 读取 in-memory `AppendOnlyAuditStore`；`createCliRuntimeDeps` 支持 `livedExperienceAuditStore` 透传；集成测 t1-2-7（3 cases）。**T1.2.8**：`capability_probe` 接入 `createOpsRouter.dispatch`（静态 unknown 适配器 + `recordHostCapability` 持久化）、`createCliCommands`、`WORKSPACE_BRIDGE_COMMANDS`、`workspace-ops-bridge`；`OpsRouterDeps` 新增可选 `observabilityDb`；集成测 t1-2-8（4 cases）。**T3.3.2**：`near_real_smoke` 接入 `createOpsRouter.dispatch`（deps 校验 + 委托 `runNearRealConnectorSmoke`）、`createCliCommands`、`WORKSPACE_BRIDGE_COMMANDS`；集成测 t3-3-2（3 cases）。**303 测试全绿**（新增 16 个）。**INT-S4** 仍待真实宿主验证。
 
+### 🌊 Wave 22 ✅ — v6 S1 Foundation: DynamicConnectorRegistry + SessionChronicle
+T3.1.1, T4.1.1
+
 <!-- AUTO:END -->
 
 ---
 
-> **状态自检**: 准备好了？提醒用户运行 `/quickstart` 开始吧。
+## Manual Handoff — v6 Design System
 
+- `dream-system`: v6 异步记忆整理引擎设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/dream-system-research.md`。
+- `connector-system`: v6 动态 connector 生态设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/connector-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/connector-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/connector-system-research.md`。
+- `state-system`: v6 Agent Self Layer 与 Dream I/O 状态真相源设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/state-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/state-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/state-system-research.md`。
+- `observability-system`: v6 DreamTrace、NarrativeTrace 与 connector inventory 审计设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/observability-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/observability-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/observability-system-research.md`。
+- `control-plane-system`: v6 self-aware heartbeat、goal priority、narrative update 与 Dream trigger 设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/control-plane-system.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/control-plane-system-research.md`。
+- `behavioral-guidance-system`: v6 source-backed outreach、insight/narrative/relationship proposal 与 ModelAssistPort 设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/behavioral-guidance-system.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/behavioral-guidance-system-research.md`。
+- `cli-system`: v6 `narrative` / `goal` / `dream:recent` / `connector:*` / `cycle:recent` 与 JSON-first ops surface 设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/cli-system.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/cli-system-research.md`。
+- 本轮 `/challenge` 与 `/change` 回写见 `.anws/v6/07_CHALLENGE_REPORT.md` 的 Round 2～6；DR3-01 已回流到 `.anws/v6/05A_TASKS.md` 的 T5.1.2 `NarrativeTrace` 与 T5.1.3 `ConnectorInventoryAudit`，DR6-01 / TR6-01 已回流到 T1.2.4～T1.2.6 与 `.anws/v6/05B_VERIFICATION_PLAN.md`。
+
+---
+
+> **状态自检**: 准备好了？提醒用户运行 `/quickstart` 开始吧。
