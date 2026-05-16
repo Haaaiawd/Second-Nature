@@ -30,6 +30,57 @@ import {
   createConnectorExecutorAdapter,
   type ConnectorExecutor,
 } from "../connectors/services/connector-executor-adapter.js";
+import {
+  DynamicConnectorRegistry,
+  createRegistrySnapshotStore,
+  type DynamicConnectorRegistry as DynamicConnectorRegistryType,
+} from "../connectors/registry/index.js";
+import type { ConnectorManifestV6 } from "../connectors/manifest/manifest-schema.js";
+
+/** Built-in connector manifests for DynamicConnectorRegistry. */
+const BUILT_IN_CONNECTOR_MANIFESTS: ConnectorManifestV6[] = [
+  {
+    schemaVersion: "sn.connector.v1",
+    platformId: "moltbook",
+    displayName: "Moltbook",
+    family: "social_community",
+    capabilities: [
+      { id: "feed.read" },
+      { id: "post.publish" },
+      { id: "comment.reply" },
+    ],
+    runner: { kind: "declarative_http" },
+    credentials: [{ type: "api_key", required: true }],
+    sourceRefPolicy: { minSourceRefs: 1 },
+  },
+  {
+    schemaVersion: "sn.connector.v1",
+    platformId: "evomap",
+    displayName: "EvoMap",
+    family: "agent_network",
+    capabilities: [
+      { id: "agent.register" },
+      { id: "work.discover" },
+    ],
+    runner: { kind: "declarative_http" },
+    credentials: [{ type: "api_key", required: true }],
+    sourceRefPolicy: { minSourceRefs: 1 },
+  },
+  {
+    schemaVersion: "sn.connector.v1",
+    platformId: "agent-world",
+    displayName: "Agent World",
+    family: "agent_network",
+    capabilities: [
+      { id: "feed.read" },
+      { id: "work.discover" },
+      { id: "task.claim" },
+    ],
+    runner: { kind: "declarative_http" },
+    credentials: [{ type: "api_key", required: true }],
+    sourceRefPolicy: { minSourceRefs: 1 },
+  },
+];
 
 export interface CommandRouter {
   commands: CliCommandDefinition[];
@@ -50,6 +101,8 @@ export interface CliRuntimeDeps {
   runtimeRecorder: RuntimeDecisionRecorder;
   /** Connector-system executor used by full-runtime heartbeat connector_action intents. */
   connectorExecutor: ConnectorExecutor;
+  /** T1.2.3 — DynamicConnectorRegistry for connector:status / connector:test commands. */
+  registry: DynamicConnectorRegistryType;
 }
 
 export interface CreateCommandRouterOptions {
@@ -85,6 +138,12 @@ export function createCliRuntimeDeps(
       stateDb,
       observabilityDb,
     });
+  const registry =
+    overrides.registry ??
+    new DynamicConnectorRegistry({
+      builtInManifests: BUILT_IN_CONNECTOR_MANIFESTS,
+      snapshotStore: createRegistrySnapshotStore(),
+    });
 
   return {
     stateDb,
@@ -94,6 +153,7 @@ export function createCliRuntimeDeps(
     actionBridge,
     runtimeRecorder,
     connectorExecutor,
+    registry,
   };
 }
 
@@ -110,6 +170,7 @@ export function createCommandRouter(
     workspaceRoot: process.cwd(),
     observabilityDb: runtime.observabilityDb,
     connectorExecutor: runtime.connectorExecutor,
+    registry: runtime.registry,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,

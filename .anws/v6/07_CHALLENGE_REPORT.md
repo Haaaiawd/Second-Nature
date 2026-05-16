@@ -14,8 +14,8 @@
 | ID | 严重度 | 类别 | 发现 | 状态 |
 | --- | --- | --- | --- | --- |
 | CH-V6-01..08 / DR3-01 / DR5-01..03 / DR6-01 | Critical-High-Medium | 历史 design/tasks 审查 | 旧轮次发现已通过 Round 2-6 回流，当前不再展开详细审查。 | Archived |
-| CR7-01 | High | Task Fulfillment / Contract Drift | `connector init` 已标记完成，但实现只生成 `manifest.yaml`，且目标已存在时返回 `ok:true skipped`，不符合 adapter/types 与失败语义。 | Open |
-| CR7-02 | High | Trust Boundary / Acceptance Gap | `connector_test` 对 pending-trust / non-executable connector 返回 `ok:true`，没有按 T1.2.3 返回 denied/pending_trust。 | Open |
+| CR7-01 | High | Task Fulfillment / Contract Drift | `connector init` 已标记完成，但实现只生成 `manifest.yaml`，且目标已存在时返回 `ok:true skipped`，不符合 adapter/types 与失败语义。 | **Resolved** — connectorInit 现生成 manifest.yaml + adapter.ts + types.ts；目标已存在返回 ok:false + reason 含 force；T1.3.1 测试断言三文件存在 + fail-closed |
+| CR7-02 | High | Trust Boundary / Acceptance Gap | `connector_test` 对 pending-trust / non-executable connector 返回 `ok:true`，没有按 T1.2.3 返回 denied/pending_trust。 | **Resolved** — connectorTest 对 executable=false 返回 ok:false + PENDING_TRUST_DENIED；T1.2.3 测试含 pending-trust fixture 断言 denied envelope |
 
 ---
 
@@ -66,7 +66,7 @@
 
 ### 总结结论
 
-Partial Pass。当前仓库能通过自动化构建与测试，但 v6 Waves 24-26 存在 2 个 High 级任务兑现缺口；因此只能说“能跑通自动化”，不能说“v6 已按契约验收通过”。
+Pass。CR7-01（connector init 三文件生成 + fail-closed）和 CR7-02（connector test pending-trust denied）已修复并通过测试。v6 Waves 24-26 契约兑现已收敛。
 
 ### 审查范围与静态边界
 
@@ -152,4 +152,4 @@ Partial Pass。当前仓库能通过自动化构建与测试，但 v6 Waves 24-2
 
 当前仓库自动化可以跑通: `pnpm test` 已通过，433/433 tests pass。
 
-但本轮 CODE `/challenge` 不能给 v6 Waves 24-26 完整验收通过结论。CR7-01 和 CR7-02 是 High 级契约漂移，不是编译失败；如果现在只问“能不能跑”，答案是能跑，如果问“能不能按 v6 契约交付”，答案是不该签收。
+CR7-01 和 CR7-02 已修复并通过测试验证（436/436 pass）。本轮 CODE `/challenge` 的 High 级契约漂移已全部收敛，v6 Waves 24-26 可按契约签收。

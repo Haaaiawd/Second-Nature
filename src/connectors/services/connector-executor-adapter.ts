@@ -22,8 +22,10 @@ import { createConnectorPolicyLayer } from "../base/policy-layer.js";
 import { InMemoryEffectCommitLedger } from "../base/execution-policy.js";
 import { moltbookManifest } from "../social-community/moltbook/manifest.js";
 import { evomapManifest } from "../agent-network/evomap/manifest.js";
+import { agentWorldManifest } from "../agent-network/agent-world/manifest.js";
 import { createMoltbookApiClient } from "../social-community/moltbook/api-client.js";
 import { createMoltbookRunner } from "../social-community/moltbook/adapter.js";
+import { createAgentWorldRunner } from "../agent-network/agent-world/adapter.js";
 import { ExecutionTelemetry } from "../../observability/services/execution-telemetry.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
 import type { StateDatabase } from "../../storage/db/index.js";
@@ -110,6 +112,50 @@ function createAdaptiveExecutionRunner(
         };
       }
 
+      if (platformId === "agent-world") {
+        const baseUrl = process.env.SECOND_NATURE_AGENT_WORLD_BASE_URL;
+        if (!baseUrl) {
+          return {
+            platformId,
+            channel: request.preferredChannel ?? "api_rest",
+            latencyMs: Date.now() - started,
+            success: false,
+            error: {
+              code: "configuration_missing",
+              detail: "SECOND_NATURE_AGENT_WORLD_BASE_URL not set",
+            },
+          };
+        }
+        const runner = createAgentWorldRunner({
+          apiClient: {
+            async readFeed(payload, _apiKey) {
+              const resp = await fetch(`${baseUrl}/api/v1/feed`, {
+                headers: { "Authorization": `Bearer ${_apiKey}`, "Content-Type": "application/json" },
+              });
+              if (!resp.ok) throw { code: "api_error", detail: `agent-world feed: ${resp.status}` };
+              return resp.json();
+            },
+            async discoverWork(payload, _apiKey) {
+              const resp = await fetch(`${baseUrl}/api/v1/work`, {
+                headers: { "Authorization": `Bearer ${_apiKey}`, "Content-Type": "application/json" },
+              });
+              if (!resp.ok) throw { code: "api_error", detail: `agent-world work: ${resp.status}` };
+              return resp.json();
+            },
+            async claimTask(payload, _apiKey) {
+              const resp = await fetch(`${baseUrl}/api/v1/tasks/${payload.taskId ?? "unknown"}/claim`, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${_apiKey}`, "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              if (!resp.ok) throw { code: "api_error", detail: `agent-world claim: ${resp.status}` };
+              return resp.json();
+            },
+          },
+        });
+        return runner.run(_plan, request);
+      }
+
       return {
         platformId,
         channel: request.preferredChannel ?? "api_rest",
@@ -131,6 +177,7 @@ export function createConnectorExecutorAdapter(
   const registry = new CapabilityContractRegistry();
   registry.register({ ...moltbookManifest });
   registry.register({ ...evomapManifest });
+  registry.register({ ...agentWorldManifest });
 
   const routeContextPort = createCredentialRouteContextPort(vault);
   const routePlanner = new ConnectorRoutePlanner(

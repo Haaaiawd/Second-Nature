@@ -8,6 +8,51 @@ import { createCliReadModels, } from "./read-models/index.js";
 import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
 import { createRuntimeDecisionRecorder, } from "../observability/services/runtime-decision-recorder.js";
 import { createConnectorExecutorAdapter, } from "../connectors/services/connector-executor-adapter.js";
+import { DynamicConnectorRegistry, createRegistrySnapshotStore, } from "../connectors/registry/index.js";
+/** Built-in connector manifests for DynamicConnectorRegistry. */
+const BUILT_IN_CONNECTOR_MANIFESTS = [
+    {
+        schemaVersion: "sn.connector.v1",
+        platformId: "moltbook",
+        displayName: "Moltbook",
+        family: "social_community",
+        capabilities: [
+            { id: "feed.read" },
+            { id: "post.publish" },
+            { id: "comment.reply" },
+        ],
+        runner: { kind: "declarative_http" },
+        credentials: [{ type: "api_key", required: true }],
+        sourceRefPolicy: { minSourceRefs: 1 },
+    },
+    {
+        schemaVersion: "sn.connector.v1",
+        platformId: "evomap",
+        displayName: "EvoMap",
+        family: "agent_network",
+        capabilities: [
+            { id: "agent.register" },
+            { id: "work.discover" },
+        ],
+        runner: { kind: "declarative_http" },
+        credentials: [{ type: "api_key", required: true }],
+        sourceRefPolicy: { minSourceRefs: 1 },
+    },
+    {
+        schemaVersion: "sn.connector.v1",
+        platformId: "agent-world",
+        displayName: "Agent World",
+        family: "agent_network",
+        capabilities: [
+            { id: "feed.read" },
+            { id: "work.discover" },
+            { id: "task.claim" },
+        ],
+        runner: { kind: "declarative_http" },
+        credentials: [{ type: "api_key", required: true }],
+        sourceRefPolicy: { minSourceRefs: 1 },
+    },
+];
 export function createCliRuntimeDeps(overrides = {}) {
     const stateDb = overrides.stateDb ?? createStateDatabase();
     const observabilityDb = overrides.observabilityDb ?? createObservabilityDatabase();
@@ -26,6 +71,11 @@ export function createCliRuntimeDeps(overrides = {}) {
             stateDb,
             observabilityDb,
         });
+    const registry = overrides.registry ??
+        new DynamicConnectorRegistry({
+            builtInManifests: BUILT_IN_CONNECTOR_MANIFESTS,
+            snapshotStore: createRegistrySnapshotStore(),
+        });
     return {
         stateDb,
         observabilityDb,
@@ -34,6 +84,7 @@ export function createCliRuntimeDeps(overrides = {}) {
         actionBridge,
         runtimeRecorder,
         connectorExecutor,
+        registry,
     };
 }
 export function createCommandRouter(options = {}) {
@@ -47,6 +98,7 @@ export function createCommandRouter(options = {}) {
         workspaceRoot: process.cwd(),
         observabilityDb: runtime.observabilityDb,
         connectorExecutor: runtime.connectorExecutor,
+        registry: runtime.registry,
     });
     const commands = createCliCommands({
         readModels: runtime.readModels,
