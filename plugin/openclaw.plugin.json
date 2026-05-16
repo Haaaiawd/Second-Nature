@@ -1,7 +1,7 @@
 {
   "id": "second-nature",
   "name": "Second Nature",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "description": "OpenClaw native plugin with synchronous surface registration and bundled runtime spine. Set SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot to the same path as the agent workspace (see README / T1.1.4 ops norm).",
   "activation": {
     "onStartup": true,
