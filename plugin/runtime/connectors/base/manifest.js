@@ -40,6 +40,53 @@ export class CapabilityContractRegistry {
     listChannels(platformId) {
         return [...this.loadManifest(platformId).channelPriority];
     }
+    /**
+     * Resolve a capability string that may be namespaced (`platformId:capability`)
+     * or a bare v5 capability. Returns the platform + intent pair.
+     * If bare capability and no explicit platform is provided, only succeeds when
+     * exactly one registered platform supports it (unambiguous_default).
+     */
+    resolveCapability(intentWithNamespace, explicitPlatformId) {
+        const colonIndex = intentWithNamespace.indexOf(":");
+        if (colonIndex >= 0) {
+            const platformId = intentWithNamespace.slice(0, colonIndex);
+            const intent = intentWithNamespace.slice(colonIndex + 1);
+            if (!CAPABILITY_INTENTS.includes(intent)) {
+                throw new Error(`capability_not_recognized:${intent}`);
+            }
+            if (!this.byPlatform.has(platformId)) {
+                throw new Error(`platform_not_found:${platformId}`);
+            }
+            return { platformId, intent, source: "namespace" };
+        }
+        const intent = intentWithNamespace;
+        if (!CAPABILITY_INTENTS.includes(intent)) {
+            throw new Error(`capability_not_recognized:${intent}`);
+        }
+        if (explicitPlatformId) {
+            if (!this.byPlatform.has(explicitPlatformId)) {
+                throw new Error(`platform_not_found:${explicitPlatformId}`);
+            }
+            return { platformId: explicitPlatformId, intent, source: "v5_explicit" };
+        }
+        const platforms = this.findPlatformsForIntent(intent);
+        if (platforms.length === 0) {
+            throw new Error(`no_platform_supports_capability:${intent}`);
+        }
+        if (platforms.length > 1) {
+            throw new Error(`ambiguous_capability:${intent}:${platforms.join(",")}`);
+        }
+        return { platformId: platforms[0], intent, source: "unambiguous_default" };
+    }
+    findPlatformsForIntent(intent) {
+        const result = [];
+        for (const [platformId, manifest] of this.byPlatform) {
+            if (manifest.supportedCapabilities.includes(intent)) {
+                result.push(platformId);
+            }
+        }
+        return result;
+    }
 }
 /** T3.1.1 contract name for manifest-first registry. */
 export const ConnectorManifestRegistry = CapabilityContractRegistry;

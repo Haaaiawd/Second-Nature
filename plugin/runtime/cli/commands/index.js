@@ -1,4 +1,5 @@
 import { credentialVerify } from "./credential.js";
+import { connectorInit } from "./connector-init.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError, } from "../ops/show-operator-fallback.js";
@@ -217,6 +218,45 @@ export function createCliCommands(deps) {
             description: "T3.3.2 — run near-real connector smoke (sentinel Moltbook + EvoMap, no live HTTP)",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("near_real_smoke", input));
+                return surface;
+            },
+        },
+        {
+            name: "connector_init",
+            description: "T1.3.1 — generate connector manifest stub under .second-nature/connectors/{platformId}/",
+            execute: async (input) => {
+                const result = await connectorInit({
+                    platformId: typeof input?.platformId === "string" ? input.platformId : "",
+                    family: typeof input?.family === "string"
+                        ? input.family
+                        : undefined,
+                    displayName: typeof input?.displayName === "string"
+                        ? input.displayName
+                        : undefined,
+                    runnerKind: typeof input?.runnerKind === "string"
+                        ? input.runnerKind
+                        : undefined,
+                    force: Boolean(input?.force),
+                    workspaceRoot: typeof input?.workspaceRoot === "string"
+                        ? input.workspaceRoot
+                        : undefined,
+                });
+                return result;
+            },
+        },
+        {
+            name: "connector_status",
+            description: "T1.2.3 — show connector inventory, trust/executable/conflict summary",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("connector_status", input));
+                return surface;
+            },
+        },
+        {
+            name: "connector_test",
+            description: "T1.2.3 — dry-run test a connector by platformId (default dry-run)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("connector_test", input));
                 return surface;
             },
         },

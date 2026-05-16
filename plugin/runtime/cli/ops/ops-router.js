@@ -6,6 +6,8 @@ import { showOperatorFallback, OperatorFallbackNotFoundError, } from "./show-ope
 import { probeHostCapability } from "../host-capability/probe-host-capability.js";
 import { recordHostCapability } from "../host-capability/record-host-capability.js";
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
+import { connectorInit } from "../commands/connector-init.js";
+import { connectorStatus, connectorTest } from "../commands/connector-status.js";
 function coerceProbeOnlyFlag(input) {
     const v = input?.probeOnly;
     return v === true || v === "true" || v === 1 || v === "1";
@@ -178,6 +180,38 @@ export function createOpsRouter(deps) {
                         data: result,
                     };
                 })();
+            }
+            if (command === "connector_init") {
+                // T1.3.1 (SN-CODE-06): generate connector manifest stub.
+                return (async () => {
+                    const result = await connectorInit({
+                        platformId: typeof input?.platformId === "string" ? input.platformId : "",
+                        family: typeof input?.family === "string"
+                            ? input.family
+                            : undefined,
+                        displayName: typeof input?.displayName === "string" ? input.displayName : undefined,
+                        runnerKind: typeof input?.runnerKind === "string"
+                            ? input.runnerKind
+                            : undefined,
+                        force: Boolean(input?.force),
+                        workspaceRoot: deps.workspaceRoot,
+                    });
+                    return result;
+                })();
+            }
+            if (command === "connector_status") {
+                return connectorStatus(deps.registry, undefined, {
+                    includeHealth: Boolean(input?.includeHealth),
+                    workspaceRoot: typeof input?.workspaceRoot === "string"
+                        ? input.workspaceRoot
+                        : deps.workspaceRoot,
+                });
+            }
+            if (command === "connector_test") {
+                return connectorTest(deps.registry, {
+                    platformId: typeof input?.platformId === "string" ? input.platformId : "",
+                    dryRun: input?.dryRun === false ? false : true, // default dry-run
+                });
             }
             return {
                 ok: false,

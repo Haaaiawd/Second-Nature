@@ -1,8 +1,9 @@
 /**
  * Unit coverage for `connectorInit` (T1.3.1).
  *
- * Verifies manifest generation, path safety, overwrite refusal,
- * force overwrite, platformId sanitization, and default values.
+ * Verifies manifest + adapter.ts + types.ts generation, path safety,
+ * overwrite refusal (fail-closed), force overwrite, platformId sanitization,
+ * baseUrl propagation, and default values.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -19,7 +20,7 @@ function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sn-connector-init-"));
 }
 
-test("T1.3.1 creates manifest.yaml in .second-nature/connectors/{platformId}/", async () => {
+test("T1.3.1 creates manifest.yaml + adapter.ts + types.ts in .second-nature/connectors/{platformId}/", async () => {
   const root = tmpDir();
   const result = await connectorInit({
     platformId: "testplat",
@@ -30,20 +31,38 @@ test("T1.3.1 creates manifest.yaml in .second-nature/connectors/{platformId}/", 
   assert.equal(result.created, true);
   assert.equal(result.platformId, "testplat");
 
-  const manifestPath = path.join(root, ".second-nature", "connectors", "testplat", "manifest.yaml");
-  assert.equal(result.manifestPath, manifestPath);
-  assert.ok(fs.existsSync(manifestPath), "manifest.yaml must exist");
+  const platformDir = path.join(root, ".second-nature", "connectors", "testplat");
+  const manifestPath = path.join(platformDir, "manifest.yaml");
+  const adapterPath = path.join(platformDir, "adapter.ts");
+  const typesPath = path.join(platformDir, "types.ts");
 
-  const content = fs.readFileSync(manifestPath, "utf-8");
-  assert.ok(content.includes("schemaVersion: sn.connector.v1"));
-  assert.ok(content.includes("platformId: testplat"));
-  assert.ok(content.includes("family: custom"));
-  assert.ok(content.includes("kind: declarative_http"));
+  assert.equal(result.manifestPath, manifestPath);
+  assert.equal(result.adapterPath, adapterPath);
+  assert.equal(result.typesPath, typesPath);
+
+  assert.ok(fs.existsSync(manifestPath), "manifest.yaml must exist");
+  assert.ok(fs.existsSync(adapterPath), "adapter.ts must exist");
+  assert.ok(fs.existsSync(typesPath), "types.ts must exist");
+
+  const manifestContent = fs.readFileSync(manifestPath, "utf-8");
+  assert.ok(manifestContent.includes("schemaVersion: sn.connector.v1"));
+  assert.ok(manifestContent.includes("platformId: testplat"));
+  assert.ok(manifestContent.includes("family: custom"));
+  assert.ok(manifestContent.includes("kind: declarative_http"));
+
+  const adapterContent = fs.readFileSync(adapterPath, "utf-8");
+  assert.ok(adapterContent.includes("Testplat Connector Adapter Stub"));
+  assert.ok(adapterContent.includes("interface TestplatAdapterConfig"));
+  assert.ok(adapterContent.includes("executeTestplatAction"));
+
+  const typesContent = fs.readFileSync(typesPath, "utf-8");
+  assert.ok(typesContent.includes("interface TestplatCapability"));
+  assert.ok(typesContent.includes("interface TestplatCredential"));
 
   fs.rmSync(root, { recursive: true });
 });
 
-test("T1.3.1 skips overwrite by default", async () => {
+test("T1.3.1 returns fail-closed when manifest already exists without force", async () => {
   const root = tmpDir();
   const first = await connectorInit({
     platformId: "dupe",
@@ -55,15 +74,15 @@ test("T1.3.1 skips overwrite by default", async () => {
     platformId: "dupe",
     workspaceRoot: root,
   });
-  assert.equal(second.ok, true);
+  // CR7-01: existing target must return ok:false (not ok:true skipped)
+  assert.equal(second.ok, false);
   assert.equal(second.created, false);
-  assert.equal(second.skipped, true);
   assert.ok(second.reason?.includes("force"));
 
   fs.rmSync(root, { recursive: true });
 });
 
-test("T1.3.1 force:true overwrites existing manifest", async () => {
+test("T1.3.1 force:true overwrites existing manifest and stubs", async () => {
   const root = tmpDir();
   await connectorInit({
     platformId: "forceme",
@@ -78,7 +97,6 @@ test("T1.3.1 force:true overwrites existing manifest", async () => {
   });
   assert.equal(result.ok, true);
   assert.equal(result.created, true);
-  assert.equal(result.skipped, undefined);
 
   const manifestPath = path.join(root, ".second-nature", "connectors", "forceme", "manifest.yaml");
   const content = fs.readFileSync(manifestPath, "utf-8");
@@ -109,13 +127,14 @@ test("T1.3.1 rejects dot and dot-dot platformId (path escape guard)", async () =
   assert.ok(dotdot.reason?.includes("cannot be"));
 });
 
-test("T1.3.1 uses custom family and runnerKind when provided", async () => {
+test("T1.3.1 uses custom family, runnerKind, and baseUrl when provided", async () => {
   const root = tmpDir();
   const result = await connectorInit({
     platformId: "customplat",
     family: "social_community",
     runnerKind: "skill",
     displayName: "Custom Plat",
+    baseUrl: "https://example.com/api",
     workspaceRoot: root,
   });
 
@@ -125,6 +144,23 @@ test("T1.3.1 uses custom family and runnerKind when provided", async () => {
   assert.ok(content.includes("family: social_community"));
   assert.ok(content.includes("kind: skill"));
   assert.ok(content.includes("displayName: Custom Plat"));
+  assert.ok(content.includes("baseUrl: https://example.com/api"));
+
+  fs.rmSync(root, { recursive: true });
+});
+
+test("T1.3.1 generated manifest has custom_adapter_pending_trust and executable=false after scan", async () => {
+  const root = tmpDir();
+  await connectorInit({
+    platformId: "agent-world",
+    runnerKind: "custom_adapter",
+    workspaceRoot: root,
+  });
+
+  const manifestPath = path.join(root, ".second-nature", "connectors", "agent-world", "manifest.yaml");
+  const content = fs.readFileSync(manifestPath, "utf-8");
+  assert.ok(content.includes("status: custom_adapter_pending_trust"));
+  assert.ok(content.includes("reason: generated_by_connector_init"));
 
   fs.rmSync(root, { recursive: true });
 });

@@ -34,6 +34,7 @@ function planWorkIntents(runtime) {
         effectClass: "connector_action",
         sourceRefs: [...OBLIGATION_SOURCE],
         idempotencyKey: `obligation:${obligation}:${index}`,
+        goalInfluenceRefs: [],
     }));
 }
 function planExplorationIntents(runtime) {
@@ -50,6 +51,7 @@ function planExplorationIntents(runtime) {
             effectClass: "connector_action",
             sourceRefs: refs,
             idempotencyKey: "exploration:scan platform opportunities",
+            goalInfluenceRefs: [],
         },
     ];
 }
@@ -67,6 +69,7 @@ function planSocialIntents(runtime) {
             effectClass: "connector_action",
             sourceRefs: refs,
             idempotencyKey: "social:engage social platforms",
+            goalInfluenceRefs: [],
         },
     ];
 }
@@ -85,6 +88,7 @@ function planQuietReflectionIntents(runtime) {
             effectClass: "no_effect",
             sourceRefs: [],
             idempotencyKey: "quiet:bookkeeping",
+            goalInfluenceRefs: [],
         });
     }
     if (isAllowedKind("maintenance", runtime)) {
@@ -97,6 +101,7 @@ function planQuietReflectionIntents(runtime) {
             effectClass: "maintenance",
             sourceRefs: [],
             idempotencyKey: "maintenance:checks",
+            goalInfluenceRefs: [],
         });
     }
     if (isAllowedKind("reflection", runtime)) {
@@ -110,6 +115,7 @@ function planQuietReflectionIntents(runtime) {
             effectClass: "narrative_reflection",
             sourceRefs: refs,
             idempotencyKey: "reflection:narrative",
+            goalInfluenceRefs: [],
         });
     }
     return out;
@@ -131,6 +137,7 @@ function planOutreachIntents(runtime) {
             effectClass: "user_outreach",
             sourceRefs: refs,
             idempotencyKey: "outreach:consider proactive user outreach",
+            goalInfluenceRefs: [],
         },
     ];
 }
@@ -149,6 +156,7 @@ export function planCandidateIntents(runtime) {
                 effectClass: "maintenance",
                 sourceRefs: [],
                 idempotencyKey: "maintenance:checks",
+                goalInfluenceRefs: [],
             },
         ];
         return pausedMaintenance

@@ -41,6 +41,10 @@ export interface CandidateIntent {
     sourceRefs: ControlPlaneSourceRef[];
     /** Dedupe / cooldown key; defaults to stable fingerprint in guard layer when omitted. */
     idempotencyKey?: string;
+    /** T2.1.4: IDs of accepted AgentGoals that influenced this candidate's priority. */
+    goalInfluenceRefs?: string[];
+    /** T2.1.4: Human-readable reasons for the priority value (goal influence, user task, rhythm). */
+    priorityReasons?: string[];
 }
 export interface GuardEvaluation {
     verdict: GuardVerdict;

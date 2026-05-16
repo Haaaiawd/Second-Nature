@@ -1,5 +1,7 @@
 import { runHeartbeatCycle } from "../../core/second-nature/heartbeat/run-heartbeat-cycle.js";
 import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-snapshot.js";
+import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
+import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, options = {}) {
     const status = await readModels.loadStatus();
     const mode = status.rhythm.mode === "unknown" ? "active" : status.rhythm.mode;
@@ -43,6 +45,20 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         // No state wired — record that life evidence wasn't loaded so guards can reason honestly.
         lifeEvidenceEmptyReason = "state_unavailable";
     }
+    // T2.1.4: Load accepted goals from state DB when available.
+    let acceptedGoals;
+    if (options.state) {
+        try {
+            const goalStore = createAgentGoalStore(options.state);
+            acceptedGoals = await goalStore.listAgentGoals({
+                statuses: ["accepted"],
+                limit: 20,
+            });
+        }
+        catch {
+            acceptedGoals = undefined;
+        }
+    }
     return {
         mode,
         currentWindowId: status.rhythm.windowId ?? "workspace-default",
@@ -57,12 +73,17 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         platformEventCount,
         workEventCount,
         lifeEvidenceEmptyReason,
+        acceptedGoals,
     };
 }
 export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
     // T1.2.4: inject quietWorkflow dep when workspaceRoot is set so quiet/reflection intents
     // can trigger runSourceBackedQuiet and persist artifacts to disk.
     const quietEnabled = options.workspaceRoot && options.enableQuietWorkflow !== false;
+    // T2.1.5: when state DB is wired, create a NarrativeStateStore for heartbeat updates.
+    const narrativeStateStore = options.state
+        ? createNarrativeStateStore(options.state)
+        : undefined;
     return async (signal) => {
         const cycle = await runHeartbeatCycle({
             signal,
@@ -77,6 +98,7 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                     ? { workspaceRoot: options.workspaceRoot }
                     : undefined,
                 connectorExecutor: options.connectorExecutor,
+                narrativeStateStore,
             },
         });
         if (options.runtimeRecorder) {

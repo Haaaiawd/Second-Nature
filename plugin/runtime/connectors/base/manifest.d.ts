@@ -38,6 +38,11 @@ declare const connectorManifestSchema: z.ZodObject<{
     }, z.core.$strip>>;
 }, z.core.$strip>;
 export type ConnectorManifest = z.infer<typeof connectorManifestSchema>;
+export interface ResolvedConnectorCapability {
+    platformId: string;
+    intent: CapabilityIntent;
+    source: "namespace" | "v5_explicit" | "unambiguous_default";
+}
 export declare class CapabilityContractRegistry {
     private readonly byPlatform;
     register(manifest: ConnectorManifest): void;
@@ -46,6 +51,14 @@ export declare class CapabilityContractRegistry {
     hasCapability(platformId: string, intent: CapabilityIntent): boolean;
     listCapabilities(platformId: string): CapabilityIntent[];
     listChannels(platformId: string): ChannelType[];
+    /**
+     * Resolve a capability string that may be namespaced (`platformId:capability`)
+     * or a bare v5 capability. Returns the platform + intent pair.
+     * If bare capability and no explicit platform is provided, only succeeds when
+     * exactly one registered platform supports it (unambiguous_default).
+     */
+    resolveCapability(intentWithNamespace: string, explicitPlatformId?: string): ResolvedConnectorCapability;
+    findPlatformsForIntent(intent: CapabilityIntent): string[];
 }
 /** T3.1.1 contract name for manifest-first registry. */
 export declare const ConnectorManifestRegistry: typeof CapabilityContractRegistry;

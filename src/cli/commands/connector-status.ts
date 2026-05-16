@@ -143,12 +143,24 @@ export async function connectorTest(
 
   const dryRun = input.dryRun !== false; // default dry-run
 
+  // CR7-02: pending-trust / non-executable connectors must fail-closed
+  if (!entry.executable) {
+    return {
+      ok: false,
+      command: "connector_test" as const,
+      error: {
+        code: "PENDING_TRUST_DENIED",
+        message: `Connector '${entry.platformId}' is not executable: trustStatus=${entry.trustStatus}. Use connector:status to review trust policy or owner allowlist to enable.`,
+        trustStatus: entry.trustStatus,
+        platformId: entry.platformId,
+        nextStep: "review_trust_policy_or_owner_allowlist",
+      },
+    };
+  }
+
   const healthChecks: string[] = [];
   if (entry.validationErrors.length > 0) {
     healthChecks.push(`validation_errors: ${entry.validationErrors.join("; ")}`);
-  }
-  if (!entry.executable) {
-    healthChecks.push(`not_executable: trustStatus=${entry.trustStatus}`);
   }
   if (entry.capabilities.length === 0) {
     healthChecks.push("no_capabilities_declared");

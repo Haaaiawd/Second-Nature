@@ -2,7 +2,8 @@
  * Unit coverage for `connectorStatus` and `connectorTest` (T1.2.3).
  *
  * Verifies inventory summary, trust/executable flags, conflict reporting,
- * dry-run default, missing platformId, and registry unavailable paths.
+ * dry-run default, pending-trust denial, missing platformId, and registry
+ * unavailable paths.
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -49,6 +50,18 @@ const builtInEvoMap: ConnectorManifestV6 = {
   sourceRefPolicy: { minSourceRefs: 1 },
 };
 
+// CR7-02: workspace custom adapter manifest that will be pending-trust
+const customAdapterManifest: ConnectorManifestV6 = {
+  schemaVersion: "sn.connector.v1",
+  platformId: "custom-agent",
+  displayName: "Custom Agent",
+  family: "custom",
+  capabilities: [{ id: "custom.agent_action" }],
+  runner: { kind: "custom_adapter" },
+  credentials: [],
+  sourceRefPolicy: { minSourceRefs: 1 },
+};
+
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sn-connector-status-"));
 }
@@ -89,7 +102,7 @@ test("T1.2.3 connectorStatus returns unavailable when registry absent", async ()
   assert.equal(err.code, "REGISTRY_UNAVAILABLE");
 });
 
-test("T1.2.3 connectorTest dry-run returns health checks for existing connector", async () => {
+test("T1.2.3 connectorTest dry-run returns health checks for executable connector", async () => {
   const root = tmpDir();
   const store = createRegistrySnapshotStore();
   const registry = new DynamicConnectorRegistry({
@@ -175,6 +188,57 @@ test("T1.2.3 connectorTest returns missing_platform_id when empty", async () => 
   assert.equal(result.ok, false);
   const err = result.error as Record<string, unknown>;
   assert.equal(err.code, "MISSING_PLATFORM_ID");
+});
+
+// CR7-02: pending-trust / non-executable connector must fail-closed
+test("T1.2.3 connectorTest returns PENDING_TRUST_DENIED for custom adapter (non-executable)", async () => {
+  const root = tmpDir();
+  const store = createRegistrySnapshotStore();
+  const registry = new DynamicConnectorRegistry({
+    builtInManifests: [builtInMoltbook, customAdapterManifest],
+    snapshotStore: store,
+  });
+  registry.reloadConnectors(root);
+
+  // custom-agent is pending-trust / not executable
+  const result = await connectorTest(registry, { platformId: "custom-agent" });
+  assert.equal(result.ok, false);
+
+  const err = result.error as Record<string, unknown>;
+  assert.equal(err.code, "PENDING_TRUST_DENIED");
+  assert.ok((err.message as string).includes("custom-agent"));
+  assert.ok((err.message as string).includes("not executable"));
+  assert.equal(err.trustStatus, "custom_adapter_pending_trust");
+  assert.equal(err.platformId, "custom-agent");
+
+  fs.rmSync(root, { recursive: true });
+});
+
+test("T1.2.3 connectorStatus shows pendingTrust count for custom adapter", async () => {
+  const root = tmpDir();
+  const store = createRegistrySnapshotStore();
+  const registry = new DynamicConnectorRegistry({
+    builtInManifests: [builtInMoltbook, customAdapterManifest],
+    snapshotStore: store,
+  });
+  registry.reloadConnectors(root);
+
+  const result = await connectorStatus(registry, undefined);
+  assert.equal(result.ok, true);
+
+  const data = result.data as Record<string, unknown>;
+  const summary = data.summary as Record<string, number>;
+  assert.equal(summary.total, 2);
+  assert.equal(summary.executable, 1);
+  assert.equal(summary.pendingTrust, 1);
+
+  const connectors = data.connectors as Array<Record<string, unknown>>;
+  const custom = connectors.find((c) => c.platformId === "custom-agent");
+  assert.ok(custom);
+  assert.equal(custom!.executable, false);
+  assert.equal(custom!.trustStatus, "custom_adapter_pending_trust");
+
+  fs.rmSync(root, { recursive: true });
 });
 
 test("T1.2.3 connectorStatus records conflicts and validation errors when present", async () => {

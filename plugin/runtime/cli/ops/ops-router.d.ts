@@ -7,6 +7,7 @@ import type { RuntimeDecisionRecorder } from "../../observability/services/runti
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
+import type { DynamicConnectorRegistry } from "../../connectors/registry/index.js";
 export interface OpsRouterDeps {
     /** When true, packaged runtime artifacts resolved and full graph is loadable */
     runtimeAvailable: boolean;
@@ -30,6 +31,10 @@ export interface OpsRouterDeps {
      * connector-system instead of returning connector_dispatch_unwired.
      */
     connectorExecutor?: ConnectorExecutor;
+    /**
+     * T1.2.3: DynamicConnectorRegistry for connector:status and connector:test commands.
+     */
+    registry?: DynamicConnectorRegistry;
 }
 export interface OpsRouter {
     heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;

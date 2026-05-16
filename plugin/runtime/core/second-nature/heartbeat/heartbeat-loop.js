@@ -1,11 +1,13 @@
 import { buildContinuitySnapshot, } from "./snapshot-builder.js";
 import { buildHeartbeatRuntimeSnapshot, } from "./runtime-snapshot.js";
 import { planCandidateIntents } from "../orchestrator/intent-planner.js";
+import { applyGoalPriority } from "../orchestrator/goal-priority.js";
 import { evaluateHardGuards } from "../orchestrator/guard-layer.js";
 import { dispatchUserOutreachIntent, } from "../outreach/dispatch-user-outreach.js";
 import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
 import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
 import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
+import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js";
 /**
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
@@ -84,6 +86,49 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
     };
 }
 /**
+ * T2.1.5: after the cycle result is known, write a narrative revision when
+ * a NarrativeStateStore is wired. Errors are swallowed so the cycle result
+ * is never blocked by a store failure. Store failures are optionally traced
+ * via recordDecisionTrace so operators can monitor store health.
+ */
+async function maybeUpdateNarrativeState(result, selectedIntent, runtime, store, recordTrace, signal) {
+    if (!store)
+        return;
+    try {
+        const prior = await store.loadNarrativeState();
+        const update = updateNarrativeAfterEffect({
+            result,
+            selectedIntent,
+            lifeEvidence: runtime.lifeEvidence,
+            priorNarrative: prior,
+        });
+        await store.updateNarrativeState(update);
+    }
+    catch {
+        // degrade silently; narrative update is best-effort
+        if (recordTrace && signal) {
+            try {
+                await recordTrace({
+                    scope: result.scope,
+                    status: result.status,
+                    reasons: ["narrative_update_failed"],
+                    selectedIntentId: selectedIntent?.id,
+                    rhythmWindowId: runtime.rhythmWindow.windowId,
+                    allowedIntentKinds: [...runtime.rhythmWindow.allowedIntentKinds],
+                    candidateCount: 0,
+                    lifeEvidenceEmpty: runtime.lifeEvidence.evidenceRefs.length === 0 &&
+                        runtime.lifeEvidence.platformEventCount === 0 &&
+                        runtime.lifeEvidence.workEventCount === 0,
+                    trigger: signal.trigger,
+                });
+            }
+            catch {
+                // trace emission must also not block the cycle
+            }
+        }
+    }
+}
+/**
  * Ingest a heartbeat rhythm signal and drive one full decision round.
  */
 export async function ingestRhythmSignal(signal, deps) {
@@ -91,7 +136,8 @@ export async function ingestRhythmSignal(signal, deps) {
     const snapshot = buildContinuitySnapshot(inputs);
     const timestamp = signal.payload.timestamp;
     const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
-    const candidates = planCandidateIntents(runtime);
+    const rawCandidates = planCandidateIntents(runtime);
+    const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
     const emitTrace = async (result) => {
         if (!deps.recordDecisionTrace)
             return;
@@ -132,6 +178,7 @@ export async function ingestRhythmSignal(signal, deps) {
                 ? { ...resolved, reasons: evaluation.reasons }
                 : resolved;
             await emitTrace(result);
+            await maybeUpdateNarrativeState(result, intent, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
             return result;
         }
         if (evaluation.verdict === "defer") {
@@ -149,6 +196,7 @@ export async function ingestRhythmSignal(signal, deps) {
             reasons: ["silent_no_candidates"],
         };
         await emitTrace(result);
+        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
         return result;
     }
     if (!anyAllow && anyDefer && !anyDeny) {
@@ -158,6 +206,7 @@ export async function ingestRhythmSignal(signal, deps) {
             reasons: denyReasons.length > 0 ? denyReasons : ["all_candidates_deferred"],
         };
         await emitTrace(result);
+        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
         return result;
     }
     if (!anyAllow && denyReasons.length > 0) {
@@ -167,6 +216,7 @@ export async function ingestRhythmSignal(signal, deps) {
             reasons: denyReasons,
         };
         await emitTrace(result);
+        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
         return result;
     }
     const result = {
@@ -175,6 +225,7 @@ export async function ingestRhythmSignal(signal, deps) {
         reasons: ["no_allow_verdict"],
     };
     await emitTrace(result);
+    await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
     return result;
 }
 /**

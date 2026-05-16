@@ -53,10 +53,10 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
     rhythmWindowKind: z.ZodOptional<z.ZodEnum<{
         quiet: "quiet";
         social: "social";
+        maintenance: "maintenance";
         work: "work";
         exploration: "exploration";
         reflection: "reflection";
-        maintenance: "maintenance";
     }>>;
     riskLevel: z.ZodEnum<{
         medium: "medium";
@@ -107,10 +107,10 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
     rhythmWindowKind: z.ZodOptional<z.ZodEnum<{
         quiet: "quiet";
         social: "social";
+        maintenance: "maintenance";
         work: "work";
         exploration: "exploration";
         reflection: "reflection";
-        maintenance: "maintenance";
     }>>;
     riskLevel: z.ZodEnum<{
         medium: "medium";
@@ -205,7 +205,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
         excerptHash?: string | undefined;
         observedAt?: string | undefined;
     }[];
-    rhythmWindowKind?: "quiet" | "social" | "work" | "exploration" | "reflection" | "maintenance" | undefined;
+    rhythmWindowKind?: "quiet" | "social" | "maintenance" | "work" | "exploration" | "reflection" | undefined;
     deliveryContext?: {
         deliveryVerdict: "target_none" | "channel_missing" | "host_unsupported" | "delivery_failed" | "target_available";
         wordingMode: "sendable" | "not_sent_fallback_candidate";

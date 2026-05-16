@@ -945,3 +945,4 @@ export type NewGovernanceAuditDb = typeof governanceAudit.$inferInsert;
 export type RedactionManifestDb = typeof redactionManifest.$inferSelect;
 export type NewRedactionManifestDb = typeof redactionManifest.$inferInsert;
 export { hostCapabilityReports, type HostCapabilityReportRow, type NewHostCapabilityReportRow, } from "./host-capability-reports.js";
+export { connectorInventoryAudit, type ConnectorInventoryAuditRow, type NewConnectorInventoryAuditRow, } from "./connector-inventory.js";

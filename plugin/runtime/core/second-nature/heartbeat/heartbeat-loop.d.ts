@@ -20,6 +20,7 @@ import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.
 import type { StateDatabase } from "../../../storage/db/index.js";
 import { type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
 import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
+import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
 export interface HeartbeatDecisionTracePayload {
     scope: RuntimeScope;
     status: HeartbeatCycleStatus;
@@ -58,6 +59,8 @@ export interface HeartbeatDeps {
      * through the connector-system instead of returning connector_dispatch_unwired.
      */
     connectorExecutor?: ConnectorExecutor;
+    /** T2.1.5: when present, heartbeat writes a source-backed NarrativeState revision after each cycle. */
+    narrativeStateStore?: NarrativeStateStore;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.
