@@ -102,6 +102,22 @@ const STATE_SCHEMA_SQL = `
     created_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS operator_fallback_decision_idx ON operator_fallback_artifacts(decision_id);
+  CREATE TABLE IF NOT EXISTS session_chronicle (
+    entry_id TEXT PRIMARY KEY,
+    event_kind TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    result TEXT NOT NULL,
+    source_refs_json TEXT NOT NULL,
+    related_decision_id TEXT,
+    related_dream_run_id TEXT,
+    owner_reply_json TEXT
+  );
+  CREATE INDEX IF NOT EXISTS session_chronicle_event_kind_idx ON session_chronicle(event_kind);
+  CREATE INDEX IF NOT EXISTS session_chronicle_occurred_at_idx ON session_chronicle(occurred_at);
+  CREATE INDEX IF NOT EXISTS session_chronicle_actor_idx ON session_chronicle(actor);
+  CREATE INDEX IF NOT EXISTS session_chronicle_decision_idx ON session_chronicle(related_decision_id);
 `;
 
 export interface StateDatabase {

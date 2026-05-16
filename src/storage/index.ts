@@ -35,6 +35,15 @@ export {
 
 export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";
 
+export {
+  createSessionChronicleStore,
+  type SessionChronicleStore,
+  type SessionChronicleEntry,
+  type ChronicleQuery,
+  type ChronicleWriteAck,
+  type ChronicleEventKind,
+} from "./chronicle/session-chronicle-store.js";
+
 export type {
   LifeEvidence,
   LifeEvidenceCandidate,

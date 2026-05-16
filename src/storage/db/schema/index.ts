@@ -7,3 +7,4 @@ export * from "./proposals.js";
 export * from "./provenance.js";
 export * from "./delivery-attempts.js";
 export * from "./operator-fallback-artifacts.js";
+export * from "./session-chronicle.js";
