@@ -10,6 +10,7 @@ import type { ContinuitySnapshot, ControlPlaneSourceRef, TopLevelMode } from "..
 import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
 import type { DeliveryCapabilitySnapshot } from "../outreach/delivery-target.js";
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
+import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 
 export interface SnapshotInputs {
   mode: TopLevelMode;
@@ -38,6 +39,8 @@ export interface SnapshotInputs {
   deliveryCapability?: DeliveryCapabilitySnapshot;
   /** When present, outreach judgment uses this user-interest read model (T4.2.2). */
   userInterestSnapshot?: UserInterestSnapshot;
+  /** T2.1.4: accepted goals to influence candidate intent priority. */
+  acceptedGoals?: AgentGoal[];
 }
 
 /**

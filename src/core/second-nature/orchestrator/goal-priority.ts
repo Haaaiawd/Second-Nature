@@ -1,0 +1,96 @@
+/**
+ * T2.1.4 — Goal-Directed Intent Priority.
+ *
+ * `applyGoalPriority` adjusts candidate intent priorities based on accepted AgentGoals.
+ * Priority order: user_task > accepted_goal > rhythm.
+ * Proposal / rejected / paused goals are ignored (no influence).
+ */
+import type { CandidateIntent } from "../types.js";
+import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
+
+const GOAL_PRIORITY_BOOST = 20;
+
+function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean {
+  if (!candidate.platformId) return false;
+
+  const goalText = `${goal.description} ${goal.completionCriteria}`.toLowerCase();
+  const platformId = candidate.platformId.toLowerCase();
+
+  // Direct platformId mention in goal text
+  if (goalText.includes(platformId)) return true;
+
+  // Goal description contains candidate summary keywords
+  const summaryWords = candidate.summary.toLowerCase().split(/\s+/);
+  for (const word of summaryWords) {
+    if (word.length > 3 && goalText.includes(word)) return true;
+  }
+
+  return false;
+}
+
+export interface ApplyGoalPriorityResult {
+  candidates: CandidateIntent[];
+  goalInfluences: Array<{
+    candidateId: string;
+    goalIds: string[];
+    boost: number;
+  }>;
+}
+
+export function applyGoalPriority(
+  candidates: CandidateIntent[],
+  goals: AgentGoal[] | undefined,
+): ApplyGoalPriorityResult {
+  const acceptedGoals = (goals ?? []).filter(
+    (g) => g.status === "accepted" && g.origin !== "agent_proposed",
+  );
+
+  if (acceptedGoals.length === 0) {
+    return {
+      candidates: candidates.map((c) => ({
+        ...c,
+        priorityReasons: c.priorityReasons ?? ["rhythm"],
+      })),
+      goalInfluences: [],
+    };
+  }
+
+  const influences: ApplyGoalPriorityResult["goalInfluences"] = [];
+
+  const adjusted = candidates.map((candidate) => {
+    const relatedGoals = acceptedGoals.filter((g) => isGoalRelatedToCandidate(g, candidate));
+
+    if (relatedGoals.length === 0) {
+      return {
+        ...candidate,
+        priorityReasons: candidate.priorityReasons ?? ["rhythm"],
+      };
+    }
+
+    const boost = GOAL_PRIORITY_BOOST * relatedGoals.length;
+    const goalIds = relatedGoals.map((g) => g.goalId);
+
+    influences.push({
+      candidateId: candidate.id,
+      goalIds,
+      boost,
+    });
+
+    const reasons = [
+      ...(candidate.priorityReasons ?? ["rhythm"]),
+      ...relatedGoals.map((g) => `goal_boost:${g.goalId}`),
+    ];
+
+    return {
+      ...candidate,
+      priority: candidate.priority + boost,
+      goalInfluenceRefs: goalIds,
+      priorityReasons: reasons,
+    };
+  });
+
+  return {
+    candidates: adjusted.sort((a, b) => b.priority - a.priority),
+    goalInfluences: influences,
+  };
+}

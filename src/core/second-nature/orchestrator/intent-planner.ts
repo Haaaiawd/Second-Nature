@@ -51,6 +51,7 @@ function planWorkIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
     effectClass: "connector_action" as const,
     sourceRefs: [...OBLIGATION_SOURCE],
     idempotencyKey: `obligation:${obligation}:${index}`,
+    goalInfluenceRefs: [],
   }));
 }
 
@@ -67,6 +68,7 @@ function planExplorationIntents(runtime: HeartbeatRuntimeSnapshot): CandidateInt
       effectClass: "connector_action",
       sourceRefs: refs,
       idempotencyKey: "exploration:scan platform opportunities",
+      goalInfluenceRefs: [],
     },
   ];
 }
@@ -84,6 +86,7 @@ function planSocialIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[]
       effectClass: "connector_action",
       sourceRefs: refs,
       idempotencyKey: "social:engage social platforms",
+      goalInfluenceRefs: [],
     },
   ];
 }
@@ -103,6 +106,7 @@ function planQuietReflectionIntents(runtime: HeartbeatRuntimeSnapshot): Candidat
       effectClass: "no_effect",
       sourceRefs: [],
       idempotencyKey: "quiet:bookkeeping",
+      goalInfluenceRefs: [],
     });
   }
   if (isAllowedKind("maintenance", runtime)) {
@@ -115,6 +119,7 @@ function planQuietReflectionIntents(runtime: HeartbeatRuntimeSnapshot): Candidat
       effectClass: "maintenance",
       sourceRefs: [],
       idempotencyKey: "maintenance:checks",
+      goalInfluenceRefs: [],
     });
   }
   if (isAllowedKind("reflection", runtime)) {
@@ -128,6 +133,7 @@ function planQuietReflectionIntents(runtime: HeartbeatRuntimeSnapshot): Candidat
       effectClass: "narrative_reflection",
       sourceRefs: refs,
       idempotencyKey: "reflection:narrative",
+      goalInfluenceRefs: [],
     });
   }
   return out;
@@ -149,6 +155,7 @@ function planOutreachIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent
       effectClass: "user_outreach",
       sourceRefs: refs,
       idempotencyKey: "outreach:consider proactive user outreach",
+      goalInfluenceRefs: [],
     },
   ];
 }
@@ -168,6 +175,7 @@ export function planCandidateIntents(runtime: HeartbeatRuntimeSnapshot): Candida
         effectClass: "maintenance",
         sourceRefs: [],
         idempotencyKey: "maintenance:checks",
+        goalInfluenceRefs: [],
       },
     ];
     return pausedMaintenance

@@ -263,6 +263,9 @@ T3.1.2, T1.3.1, T5.1.3
 ### 🌊 Wave 25 ✅ — v6 S1 Connector Ops Surface & v5 Parity
 T1.2.3, T3.2.1
 
+### 🌊 Wave 26 ✅ — v6 S1 Control-Plane & Guidance: Goal Planning + Outreach Draft + Narrative Update
+T2.1.4, T6.1.1, T2.1.5
+
 <!-- AUTO:END -->
 
 ---

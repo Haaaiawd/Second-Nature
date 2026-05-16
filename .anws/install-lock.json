@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "cliVersion": "2.4.1",
-  "generatedAt": "2026-05-15T06:21:06.406Z",
+  "generatedAt": "2026-05-15T13:13:42.158Z",
   "targets": [
     {
       "targetId": "codex",
@@ -344,7 +344,7 @@
       "codex"
     ],
     "failedTargets": [],
-    "updatedAt": "2026-05-15T06:21:06.406Z"
+    "updatedAt": "2026-05-15T13:13:42.158Z"
   },
   "templateLocale": "zh"
 }

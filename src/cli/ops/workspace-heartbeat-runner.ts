@@ -22,6 +22,8 @@ import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
 import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-snapshot.js";
+import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
+import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 
@@ -98,6 +100,20 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
     lifeEvidenceEmptyReason = "state_unavailable";
   }
 
+  // T2.1.4: Load accepted goals from state DB when available.
+  let acceptedGoals: import("../../storage/goal/agent-goal-store.js").AgentGoal[] | undefined;
+  if (options.state) {
+    try {
+      const goalStore = createAgentGoalStore(options.state);
+      acceptedGoals = await goalStore.listAgentGoals({
+        statuses: ["accepted"],
+        limit: 20,
+      });
+    } catch {
+      acceptedGoals = undefined;
+    }
+  }
+
   return {
     mode,
     currentWindowId: status.rhythm.windowId ?? "workspace-default",
@@ -112,6 +128,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
     platformEventCount,
     workEventCount,
     lifeEvidenceEmptyReason,
+    acceptedGoals,
   };
 }
 
@@ -123,6 +140,11 @@ export function createWorkspaceHeartbeatRunner(
   // can trigger runSourceBackedQuiet and persist artifacts to disk.
   const quietEnabled =
     options.workspaceRoot && options.enableQuietWorkflow !== false;
+
+  // T2.1.5: when state DB is wired, create a NarrativeStateStore for heartbeat updates.
+  const narrativeStateStore = options.state
+    ? createNarrativeStateStore(options.state)
+    : undefined;
 
   return async (signal) => {
     const cycle = await runHeartbeatCycle({
@@ -139,6 +161,7 @@ export function createWorkspaceHeartbeatRunner(
           ? { workspaceRoot: options.workspaceRoot! }
           : undefined,
         connectorExecutor: options.connectorExecutor,
+        narrativeStateStore,
       },
     });
 

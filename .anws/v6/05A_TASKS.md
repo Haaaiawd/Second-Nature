@@ -261,7 +261,7 @@ graph TD
 
 ## System 2: Second Nature Orchestration System (`control-plane-system`)
 
-- [ ] **T2.1.4** [REQ-002]: 实现 Goal-Directed Intent Planning
+- [x] **T2.1.4** [REQ-002]: 实现 Goal-Directed Intent Planning
   - **描述**: 让 intent planning 读取 accepted AgentGoal 和 NarrativeState，提升相关 intent 优先级。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5；T4.1.2 输出；T4.1.4 输出。
   - **输出**: `planCandidateIntents()` goal-directed branch、priority reason model。
@@ -285,7 +285,7 @@ graph TD
   - **依赖**: T4.1.2, T4.1.4
   - **优先级**: P0
 
-- [ ] **T2.1.5** [REQ-002]: 实现 heartbeat 后 NarrativeState 更新
+- [x] **T2.1.5** [REQ-002]: 实现 heartbeat 后 NarrativeState 更新
   - **描述**: 每次 heartbeat effect/fallback 后写入 source-backed narrative revision 或诚实空态。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5；T4.1.2 输出；T5.1.2 输出接口。
   - **输出**: `updateNarrativeAfterEffect()`、heartbeat runner integration。
@@ -582,7 +582,7 @@ graph TD
 
 ## System 6: Behavioral Guidance System (`behavioral-guidance-system`)
 
-- [ ] **T6.1.1** [REQ-005]: 实现 Narrative Outreach Draft 生成
+- [x] **T6.1.1** [REQ-005]: 实现 Narrative Outreach Draft 生成
   - **描述**: 生成包含发生了什么、为什么 owner 可能感兴趣、source refs 的 source-backed draft。
   - **输入**: `04_SYSTEM_DESIGN/behavioral-guidance-system.md` §draftNarrativeOutreach；T4.1.2 output；T4.1.3 output。
   - **输出**: `draftNarrativeOutreach()`、GroundingReport、promptVersion。

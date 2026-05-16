@@ -33,6 +33,7 @@ import {
   type HeartbeatRuntimeSnapshot,
 } from "./runtime-snapshot.js";
 import { planCandidateIntents } from "../orchestrator/intent-planner.js";
+import { applyGoalPriority } from "../orchestrator/goal-priority.js";
 import { evaluateHardGuards } from "../orchestrator/guard-layer.js";
 import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
@@ -44,6 +45,8 @@ import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-fro
 import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
 import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
+import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
+import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -177,6 +180,34 @@ export interface HeartbeatDeps {
    * through the connector-system instead of returning connector_dispatch_unwired.
    */
   connectorExecutor?: ConnectorExecutor;
+  /** T2.1.5: when present, heartbeat writes a source-backed NarrativeState revision after each cycle. */
+  narrativeStateStore?: NarrativeStateStore;
+}
+
+/**
+ * T2.1.5: after the cycle result is known, write a narrative revision when
+ * a NarrativeStateStore is wired. Errors are swallowed so the cycle result
+ * is never blocked by a store failure.
+ */
+async function maybeUpdateNarrativeState(
+  result: HeartbeatCycleResult,
+  selectedIntent: CandidateIntent | undefined,
+  runtime: HeartbeatRuntimeSnapshot,
+  store: NarrativeStateStore | undefined,
+): Promise<void> {
+  if (!store) return;
+  try {
+    const prior = await store.loadNarrativeState();
+    const update = updateNarrativeAfterEffect({
+      result,
+      selectedIntent,
+      lifeEvidence: runtime.lifeEvidence,
+      priorNarrative: prior,
+    });
+    await store.updateNarrativeState(update);
+  } catch {
+    // degrade silently; narrative update is best-effort
+  }
 }
 
 /**
@@ -190,7 +221,8 @@ export async function ingestRhythmSignal(
   const snapshot = buildContinuitySnapshot(inputs);
   const timestamp = signal.payload.timestamp;
   const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
-  const candidates = planCandidateIntents(runtime);
+  const rawCandidates = planCandidateIntents(runtime);
+  const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
 
   const emitTrace = async (result: HeartbeatCycleResult): Promise<void> => {
     if (!deps.recordDecisionTrace) return;
@@ -242,6 +274,12 @@ export async function ingestRhythmSignal(
           : resolved;
 
       await emitTrace(result);
+      await maybeUpdateNarrativeState(
+        result,
+        intent,
+        runtime,
+        deps.narrativeStateStore,
+      );
       return result;
     }
     if (evaluation.verdict === "defer") {
@@ -264,6 +302,12 @@ export async function ingestRhythmSignal(
       reasons: ["silent_no_candidates"],
     };
     await emitTrace(result);
+    await maybeUpdateNarrativeState(
+      result,
+      undefined,
+      runtime,
+      deps.narrativeStateStore,
+    );
     return result;
   }
 
@@ -275,6 +319,12 @@ export async function ingestRhythmSignal(
         denyReasons.length > 0 ? denyReasons : ["all_candidates_deferred"],
     };
     await emitTrace(result);
+    await maybeUpdateNarrativeState(
+      result,
+      undefined,
+      runtime,
+      deps.narrativeStateStore,
+    );
     return result;
   }
 
@@ -285,6 +335,12 @@ export async function ingestRhythmSignal(
       reasons: denyReasons,
     };
     await emitTrace(result);
+    await maybeUpdateNarrativeState(
+      result,
+      undefined,
+      runtime,
+      deps.narrativeStateStore,
+    );
     return result;
   }
 
@@ -294,6 +350,12 @@ export async function ingestRhythmSignal(
     reasons: ["no_allow_verdict"],
   };
   await emitTrace(result);
+  await maybeUpdateNarrativeState(
+    result,
+    undefined,
+    runtime,
+    deps.narrativeStateStore,
+  );
   return result;
 }
 
