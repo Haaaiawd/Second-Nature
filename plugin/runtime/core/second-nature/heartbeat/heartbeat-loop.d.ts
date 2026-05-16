@@ -21,6 +21,7 @@ import type { StateDatabase } from "../../../storage/db/index.js";
 import { type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
 import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
+import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 export interface HeartbeatDecisionTracePayload {
     scope: RuntimeScope;
     status: HeartbeatCycleStatus;
@@ -61,6 +62,8 @@ export interface HeartbeatDeps {
     connectorExecutor?: ConnectorExecutor;
     /** T2.1.5: when present, heartbeat writes a source-backed NarrativeState revision after each cycle. */
     narrativeStateStore?: NarrativeStateStore;
+    /** T5.1.2: when present, heartbeat records a NarrativeTrace after successful narrative state update. */
+    recordNarrativeTrace?: (payload: NarrativeTracePayload) => Promise<void>;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

@@ -1,6 +1,6 @@
 import { type RedactionManifest as FieldRedactionManifest } from "../redaction/manifest.js";
 export type AuditPlane = "decision" | "delivery" | "source_coverage" | "governance" | "telemetry";
-export type AuditEventFamily = "heartbeat.decision" | "delivery" | "source_coverage" | "guidance.grounding" | "host_capability" | "connector.attempt" | "state.governance";
+export type AuditEventFamily = "heartbeat.decision" | "delivery" | "source_coverage" | "guidance.grounding" | "host_capability" | "connector.attempt" | "state.governance" | "narrative.trace" | "dream.trace";
 export type AuditEnvelopeSensitivity = "public" | "internal" | "private" | "credential" | "sensitive";
 export interface AuditRedactionManifest {
     manifestId: string;

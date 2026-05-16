@@ -46,7 +46,7 @@ export function createOpsRouter(deps) {
             workspaceRoot: input.workspaceRoot ?? deps.workspaceRoot,
             connectorExecutor: input.connectorExecutor ?? deps.connectorExecutor,
         }),
-        dispatch(command, input) {
+        async dispatch(command, input) {
             if (command === "heartbeat_check") {
                 const runtimeAvailable = typeof input?.runtimeAvailable === "boolean"
                     ? input.runtimeAvailable
@@ -236,6 +236,36 @@ export function createOpsRouter(deps) {
                     originFilter: typeof input?.originFilter === "string" ? input.originFilter : undefined,
                     limit: typeof input?.limit === "number" ? input.limit : undefined,
                 });
+            }
+            if (command === "dream:recent") {
+                if (!deps.readModels) {
+                    return {
+                        ok: false,
+                        error: {
+                            code: "READ_MODELS_UNAVAILABLE",
+                            message: "dream:recent requires workspace read models",
+                            nextStep: "wire_read_models_into_ops_router",
+                        },
+                    };
+                }
+                const limit = typeof input?.limit === "number" ? input.limit : 5;
+                const data = await deps.readModels.loadDreamRecent(limit);
+                return { ok: true, data };
+            }
+            if (command === "cycle:recent") {
+                if (!deps.readModels) {
+                    return {
+                        ok: false,
+                        error: {
+                            code: "READ_MODELS_UNAVAILABLE",
+                            message: "cycle:recent requires workspace read models",
+                            nextStep: "wire_read_models_into_ops_router",
+                        },
+                    };
+                }
+                const limit = typeof input?.limit === "number" ? input.limit : 5;
+                const data = await deps.readModels.loadCycleRecent(limit);
+                return { ok: true, data };
             }
             return {
                 ok: false,

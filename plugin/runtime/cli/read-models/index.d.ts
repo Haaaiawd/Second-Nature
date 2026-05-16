@@ -1,7 +1,7 @@
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
-import type { StatusReadModel, DailyReportReadModel, QuietReadModel, SessionDetailReadModel, CredentialReadModel, ExplainReadModel, ExplainSubjectKind, AuditSummaryReadModel } from "./types.js";
+import type { StatusReadModel, DailyReportReadModel, QuietReadModel, SessionDetailReadModel, CredentialReadModel, ExplainReadModel, ExplainSubjectKind, AuditSummaryReadModel, DreamRecentReadModel, CycleRecentReadModel } from "./types.js";
 export type { AuditSummaryReadModel } from "./types.js";
 export type { ExplainSubjectKind } from "./types.js";
 import type { OperatorFallbackView } from "../../storage/fallback/operator-fallback-view.js";
@@ -24,6 +24,10 @@ export interface CliReadModels {
      * Empty store returns `{ totalEvents: 0, events: [] }` (honest empty, not an error).
      */
     loadAuditSummary(): Promise<AuditSummaryReadModel>;
+    /** T1.2.2 — recent Dream runs from audit store. */
+    loadDreamRecent(limit?: number): Promise<DreamRecentReadModel>;
+    /** T1.2.5 — recent cycle summary from audit store. */
+    loadCycleRecent(limit?: number): Promise<CycleRecentReadModel>;
 }
 /** T1.2.1 / T1.2.2 — operator-facing read surface (subset of full CLI read models). */
 export type OpsReadModelPort = Pick<CliReadModels, "loadStatus" | "loadDailyReport" | "loadQuiet" | "loadSession" | "loadCredential" | "explain" | "loadFallbackView">;

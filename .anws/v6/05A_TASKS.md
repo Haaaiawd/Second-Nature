@@ -111,7 +111,7 @@ graph TD
   - **依赖**: T4.1.2, T5.1.2
   - **优先级**: P1
 
-- [ ] **T1.2.2** [REQ-001][REQ-006]: 实现 `sn dream:recent` 命令
+- [x] **T1.2.2** [REQ-001][REQ-006]: 实现 `sn dream:recent` 命令
   - **描述**: 展示最近 Dream 运行结果、candidate/accepted 状态、fallback 与 partial output 摘要。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1；`04_SYSTEM_DESIGN/dream-system.md` §DreamTrace；T5.1.1 输出；T7.1.1 输出。
   - **输出**: `dream:recent` CLI command、tool route、human formatter。
@@ -180,7 +180,7 @@ graph TD
   - **依赖**: T4.1.4
   - **优先级**: P0
 
-- [ ] **T1.2.5** [REQ-006]: 实现 `sn cycle:recent` read model
+- [x] **T1.2.5** [REQ-006]: 实现 `sn cycle:recent` read model
   - **描述**: 聚合最近 heartbeat decision、narrative update、Dream trigger/result 与 delivery/fallback 摘要，让 owner 能看到 SN 最近的行动链。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §5.3；`04_SYSTEM_DESIGN/observability-system.md` §DreamTrace / §NarrativeTrace；T5.1.1、T5.1.2 输出。
   - **输出**: `cycle:recent` CLI command、`second_nature_ops` route、CycleRecent read model。
@@ -514,7 +514,7 @@ graph TD
 
 ## System 5: Observability & Safety System (`observability-system`)
 
-- [ ] **T5.1.1** [REQ-001][REQ-006]: 实现 DreamTrace 审计层
+- [x] **T5.1.1** [REQ-001][REQ-006]: 实现 DreamTrace 审计层
   - **描述**: 记录 Dream input size、output counts、duration、cost、budget status、fallback reason、lifecycle。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §DreamTrace；T7.1.1 output。
   - **输出**: `recordDreamTrace()`、schema、query/read model。

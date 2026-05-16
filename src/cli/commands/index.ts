@@ -339,5 +339,27 @@ export function createCliCommands(
         return surface as Record<string, unknown>;
       },
     },
+    {
+      name: "dream:recent",
+      description:
+        "T1.2.2 — show recent Dream run results, candidate/accepted status, fallback/partial summary",
+      execute: async (input) => {
+        const limit =
+          typeof input?.limit === "number" ? input.limit : 5;
+        const data = await readModels.loadDreamRecent(limit);
+        return { ok: true, data };
+      },
+    },
+    {
+      name: "cycle:recent",
+      description:
+        "T1.2.5 — aggregate recent heartbeat, narrative, Dream, delivery, connector cycle summary",
+      execute: async (input) => {
+        const limit =
+          typeof input?.limit === "number" ? input.limit : 5;
+        const data = await readModels.loadCycleRecent(limit);
+        return { ok: true, data };
+      },
+    },
   ];
 }

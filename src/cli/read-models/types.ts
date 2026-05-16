@@ -186,3 +186,31 @@ export interface AuditSummaryReadModel {
   totalEvents: number;
   events: AuditEventSummaryEntry[];
 }
+
+/** T1.2.2 — recent Dream run summary for operator `dream:recent` command. */
+export interface DreamRecentReadModel {
+  runs: Array<{
+    traceId: string;
+    runId: string;
+    durationMs: number;
+    inputCounts: { evidence: number; chronicle: number; memoryEntries: number };
+    fallbackReason?: string;
+    lifecycleStatus: string;
+    insightsCount: number;
+    createdAt: string;
+  }>;
+  totalRuns: number;
+}
+
+/** T1.2.5 — recent cycle summary aggregating heartbeat, narrative, dream, delivery. */
+export interface CycleRecentReadModel {
+  cycles: Array<{
+    timestamp: string;
+    dimensions: Array<"decision" | "narrative" | "dream" | "delivery" | "connector">;
+    decisionOutcome?: string;
+    narrativeGrounding?: string;
+    dreamFallback?: string;
+    deliveryStatus?: string;
+  }>;
+  totalCycles: number;
+}

@@ -38,6 +38,6 @@ export interface OpsRouterDeps {
 }
 export interface OpsRouter {
     heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;
-    dispatch(command: string, input?: Record<string, unknown>): HeartbeatSurfaceResult | Record<string, unknown> | Promise<HeartbeatSurfaceResult> | Promise<Record<string, unknown>>;
+    dispatch(command: string, input?: Record<string, unknown>): Promise<HeartbeatSurfaceResult | Record<string, unknown>>;
 }
 export declare function createOpsRouter(deps: OpsRouterDeps): OpsRouter;

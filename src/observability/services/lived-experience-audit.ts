@@ -9,6 +9,7 @@ import * as crypto from "node:crypto";
 import { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
 import { buildAuditEnvelope, type AuditPlane } from "../audit/audit-envelope.js";
 import type { SourceRef } from "../../storage/life-evidence/types.js";
+import type { DreamTrace } from "../../dream/types.js";
 
 export type RuntimeScope = "rhythm" | "user_task" | "user_reply";
 
@@ -273,6 +274,22 @@ export class LivedExperienceAuditRecorder {
       previousHash: this.store.lastRecordHash(),
       eventId: crypto.randomUUID(),
       createdAt: payload.createdAt,
+    });
+    this.store.append(envelope);
+    return { eventId: envelope.eventId };
+  }
+
+  recordDreamTrace(payload: DreamTrace): { eventId: string } {
+    const seq = this.bumpSequence();
+    const envelope = buildAuditEnvelope({
+      family: "dream.trace",
+      plane: "telemetry" as AuditPlane,
+      traceId: payload.traceId,
+      sequence: seq,
+      payload,
+      previousHash: this.store.lastRecordHash(),
+      eventId: crypto.randomUUID(),
+      createdAt: payload.finishedAt,
     });
     this.store.append(envelope);
     return { eventId: envelope.eventId };

@@ -278,6 +278,9 @@ T7.1.1：`src/dream/` 目录新建；`types.ts`（DreamRun/DreamOutput/DreamInpu
 ### 🌊 Wave 30 ✅ — v6 S2 Dream Engine: Scheduler + Insight + Narrative + Relationship
 T7.1.2：`dream-scheduler.ts`（`scheduleDream` 异步触发不阻塞 heartbeat；`DreamRunLockPort` + in-memory fallback；cron/evidence threshold/manual `shouldTrigger` 策略；并发同 window 返回 skipped）。T7.1.3：`insight-extractor.ts`（`extractInsights` rules-based：recurring word pattern、learning keyword、conflict/failure keyword、high-activity day observation；每个 insight 含 type/summary/sourceRefs/confidence）。T7.1.4：`narrative-update-proposal.ts`（`draftNarrativeFromDream` 从 evidence+insights 生成 focus/progress/nextIntent；conflict 存在时 nextIntent=resolve；低 confidence 降级；无 evidence 阻断）。T7.1.5：`relationship-update-proposal.ts`（`draftRelationshipFromDream` 从 chronicle 推断 tone/timing/topic；positive/negative/neutral tone 投票；busy/responsive/normal timing；work/personal/tech/social topic；单样本 unsupported claim 防过度推断；无 reply 返回 cooldown）。测试覆盖：scheduler 8 cases、insight 6 cases、narrative 5 cases、relationship 6 cases，全部 green。
 
+### 🌊 Wave 31 ✅ — v6 T5.1.1 DreamTrace + T1.2.2 dream:recent + T1.2.5 cycle:recent
+T5.1.1：`LivedExperienceAuditRecorder.recordDreamTrace()` 写入 `dream.trace` family envelope；`OpsRouter.dispatch` 改为 async 以支持 await；`CliReadModels` 接口新增 `loadDreamRecent` / `loadCycleRecent` 并从 `types.ts` 导入 `DreamRecentReadModel` / `CycleRecentReadModel`；`createdAt` 从 envelope 元数据读取而非 payload（修复 undefined 问题）。T1.2.2：`dream:recent` CLI 命令 + read model 完整闭环，支持 limit、降序排列、lifecycleStatus 推断（completed/partial）。T1.2.5：`cycle:recent` read model 按小时 bucket 聚合 heartbeat.decision / narrative.trace / dream.trace / delivery / connector.attempt，dimensions 数组标记维度存在性，`connector.attempt` 须带 `previousHash` 以满足 hash-chain 约束。测试新增 13 cases（T5.1.1×5、T1.2.2×4、T1.2.5×4），全部 green。05A_TASKS.md 勾选 T5.1.1、T1.2.2、T1.2.5。
+
 <!-- AUTO:END -->
 
 ---

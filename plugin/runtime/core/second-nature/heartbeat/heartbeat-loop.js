@@ -91,7 +91,7 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
  * is never blocked by a store failure. Store failures are optionally traced
  * via recordDecisionTrace so operators can monitor store health.
  */
-async function maybeUpdateNarrativeState(result, selectedIntent, runtime, store, recordTrace, signal) {
+async function maybeUpdateNarrativeState(result, selectedIntent, runtime, store, recordTrace, signal, recordNarrativeTrace) {
     if (!store)
         return;
     try {
@@ -103,6 +103,33 @@ async function maybeUpdateNarrativeState(result, selectedIntent, runtime, store,
             priorNarrative: prior,
         });
         await store.updateNarrativeState(update);
+        // T5.1.2: record NarrativeTrace on successful state update
+        if (recordNarrativeTrace) {
+            try {
+                await recordNarrativeTrace({
+                    traceId: `narrative_trace:${crypto.randomUUID()}`,
+                    narrativeId: update.narrativeId,
+                    revision: update.revision,
+                    updateSource: "heartbeat",
+                    sourceRefs: update.sourceRefs.map((r) => ({
+                        id: r.sourceId,
+                        kind: r.kind,
+                        uri: r.url,
+                    })),
+                    unsupportedClaims: update.unsupportedClaims,
+                    groundingStatus: update.unsupportedClaims.length > 0
+                        ? "degraded"
+                        : update.status === "insufficient_sources"
+                            ? "blocked"
+                            : "pass",
+                    goalInfluenceRefs: selectedIntent?.sourceRefs?.map((r) => r.id) ?? [],
+                    createdAt: update.updatedAt,
+                });
+            }
+            catch {
+                // trace emission must not block the cycle
+            }
+        }
     }
     catch {
         // degrade silently; narrative update is best-effort
@@ -178,7 +205,7 @@ export async function ingestRhythmSignal(signal, deps) {
                 ? { ...resolved, reasons: evaluation.reasons }
                 : resolved;
             await emitTrace(result);
-            await maybeUpdateNarrativeState(result, intent, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
+            await maybeUpdateNarrativeState(result, intent, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal, deps.recordNarrativeTrace);
             return result;
         }
         if (evaluation.verdict === "defer") {
@@ -196,7 +223,7 @@ export async function ingestRhythmSignal(signal, deps) {
             reasons: ["silent_no_candidates"],
         };
         await emitTrace(result);
-        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
+        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal, deps.recordNarrativeTrace);
         return result;
     }
     if (!anyAllow && anyDefer && !anyDeny) {
@@ -206,7 +233,7 @@ export async function ingestRhythmSignal(signal, deps) {
             reasons: denyReasons.length > 0 ? denyReasons : ["all_candidates_deferred"],
         };
         await emitTrace(result);
-        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
+        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal, deps.recordNarrativeTrace);
         return result;
     }
     if (!anyAllow && denyReasons.length > 0) {
@@ -216,7 +243,7 @@ export async function ingestRhythmSignal(signal, deps) {
             reasons: denyReasons,
         };
         await emitTrace(result);
-        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
+        await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal, deps.recordNarrativeTrace);
         return result;
     }
     const result = {
@@ -225,7 +252,7 @@ export async function ingestRhythmSignal(signal, deps) {
         reasons: ["no_allow_verdict"],
     };
     await emitTrace(result);
-    await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal);
+    await maybeUpdateNarrativeState(result, undefined, runtime, deps.narrativeStateStore, deps.recordDecisionTrace, signal, deps.recordNarrativeTrace);
     return result;
 }
 /**

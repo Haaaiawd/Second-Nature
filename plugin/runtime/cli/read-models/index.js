@@ -387,5 +387,90 @@ export function createCliReadModels(deps) {
                 evidenceRefs: bundle.explanation.evidenceRefs,
             };
         },
+        // T1.2.2 — read recent DreamTrace events from audit store.
+        async loadDreamRecent(limit = 5) {
+            const events = auditStore.list().filter((e) => e.family === "dream.trace");
+            const recent = events
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                .slice(0, limit);
+            return {
+                runs: recent.map((e) => {
+                    const p = e.payload;
+                    return {
+                        traceId: p.traceId,
+                        runId: p.runId,
+                        durationMs: p.durationMs ?? 0,
+                        inputCounts: p.inputCounts ?? { evidence: 0, chronicle: 0, memoryEntries: 0 },
+                        fallbackReason: p.fallbackReason,
+                        lifecycleStatus: p.fallbackReason ? "partial" : "completed",
+                        insightsCount: 0, // would require deeper payload parsing
+                        createdAt: e.createdAt,
+                    };
+                }),
+                totalRuns: events.length,
+            };
+        },
+        // T1.2.5 — aggregate recent heartbeat, narrative, dream, delivery events into cycles.
+        async loadCycleRecent(limit = 5) {
+            const events = auditStore.list();
+            const decisions = events.filter((e) => e.family === "heartbeat.decision");
+            const narratives = events.filter((e) => e.family === "narrative.trace");
+            const dreams = events.filter((e) => e.family === "dream.trace");
+            const deliveries = events.filter((e) => e.family === "delivery");
+            const connectors = events.filter((e) => e.family === "connector.attempt");
+            // Group by time buckets (hourly)
+            const buckets = new Map();
+            for (const e of decisions) {
+                const hour = e.createdAt.slice(0, 13);
+                const b = buckets.get(hour) ?? { timestamp: `${hour}:00:00Z`, dimensions: [] };
+                if (!b.dimensions.includes("decision"))
+                    b.dimensions.push("decision");
+                const p = e.payload;
+                if (p.outcome)
+                    b.decisionOutcome = p.outcome;
+                buckets.set(hour, b);
+            }
+            for (const e of narratives) {
+                const hour = e.createdAt.slice(0, 13);
+                const b = buckets.get(hour) ?? { timestamp: `${hour}:00:00Z`, dimensions: [] };
+                if (!b.dimensions.includes("narrative"))
+                    b.dimensions.push("narrative");
+                const p = e.payload;
+                if (p.groundingStatus)
+                    b.narrativeGrounding = p.groundingStatus;
+                buckets.set(hour, b);
+            }
+            for (const e of dreams) {
+                const hour = e.createdAt.slice(0, 13);
+                const b = buckets.get(hour) ?? { timestamp: `${hour}:00:00Z`, dimensions: [] };
+                if (!b.dimensions.includes("dream"))
+                    b.dimensions.push("dream");
+                const p = e.payload;
+                if (p.fallbackReason)
+                    b.dreamFallback = p.fallbackReason;
+                buckets.set(hour, b);
+            }
+            for (const e of deliveries) {
+                const hour = e.createdAt.slice(0, 13);
+                const b = buckets.get(hour) ?? { timestamp: `${hour}:00:00Z`, dimensions: [] };
+                if (!b.dimensions.includes("delivery"))
+                    b.dimensions.push("delivery");
+                const p = e.payload;
+                if (p.status)
+                    b.deliveryStatus = p.status;
+                buckets.set(hour, b);
+            }
+            for (const e of connectors) {
+                const hour = e.createdAt.slice(0, 13);
+                const b = buckets.get(hour) ?? { timestamp: `${hour}:00:00Z`, dimensions: [] };
+                if (!b.dimensions.includes("connector"))
+                    b.dimensions.push("connector");
+                buckets.set(hour, b);
+            }
+            const cycles = Array.from(buckets.values())
+                .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+                .slice(0, limit);
+            return { cycles, totalCycles: buckets.size };
+        },
     };
 }
