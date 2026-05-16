@@ -187,13 +187,16 @@ export interface HeartbeatDeps {
 /**
  * T2.1.5: after the cycle result is known, write a narrative revision when
  * a NarrativeStateStore is wired. Errors are swallowed so the cycle result
- * is never blocked by a store failure.
+ * is never blocked by a store failure. Store failures are optionally traced
+ * via recordDecisionTrace so operators can monitor store health.
  */
 async function maybeUpdateNarrativeState(
   result: HeartbeatCycleResult,
   selectedIntent: CandidateIntent | undefined,
   runtime: HeartbeatRuntimeSnapshot,
   store: NarrativeStateStore | undefined,
+  recordTrace?: HeartbeatDeps["recordDecisionTrace"],
+  signal?: { trigger: RuntimeTrigger },
 ): Promise<void> {
   if (!store) return;
   try {
@@ -207,6 +210,26 @@ async function maybeUpdateNarrativeState(
     await store.updateNarrativeState(update);
   } catch {
     // degrade silently; narrative update is best-effort
+    if (recordTrace && signal) {
+      try {
+        await recordTrace({
+          scope: result.scope,
+          status: result.status,
+          reasons: ["narrative_update_failed"],
+          selectedIntentId: selectedIntent?.id,
+          rhythmWindowId: runtime.rhythmWindow.windowId,
+          allowedIntentKinds: [...runtime.rhythmWindow.allowedIntentKinds],
+          candidateCount: 0,
+          lifeEvidenceEmpty:
+            runtime.lifeEvidence.evidenceRefs.length === 0 &&
+            runtime.lifeEvidence.platformEventCount === 0 &&
+            runtime.lifeEvidence.workEventCount === 0,
+          trigger: signal.trigger,
+        });
+      } catch {
+        // trace emission must also not block the cycle
+      }
+    }
   }
 }
 
@@ -279,6 +302,8 @@ export async function ingestRhythmSignal(
         intent,
         runtime,
         deps.narrativeStateStore,
+        deps.recordDecisionTrace,
+        signal,
       );
       return result;
     }
@@ -307,6 +332,8 @@ export async function ingestRhythmSignal(
       undefined,
       runtime,
       deps.narrativeStateStore,
+      deps.recordDecisionTrace,
+      signal,
     );
     return result;
   }
@@ -324,6 +351,8 @@ export async function ingestRhythmSignal(
       undefined,
       runtime,
       deps.narrativeStateStore,
+      deps.recordDecisionTrace,
+      signal,
     );
     return result;
   }
@@ -340,6 +369,8 @@ export async function ingestRhythmSignal(
       undefined,
       runtime,
       deps.narrativeStateStore,
+      deps.recordDecisionTrace,
+      signal,
     );
     return result;
   }
@@ -355,6 +386,8 @@ export async function ingestRhythmSignal(
     undefined,
     runtime,
     deps.narrativeStateStore,
+    deps.recordDecisionTrace,
+    signal,
   );
   return result;
 }

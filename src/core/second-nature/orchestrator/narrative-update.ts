@@ -29,6 +29,16 @@ function mapControlPlaneRefToSourceRef(
   };
 }
 
+/**
+ * Compute narrative confidence based on source evidence.
+ *
+ * Formula: min(intentSources / 3, 1) + (lifeEvidenceSources > 0 ? 0.1 : 0)
+ *
+ * Rationale:
+ * - Base: 1/3 per intent source (3 sources = 100% confidence)
+ * - Boost: +0.1 if any life evidence exists (signals corroboration)
+ * - Capped at 1.0 (100%)
+ */
 function computeConfidence(
   intentSources: number,
   lifeEvidenceSources: number,

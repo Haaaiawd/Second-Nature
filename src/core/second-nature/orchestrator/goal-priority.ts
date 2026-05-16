@@ -3,11 +3,19 @@
  *
  * `applyGoalPriority` adjusts candidate intent priorities based on accepted AgentGoals.
  * Priority order: user_task > accepted_goal > rhythm.
- * Proposal / rejected / paused goals are ignored (no influence).
+ * Only goals with status === "accepted" and origin !== "agent_proposed" are considered.
+ * All other statuses (proposal / rejected / completed / paused) are implicitly excluded.
  */
 import type { CandidateIntent } from "../types.js";
 import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 
+/**
+ * Per-goal priority boost applied when an accepted goal matches a candidate.
+ *
+ * Rationale: +20 per goal keeps a priority-50 candidate under 200
+ * even with 7 matching goals (50 + 140 = 190). Planner baselines
+ * range from 40–100, so 200 provides ample headroom without overflow.
+ */
 const GOAL_PRIORITY_BOOST = 20;
 
 function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean {

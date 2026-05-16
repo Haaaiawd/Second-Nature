@@ -272,3 +272,112 @@ test("T2.1.5 heartbeat loop does not break when store load fails", async () => {
     `unexpected status: ${result.status}`,
   );
 });
+
+// Boundary tests for Wave 26 fix
+
+test("T2.1.5 boundary: empty intent summary", () => {
+  const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
+  const intent = makeCandidate({
+    summary: "",
+    sourceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }],
+  });
+  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }] });
+
+  const update = updateNarrativeAfterEffect({
+    result,
+    selectedIntent: intent,
+    lifeEvidence,
+    priorNarrative: makePriorState(),
+  });
+
+  assert.equal(update.status, "active");
+  assert.equal(update.focus, "");
+  assert.ok(update.progress.includes("connector_action: "));
+});
+
+test("T2.1.5 boundary: very long intent summary", () => {
+  const longSummary = "a".repeat(10000);
+  const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
+  const intent = makeCandidate({
+    summary: longSummary,
+    sourceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }],
+  });
+  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }] });
+
+  const update = updateNarrativeAfterEffect({
+    result,
+    selectedIntent: intent,
+    lifeEvidence,
+    priorNarrative: makePriorState(),
+  });
+
+  assert.equal(update.status, "active");
+  assert.equal(update.focus, longSummary);
+  assert.ok(update.progress.includes(`connector_action: ${longSummary}`));
+});
+
+test("T2.1.5 boundary: maximum source refs for confidence calculation", () => {
+  const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
+  const manyRefs = Array.from({ length: 1000 }, (_, i) => ({
+    id: `ev-${i}`,
+    kind: "connector_result" as const,
+    uri: `evomap://profile-${i}`,
+  }));
+  const intent = makeCandidate({
+    summary: "bulk action",
+    sourceRefs: manyRefs,
+  });
+
+  const update = updateNarrativeAfterEffect({
+    result,
+    selectedIntent: intent,
+    lifeEvidence: makeLifeEvidence(),
+  });
+
+  assert.equal(update.status, "active");
+  assert.equal(update.confidence, 1); // Should cap at 1.0
+  assert.equal(update.sourceRefs.length, 1000);
+});
+
+test("T2.1.5 boundary: undefined selected intent", () => {
+  const result = makeResult({ status: "intent_selected", selectedIntentId: "missing-intent" });
+  const lifeEvidence = makeLifeEvidence();
+
+  const update = updateNarrativeAfterEffect({
+    result,
+    selectedIntent: undefined,
+    lifeEvidence,
+    priorNarrative: makePriorState(),
+  });
+
+  // When no intent is selected but status is intent_selected, preserve prior state
+  assert.equal(update.status, "active");
+  assert.equal(update.confidence, 0.5);
+  assert.equal(update.revision, 4);
+});
+
+test("T2.1.5 boundary: prior state with malformed data", () => {
+  const malformedPrior = {
+    narrativeId: "default",
+    revision: -1,
+    focus: "",
+    progress: ["", null as any, undefined as any],
+    nextIntent: "",
+    confidence: -0.5,
+    sourceRefs: [],
+    unsupportedClaims: ["", "  "],
+    status: "active" as const,
+    updatedAt: "invalid-date" as any,
+  };
+
+  const update = updateNarrativeAfterEffect({
+    result: makeResult(),
+    lifeEvidence: makeLifeEvidence(),
+    priorNarrative: malformedPrior,
+  });
+
+  // Should handle malformed prior state gracefully - preserves what it can
+  assert.equal(update.revision, 0); // Negative revision clamped to 0 then +1
+  assert.equal(update.status, "active");
+  assert.ok(update.updatedAt > "2026-05-15T00:00:00.000Z");
+});

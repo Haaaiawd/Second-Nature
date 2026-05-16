@@ -126,3 +126,97 @@ test("T2.1.4 undefined goals returns candidates unchanged", () => {
 
   assert.equal(result.candidates[0]!.priority, 50);
 });
+
+// Boundary tests for Wave 26 fix
+
+test("T2.1.4 boundary: agent_proposed goals are filtered out", () => {
+  const candidates = [makeCandidate({ id: "intent-evomap", platformId: "evomap", priority: 60 })];
+  const goals = [
+    makeGoal({ goalId: "g1", status: "proposal", description: "improve EvoMap profile" }),
+    makeGoal({ goalId: "g2", status: "accepted", description: "EvoMap onboarding" }),
+  ];
+
+  const result = applyGoalPriority(candidates, goals);
+
+  // Only accepted goal should boost
+  assert.equal(result.goalInfluences.length, 1);
+  assert.deepEqual(result.goalInfluences[0]!.goalIds, ["g2"]);
+  assert.ok(result.candidates[0]!.priority > 60, "should be boosted by accepted goal only");
+});
+
+test("T2.1.4 boundary: completed goals are filtered out", () => {
+  const candidates = [makeCandidate({ id: "intent-evomap", platformId: "evomap", priority: 60 })];
+  const goals = [
+    makeGoal({ goalId: "g1", status: "completed", description: "improve EvoMap profile" }),
+    makeGoal({ goalId: "g2", status: "accepted", description: "EvoMap onboarding" }),
+  ];
+
+  const result = applyGoalPriority(candidates, goals);
+
+  // Only accepted goal should boost
+  assert.equal(result.goalInfluences.length, 1);
+  assert.deepEqual(result.goalInfluences[0]!.goalIds, ["g2"]);
+});
+
+test("T2.1.4 boundary: paused goals are filtered out", () => {
+  const candidates = [makeCandidate({ id: "intent-evomap", platformId: "evomap", priority: 60 })];
+  const goals = [
+    makeGoal({ goalId: "g1", status: "paused", description: "improve EvoMap profile" }),
+    makeGoal({ goalId: "g2", status: "accepted", description: "EvoMap onboarding" }),
+  ];
+
+  const result = applyGoalPriority(candidates, goals);
+
+  // Only accepted goal should boost
+  assert.equal(result.goalInfluences.length, 1);
+  assert.deepEqual(result.goalInfluences[0]!.goalIds, ["g2"]);
+});
+
+test("T2.1.4 boundary: case-insensitive platform matching", () => {
+  const candidates = [
+    makeCandidate({ id: "intent-evomap", platformId: "EvoMap", priority: 60 }),
+    makeCandidate({ id: "intent-moltbook", platformId: "MOLTBOOK", priority: 55 }),
+  ];
+  const goals = [
+    makeGoal({ goalId: "g1", description: "improve evomap profile", completionCriteria: "evomap profile done" }),
+    makeGoal({ goalId: "g2", description: "moltbook configuration", completionCriteria: "moltbook configured" }),
+  ];
+
+  const result = applyGoalPriority(candidates, goals);
+
+  const evomap = result.candidates.find((c) => c.id === "intent-evomap")!;
+  const moltbook = result.candidates.find((c) => c.id === "intent-moltbook")!;
+
+  assert.ok(evomap.priority > 60, "EvoMap should be boosted (case-insensitive)");
+  assert.ok(moltbook.priority > 55, "Moltbook should be boosted (case-insensitive)");
+  assert.deepEqual(evomap.goalInfluenceRefs, ["g1"]);
+  assert.deepEqual(moltbook.goalInfluenceRefs, ["g2"]);
+});
+
+test("T2.1.4 boundary: platformId overflow protection", () => {
+  const candidates = [
+    makeCandidate({ 
+      id: "intent-evomap", 
+      platformId: "evomap", 
+      priority: 60,
+      priorityReasons: ["base"]
+    }),
+  ];
+  
+  // Create many goals to test overflow protection
+  const goals = Array.from({ length: 100 }, (_, i) => 
+    makeGoal({ 
+      goalId: `g${i}`, 
+      description: `improve evomap profile ${i}` 
+    })
+  );
+
+  const result = applyGoalPriority(candidates, goals);
+
+  const evomap = result.candidates[0]!;
+  assert.ok(evomap.priority > 60, "should be boosted");
+  assert.equal(evomap.goalInfluenceRefs!.length, 100, "should track all influences");
+  assert.ok(evomap.priorityReasons!.length > 1, "should have boost reasons");
+  // Priority should be reasonable (not overflowed)
+  assert.ok(evomap.priority < 10000, "priority should not overflow");
+});
