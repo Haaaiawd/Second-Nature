@@ -306,5 +306,27 @@ export function createCliCommands(
         return result as unknown as Record<string, unknown>;
       },
     },
+    {
+      name: "connector_status",
+      description:
+        "T1.2.3 — show connector inventory, trust/executable/conflict summary",
+      execute: async (input) => {
+        const surface = await Promise.resolve(
+          opsRouter.dispatch("connector_status", input),
+        );
+        return surface as Record<string, unknown>;
+      },
+    },
+    {
+      name: "connector_test",
+      description:
+        "T1.2.3 — dry-run test a connector by platformId (default dry-run)",
+      execute: async (input) => {
+        const surface = await Promise.resolve(
+          opsRouter.dispatch("connector_test", input),
+        );
+        return surface as Record<string, unknown>;
+      },
+    },
   ];
 }

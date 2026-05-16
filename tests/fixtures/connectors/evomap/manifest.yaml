@@ -1,0 +1,36 @@
+schemaVersion: sn.connector.v1
+platformId: evomap
+displayName: EvoMap
+family: agent_network
+capabilities:
+  - id: agent.register
+    channel: a2a
+    description: Register node via A2A hello
+  - id: agent.heartbeat
+    channel: api_rest
+    description: Node heartbeat
+  - id: work.discover
+    channel: api_rest
+    description: Discover available work items
+  - id: task.claim
+    channel: api_rest
+    description: Claim a task
+runner:
+  kind: declarative_http
+  entrypoint: ""
+config:
+  degradedChannels:
+    - skill
+credentials:
+  - type: node_secret
+    required: true
+    description: Node secret for EvoMap authentication
+  - type: api_key
+    required: true
+    description: API key for EvoMap REST endpoints
+sourceRefPolicy:
+  minSourceRefs: 1
+  rejectInlineSensitivePayload: true
+trust:
+  status: declarative_trusted
+  reason: v5_parity_fixture

@@ -23,6 +23,8 @@ import type {
 } from "../host-capability/types.js";
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
 import { connectorInit } from "../commands/connector-init.js";
+import { connectorStatus, connectorTest } from "../commands/connector-status.js";
+import type { DynamicConnectorRegistry } from "../../connectors/registry/index.js";
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
@@ -52,6 +54,10 @@ export interface OpsRouterDeps {
    * connector-system instead of returning connector_dispatch_unwired.
    */
   connectorExecutor?: ConnectorExecutor;
+  /**
+   * T1.2.3: DynamicConnectorRegistry for connector:status and connector:test commands.
+   */
+  registry?: DynamicConnectorRegistry;
 }
 
 /**
@@ -273,6 +279,23 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           });
           return result as unknown as Record<string, unknown>;
         })();
+      }
+      if (command === "connector_status") {
+        return connectorStatus(deps.registry, undefined, {
+          includeHealth: Boolean(input?.includeHealth),
+          workspaceRoot:
+            typeof input?.workspaceRoot === "string"
+              ? input.workspaceRoot
+              : deps.workspaceRoot,
+        });
+      }
+      if (command === "connector_test") {
+        return connectorTest(deps.registry, {
+          platformId:
+            typeof input?.platformId === "string" ? input.platformId : "",
+          dryRun:
+            input?.dryRun === false ? false : true, // default dry-run
+        });
       }
       return {
         ok: false,

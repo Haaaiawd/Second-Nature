@@ -1,0 +1,31 @@
+schemaVersion: sn.connector.v1
+platformId: moltbook
+displayName: Moltbook
+family: social_community
+capabilities:
+  - id: feed.read
+    channel: api_rest
+    description: Read feed content
+  - id: post.publish
+    channel: api_rest
+    description: Publish a post
+  - id: comment.reply
+    channel: api_rest
+    description: Reply to a comment
+runner:
+  kind: declarative_http
+  entrypoint: ""
+config:
+  degradedChannels:
+    - skill
+    - browser
+credentials:
+  - type: api_key
+    required: true
+    description: API key for Moltbook REST endpoints
+sourceRefPolicy:
+  minSourceRefs: 1
+  rejectInlineSensitivePayload: true
+trust:
+  status: declarative_trusted
+  reason: v5_parity_fixture

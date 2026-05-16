@@ -260,6 +260,9 @@ T4.1.2, T4.1.3, T4.1.4, T4.1.5
 ### 🌊 Wave 24 ✅ — v6 S1 Connector Ecosystem: CapabilityContractRegistry + connector init + InventoryAudit
 T3.1.2, T1.3.1, T5.1.3
 
+### 🌊 Wave 25 ✅ — v6 S1 Connector Ops Surface & v5 Parity
+T1.2.3, T3.2.1
+
 <!-- AUTO:END -->
 
 ---

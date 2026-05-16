@@ -132,7 +132,7 @@ graph TD
   - **依赖**: T5.1.1, T7.1.1
   - **优先级**: P1
 
-- [ ] **T1.2.3** [REQ-004][REQ-006]: 实现 `sn connector:status` 和 `sn connector:test`
+- [x] **T1.2.3** [REQ-004][REQ-006]: 实现 `sn connector:status` 和 `sn connector:test`
   - **描述**: 显示 connector inventory、trust/executable/conflict，并 dry-run 测试单个 connector。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1；`04_SYSTEM_DESIGN/connector-system.md` §registry / health；T3.1.1 输出；T5.1.3 输出。
   - **输出**: `connector:status`、`connector:test` CLI commands。
@@ -379,7 +379,7 @@ graph TD
   - **依赖**: T3.1.1
   - **优先级**: P0
 
-- [ ] **T3.2.1** [REQ-004]: 验证 v5 connector 动态注册 parity
+- [x] **T3.2.1** [REQ-004]: 验证 v5 connector 动态注册 parity
   - **描述**: 将 Moltbook/InStreet/EvoMap connector 表达为 manifest parity fixtures 并验证行为一致。
   - **输入**: v5 connector implementation；T3.1.1 registry；T3.1.2 route planner。
   - **输出**: 3 个 parity manifest fixture、regression tests。
