@@ -328,5 +328,16 @@ export function createCliCommands(
         return surface as Record<string, unknown>;
       },
     },
+    {
+      name: "goal",
+      description:
+        "T1.2.4 — owner-governed goal operations: set, list, accept, reject",
+      execute: async (input) => {
+        const surface = await Promise.resolve(
+          opsRouter.dispatch("goal", input),
+        );
+        return surface as Record<string, unknown>;
+      },
+    },
   ];
 }

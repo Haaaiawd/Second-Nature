@@ -260,5 +260,13 @@ export function createCliCommands(deps) {
                 return surface;
             },
         },
+        {
+            name: "goal",
+            description: "T1.2.4 — owner-governed goal operations: set, list, accept, reject",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("goal", input));
+                return surface;
+            },
+        },
     ];
 }

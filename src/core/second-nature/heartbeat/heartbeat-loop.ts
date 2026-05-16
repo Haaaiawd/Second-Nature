@@ -47,6 +47,7 @@ import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
 import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
 import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js";
+import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -182,6 +183,8 @@ export interface HeartbeatDeps {
   connectorExecutor?: ConnectorExecutor;
   /** T2.1.5: when present, heartbeat writes a source-backed NarrativeState revision after each cycle. */
   narrativeStateStore?: NarrativeStateStore;
+  /** T5.1.2: when present, heartbeat records a NarrativeTrace after successful narrative state update. */
+  recordNarrativeTrace?: (payload: NarrativeTracePayload) => Promise<void>;
 }
 
 /**
@@ -197,6 +200,7 @@ async function maybeUpdateNarrativeState(
   store: NarrativeStateStore | undefined,
   recordTrace?: HeartbeatDeps["recordDecisionTrace"],
   signal?: { trigger: RuntimeTrigger },
+  recordNarrativeTrace?: HeartbeatDeps["recordNarrativeTrace"],
 ): Promise<void> {
   if (!store) return;
   try {
@@ -208,6 +212,34 @@ async function maybeUpdateNarrativeState(
       priorNarrative: prior,
     });
     await store.updateNarrativeState(update);
+
+    // T5.1.2: record NarrativeTrace on successful state update
+    if (recordNarrativeTrace) {
+      try {
+        await recordNarrativeTrace({
+          traceId: `narrative_trace:${crypto.randomUUID()}`,
+          narrativeId: update.narrativeId,
+          revision: update.revision,
+          updateSource: "heartbeat",
+          sourceRefs: update.sourceRefs.map((r) => ({
+            id: r.sourceId,
+            kind: r.kind,
+            uri: r.url,
+          })),
+          unsupportedClaims: update.unsupportedClaims,
+          groundingStatus:
+            update.unsupportedClaims.length > 0
+              ? "degraded"
+              : update.status === "insufficient_sources"
+                ? "blocked"
+                : "pass",
+          goalInfluenceRefs: selectedIntent?.sourceRefs?.map((r) => r.id) ?? [],
+          createdAt: update.updatedAt,
+        });
+      } catch {
+        // trace emission must not block the cycle
+      }
+    }
   } catch {
     // degrade silently; narrative update is best-effort
     if (recordTrace && signal) {
@@ -304,6 +336,7 @@ export async function ingestRhythmSignal(
         deps.narrativeStateStore,
         deps.recordDecisionTrace,
         signal,
+        deps.recordNarrativeTrace,
       );
       return result;
     }
@@ -334,6 +367,7 @@ export async function ingestRhythmSignal(
       deps.narrativeStateStore,
       deps.recordDecisionTrace,
       signal,
+      deps.recordNarrativeTrace,
     );
     return result;
   }
@@ -353,6 +387,7 @@ export async function ingestRhythmSignal(
       deps.narrativeStateStore,
       deps.recordDecisionTrace,
       signal,
+      deps.recordNarrativeTrace,
     );
     return result;
   }
@@ -371,6 +406,7 @@ export async function ingestRhythmSignal(
       deps.narrativeStateStore,
       deps.recordDecisionTrace,
       signal,
+      deps.recordNarrativeTrace,
     );
     return result;
   }
@@ -388,6 +424,7 @@ export async function ingestRhythmSignal(
     deps.narrativeStateStore,
     deps.recordDecisionTrace,
     signal,
+    deps.recordNarrativeTrace,
   );
   return result;
 }

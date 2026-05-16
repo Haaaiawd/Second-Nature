@@ -105,6 +105,18 @@ export interface GuidanceGroundingAuditPayload {
   createdAt: string;
 }
 
+export interface NarrativeTracePayload {
+  traceId: string;
+  narrativeId: string;
+  revision: number;
+  updateSource: "heartbeat" | "dream" | "owner" | "maintenance";
+  sourceRefs: Array<{ id: string; kind: string; uri?: string }>;
+  unsupportedClaims: string[];
+  groundingStatus: GroundingStatus;
+  goalInfluenceRefs: string[];
+  createdAt: string;
+}
+
 export interface ExplainLinkageSummary {
   decisionId: string;
   summary: string;
@@ -247,6 +259,22 @@ export class LivedExperienceAuditRecorder {
     if (payload.decisionId) {
       this.touchDecision(payload.decisionId, payload.traceId, envelope.eventId);
     }
+    return { eventId: envelope.eventId };
+  }
+
+  recordNarrativeTrace(payload: NarrativeTracePayload): { eventId: string } {
+    const seq = this.bumpSequence();
+    const envelope = buildAuditEnvelope({
+      family: "narrative.trace",
+      plane: "source_coverage" as AuditPlane,
+      traceId: payload.traceId,
+      sequence: seq,
+      payload,
+      previousHash: this.store.lastRecordHash(),
+      eventId: crypto.randomUUID(),
+      createdAt: payload.createdAt,
+    });
+    this.store.append(envelope);
     return { eventId: envelope.eventId };
   }
 

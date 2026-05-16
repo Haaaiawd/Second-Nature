@@ -24,6 +24,7 @@ import type {
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
 import { connectorInit } from "../commands/connector-init.js";
 import { connectorStatus, connectorTest } from "../commands/connector-status.js";
+import { goalCommand } from "../commands/goal.js";
 import type { DynamicConnectorRegistry } from "../../connectors/registry/index.js";
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
@@ -295,6 +296,35 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             typeof input?.platformId === "string" ? input.platformId : "",
           dryRun:
             input?.dryRun === false ? false : true, // default dry-run
+        });
+      }
+      if (command === "goal") {
+        const rawAction = typeof input?.action === "string" ? input.action : "list";
+        const action = ["set", "list", "accept", "reject"].includes(rawAction)
+          ? (rawAction as "set" | "list" | "accept" | "reject")
+          : "list";
+        return goalCommand(deps.state, {
+          action,
+          goalId: typeof input?.goalId === "string" ? input.goalId : undefined,
+          description:
+            typeof input?.description === "string" ? input.description : undefined,
+          completionCriteria:
+            typeof input?.completionCriteria === "string"
+              ? input.completionCriteria
+              : undefined,
+          risk:
+            typeof input?.risk === "string"
+              ? (input.risk as "low" | "medium" | "high")
+              : undefined,
+          kind:
+            typeof input?.kind === "string"
+              ? (input.kind as "short_term" | "long_term")
+              : undefined,
+          statusFilter:
+            typeof input?.statusFilter === "string" ? input.statusFilter : undefined,
+          originFilter:
+            typeof input?.originFilter === "string" ? input.originFilter : undefined,
+          limit: typeof input?.limit === "number" ? input.limit : undefined,
         });
       }
       return {

@@ -266,6 +266,12 @@ T1.2.3, T3.2.1
 ### 🌊 Wave 26 ✅ — v6 S1 Control-Plane & Guidance: Goal Planning + Outreach Draft + Narrative Update
 T2.1.4, T6.1.1, T2.1.5
 
+### 🌊 Wave 27 ✅ — v6 S1/S3 Ops & Outreach: Goal Command + Outreach v6 Judgment Integration
+T1.2.4 (`sn goal` set/list/accept/reject/show CLI command；`GoalReadModel` types；`AgentGoalStore` 全生命周期)。T2.3.1（Outreach v6 judgment：`build-outreach-draft-request` 接入 `narrativeState` + `relationshipMemory` → `narrativeContext`/`relationshipContext`；`outreach-draft-schema` 扩展；`dispatch-user-outreach` 加载叙事/关系上下文后起草；draft text 嵌入 focus/tone/interests summary；`RelationshipMemory` 字段名修复 `tonePreference`）。新增 16 测试；452/452 pass。
+
+### 🌊 Wave 28 ✅ — v6 S1 Observability: NarrativeTrace Audit Layer + INT-S1 Closure
+T5.1.2：`NarrativeTracePayload` 类型；`LivedExperienceAuditRecorder.recordNarrativeTrace()` 方法；`AuditEventFamily` 扩展 `"narrative.trace"`/`"dream.trace"`；`HeartbeatDeps` 扩展 `recordNarrativeTrace`；`maybeUpdateNarrativeState` 在成功 narrative state write 后调用 `recordNarrativeTrace`（全 5 个 result 分支）；groundingStatus 按 `unsupportedClaims` 与 `status` 映射 pass/degraded/blocked；trace emitter throw 不阻塞 cycle。集成测 `tests/integration/observability/heartbeat-narrative-trace.test.ts`（5 cases）。INT-S1 关门报告 `reports/int-s1-v6-foundation-connector.md`：state schemas、connector registry、trust policy、v5 parity、ConnectorInventoryAudit、CLI ops surface、回归证据汇总。457 测试（454 pass，3 pre-existing guidance review workflow fail 与 S1 无关）。
+
 <!-- AUTO:END -->
 
 ---

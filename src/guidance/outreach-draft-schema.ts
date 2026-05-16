@@ -64,6 +64,20 @@ export const sceneGuidanceRequestSchema = z.object({
   language: z.enum(["zh-CN", "en-US"]).optional(),
 });
 
+export const outreachNarrativeContextSchema = z.object({
+  focus: z.string().optional(),
+  progress: z.array(z.string()).optional(),
+  nextIntent: z.string().optional(),
+  sourceRefs: z.array(guidanceSourceRefSchema).optional(),
+});
+
+export const outreachRelationshipContextSchema = z.object({
+  tone: z.string().optional(),
+  topicAffinities: z.array(z.string()).optional(),
+  avgAffinity: z.number().optional(),
+  sourceRefs: z.array(guidanceSourceRefSchema).optional(),
+});
+
 export const outreachDraftRequestSchema = sceneGuidanceRequestSchema
   .extend({
     sceneType: z.enum(["outreach", "fallback_candidate"]),
@@ -72,6 +86,8 @@ export const outreachDraftRequestSchema = sceneGuidanceRequestSchema
     judgmentVerdict: z.enum(["allow", "deny", "defer"]),
     valueScore: z.number(),
     interestRefs: z.array(guidanceSourceRefSchema),
+    narrativeContext: outreachNarrativeContextSchema.optional(),
+    relationshipContext: outreachRelationshipContextSchema.optional(),
   })
   .superRefine((val, ctx) => {
     if (!val.deliveryContext) {

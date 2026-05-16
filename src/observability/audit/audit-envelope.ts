@@ -24,7 +24,9 @@ export type AuditEventFamily =
   | "guidance.grounding"
   | "host_capability"
   | "connector.attempt"
-  | "state.governance";
+  | "state.governance"
+  | "narrative.trace"
+  | "dream.trace";
 
 export type AuditEnvelopeSensitivity = "public" | "internal" | "private" | "credential" | "sensitive";
 
