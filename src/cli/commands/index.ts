@@ -1,6 +1,7 @@
 import type { ActionBridge } from "../action-bridge.js";
 import type { OpsRouter } from "../ops/ops-router.js";
 import { credentialVerify } from "./credential.js";
+import { connectorInit, type ConnectorInitInput } from "./connector-init.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import {
@@ -274,6 +275,35 @@ export function createCliCommands(
           opsRouter.dispatch("near_real_smoke", input),
         );
         return surface as Record<string, unknown>;
+      },
+    },
+    {
+      name: "connector_init",
+      description:
+        "T1.3.1 — generate connector manifest stub under .second-nature/connectors/{platformId}/",
+      execute: async (input) => {
+        const result = await connectorInit({
+          platformId:
+            typeof input?.platformId === "string" ? input.platformId : "",
+          family:
+            typeof input?.family === "string"
+              ? (input.family as ConnectorInitInput["family"])
+              : undefined,
+          displayName:
+            typeof input?.displayName === "string"
+              ? input.displayName
+              : undefined,
+          runnerKind:
+            typeof input?.runnerKind === "string"
+              ? (input.runnerKind as ConnectorInitInput["runnerKind"])
+              : undefined,
+          force: Boolean(input?.force),
+          workspaceRoot:
+            typeof input?.workspaceRoot === "string"
+              ? input.workspaceRoot
+              : undefined,
+        });
+        return result as unknown as Record<string, unknown>;
       },
     },
   ];

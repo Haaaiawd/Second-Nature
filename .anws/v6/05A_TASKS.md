@@ -230,7 +230,7 @@ graph TD
 
 ### Phase 2: Connector SDK
 
-- [ ] **T1.3.1** [REQ-004]: 实现 `second-nature connector init` CLI 命令
+- [x] **T1.3.1** [REQ-004]: 实现 `second-nature connector init` CLI 命令
   - **描述**: 一行命令生成 connector 骨架：manifest.yaml + adapter stub + types stub，并保证生成物不被自动信任执行。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §SDK/CLI；`04_SYSTEM_DESIGN/cli-system.md` §5.1；ADR-002；T3.1.1 输出的 manifest schema。
   - **输出**: `connector init` CLI implementation、manifest/template files、safe path generator。
@@ -358,7 +358,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **T3.1.2** [REQ-004]: 实现 CapabilityContractRegistry 开放注册/命名空间
+- [x] **T3.1.2** [REQ-004]: 实现 CapabilityContractRegistry 开放注册/命名空间
   - **描述**: 支持 `platformId:capability` 命名空间，同时保留 v5 explicit platform request。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §CapabilityContractRegistry；T3.1.1 snapshot 输出。
   - **输出**: `CapabilityContractRegistry.register()`、route planner namespace resolver。
@@ -556,7 +556,7 @@ graph TD
   - **依赖**: T2.1.5, T4.1.2
   - **优先级**: P1
 
-- [ ] **T5.1.3** [REQ-004][REQ-006]: 实现 ConnectorInventoryAudit 审计层
+- [x] **T5.1.3** [REQ-004][REQ-006]: 实现 ConnectorInventoryAudit 审计层
   - **描述**: 记录 connector scan/reload 的 scanned、registered、skipped、conflicts、validationErrors、trust/executable summary。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §ConnectorInventoryAudit；T3.1.1 output。
   - **输出**: `recordConnectorInventory()`、inventory read model、status query API。

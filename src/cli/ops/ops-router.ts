@@ -22,6 +22,7 @@ import type {
   CapabilityCheckResult,
 } from "../host-capability/types.js";
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
+import { connectorInit } from "../commands/connector-init.js";
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
@@ -244,6 +245,33 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             command: "near_real_smoke" as const,
             data: result,
           };
+        })();
+      }
+      if (command === "connector_init") {
+        // T1.3.1 (SN-CODE-06): generate connector manifest stub.
+        return (async () => {
+          const result = await connectorInit({
+            platformId: typeof input?.platformId === "string" ? input.platformId : "",
+            family:
+              typeof input?.family === "string"
+                ? (input.family as "social_community" | "agent_network" | "work_platform" | "custom")
+                : undefined,
+            displayName: typeof input?.displayName === "string" ? input.displayName : undefined,
+            runnerKind:
+              typeof input?.runnerKind === "string"
+                ? (input.runnerKind as
+                    | "declarative_http"
+                    | "declarative_a2a"
+                    | "declarative_mcp"
+                    | "cli_descriptor"
+                    | "custom_adapter"
+                    | "skill"
+                    | "browser")
+                : undefined,
+            force: Boolean(input?.force),
+            workspaceRoot: deps.workspaceRoot,
+          });
+          return result as unknown as Record<string, unknown>;
         })();
       }
       return {

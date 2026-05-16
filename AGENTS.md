@@ -84,7 +84,7 @@
 - **最新架构版本**: `.anws/v6`
 - **活动任务清单**: `.anws/v6/05A_TASKS.md`
 - **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-16` (Wave 23 `/forge` AUTO: T4.1.2–T4.1.5 v6 Agent Self Layer state 编码完成，27 测试全绿；Wave 24 自动推进中)
+- **最近一次更新**: `2026-05-16` (Wave 24 `/forge`: T3.1.2 CapabilityContractRegistry namespace + v5 compat, T1.3.1 connector init CLI, T5.1.3 ConnectorInventoryAudit schema + Ledger；21 测试全绿)
 
 ### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
 
@@ -256,6 +256,9 @@ T3.1.1, T4.1.1
 
 ### 🌊 Wave 23 ✅ — v6 S1 Foundation: Agent Self Layer State Schemas
 T4.1.2, T4.1.3, T4.1.4, T4.1.5
+
+### 🌊 Wave 24 ✅ — v6 S1 Connector Ecosystem: CapabilityContractRegistry + connector init + InventoryAudit
+T3.1.2, T1.3.1, T5.1.3
 
 <!-- AUTO:END -->
 
