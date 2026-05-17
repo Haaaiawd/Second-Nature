@@ -225,6 +225,146 @@ function mapConnectorStatus(
   return "healthy";
 }
 
+/**
+ * Derive groundingStatus from confidence and status.
+ *
+ * Rules (in priority order):
+ * 1. blocked: status === "awaiting_sources" OR confidence < 0.4
+ * 2. pass: confidence >= 0.7 AND status === "active"
+ * 3. degraded: all other cases (0.4 <= confidence < 0.7, or status is insufficient_sources)
+ */
+function deriveGroundingStatus(
+  status: "active" | "insufficient_sources" | "awaiting_sources",
+  confidence: number,
+): "pass" | "degraded" | "blocked" {
+  if (status === "awaiting_sources" || confidence < 0.4) {
+    return "blocked";
+  }
+  if (confidence >= 0.7 && status === "active") {
+    return "pass";
+  }
+  return "degraded";
+}
+
+/**
+ * Build the base StatusReadModel that is shared by loadStatus and loadV6Status.
+ * Centralising this logic eliminates the DRY violation identified in CR-01.
+ */
+async function buildBaseStatus(deps: CliReadModelsDeps): Promise<StatusReadModel> {
+  let recentAttempts: Array<typeof executionAttempts.$inferSelect> = [];
+  let recentDecisions: Array<typeof decisionLedger.$inferSelect> = [];
+  let credentials: Awaited<
+    ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>
+  > = [];
+
+  try {
+    recentAttempts = await deps.observabilityDb.db
+      .select()
+      .from(executionAttempts)
+      .orderBy(
+        desc(executionAttempts.startedAt),
+        desc(executionAttempts.finishedAt),
+      )
+      .limit(50);
+  } catch {
+    recentAttempts = [];
+  }
+
+  try {
+    recentDecisions = await deps.observabilityDb.db
+      .select()
+      .from(decisionLedger)
+      .orderBy(desc(decisionLedger.createdAt))
+      .limit(50);
+  } catch {
+    recentDecisions = [];
+  }
+
+  try {
+    credentials = await deps.stateDb.db.query.credentialRecords.findMany();
+  } catch {
+    credentials = [];
+  }
+
+  const latestRuntimeAttempt = recentAttempts.find(
+    (attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID,
+  );
+  const latestConnectorAttempt = recentAttempts.find(
+    (attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID,
+  );
+  const latestRuntimeDecision = recentDecisions.find((decision) =>
+    decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX),
+  );
+  const runtimeUpdatedAt =
+    latestRuntimeAttempt?.finishedAt ??
+    latestRuntimeAttempt?.startedAt ??
+    latestRuntimeDecision?.createdAt ??
+    "";
+  const quietMode =
+    latestRuntimeDecision?.mode === "quiet" ||
+    latestRuntimeDecision?.mode === "maintenance_only" ||
+    latestRuntimeDecision?.mode === "paused_for_interrupt"
+      ? latestRuntimeDecision.mode
+      : "unknown";
+  const riskFlags = [
+    latestRuntimeAttempt?.failureClass,
+    latestConnectorAttempt?.failureClass,
+  ].filter((value): value is string => Boolean(value));
+
+  const connectorSummary: StatusReadModel["connectors"] =
+    latestConnectorAttempt
+      ? [
+          {
+            platformId: latestConnectorAttempt.platformId,
+            status: mapConnectorStatus(latestConnectorAttempt),
+            channel: latestConnectorAttempt.channel,
+            failureClass: latestConnectorAttempt.failureClass ?? undefined,
+          },
+        ]
+      : [];
+
+  return {
+    runtime: {
+      host: "openclaw-plugin",
+      serviceStatus: mapRuntimeStatus(latestRuntimeAttempt),
+      updatedAt: runtimeUpdatedAt,
+    },
+    rhythm: {
+      mode:
+        (latestRuntimeDecision?.mode as
+          | StatusReadModel["rhythm"]["mode"]
+          | undefined) ?? "unknown",
+    },
+    quiet: {
+      mode: quietMode,
+      lastEvent: latestRuntimeDecision?.traceId,
+      interrupted:
+        latestRuntimeDecision?.mode === "paused_for_interrupt"
+          ? true
+          : undefined,
+    },
+    connectors: connectorSummary,
+    credentials: credentials.map((item) => ({
+      platformId:
+        (item as unknown as { platformId: string }).platformId ??
+        (item as unknown as { platform_id: string }).platform_id,
+      status: item.status as CredentialReadModel["status"],
+      nextStep: buildCredentialNextStep(
+        item.status as CredentialReadModel["status"],
+      ),
+    })),
+    risk: {
+      level: riskFlags.length > 0 ? "medium" : "low",
+      flags: riskFlags,
+    },
+    deliveryPosture: {
+      verdict: "none",
+      source: "workspace_default_none",
+      reasonCode: "delivery_target_none",
+    },
+  };
+}
+
 export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
   const assetRepository = new AssetRepository(deps.stateDb);
   const credentialRepository = new CredentialRepository(deps.stateDb);
@@ -239,127 +379,7 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
 
   return {
     async loadStatus(_scope?: string): Promise<StatusReadModel> {
-      let recentAttempts: Array<typeof executionAttempts.$inferSelect> = [];
-      let recentDecisions: Array<typeof decisionLedger.$inferSelect> = [];
-      let credentials: Awaited<
-        ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>
-      > = [];
-
-      try {
-        recentAttempts = await deps.observabilityDb.db
-          .select()
-          .from(executionAttempts)
-          .orderBy(
-            desc(executionAttempts.startedAt),
-            desc(executionAttempts.finishedAt),
-          )
-          .limit(50);
-      } catch {
-        recentAttempts = [];
-      }
-
-      try {
-        recentDecisions = await deps.observabilityDb.db
-          .select()
-          .from(decisionLedger)
-          .orderBy(desc(decisionLedger.createdAt))
-          .limit(50);
-      } catch {
-        recentDecisions = [];
-      }
-
-      try {
-        credentials = await deps.stateDb.db.query.credentialRecords.findMany();
-      } catch {
-        credentials = [];
-      }
-
-      const latestRuntimeAttempt = recentAttempts.find(
-        (attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID,
-      );
-      // CH-15-04 (CH-14-03): latestConnectorAttempt is the most recent execution attempt whose
-      // platformId is NOT the internal sn-runtime sentinel — i.e. a real connector platform
-      // (Moltbook, EvoMap, etc.). The `connectors` array in StatusReadModel reflects this single
-      // most-recent non-runtime attempt, NOT the full connector manifest. An empty array means
-      // no connector attempt has been recorded yet, not that connectors are misconfigured.
-      const latestConnectorAttempt = recentAttempts.find(
-        (attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID,
-      );
-      const latestRuntimeDecision = recentDecisions.find((decision) =>
-        decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX),
-      );
-      const runtimeUpdatedAt =
-        latestRuntimeAttempt?.finishedAt ??
-        latestRuntimeAttempt?.startedAt ??
-        latestRuntimeDecision?.createdAt ??
-        "";
-      const quietMode =
-        latestRuntimeDecision?.mode === "quiet" ||
-        latestRuntimeDecision?.mode === "maintenance_only" ||
-        latestRuntimeDecision?.mode === "paused_for_interrupt"
-          ? latestRuntimeDecision.mode
-          : "unknown";
-      const riskFlags = [
-        latestRuntimeAttempt?.failureClass,
-        latestConnectorAttempt?.failureClass,
-      ].filter((value): value is string => Boolean(value));
-
-      const connectorSummary: StatusReadModel["connectors"] =
-        latestConnectorAttempt
-          ? [
-              {
-                platformId: latestConnectorAttempt.platformId,
-                status: mapConnectorStatus(latestConnectorAttempt),
-                channel: latestConnectorAttempt.channel,
-                failureClass: latestConnectorAttempt.failureClass ?? undefined,
-              },
-            ]
-          : [];
-
-      return {
-        runtime: {
-          host: "openclaw-plugin",
-          serviceStatus: mapRuntimeStatus(latestRuntimeAttempt),
-          updatedAt: runtimeUpdatedAt,
-        },
-        rhythm: {
-          mode:
-            (latestRuntimeDecision?.mode as
-              | StatusReadModel["rhythm"]["mode"]
-              | undefined) ?? "unknown",
-          windowId: undefined,
-        },
-        quiet: {
-          mode: quietMode,
-          lastEvent: latestRuntimeDecision?.traceId,
-          interrupted:
-            latestRuntimeDecision?.mode === "paused_for_interrupt"
-              ? true
-              : undefined,
-        },
-        connectors: connectorSummary,
-        credentials: credentials.map((item) => ({
-          platformId:
-            (item as unknown as { platformId: string }).platformId ??
-            (item as unknown as { platform_id: string }).platform_id,
-          status: item.status as CredentialReadModel["status"],
-          nextStep: buildCredentialNextStep(
-            item.status as CredentialReadModel["status"],
-          ),
-        })),
-        risk: {
-          level: riskFlags.length > 0 ? "medium" : "low",
-          flags: riskFlags,
-        },
-        // T1.2.5 (CH-14-04): default delivery posture is workspace_default_none because the
-        // workspace heartbeat hardcodes `deliveryCapability: { target: "none" }` until a host
-        // capability probe explicitly sets a valid target.
-        deliveryPosture: {
-          verdict: "none",
-          source: "workspace_default_none",
-          reasonCode: "delivery_target_none",
-        },
-      };
+      return buildBaseStatus(deps);
     },
 
     async loadDailyReport(day: string): Promise<DailyReportReadModel> {
@@ -651,45 +671,14 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       const dreamSection = allAuditEvents.filter((e) => e.family === "dream.trace");
       const cycleSection = allAuditEvents;
 
-      // Rebuild base status inline (avoids circular self-reference in object literal)
-      let recentAttempts: Array<typeof executionAttempts.$inferSelect> = [];
-      let recentDecisions: Array<typeof decisionLedger.$inferSelect> = [];
-      let credentials: Awaited<ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>> = [];
-      try { recentAttempts = await deps.observabilityDb.db.select().from(executionAttempts).orderBy(desc(executionAttempts.startedAt), desc(executionAttempts.finishedAt)).limit(50); } catch { /* noop */ }
-      try { recentDecisions = await deps.observabilityDb.db.select().from(decisionLedger).orderBy(desc(decisionLedger.createdAt)).limit(50); } catch { /* noop */ }
-      try { credentials = await deps.stateDb.db.query.credentialRecords.findMany(); } catch { /* noop */ }
-
-      const latestRuntimeAttempt = recentAttempts.find((a) => a.platformId === INTERNAL_RUNTIME_PLATFORM_ID);
-      const latestConnectorAttempt = recentAttempts.find((a) => a.platformId !== INTERNAL_RUNTIME_PLATFORM_ID);
-      const latestRuntimeDecision = recentDecisions.find((d) => d.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX));
-      const runtimeUpdatedAt = latestRuntimeAttempt?.finishedAt ?? latestRuntimeAttempt?.startedAt ?? latestRuntimeDecision?.createdAt ?? "";
-      const quietMode = latestRuntimeDecision?.mode === "quiet" || latestRuntimeDecision?.mode === "maintenance_only" || latestRuntimeDecision?.mode === "paused_for_interrupt" ? latestRuntimeDecision.mode : "unknown";
-      const riskFlags = [latestRuntimeAttempt?.failureClass, latestConnectorAttempt?.failureClass].filter((v): v is string => Boolean(v));
-      const connectorSummary: StatusReadModel["connectors"] = latestConnectorAttempt ? [{ platformId: latestConnectorAttempt.platformId, status: mapConnectorStatus(latestConnectorAttempt), channel: latestConnectorAttempt.channel, failureClass: latestConnectorAttempt.failureClass ?? undefined }] : [];
-
-      const baseStatus: StatusReadModel = {
-        runtime: { host: "openclaw-plugin", serviceStatus: mapRuntimeStatus(latestRuntimeAttempt), updatedAt: runtimeUpdatedAt },
-        rhythm: { mode: (latestRuntimeDecision?.mode as StatusReadModel["rhythm"]["mode"] | undefined) ?? "unknown" },
-        quiet: { mode: quietMode, lastEvent: latestRuntimeDecision?.traceId, interrupted: latestRuntimeDecision?.mode === "paused_for_interrupt" ? true : undefined },
-        connectors: connectorSummary,
-        credentials: credentials.map((item) => ({ platformId: (item as unknown as { platformId: string }).platformId ?? (item as unknown as { platform_id: string }).platform_id, status: item.status as CredentialReadModel["status"], nextStep: buildCredentialNextStep(item.status as CredentialReadModel["status"]) })),
-        risk: { level: riskFlags.length > 0 ? "medium" : "low", flags: riskFlags },
-        deliveryPosture: { verdict: "none", source: "workspace_default_none", reasonCode: "delivery_target_none" },
-      };
+      const baseStatus = await buildBaseStatus(deps);
 
       // Narrative section
       let narrativeSectionOut: StatusV6ReadModel["narrative"];
       if (!narrativeState) {
         narrativeSectionOut = { status: "nothing_yet", focus: "", groundingStatus: "blocked", nextIntent: "", sourceRefCount: 0 };
       } else {
-        let groundingStatus: "pass" | "degraded" | "blocked";
-        if (narrativeState.status === "awaiting_sources" || narrativeState.confidence < 0.4) {
-          groundingStatus = "blocked";
-        } else if (narrativeState.confidence >= 0.7 && narrativeState.status === "active") {
-          groundingStatus = "pass";
-        } else {
-          groundingStatus = "degraded";
-        }
+        const groundingStatus = deriveGroundingStatus(narrativeState.status, narrativeState.confidence);
         narrativeSectionOut = { status: narrativeState.status, focus: narrativeState.focus, groundingStatus, nextIntent: narrativeState.nextIntent, sourceRefCount: narrativeState.sourceRefs.length };
       }
 
@@ -757,18 +746,7 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         };
       }
 
-      // Derive groundingStatus from confidence and status.
-      // pass: confidence >= 0.7 and status is active
-      // degraded: confidence >= 0.4 and status is active / insufficient_sources
-      // blocked: confidence < 0.4 or status is awaiting_sources
-      let groundingStatus: NarrativeReadModel["groundingStatus"];
-      if (state.status === "awaiting_sources" || state.confidence < 0.4) {
-        groundingStatus = "blocked";
-      } else if (state.confidence >= 0.7 && state.status === "active") {
-        groundingStatus = "pass";
-      } else {
-        groundingStatus = "degraded";
-      }
+      const groundingStatus = deriveGroundingStatus(state.status, state.confidence);
 
       return {
         narrativeId: state.narrativeId,
