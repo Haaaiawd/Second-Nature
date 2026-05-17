@@ -156,7 +156,7 @@ graph TD
   - **依赖**: T3.1.1, T5.1.3
   - **优先级**: P1
 
-- [ ] **T1.2.4** [REQ-002][REQ-006]: 实现 `sn goal set/list/accept/reject` 命令
+- [x] **T1.2.4** [REQ-002][REQ-006]: 实现 `sn goal set/list/accept/reject` 命令
   - **描述**: 让 owner 通过 CLI / `second_nature_ops` 显式设定、查看、接受或拒绝 AgentGoal，并保持 proposal 与 accepted 的治理边界。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §5.3；`04_SYSTEM_DESIGN/state-system.md` §AgentGoal；T4.1.4 输出。
   - **输出**: `goal` CLI command、`second_nature_ops` route、goal human formatter。
@@ -736,7 +736,7 @@ graph TD
   - **依赖**: T3.2.1, T4.1.5, T5.1.3
   - **优先级**: P0
 
-- [ ] **INT-S2** [MILESTONE][REQ-001]: S2 集成验证 — Dream Engine
+- [x] **INT-S2** [MILESTONE][REQ-001]: S2 集成验证 — Dream Engine
   - **描述**: 验证 Dream pipeline、scheduler、lifecycle、trace 和 partial/timeout 行为。
   - **输入**: T7.1.1-T7.1.5, T5.1.1, T1.2.2 产出。
   - **输出**: `reports/int-s2-v6-dream-engine.md`
@@ -753,7 +753,7 @@ graph TD
   - **依赖**: T7.1.5, T5.1.1, T1.2.2
   - **优先级**: P0
 
-- [ ] **INT-S3** [MILESTONE][REQ-002][REQ-003][REQ-005]: S3 集成验证 — Agent Self Integration
+- [x] **INT-S3** [MILESTONE][REQ-002][REQ-003][REQ-005]: S3 集成验证 — Agent Self Integration
   - **描述**: 验证 accepted goal planning、narrative update、relationship-aware outreach draft。
   - **输入**: T2.1.4, T2.1.5, T2.3.1, T6.1.1, T5.1.2 产出。
   - **输出**: `reports/int-s3-v6-agent-self.md`
@@ -770,7 +770,7 @@ graph TD
   - **依赖**: T2.3.1, T5.1.2
   - **优先级**: P0
 
-- [ ] **INT-S4** [MILESTONE][REQ-006]: S4 集成验证 — Ops Surface & Host Readiness
+- [x] **INT-S4** [MILESTONE][REQ-006]: S4 集成验证 — Ops Surface & Host Readiness
   - **描述**: 验证 narrative、goal、dream:recent、connector:status、cycle:recent、status 与 host-safe/full runtime envelope。
   - **输入**: T1.2.1-T1.2.6, T5.1.1, T5.1.2, T5.1.3 产出。
   - **输出**: `reports/int-s4-v6-ops-host-readiness.md`

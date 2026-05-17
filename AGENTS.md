@@ -284,6 +284,9 @@ T5.1.1：`LivedExperienceAuditRecorder.recordDreamTrace()` 写入 `dream.trace` 
 ### 🌊 Wave 32 ✅ — v6 T1.2.1 narrative command + T1.2.6 v6 status aggregate
 T1.2.1：`NarrativeReadModel` 类型新增到 `types.ts`（含 `groundingStatus: pass|degraded|blocked`、`status: nothing_yet` 哨兵）；`CliReadModels` 接口新增 `loadNarrative(narrativeId?)` 并在工厂中实现（`createNarrativeStateStore` → `loadNarrativeState` → 推导 groundingStatus：confidence≥0.7+active=pass，confidence≥0.4=degraded，否则/awaiting_sources=blocked；无数据返回 nothing_yet 诚实空态）；`narrative` CLI 命令注册到 `commands/index.ts`。T1.2.6：`StatusV6ReadModel extends StatusReadModel` 新增三个 v6 section：`narrative`（focus/groundingStatus/nextIntent/sourceRefCount）、`dream`（has_runs|nothing_yet）、`cycles`（has_cycles|nothing_yet，dimensions 集合）；`loadV6Status` 并行读取 narrativeState + 同步过滤 auditStore；`status:v6` CLI 命令注册。测试新增 8 cases（T1.2.1×4、T1.2.6×4），全部 green；全套 514 tests 无回归。05A_TASKS.md 勾选 T1.2.1、T1.2.6。
 
+### 🌊 Wave 33 ✅ — INT-S2 + INT-S3 + INT-S4 v6 milestone reports
+INT-S2（`reports/int-s2-v6-dream-engine.md`）：Dream pipeline（T7.1.1-T7.1.5）、DreamTrace（T5.1.1）、dream:recent（T1.2.2）验证报告；覆盖 candidate→accepted→archived 生命周期、scheduler lock、insight/narrative/relationship proposal、DreamTrace envelope；8 GWT 条目全部 pass。INT-S3（`reports/int-s3-v6-agent-self.md`）：accepted goal priority（T2.1.4）、narrative update + NarrativeTrace（T2.1.5/T5.1.2）、source-backed outreach judgment（T2.3.1/T6.1.1）验证报告；7 GWT 条目全部 pass。INT-S4（`reports/int-s4-v6-ops-host-readiness.md`）：v6 ops surface（T1.2.1-T1.2.6）、host-safe carrier/full runtime 语义、plugin bridge bridge、DreamTrace+NarrativeTrace 审计、514 全量回归验证报告；11 GWT 条目全部 pass。同步勾选 05A_TASKS.md：INT-S2、INT-S3、INT-S4、T1.2.4。
+
 <!-- AUTO:END -->
 
 ---
