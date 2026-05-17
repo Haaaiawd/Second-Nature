@@ -682,7 +682,7 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         narrativeSectionOut = { status: narrativeState.status, focus: narrativeState.focus, groundingStatus, nextIntent: narrativeState.nextIntent, sourceRefCount: narrativeState.sourceRefs.length };
       }
 
-      // Dream section
+      // Dream section — degraded when all recorded dream runs have a fallbackReason.
       const dreamEvents = dreamSection;
       let dreamSectionOut: StatusV6ReadModel["dream"];
       if (dreamEvents.length === 0) {
@@ -690,10 +690,18 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       } else {
         const recentDreams = dreamEvents.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
         const lastFallback = recentDreams.map((e) => (e.payload as { fallbackReason?: string }).fallbackReason).find(Boolean);
-        dreamSectionOut = { status: "has_runs", totalRuns: dreamEvents.length, recentRunCount: recentDreams.length, lastFallbackReason: lastFallback };
+        const allDegraded = dreamEvents.every(
+          (e) => !!(e.payload as { fallbackReason?: string }).fallbackReason,
+        );
+        dreamSectionOut = {
+          status: allDegraded ? "degraded" : "has_runs",
+          totalRuns: dreamEvents.length,
+          recentRunCount: recentDreams.length,
+          lastFallbackReason: lastFallback,
+        };
       }
 
-      // Cycle section
+      // Cycle section — degraded when buckets exist but cover fewer than 3 dimensions.
       const allEvents = cycleSection;
       const decisionEvents = allEvents.filter((e) => e.family === "heartbeat.decision");
       const narrativeEvents = allEvents.filter((e) => e.family === "narrative.trace");
@@ -710,6 +718,8 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
       let cycleSectionOut: StatusV6ReadModel["cycles"];
       if (hourBuckets.size === 0) {
         cycleSectionOut = { status: "nothing_yet", totalCycles: 0, recentCycleCount: 0, dimensions: [] };
+      } else if (dimensionSet.size < 3) {
+        cycleSectionOut = { status: "degraded", totalCycles: hourBuckets.size, recentCycleCount: Math.min(hourBuckets.size, 5), dimensions: Array.from(dimensionSet) };
       } else {
         cycleSectionOut = { status: "has_cycles", totalCycles: hourBuckets.size, recentCycleCount: Math.min(hourBuckets.size, 5), dimensions: Array.from(dimensionSet) };
       }

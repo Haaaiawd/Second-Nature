@@ -119,14 +119,14 @@ export interface StatusV6NarrativeSection {
 }
 
 export interface StatusV6DreamSection {
-  status: "has_runs" | "nothing_yet";
+  status: "has_runs" | "degraded" | "nothing_yet";
   totalRuns: number;
   recentRunCount: number;
   lastFallbackReason?: string;
 }
 
 export interface StatusV6CycleSection {
-  status: "has_cycles" | "nothing_yet";
+  status: "has_cycles" | "degraded" | "nothing_yet";
   totalCycles: number;
   recentCycleCount: number;
   dimensions: string[];

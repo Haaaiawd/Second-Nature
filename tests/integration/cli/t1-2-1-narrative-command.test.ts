@@ -168,6 +168,59 @@ test("T1.2.1-C: groundingStatus correctly derived from confidence and status", a
   await closeCliRuntimeDeps(deps);
 });
 
+test("T1.2.1-E: groundingStatus boundary value matrix", async () => {
+  // Boundary value analysis for deriveGroundingStatus thresholds (0.4, 0.7)
+  const cases: Array<{
+    confidence: number;
+    status: "active" | "insufficient_sources" | "awaiting_sources";
+    expected: "pass" | "degraded" | "blocked";
+    label: string;
+  }> = [
+    // Boundary at 0.7 (pass threshold)
+    { confidence: 0.7, status: "active", expected: "pass", label: "exactly 0.7 + active => pass" },
+    { confidence: 0.69, status: "active", expected: "degraded", label: "0.69 + active => degraded (just below pass)" },
+    // Boundary at 0.4 (degraded threshold)
+    { confidence: 0.4, status: "active", expected: "degraded", label: "exactly 0.4 + active => degraded" },
+    { confidence: 0.39, status: "active", expected: "blocked", label: "0.39 + active => blocked (just below degraded)" },
+    // Mid-range values
+    { confidence: 0.5, status: "active", expected: "degraded", label: "0.5 + active => degraded" },
+    { confidence: 0.75, status: "insufficient_sources", expected: "degraded", label: "0.75 + insufficient_sources => degraded" },
+    // Extremes
+    { confidence: 0.0, status: "active", expected: "blocked", label: "0.0 + active => blocked" },
+    { confidence: 1.0, status: "active", expected: "pass", label: "1.0 + active => pass" },
+  ];
+
+  for (const c of cases) {
+    const stateDb = createStateDatabase(":memory:");
+    const observabilityDb = createObservabilityDatabase(":memory:");
+    const narrativeStore = createNarrativeStateStore(stateDb);
+    await narrativeStore.updateNarrativeState({
+      narrativeId: "default",
+      revision: 1,
+      focus: c.label,
+      progress: [],
+      nextIntent: "next",
+      confidence: c.confidence,
+      sourceRefs: [],
+      unsupportedClaims: [],
+      status: c.status,
+      updatedAt: "2026-05-16T10:00:00Z",
+    });
+
+    const deps = createCliRuntimeDeps({ stateDb, observabilityDb });
+    const router = createCommandRouter({ deps });
+    const cmd = router.resolve("narrative")!;
+    const result = (await cmd.execute()) as Record<string, unknown>;
+    const data = result.data as Record<string, unknown>;
+    assert.equal(
+      data.groundingStatus,
+      c.expected,
+      `${c.label} (confidence=${c.confidence}, status=${c.status})`,
+    );
+    await closeCliRuntimeDeps(deps);
+  }
+});
+
 test("T1.2.1-D: narrative command is registered in createCommandRouter", async () => {
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");

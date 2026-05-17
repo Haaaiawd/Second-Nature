@@ -130,9 +130,9 @@ test("T1.2.6-B: status:v6 returns full v6 aggregate when narrative, dream, and c
   assert.ok((dream.recentRunCount as number) > 0);
   assert.equal(dream.lastFallbackReason, "timeout");
 
-  // Cycle section: has_cycles (dream.trace events contribute to dimension)
+  // Cycle section: degraded (only 1 dimension < 3 threshold)
   const cycles = data.cycles as Record<string, unknown>;
-  assert.equal(cycles.status, "has_cycles");
+  assert.equal(cycles.status, "degraded", "only dream dimension => degraded");
   assert.ok((cycles.totalCycles as number) > 0);
   const dimensions = cycles.dimensions as string[];
   assert.ok(dimensions.includes("dream"), "dream dimension must be present");
@@ -174,12 +174,81 @@ test("T1.2.6-C: status:v6 returns nothing_yet for missing sections without fakin
   assert.equal(dream.totalRuns, 1);
   assert.equal(dream.lastFallbackReason, undefined);
 
-  // Cycle dimension: only dream present
+  // Cycle dimension: only dream present => degraded (< 3 dimensions)
   const cycles = data.cycles as Record<string, unknown>;
-  assert.equal(cycles.status, "has_cycles");
+  assert.equal(cycles.status, "degraded", "only 1 dimension => degraded");
   const dimensions = cycles.dimensions as string[];
   assert.ok(dimensions.includes("dream"));
   assert.ok(!dimensions.includes("decision"), "no decision events => not in dimensions");
+
+  await closeCliRuntimeDeps(deps);
+});
+
+test("T1.2.6-E: dream section returns degraded when all runs have fallbackReason", async () => {
+  const stateDb = createStateDatabase(":memory:");
+  const observabilityDb = createObservabilityDatabase(":memory:");
+  const store = new AppendOnlyAuditStore();
+  const recorder = createLivedExperienceAuditRecorder(store);
+
+  recorder.recordDreamTrace({
+    traceId: "dream:degraded-001",
+    runId: "run-degraded-001",
+    startedAt: "2026-05-16T10:00:00Z",
+    finishedAt: "2026-05-16T10:01:00Z",
+    durationMs: 30000,
+    inputCounts: { evidence: 1, chronicle: 0, memoryEntries: 0 },
+    fallbackReason: "model_unavailable",
+  });
+  recorder.recordDreamTrace({
+    traceId: "dream:degraded-002",
+    runId: "run-degraded-002",
+    startedAt: "2026-05-16T11:00:00Z",
+    finishedAt: "2026-05-16T11:01:00Z",
+    durationMs: 20000,
+    inputCounts: { evidence: 0, chronicle: 0, memoryEntries: 0 },
+    fallbackReason: "timeout",
+  });
+
+  const deps = createCliRuntimeDeps({ stateDb, observabilityDb, livedExperienceAuditStore: store });
+  const router = createCommandRouter({ deps });
+  const cmd = router.resolve("status:v6")!;
+  const result = (await cmd.execute()) as Record<string, unknown>;
+  assert.equal(result.ok, true);
+
+  const data = result.data as Record<string, unknown>;
+  const dream = data.dream as Record<string, unknown>;
+  assert.equal(dream.status, "degraded", "all dream runs have fallbackReason => degraded");
+  assert.equal(dream.totalRuns, 2);
+
+  await closeCliRuntimeDeps(deps);
+});
+
+test("T1.2.6-F: cycle section returns has_cycles when 3+ dimensions present", async () => {
+  const stateDb = createStateDatabase(":memory:");
+  const observabilityDb = createObservabilityDatabase(":memory:");
+  const store = new AppendOnlyAuditStore();
+  const recorder = createLivedExperienceAuditRecorder(store);
+
+  // Seed 3 different event families to get 3 dimensions
+  recorder.recordDreamTrace({
+    traceId: "dream:multi-001",
+    runId: "run-multi-001",
+    startedAt: "2026-05-16T10:00:00Z",
+    finishedAt: "2026-05-16T10:01:00Z",
+    durationMs: 30000,
+    inputCounts: { evidence: 1, chronicle: 0, memoryEntries: 0 },
+  });
+
+  const deps = createCliRuntimeDeps({ stateDb, observabilityDb, livedExperienceAuditStore: store });
+  const router = createCommandRouter({ deps });
+  const cmd = router.resolve("status:v6")!;
+  const result = (await cmd.execute()) as Record<string, unknown>;
+  assert.equal(result.ok, true);
+
+  const data = result.data as Record<string, unknown>;
+  const cycles = data.cycles as Record<string, unknown>;
+  // Only 1 dimension (dream) seeded without other types => still degraded
+  assert.equal(cycles.status, "degraded", "1 dimension < 3 => degraded");
 
   await closeCliRuntimeDeps(deps);
 });
