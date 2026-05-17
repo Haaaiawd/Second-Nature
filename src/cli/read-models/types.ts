@@ -105,6 +105,42 @@ export interface StatusReadModel {
   deliveryPosture?: DeliveryPosture;
 }
 
+/**
+ * T1.2.6 — v6 status aggregate: extends StatusReadModel with narrative, dream recent,
+ * cycle recent, and per-section `nothing_yet` / `awaiting_sources` / `degraded` sentinels
+ * so operators always get a meaningful view even when individual data sources are empty.
+ */
+export interface StatusV6NarrativeSection {
+  status: "active" | "insufficient_sources" | "awaiting_sources" | "nothing_yet";
+  focus: string;
+  groundingStatus: "pass" | "degraded" | "blocked";
+  nextIntent: string;
+  sourceRefCount: number;
+}
+
+export interface StatusV6DreamSection {
+  status: "has_runs" | "nothing_yet";
+  totalRuns: number;
+  recentRunCount: number;
+  lastFallbackReason?: string;
+}
+
+export interface StatusV6CycleSection {
+  status: "has_cycles" | "nothing_yet";
+  totalCycles: number;
+  recentCycleCount: number;
+  dimensions: string[];
+}
+
+export interface StatusV6ReadModel extends StatusReadModel {
+  /** v6 narrative section; status is nothing_yet when no NarrativeState row exists. */
+  narrative: StatusV6NarrativeSection;
+  /** v6 dream recent section; status is nothing_yet when no DreamTrace events exist. */
+  dream: StatusV6DreamSection;
+  /** v6 cycle recent section; status is nothing_yet when no cycle events exist. */
+  cycles: StatusV6CycleSection;
+}
+
 export interface DailyReportReadModel {
   day: string;
   summary: string;
@@ -200,6 +236,21 @@ export interface DreamRecentReadModel {
     createdAt: string;
   }>;
   totalRuns: number;
+}
+
+/** T1.2.1 — NarrativeState read model for operator `narrative` command. */
+export interface NarrativeReadModel {
+  narrativeId: string;
+  revision: number;
+  focus: string;
+  progress: string[];
+  nextIntent: string;
+  confidence: number;
+  sourceRefs: Array<{ sourceId: string; kind: string; url?: string }>;
+  unsupportedClaims: string[];
+  groundingStatus: "pass" | "degraded" | "blocked";
+  status: "active" | "insufficient_sources" | "awaiting_sources" | "nothing_yet";
+  updatedAt: string;
 }
 
 /** T1.2.5 — recent cycle summary aggregating heartbeat, narrative, dream, delivery. */

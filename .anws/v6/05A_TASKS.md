@@ -90,7 +90,7 @@ graph TD
 
 ### Phase 1: Debug & Narrative Commands
 
-- [ ] **T1.2.1** [REQ-002][REQ-006]: 实现 `sn narrative` 命令
+- [x] **T1.2.1** [REQ-002][REQ-006]: 实现 `sn narrative` 命令
   - **描述**: 让 owner 可读取 agent 当前 NarrativeState 和 narrative explain 摘要。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1；`04_SYSTEM_DESIGN/state-system.md` §NarrativeState；T4.1.2 输出；T5.1.2 输出。
   - **输出**: `narrative` CLI command、`second_nature_ops` route、human formatter。
@@ -204,7 +204,7 @@ graph TD
   - **依赖**: T5.1.1, T5.1.2
   - **优先级**: P1
 
-- [ ] **T1.2.6** [REQ-006]: 实现 v6 `sn status` 聚合视图
+- [x] **T1.2.6** [REQ-006]: 实现 v6 `sn status` 聚合视图
   - **描述**: 将 narrative、Dream recent、connector inventory、cycle recent 与 runtime mode 汇总到 v6 status，避免 status 只停留在 v5 heartbeat/ops 摘要。
   - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5.1, §5.3；T1.2.1、T1.2.2、T1.2.3、T1.2.5 输出。
   - **输出**: v6 `status` aggregate read model、CLI / `second_nature_ops` route、human formatter。

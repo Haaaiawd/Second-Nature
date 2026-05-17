@@ -340,6 +340,28 @@ export function createCliCommands(
       },
     },
     {
+      name: "status:v6",
+      description:
+        "T1.2.6 — v6 status aggregate: narrative + dream recent + cycle recent + runtime mode",
+      execute: async (input) => {
+        const scope =
+          typeof input?.scope === "string" ? input.scope : undefined;
+        const data = await readModels.loadV6Status(scope);
+        return { ok: true, data };
+      },
+    },
+    {
+      name: "narrative",
+      description:
+        "T1.2.1 — show current NarrativeState: focus, progress, next intent, source refs, grounding status",
+      execute: async (input) => {
+        const narrativeId =
+          typeof input?.narrativeId === "string" ? input.narrativeId : undefined;
+        const data = await readModels.loadNarrative(narrativeId);
+        return { ok: true, data };
+      },
+    },
+    {
       name: "dream:recent",
       description:
         "T1.2.2 — show recent Dream run results, candidate/accepted status, fallback/partial summary",

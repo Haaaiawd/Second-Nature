@@ -29,8 +29,10 @@ import type {
   AuditSummaryReadModel,
   DreamRecentReadModel,
   CycleRecentReadModel,
+  NarrativeReadModel,
+  StatusV6ReadModel,
 } from "./types.js";
-export type { AuditSummaryReadModel } from "./types.js";
+export type { AuditSummaryReadModel, StatusV6ReadModel } from "./types.js";
 
 export type { ExplainSubjectKind } from "./types.js";
 import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
@@ -43,6 +45,7 @@ import {
   loadRhythmPolicySnapshot,
   type RhythmPolicySnapshot,
 } from "../../storage/rhythm/rhythm-policy-snapshot.js";
+import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 
 export type { RhythmPolicySnapshot };
 
@@ -70,6 +73,14 @@ export interface CliReadModels {
   loadDreamRecent(limit?: number): Promise<DreamRecentReadModel>;
   /** T1.2.5 — recent cycle summary from audit store. */
   loadCycleRecent(limit?: number): Promise<CycleRecentReadModel>;
+  /** T1.2.1 — current NarrativeState; returns nothing_yet when no data exists. */
+  loadNarrative(narrativeId?: string): Promise<NarrativeReadModel>;
+  /**
+   * T1.2.6 — v6 status aggregate: StatusReadModel extended with narrative, dream recent,
+   * and cycle recent sections. Each section has a sentinel status (nothing_yet / has_runs /
+   * has_cycles) so operators always get a meaningful, non-empty response.
+   */
+  loadV6Status(scope?: string): Promise<StatusV6ReadModel>;
 }
 
 /** T1.2.1 / T1.2.2 — operator-facing read surface (subset of full CLI read models). */
@@ -625,6 +636,157 @@ export function createCliReadModels(deps: CliReadModelsDeps): CliReadModels {
         .slice(0, limit);
 
       return { cycles, totalCycles: buckets.size };
+    },
+
+    // T1.2.6 — v6 status aggregate: compose base status + narrative + dream + cycle sections.
+    // Each section returns a sentinel status (nothing_yet / has_runs / has_cycles) so operators
+    // always get a meaningful non-empty response, never a raw empty object.
+    async loadV6Status(scope?: string): Promise<StatusV6ReadModel> {
+      // Load NarrativeState asynchronously; audit events are synchronous reads from in-memory store.
+      const narrativeStore = createNarrativeStateStore(deps.stateDb);
+      let narrativeState;
+      try { narrativeState = await narrativeStore.loadNarrativeState(); } catch { narrativeState = null; }
+
+      const allAuditEvents = auditStore.list();
+      const dreamSection = allAuditEvents.filter((e) => e.family === "dream.trace");
+      const cycleSection = allAuditEvents;
+
+      // Rebuild base status inline (avoids circular self-reference in object literal)
+      let recentAttempts: Array<typeof executionAttempts.$inferSelect> = [];
+      let recentDecisions: Array<typeof decisionLedger.$inferSelect> = [];
+      let credentials: Awaited<ReturnType<typeof deps.stateDb.db.query.credentialRecords.findMany>> = [];
+      try { recentAttempts = await deps.observabilityDb.db.select().from(executionAttempts).orderBy(desc(executionAttempts.startedAt), desc(executionAttempts.finishedAt)).limit(50); } catch { /* noop */ }
+      try { recentDecisions = await deps.observabilityDb.db.select().from(decisionLedger).orderBy(desc(decisionLedger.createdAt)).limit(50); } catch { /* noop */ }
+      try { credentials = await deps.stateDb.db.query.credentialRecords.findMany(); } catch { /* noop */ }
+
+      const latestRuntimeAttempt = recentAttempts.find((a) => a.platformId === INTERNAL_RUNTIME_PLATFORM_ID);
+      const latestConnectorAttempt = recentAttempts.find((a) => a.platformId !== INTERNAL_RUNTIME_PLATFORM_ID);
+      const latestRuntimeDecision = recentDecisions.find((d) => d.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX));
+      const runtimeUpdatedAt = latestRuntimeAttempt?.finishedAt ?? latestRuntimeAttempt?.startedAt ?? latestRuntimeDecision?.createdAt ?? "";
+      const quietMode = latestRuntimeDecision?.mode === "quiet" || latestRuntimeDecision?.mode === "maintenance_only" || latestRuntimeDecision?.mode === "paused_for_interrupt" ? latestRuntimeDecision.mode : "unknown";
+      const riskFlags = [latestRuntimeAttempt?.failureClass, latestConnectorAttempt?.failureClass].filter((v): v is string => Boolean(v));
+      const connectorSummary: StatusReadModel["connectors"] = latestConnectorAttempt ? [{ platformId: latestConnectorAttempt.platformId, status: mapConnectorStatus(latestConnectorAttempt), channel: latestConnectorAttempt.channel, failureClass: latestConnectorAttempt.failureClass ?? undefined }] : [];
+
+      const baseStatus: StatusReadModel = {
+        runtime: { host: "openclaw-plugin", serviceStatus: mapRuntimeStatus(latestRuntimeAttempt), updatedAt: runtimeUpdatedAt },
+        rhythm: { mode: (latestRuntimeDecision?.mode as StatusReadModel["rhythm"]["mode"] | undefined) ?? "unknown" },
+        quiet: { mode: quietMode, lastEvent: latestRuntimeDecision?.traceId, interrupted: latestRuntimeDecision?.mode === "paused_for_interrupt" ? true : undefined },
+        connectors: connectorSummary,
+        credentials: credentials.map((item) => ({ platformId: (item as unknown as { platformId: string }).platformId ?? (item as unknown as { platform_id: string }).platform_id, status: item.status as CredentialReadModel["status"], nextStep: buildCredentialNextStep(item.status as CredentialReadModel["status"]) })),
+        risk: { level: riskFlags.length > 0 ? "medium" : "low", flags: riskFlags },
+        deliveryPosture: { verdict: "none", source: "workspace_default_none", reasonCode: "delivery_target_none" },
+      };
+
+      // Narrative section
+      let narrativeSectionOut: StatusV6ReadModel["narrative"];
+      if (!narrativeState) {
+        narrativeSectionOut = { status: "nothing_yet", focus: "", groundingStatus: "blocked", nextIntent: "", sourceRefCount: 0 };
+      } else {
+        let groundingStatus: "pass" | "degraded" | "blocked";
+        if (narrativeState.status === "awaiting_sources" || narrativeState.confidence < 0.4) {
+          groundingStatus = "blocked";
+        } else if (narrativeState.confidence >= 0.7 && narrativeState.status === "active") {
+          groundingStatus = "pass";
+        } else {
+          groundingStatus = "degraded";
+        }
+        narrativeSectionOut = { status: narrativeState.status, focus: narrativeState.focus, groundingStatus, nextIntent: narrativeState.nextIntent, sourceRefCount: narrativeState.sourceRefs.length };
+      }
+
+      // Dream section
+      const dreamEvents = dreamSection;
+      let dreamSectionOut: StatusV6ReadModel["dream"];
+      if (dreamEvents.length === 0) {
+        dreamSectionOut = { status: "nothing_yet", totalRuns: 0, recentRunCount: 0 };
+      } else {
+        const recentDreams = dreamEvents.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
+        const lastFallback = recentDreams.map((e) => (e.payload as { fallbackReason?: string }).fallbackReason).find(Boolean);
+        dreamSectionOut = { status: "has_runs", totalRuns: dreamEvents.length, recentRunCount: recentDreams.length, lastFallbackReason: lastFallback };
+      }
+
+      // Cycle section
+      const allEvents = cycleSection;
+      const decisionEvents = allEvents.filter((e) => e.family === "heartbeat.decision");
+      const narrativeEvents = allEvents.filter((e) => e.family === "narrative.trace");
+      const dreamEventsForCycle = allEvents.filter((e) => e.family === "dream.trace");
+      const deliveryEvents = allEvents.filter((e) => e.family === "delivery");
+      const connectorEvents = allEvents.filter((e) => e.family === "connector.attempt");
+      const hourBuckets = new Set<string>();
+      const dimensionSet = new Set<string>();
+      for (const e of decisionEvents) { hourBuckets.add(e.createdAt.slice(0, 13)); dimensionSet.add("decision"); }
+      for (const e of narrativeEvents) { hourBuckets.add(e.createdAt.slice(0, 13)); dimensionSet.add("narrative"); }
+      for (const e of dreamEventsForCycle) { hourBuckets.add(e.createdAt.slice(0, 13)); dimensionSet.add("dream"); }
+      for (const e of deliveryEvents) { hourBuckets.add(e.createdAt.slice(0, 13)); dimensionSet.add("delivery"); }
+      for (const e of connectorEvents) { hourBuckets.add(e.createdAt.slice(0, 13)); dimensionSet.add("connector"); }
+      let cycleSectionOut: StatusV6ReadModel["cycles"];
+      if (hourBuckets.size === 0) {
+        cycleSectionOut = { status: "nothing_yet", totalCycles: 0, recentCycleCount: 0, dimensions: [] };
+      } else {
+        cycleSectionOut = { status: "has_cycles", totalCycles: hourBuckets.size, recentCycleCount: Math.min(hourBuckets.size, 5), dimensions: Array.from(dimensionSet) };
+      }
+
+      void scope; // scope param reserved for future scoping — not used in v6 aggregate yet
+
+      return { ...baseStatus, narrative: narrativeSectionOut, dream: dreamSectionOut, cycles: cycleSectionOut };
+    },
+
+    // T1.2.1 — read current NarrativeState and map to NarrativeReadModel.
+    // Returns `nothing_yet` status when no data exists — honest empty, not an error.
+    async loadNarrative(narrativeId?: string): Promise<NarrativeReadModel> {
+      const narrativeStore = createNarrativeStateStore(deps.stateDb);
+      let state;
+      try {
+        state = await narrativeStore.loadNarrativeState(narrativeId);
+      } catch {
+        state = null;
+      }
+
+      if (!state) {
+        return {
+          narrativeId: narrativeId ?? "default",
+          revision: 0,
+          focus: "",
+          progress: [],
+          nextIntent: "",
+          confidence: 0,
+          sourceRefs: [],
+          unsupportedClaims: [],
+          groundingStatus: "blocked",
+          status: "nothing_yet",
+          updatedAt: "",
+        };
+      }
+
+      // Derive groundingStatus from confidence and status.
+      // pass: confidence >= 0.7 and status is active
+      // degraded: confidence >= 0.4 and status is active / insufficient_sources
+      // blocked: confidence < 0.4 or status is awaiting_sources
+      let groundingStatus: NarrativeReadModel["groundingStatus"];
+      if (state.status === "awaiting_sources" || state.confidence < 0.4) {
+        groundingStatus = "blocked";
+      } else if (state.confidence >= 0.7 && state.status === "active") {
+        groundingStatus = "pass";
+      } else {
+        groundingStatus = "degraded";
+      }
+
+      return {
+        narrativeId: state.narrativeId,
+        revision: state.revision,
+        focus: state.focus,
+        progress: state.progress,
+        nextIntent: state.nextIntent,
+        confidence: state.confidence,
+        sourceRefs: state.sourceRefs.map((r) => ({
+          sourceId: r.sourceId,
+          kind: r.kind,
+          url: r.url,
+        })),
+        unsupportedClaims: state.unsupportedClaims,
+        groundingStatus,
+        status: state.status,
+        updatedAt: state.updatedAt,
+      };
     },
   };
 }
