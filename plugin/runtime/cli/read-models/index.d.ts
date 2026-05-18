@@ -1,8 +1,8 @@
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ObservabilityDatabase } from "../../observability/db/index.js";
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
-import type { StatusReadModel, DailyReportReadModel, QuietReadModel, SessionDetailReadModel, CredentialReadModel, ExplainReadModel, ExplainSubjectKind, AuditSummaryReadModel, DreamRecentReadModel, CycleRecentReadModel } from "./types.js";
-export type { AuditSummaryReadModel } from "./types.js";
+import type { StatusReadModel, DailyReportReadModel, QuietReadModel, SessionDetailReadModel, CredentialReadModel, ExplainReadModel, ExplainSubjectKind, AuditSummaryReadModel, DreamRecentReadModel, CycleRecentReadModel, NarrativeReadModel, StatusV6ReadModel } from "./types.js";
+export type { AuditSummaryReadModel, StatusV6ReadModel } from "./types.js";
 export type { ExplainSubjectKind } from "./types.js";
 import type { OperatorFallbackView } from "../../storage/fallback/operator-fallback-view.js";
 import { type RhythmPolicySnapshot } from "../../storage/rhythm/rhythm-policy-snapshot.js";
@@ -28,6 +28,14 @@ export interface CliReadModels {
     loadDreamRecent(limit?: number): Promise<DreamRecentReadModel>;
     /** T1.2.5 — recent cycle summary from audit store. */
     loadCycleRecent(limit?: number): Promise<CycleRecentReadModel>;
+    /** T1.2.1 — current NarrativeState; returns nothing_yet when no data exists. */
+    loadNarrative(narrativeId?: string): Promise<NarrativeReadModel>;
+    /**
+     * T1.2.6 — v6 status aggregate: StatusReadModel extended with narrative, dream recent,
+     * and cycle recent sections. Each section has a sentinel status (nothing_yet / has_runs /
+     * has_cycles) so operators always get a meaningful, non-empty response.
+     */
+    loadV6Status(scope?: string): Promise<StatusV6ReadModel>;
 }
 /** T1.2.1 / T1.2.2 — operator-facing read surface (subset of full CLI read models). */
 export type OpsReadModelPort = Pick<CliReadModels, "loadStatus" | "loadDailyReport" | "loadQuiet" | "loadSession" | "loadCredential" | "explain" | "loadFallbackView">;

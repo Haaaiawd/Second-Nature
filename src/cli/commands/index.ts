@@ -54,11 +54,12 @@ export function createCliCommands(
   return [
     {
       name: "status",
-      description: "Show aggregated Second Nature status",
+      description:
+        "T1.2.6 — Show v6 aggregated Second Nature status (narrative + dream + cycles + runtime)",
       execute: async (input) => {
         const scope =
           typeof input?.scope === "string" ? input.scope : undefined;
-        const data = await readModels.loadStatus(scope);
+        const data = await readModels.loadV6Status(scope);
         return { ok: true, data };
       },
     },
@@ -337,17 +338,6 @@ export function createCliCommands(
           opsRouter.dispatch("goal", input),
         );
         return surface as Record<string, unknown>;
-      },
-    },
-    {
-      name: "status:v6",
-      description:
-        "T1.2.6 — v6 status aggregate: narrative + dream recent + cycle recent + runtime mode",
-      execute: async (input) => {
-        const scope =
-          typeof input?.scope === "string" ? input.scope : undefined;
-        const data = await readModels.loadV6Status(scope);
-        return { ok: true, data };
       },
     },
     {

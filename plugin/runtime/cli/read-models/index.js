@@ -11,6 +11,7 @@ import { queryExplain, } from "../../observability/query/explain-query.js";
 import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
 import { loadOperatorFallbackRow, toOperatorFallbackView, } from "../../storage/fallback/load-operator-fallback.js";
 import { loadRhythmPolicySnapshot, } from "../../storage/rhythm/rhythm-policy-snapshot.js";
+import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 function toExplainQuery(subject) {
@@ -112,6 +113,117 @@ function mapConnectorStatus(attempt) {
     }
     return "healthy";
 }
+/**
+ * Derive groundingStatus from confidence and status.
+ *
+ * Rules (in priority order):
+ * 1. blocked: status === "awaiting_sources" OR confidence < 0.4
+ * 2. pass: confidence >= 0.7 AND status === "active"
+ * 3. degraded: all other cases (0.4 <= confidence < 0.7, or status is insufficient_sources)
+ */
+function deriveGroundingStatus(status, confidence) {
+    if (status === "awaiting_sources" || confidence < 0.4) {
+        return "blocked";
+    }
+    if (confidence >= 0.7 && status === "active") {
+        return "pass";
+    }
+    return "degraded";
+}
+/**
+ * Build the base StatusReadModel that is shared by loadStatus and loadV6Status.
+ * Centralising this logic eliminates the DRY violation identified in CR-01.
+ */
+async function buildBaseStatus(deps) {
+    let recentAttempts = [];
+    let recentDecisions = [];
+    let credentials = [];
+    try {
+        recentAttempts = await deps.observabilityDb.db
+            .select()
+            .from(executionAttempts)
+            .orderBy(desc(executionAttempts.startedAt), desc(executionAttempts.finishedAt))
+            .limit(50);
+    }
+    catch {
+        recentAttempts = [];
+    }
+    try {
+        recentDecisions = await deps.observabilityDb.db
+            .select()
+            .from(decisionLedger)
+            .orderBy(desc(decisionLedger.createdAt))
+            .limit(50);
+    }
+    catch {
+        recentDecisions = [];
+    }
+    try {
+        credentials = await deps.stateDb.db.query.credentialRecords.findMany();
+    }
+    catch {
+        credentials = [];
+    }
+    const latestRuntimeAttempt = recentAttempts.find((attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID);
+    const latestConnectorAttempt = recentAttempts.find((attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID);
+    const latestRuntimeDecision = recentDecisions.find((decision) => decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX));
+    const runtimeUpdatedAt = latestRuntimeAttempt?.finishedAt ??
+        latestRuntimeAttempt?.startedAt ??
+        latestRuntimeDecision?.createdAt ??
+        "";
+    const quietMode = latestRuntimeDecision?.mode === "quiet" ||
+        latestRuntimeDecision?.mode === "maintenance_only" ||
+        latestRuntimeDecision?.mode === "paused_for_interrupt"
+        ? latestRuntimeDecision.mode
+        : "unknown";
+    const riskFlags = [
+        latestRuntimeAttempt?.failureClass,
+        latestConnectorAttempt?.failureClass,
+    ].filter((value) => Boolean(value));
+    const connectorSummary = latestConnectorAttempt
+        ? [
+            {
+                platformId: latestConnectorAttempt.platformId,
+                status: mapConnectorStatus(latestConnectorAttempt),
+                channel: latestConnectorAttempt.channel,
+                failureClass: latestConnectorAttempt.failureClass ?? undefined,
+            },
+        ]
+        : [];
+    return {
+        runtime: {
+            host: "openclaw-plugin",
+            serviceStatus: mapRuntimeStatus(latestRuntimeAttempt),
+            updatedAt: runtimeUpdatedAt,
+        },
+        rhythm: {
+            mode: latestRuntimeDecision?.mode ?? "unknown",
+        },
+        quiet: {
+            mode: quietMode,
+            lastEvent: latestRuntimeDecision?.traceId,
+            interrupted: latestRuntimeDecision?.mode === "paused_for_interrupt"
+                ? true
+                : undefined,
+        },
+        connectors: connectorSummary,
+        credentials: credentials.map((item) => ({
+            platformId: item.platformId ??
+                item.platform_id,
+            status: item.status,
+            nextStep: buildCredentialNextStep(item.status),
+        })),
+        risk: {
+            level: riskFlags.length > 0 ? "medium" : "low",
+            flags: riskFlags,
+        },
+        deliveryPosture: {
+            verdict: "none",
+            source: "workspace_default_none",
+            reasonCode: "delivery_target_none",
+        },
+    };
+}
 export function createCliReadModels(deps) {
     const assetRepository = new AssetRepository(deps.stateDb);
     const credentialRepository = new CredentialRepository(deps.stateDb);
@@ -124,103 +236,7 @@ export function createCliReadModels(deps) {
     const auditStore = deps.livedExperienceAuditStore ?? new AppendOnlyAuditStore();
     return {
         async loadStatus(_scope) {
-            let recentAttempts = [];
-            let recentDecisions = [];
-            let credentials = [];
-            try {
-                recentAttempts = await deps.observabilityDb.db
-                    .select()
-                    .from(executionAttempts)
-                    .orderBy(desc(executionAttempts.startedAt), desc(executionAttempts.finishedAt))
-                    .limit(50);
-            }
-            catch {
-                recentAttempts = [];
-            }
-            try {
-                recentDecisions = await deps.observabilityDb.db
-                    .select()
-                    .from(decisionLedger)
-                    .orderBy(desc(decisionLedger.createdAt))
-                    .limit(50);
-            }
-            catch {
-                recentDecisions = [];
-            }
-            try {
-                credentials = await deps.stateDb.db.query.credentialRecords.findMany();
-            }
-            catch {
-                credentials = [];
-            }
-            const latestRuntimeAttempt = recentAttempts.find((attempt) => attempt.platformId === INTERNAL_RUNTIME_PLATFORM_ID);
-            // CH-15-04 (CH-14-03): latestConnectorAttempt is the most recent execution attempt whose
-            // platformId is NOT the internal sn-runtime sentinel — i.e. a real connector platform
-            // (Moltbook, EvoMap, etc.). The `connectors` array in StatusReadModel reflects this single
-            // most-recent non-runtime attempt, NOT the full connector manifest. An empty array means
-            // no connector attempt has been recorded yet, not that connectors are misconfigured.
-            const latestConnectorAttempt = recentAttempts.find((attempt) => attempt.platformId !== INTERNAL_RUNTIME_PLATFORM_ID);
-            const latestRuntimeDecision = recentDecisions.find((decision) => decision.traceId.startsWith(INTERNAL_RUNTIME_TRACE_PREFIX));
-            const runtimeUpdatedAt = latestRuntimeAttempt?.finishedAt ??
-                latestRuntimeAttempt?.startedAt ??
-                latestRuntimeDecision?.createdAt ??
-                "";
-            const quietMode = latestRuntimeDecision?.mode === "quiet" ||
-                latestRuntimeDecision?.mode === "maintenance_only" ||
-                latestRuntimeDecision?.mode === "paused_for_interrupt"
-                ? latestRuntimeDecision.mode
-                : "unknown";
-            const riskFlags = [
-                latestRuntimeAttempt?.failureClass,
-                latestConnectorAttempt?.failureClass,
-            ].filter((value) => Boolean(value));
-            const connectorSummary = latestConnectorAttempt
-                ? [
-                    {
-                        platformId: latestConnectorAttempt.platformId,
-                        status: mapConnectorStatus(latestConnectorAttempt),
-                        channel: latestConnectorAttempt.channel,
-                        failureClass: latestConnectorAttempt.failureClass ?? undefined,
-                    },
-                ]
-                : [];
-            return {
-                runtime: {
-                    host: "openclaw-plugin",
-                    serviceStatus: mapRuntimeStatus(latestRuntimeAttempt),
-                    updatedAt: runtimeUpdatedAt,
-                },
-                rhythm: {
-                    mode: latestRuntimeDecision?.mode ?? "unknown",
-                    windowId: undefined,
-                },
-                quiet: {
-                    mode: quietMode,
-                    lastEvent: latestRuntimeDecision?.traceId,
-                    interrupted: latestRuntimeDecision?.mode === "paused_for_interrupt"
-                        ? true
-                        : undefined,
-                },
-                connectors: connectorSummary,
-                credentials: credentials.map((item) => ({
-                    platformId: item.platformId ??
-                        item.platform_id,
-                    status: item.status,
-                    nextStep: buildCredentialNextStep(item.status),
-                })),
-                risk: {
-                    level: riskFlags.length > 0 ? "medium" : "low",
-                    flags: riskFlags,
-                },
-                // T1.2.5 (CH-14-04): default delivery posture is workspace_default_none because the
-                // workspace heartbeat hardcodes `deliveryCapability: { target: "none" }` until a host
-                // capability probe explicitly sets a valid target.
-                deliveryPosture: {
-                    verdict: "none",
-                    source: "workspace_default_none",
-                    reasonCode: "delivery_target_none",
-                },
-            };
+            return buildBaseStatus(deps);
         },
         async loadDailyReport(day) {
             let bundle;
@@ -471,6 +487,136 @@ export function createCliReadModels(deps) {
                 .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
                 .slice(0, limit);
             return { cycles, totalCycles: buckets.size };
+        },
+        // T1.2.6 — v6 status aggregate: compose base status + narrative + dream + cycle sections.
+        // Each section returns a sentinel status (nothing_yet / has_runs / has_cycles) so operators
+        // always get a meaningful non-empty response, never a raw empty object.
+        async loadV6Status(scope) {
+            // Load NarrativeState asynchronously; audit events are synchronous reads from in-memory store.
+            const narrativeStore = createNarrativeStateStore(deps.stateDb);
+            let narrativeState;
+            try {
+                narrativeState = await narrativeStore.loadNarrativeState();
+            }
+            catch {
+                narrativeState = null;
+            }
+            const allAuditEvents = auditStore.list();
+            const dreamSection = allAuditEvents.filter((e) => e.family === "dream.trace");
+            const cycleSection = allAuditEvents;
+            const baseStatus = await buildBaseStatus(deps);
+            // Narrative section
+            let narrativeSectionOut;
+            if (!narrativeState) {
+                narrativeSectionOut = { status: "nothing_yet", focus: "", groundingStatus: "blocked", nextIntent: "", sourceRefCount: 0 };
+            }
+            else {
+                const groundingStatus = deriveGroundingStatus(narrativeState.status, narrativeState.confidence);
+                narrativeSectionOut = { status: narrativeState.status, focus: narrativeState.focus, groundingStatus, nextIntent: narrativeState.nextIntent, sourceRefCount: narrativeState.sourceRefs.length };
+            }
+            // Dream section — degraded when all recorded dream runs have a fallbackReason.
+            const dreamEvents = dreamSection;
+            let dreamSectionOut;
+            if (dreamEvents.length === 0) {
+                dreamSectionOut = { status: "nothing_yet", totalRuns: 0, recentRunCount: 0 };
+            }
+            else {
+                const recentDreams = dreamEvents.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
+                const lastFallback = recentDreams.map((e) => e.payload.fallbackReason).find(Boolean);
+                const allDegraded = dreamEvents.every((e) => !!e.payload.fallbackReason);
+                dreamSectionOut = {
+                    status: allDegraded ? "degraded" : "has_runs",
+                    totalRuns: dreamEvents.length,
+                    recentRunCount: recentDreams.length,
+                    lastFallbackReason: lastFallback,
+                };
+            }
+            // Cycle section — degraded when buckets exist but cover fewer than 3 dimensions.
+            const allEvents = cycleSection;
+            const decisionEvents = allEvents.filter((e) => e.family === "heartbeat.decision");
+            const narrativeEvents = allEvents.filter((e) => e.family === "narrative.trace");
+            const dreamEventsForCycle = allEvents.filter((e) => e.family === "dream.trace");
+            const deliveryEvents = allEvents.filter((e) => e.family === "delivery");
+            const connectorEvents = allEvents.filter((e) => e.family === "connector.attempt");
+            const hourBuckets = new Set();
+            const dimensionSet = new Set();
+            for (const e of decisionEvents) {
+                hourBuckets.add(e.createdAt.slice(0, 13));
+                dimensionSet.add("decision");
+            }
+            for (const e of narrativeEvents) {
+                hourBuckets.add(e.createdAt.slice(0, 13));
+                dimensionSet.add("narrative");
+            }
+            for (const e of dreamEventsForCycle) {
+                hourBuckets.add(e.createdAt.slice(0, 13));
+                dimensionSet.add("dream");
+            }
+            for (const e of deliveryEvents) {
+                hourBuckets.add(e.createdAt.slice(0, 13));
+                dimensionSet.add("delivery");
+            }
+            for (const e of connectorEvents) {
+                hourBuckets.add(e.createdAt.slice(0, 13));
+                dimensionSet.add("connector");
+            }
+            let cycleSectionOut;
+            if (hourBuckets.size === 0) {
+                cycleSectionOut = { status: "nothing_yet", totalCycles: 0, recentCycleCount: 0, dimensions: [] };
+            }
+            else if (dimensionSet.size < 3) {
+                cycleSectionOut = { status: "degraded", totalCycles: hourBuckets.size, recentCycleCount: Math.min(hourBuckets.size, 5), dimensions: Array.from(dimensionSet) };
+            }
+            else {
+                cycleSectionOut = { status: "has_cycles", totalCycles: hourBuckets.size, recentCycleCount: Math.min(hourBuckets.size, 5), dimensions: Array.from(dimensionSet) };
+            }
+            void scope; // scope param reserved for future scoping — not used in v6 aggregate yet
+            return { ...baseStatus, narrative: narrativeSectionOut, dream: dreamSectionOut, cycles: cycleSectionOut };
+        },
+        // T1.2.1 — read current NarrativeState and map to NarrativeReadModel.
+        // Returns `nothing_yet` status when no data exists — honest empty, not an error.
+        async loadNarrative(narrativeId) {
+            const narrativeStore = createNarrativeStateStore(deps.stateDb);
+            let state;
+            try {
+                state = await narrativeStore.loadNarrativeState(narrativeId);
+            }
+            catch {
+                state = null;
+            }
+            if (!state) {
+                return {
+                    narrativeId: narrativeId ?? "default",
+                    revision: 0,
+                    focus: "",
+                    progress: [],
+                    nextIntent: "",
+                    confidence: 0,
+                    sourceRefs: [],
+                    unsupportedClaims: [],
+                    groundingStatus: "blocked",
+                    status: "nothing_yet",
+                    updatedAt: "",
+                };
+            }
+            const groundingStatus = deriveGroundingStatus(state.status, state.confidence);
+            return {
+                narrativeId: state.narrativeId,
+                revision: state.revision,
+                focus: state.focus,
+                progress: state.progress,
+                nextIntent: state.nextIntent,
+                confidence: state.confidence,
+                sourceRefs: state.sourceRefs.map((r) => ({
+                    sourceId: r.sourceId,
+                    kind: r.kind,
+                    url: r.url,
+                })),
+                unsupportedClaims: state.unsupportedClaims,
+                groundingStatus,
+                status: state.status,
+                updatedAt: state.updatedAt,
+            };
         },
     };
 }

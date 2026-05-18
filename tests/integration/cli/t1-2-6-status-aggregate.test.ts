@@ -1,11 +1,13 @@
 /**
- * T1.2.6 — CLI `status:v6` v6 status aggregate command 最小闭环。
+ * T1.2.6 — CLI `status` v6 status aggregate command 最小闭环。
  *
  * Acceptance:
  * A. 全空时返回 ok:true，三个 v6 section 均有 nothing_yet 哨兵值。
  * B. 有 narrative、dream、cycle 数据时返回各自 section 的有效聚合。
  * C. 某个 section 无数据时返回 nothing_yet，不伪造数据。
  * D. 命令通过 createCommandRouter 正确注册并可解析。
+ * E. 所有 dream runs 有 fallbackReason 时 dream section 返回 degraded。
+ * F. cycle 维度不足 3 个时返回 degraded。
  */
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -21,16 +23,16 @@ import { AppendOnlyAuditStore } from "../../../src/observability/audit/append-on
 import { createLivedExperienceAuditRecorder } from "../../../src/observability/services/lived-experience-audit.js";
 import { createNarrativeStateStore } from "../../../src/storage/narrative/narrative-state-store.js";
 
-test("T1.2.6-A: status:v6 returns ok:true with nothing_yet sections when all stores empty", async () => {
+test("T1.2.6-A: status returns ok:true with nothing_yet sections when all stores empty", async () => {
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
   const deps = createCliRuntimeDeps({ stateDb, observabilityDb });
   const router = createCommandRouter({ deps });
-  const cmd = router.resolve("status:v6");
-  assert.ok(cmd, "status:v6 command must be registered");
+  const cmd = router.resolve("status");
+  assert.ok(cmd, "status command must be registered");
 
   const result = (await cmd!.execute()) as Record<string, unknown>;
-  assert.equal(result.ok, true, "status:v6 must return ok: true");
+  assert.equal(result.ok, true, "status must return ok: true");
   assert.ok(
     !JSON.stringify(result).includes("Implementation lands in later Wave tasks"),
     "must not return notImplemented placeholder",
@@ -67,7 +69,7 @@ test("T1.2.6-A: status:v6 returns ok:true with nothing_yet sections when all sto
   await closeCliRuntimeDeps(deps);
 });
 
-test("T1.2.6-B: status:v6 returns full v6 aggregate when narrative, dream, and cycle data exist", async () => {
+test("T1.2.6-B: status returns full v6 aggregate when narrative, dream, and cycle data exist", async () => {
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
   const store = new AppendOnlyAuditStore();
@@ -109,7 +111,7 @@ test("T1.2.6-B: status:v6 returns full v6 aggregate when narrative, dream, and c
 
   const deps = createCliRuntimeDeps({ stateDb, observabilityDb, livedExperienceAuditStore: store });
   const router = createCommandRouter({ deps });
-  const cmd = router.resolve("status:v6")!;
+  const cmd = router.resolve("status")!;
   const result = (await cmd.execute()) as Record<string, unknown>;
   assert.equal(result.ok, true);
 
@@ -140,7 +142,7 @@ test("T1.2.6-B: status:v6 returns full v6 aggregate when narrative, dream, and c
   await closeCliRuntimeDeps(deps);
 });
 
-test("T1.2.6-C: status:v6 returns nothing_yet for missing sections without faking data", async () => {
+test("T1.2.6-C: status returns nothing_yet for missing sections without faking data", async () => {
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
   const store = new AppendOnlyAuditStore();
@@ -158,7 +160,7 @@ test("T1.2.6-C: status:v6 returns nothing_yet for missing sections without fakin
 
   const deps = createCliRuntimeDeps({ stateDb, observabilityDb, livedExperienceAuditStore: store });
   const router = createCommandRouter({ deps });
-  const cmd = router.resolve("status:v6")!;
+  const cmd = router.resolve("status")!;
   const result = (await cmd.execute()) as Record<string, unknown>;
   assert.equal(result.ok, true);
 
@@ -211,7 +213,7 @@ test("T1.2.6-E: dream section returns degraded when all runs have fallbackReason
 
   const deps = createCliRuntimeDeps({ stateDb, observabilityDb, livedExperienceAuditStore: store });
   const router = createCommandRouter({ deps });
-  const cmd = router.resolve("status:v6")!;
+  const cmd = router.resolve("status")!;
   const result = (await cmd.execute()) as Record<string, unknown>;
   assert.equal(result.ok, true);
 
@@ -241,7 +243,7 @@ test("T1.2.6-F: cycle section returns has_cycles when 3+ dimensions present", as
 
   const deps = createCliRuntimeDeps({ stateDb, observabilityDb, livedExperienceAuditStore: store });
   const router = createCommandRouter({ deps });
-  const cmd = router.resolve("status:v6")!;
+  const cmd = router.resolve("status")!;
   const result = (await cmd.execute()) as Record<string, unknown>;
   assert.equal(result.ok, true);
 
@@ -253,14 +255,14 @@ test("T1.2.6-F: cycle section returns has_cycles when 3+ dimensions present", as
   await closeCliRuntimeDeps(deps);
 });
 
-test("T1.2.6-D: status:v6 command is registered in createCommandRouter", async () => {
+test("T1.2.6-D: status command is registered in createCommandRouter", async () => {
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
   const deps = createCliRuntimeDeps({ stateDb, observabilityDb });
   const router = createCommandRouter({ deps });
 
-  const cmd = router.resolve("status:v6");
-  assert.ok(cmd, "status:v6 must be registered in command router");
+  const cmd = router.resolve("status");
+  assert.ok(cmd, "status must be registered in command router");
   assert.ok(cmd!.description.toLowerCase().includes("v6") || cmd!.description.toLowerCase().includes("aggregate"), "description must mention v6 or aggregate");
 
   await closeCliRuntimeDeps(deps);

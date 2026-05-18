@@ -23,7 +23,8 @@ function isGoalRelatedToCandidate(goal, candidate) {
     return false;
 }
 export function applyGoalPriority(candidates, goals) {
-    const acceptedGoals = (goals ?? []).filter((g) => g.status === "accepted" && g.origin !== "agent_proposed");
+    const acceptedGoals = (goals ?? []).filter((g) => g.status === "accepted" &&
+        (g.origin !== "agent_proposed" || g.acceptedBy === "policy_allowlist"));
     if (acceptedGoals.length === 0) {
         return {
             candidates: candidates.map((c) => ({

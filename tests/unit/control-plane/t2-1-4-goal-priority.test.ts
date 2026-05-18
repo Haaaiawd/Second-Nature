@@ -129,19 +129,34 @@ test("T2.1.4 undefined goals returns candidates unchanged", () => {
 
 // Boundary tests for Wave 26 fix
 
-test("T2.1.4 boundary: agent_proposed goals are filtered out", () => {
+test("T2.1.4 boundary: plain agent_proposed goals are filtered out", () => {
   const candidates = [makeCandidate({ id: "intent-evomap", platformId: "evomap", priority: 60 })];
   const goals = [
-    makeGoal({ goalId: "g1", status: "proposal", description: "improve EvoMap profile" }),
-    makeGoal({ goalId: "g2", status: "accepted", description: "EvoMap onboarding" }),
+    makeGoal({ goalId: "g1", status: "accepted", origin: "agent_proposed", description: "improve EvoMap profile" }),
+    makeGoal({ goalId: "g2", status: "accepted", origin: "owner_set", description: "EvoMap onboarding" }),
   ];
 
   const result = applyGoalPriority(candidates, goals);
 
-  // Only accepted goal should boost
+  // Only non-agent-proposed accepted goal should boost
   assert.equal(result.goalInfluences.length, 1);
   assert.deepEqual(result.goalInfluences[0]!.goalIds, ["g2"]);
-  assert.ok(result.candidates[0]!.priority > 60, "should be boosted by accepted goal only");
+  assert.ok(result.candidates[0]!.priority > 60, "should be boosted by owner_set goal only");
+});
+
+test("T2.1.4 boundary: policy-accepted agent_proposed goals are included", () => {
+  const candidates = [makeCandidate({ id: "intent-evomap", platformId: "evomap", priority: 60 })];
+  const goals = [
+    makeGoal({ goalId: "g1", status: "accepted", origin: "agent_proposed", acceptedBy: "policy_allowlist", description: "improve EvoMap profile" }),
+    makeGoal({ goalId: "g2", status: "accepted", origin: "owner_set", description: "EvoMap onboarding" }),
+  ];
+
+  const result = applyGoalPriority(candidates, goals);
+
+  // Both goals should boost because g1 is policy-accepted
+  assert.equal(result.goalInfluences.length, 1);
+  assert.deepEqual(result.goalInfluences[0]!.goalIds, ["g1", "g2"]);
+  assert.equal(result.goalInfluences[0]!.boost, 40, "two goals = 2 * 20 boost");
 });
 
 test("T2.1.4 boundary: completed goals are filtered out", () => {

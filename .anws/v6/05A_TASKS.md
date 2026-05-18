@@ -309,7 +309,7 @@ graph TD
   - **依赖**: T2.1.4, T4.1.2
   - **优先级**: P0
 
-- [ ] **T2.3.1** [REQ-005]: 实现 Outreach v6 judgment 集成
+- [x] **T2.3.1** [REQ-005]: 实现 Outreach v6 judgment 集成
   - **描述**: outreach judgment 通过后，生成 source-backed narrative draft request 并保持 delivery / hard guard 边界。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §outreach；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §draftNarrativeOutreach；T6.1.1 输出。
   - **输出**: outreach judgment v6 integration、draft request wiring。
@@ -536,7 +536,7 @@ graph TD
   - **依赖**: T7.1.1
   - **优先级**: P1
 
-- [ ] **T5.1.2** [REQ-002][REQ-006]: 实现 NarrativeTrace 审计层
+- [x] **T5.1.2** [REQ-002][REQ-006]: 实现 NarrativeTrace 审计层
   - **描述**: 记录 narrative revision source coverage、unsupportedClaims、goalInfluenceRefs、groundingStatus。
   - **输入**: `04_SYSTEM_DESIGN/observability-system.md` §NarrativeTrace；T2.1.5 output。
   - **输出**: `recordNarrativeTrace()`、schema、narrative explain/read model。
@@ -719,7 +719,7 @@ graph TD
 
 ## INT 里程碑任务
 
-- [ ] **INT-S1** [MILESTONE][REQ-004]: S1 集成验证 — Foundation & Connector Ecosystem
+- [x] **INT-S1** [MILESTONE][REQ-004]: S1 集成验证 — Foundation & Connector Ecosystem
   - **描述**: 验证 state schema、dynamic connector registry、trust policy、v5 parity 的 S1 退出标准。
   - **输入**: T3.1.1, T3.1.2, T3.2.1, T4.1.1-T4.1.5, T5.1.3 产出。
   - **输出**: `reports/int-s1-v6-foundation-connector.md`

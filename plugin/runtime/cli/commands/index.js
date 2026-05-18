@@ -26,10 +26,10 @@ export function createCliCommands(deps) {
     return [
         {
             name: "status",
-            description: "Show aggregated Second Nature status",
+            description: "T1.2.6 — Show v6 aggregated Second Nature status (narrative + dream + cycles + runtime)",
             execute: async (input) => {
                 const scope = typeof input?.scope === "string" ? input.scope : undefined;
-                const data = await readModels.loadStatus(scope);
+                const data = await readModels.loadV6Status(scope);
                 return { ok: true, data };
             },
         },
@@ -266,6 +266,15 @@ export function createCliCommands(deps) {
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("goal", input));
                 return surface;
+            },
+        },
+        {
+            name: "narrative",
+            description: "T1.2.1 — show current NarrativeState: focus, progress, next intent, source refs, grounding status",
+            execute: async (input) => {
+                const narrativeId = typeof input?.narrativeId === "string" ? input.narrativeId : undefined;
+                const data = await readModels.loadNarrative(narrativeId);
+                return { ok: true, data };
             },
         },
         {

@@ -195,6 +195,13 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "audit",
   // T3.3.2: near-real connector smoke sentinel
   "near_real_smoke",
+  // v6 ops surface (CR8-01): narrative, goal, dream:recent, connector_status/test, cycle:recent
+  "narrative",
+  "goal",
+  "dream:recent",
+  "connector_status",
+  "connector_test",
+  "cycle:recent",
 ]);
 
 function isWorkspaceBridgeCommand(
@@ -879,6 +886,83 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
           "run_workspace_second_nature_cli_or_full_runtime_package",
         ),
     },
+    // v6 ops surface (CR8-01): host-safe router returns unavailable for workspace-only commands
+    {
+      name: "narrative",
+      description: "Show current NarrativeState (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_NARRATIVE_UNAVAILABLE",
+          "NarrativeState read requires workspace state database; host-safe plugin does not load persisted narrative rows.",
+          [],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        ),
+    },
+    {
+      name: "goal",
+      description: "Owner-governed goal operations (workspace runtime required)",
+      execute: async (input) => {
+        const action = typeof input?.action === "string" ? input.action : "list";
+        if (action === "set" || action === "accept" || action === "reject") {
+          return createUnavailableActionError(
+            "HOST_SAFE_GOAL_MUTATE_UNAVAILABLE",
+            "Goal mutation requires workspace state database; host-safe plugin cannot write persisted goal rows.",
+            [],
+            "run_workspace_second_nature_cli_or_full_runtime_package",
+          );
+        }
+        return createUnavailableActionError(
+          "HOST_SAFE_GOAL_READ_UNAVAILABLE",
+          "Goal list/read requires workspace state database; host-safe plugin does not load persisted goal rows.",
+          [],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        );
+      },
+    },
+    {
+      name: "dream:recent",
+      description: "Show recent Dream runs (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_DREAM_RECENT_UNAVAILABLE",
+          "Dream recent read requires workspace observability database; host-safe plugin does not load persisted audit events.",
+          [],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        ),
+    },
+    {
+      name: "connector_status",
+      description: "Show connector inventory (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_CONNECTOR_STATUS_UNAVAILABLE",
+          "Connector status requires workspace state and registry scan; host-safe plugin cannot access connector manifests.",
+          [],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        ),
+    },
+    {
+      name: "connector_test",
+      description: "Dry-run test a connector (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_CONNECTOR_TEST_UNAVAILABLE",
+          "Connector test requires workspace state and registry; host-safe plugin cannot run connector harness.",
+          [],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        ),
+    },
+    {
+      name: "cycle:recent",
+      description: "Show recent cycle summary (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_CYCLE_RECENT_UNAVAILABLE",
+          "Cycle recent read requires workspace observability database; host-safe plugin does not load persisted audit events.",
+          [],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        ),
+    },
   ];
 
   return {
@@ -1060,6 +1144,39 @@ function parseCommandInput(
         input: wantRepair ? { runRepairFixture: true } : undefined,
       };
     }
+    // v6 ops surface (CR8-01): simple command parsing for new commands
+    case "narrative":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { narrativeId: rest[0] } : undefined,
+      };
+    case "goal":
+      return {
+        ok: true,
+        command,
+        input: rest.length > 0 ? { action: rest[0], goalId: rest[1] } : undefined,
+      };
+    case "dream:recent":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { limit: Number(rest[0]) } : undefined,
+      };
+    case "connector_status":
+      return { ok: true, command, input: undefined };
+    case "connector_test":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { platformId: rest[0] } : undefined,
+      };
+    case "cycle:recent":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { limit: Number(rest[0]) } : undefined,
+      };
     default:
       return {
         ok: true,

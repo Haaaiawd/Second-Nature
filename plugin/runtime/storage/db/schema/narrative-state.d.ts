@@ -99,7 +99,7 @@ export declare const narrativeState: import("drizzle-orm/sqlite-core").SQLiteTab
             name: "confidence";
             tableName: "narrative_state";
             dataType: "number";
-            columnType: "SQLiteInteger";
+            columnType: "SQLiteReal";
             data: number;
             driverParam: number;
             notNull: true;

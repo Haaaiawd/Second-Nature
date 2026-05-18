@@ -122,7 +122,7 @@ async function maybeUpdateNarrativeState(result, selectedIntent, runtime, store,
                         : update.status === "insufficient_sources"
                             ? "blocked"
                             : "pass",
-                    goalInfluenceRefs: selectedIntent?.sourceRefs?.map((r) => r.id) ?? [],
+                    goalInfluenceRefs: selectedIntent?.goalInfluenceRefs ?? [],
                     createdAt: update.updatedAt,
                 });
             }

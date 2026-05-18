@@ -3,7 +3,8 @@
  *
  * `applyGoalPriority` adjusts candidate intent priorities based on accepted AgentGoals.
  * Priority order: user_task > accepted_goal > rhythm.
- * Only goals with status === "accepted" and origin !== "agent_proposed" are considered.
+ * Only goals with status === "accepted" are considered.
+ * Agent-proposed goals are included ONLY if policy-accepted (acceptedBy === "policy_allowlist").
  * All other statuses (proposal / rejected / completed / paused) are implicitly excluded.
  */
 import type { CandidateIntent } from "../types.js";
