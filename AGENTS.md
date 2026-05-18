@@ -84,7 +84,7 @@
 - **最新架构版本**: `.anws/v6`
 - **活动任务清单**: `.anws/v6/05A_TASKS.md`
 - **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-16` (Wave 24 `/forge`: T3.1.2 CapabilityContractRegistry namespace + v5 compat, T1.3.1 connector init CLI, T5.1.3 ConnectorInventoryAudit schema + Ledger；21 测试全绿)
+- **最近一次更新**: `2026-05-18` (Wave 35 `/forge`: S5 Life Loop Activation — T1.4.1 RuntimeSecretBootstrap + T1.4.2 activation UX cleanup)
 
 ### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
 
@@ -186,11 +186,14 @@ src/
 ### 当前任务状态
 - 执行主清单: `.anws/v6/05A_TASKS.md`
 - 验证计划: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- 总任务数: 31, Level-3: 27, INT: 4, P0: 21, P1: 10, P2: 0
-- Sprint 数: 4
-- **状态**: v6 全部任务已完成，全部 INT 里程碑已签收（INT-S1 ✅, INT-S2 ✅, INT-S3 ✅, INT-S4 ✅）
+- 总任务数: 38, Level-3: 33, INT: 5, P0: 27, P1: 11, P2: 0
+- Sprint 数: 5
+- **状态**: v6 主体任务已完成；S5 `Life Loop Activation` 已通过 `/change` 回流为待执行 backlog（INT-S5 未完成）
 - **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved，0 Open
-- **最近更新**: `2026-05-18` (Challenge Round 8 closure: evidence gaps fixed)
+- **下一步**: `/forge` 从 **S5 Life Loop Activation** 起步，先执行 T1.4.1 runtime secret bootstrap，再打通 T3.3.1 real connector evidence
+- **最近更新**: `2026-05-18` (Round 7 `/change`: S5 Life Loop Activation backlog)
+
+> **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
@@ -287,6 +290,12 @@ T1.2.1：`NarrativeReadModel` 类型新增到 `types.ts`（含 `groundingStatus:
 
 ### 🌊 Wave 33 ✅ — INT-S2 + INT-S3 + INT-S4 v6 milestone reports
 INT-S2（`reports/int-s2-v6-dream-engine.md`）：Dream pipeline（T7.1.1-T7.1.5）、DreamTrace（T5.1.1）、dream:recent（T1.2.2）验证报告；覆盖 candidate→accepted→archived 生命周期、scheduler lock、insight/narrative/relationship proposal、DreamTrace envelope；8 GWT 条目全部 pass。INT-S3（`reports/int-s3-v6-agent-self.md`）：accepted goal priority（T2.1.4）、narrative update + NarrativeTrace（T2.1.5/T5.1.2）、source-backed outreach judgment（T2.3.1/T6.1.1）验证报告；7 GWT 条目全部 pass。INT-S4（`reports/int-s4-v6-ops-host-readiness.md`）：v6 ops surface（T1.2.1-T1.2.6）、host-safe carrier/full runtime 语义、plugin bridge bridge、DreamTrace+NarrativeTrace 审计、514 全量回归验证报告；11 GWT 条目全部 pass。同步勾选 05A_TASKS.md：INT-S2、INT-S3、INT-S4、T1.2.4。
+
+### 🌊 Wave 34 ✅ — v6 S5 Life Loop Activation backlog
+Round 7 `/change` 新增 S5：T1.4.1 RuntimeSecretBootstrap、T3.3.1 real connector evidence、T2.4.1 platform-specific heartbeat intent、T2.4.2 source-backed outreach delivery/fallback、T4.2.1 owner reply → RelationshipMemory feedback、T1.4.2 activation UX cleanup、INT-S5 关门报告。目标是让 v6 从“工程面完成”进入“真实感知→自主判断→owner 可见→关系反馈→Dream 有食物”的闭环。
+
+### 🌊 Wave 35 ✅ — v6 S5 Life Loop Activation: T1.4.1 + T1.4.2
+**T1.4.1**：`probeCredentialHealth` 函数（`src/storage/services/credential-vault.ts`）检测 key 缺失/错误/有效三种状态，返回 `missing_runtime_secret` / `credential_recovery_required` / `ok` 诊断码；`CredentialReadModel` / `CredentialSummary` 扩展 `decrypt_failed` 状态与 `keyHealth` 字段；`loadCredential` 与 `buildBaseStatus` 均尝试解密并诚实报告诊断，不泄漏 raw secret；集成测 4 cases（缺 key、错 key、有效 key、status aggregate）。**T1.4.2**：`goal set` 支持 `criteria` 作为 `completionCriteria` alias（`GoalCommandInput` 新增 `criteria` 字段，`ops-router.ts` goal dispatch 透传）；`explain relationship:{id}` 通过 `resolveExplainSubject` → `toExplainQuery` → `explain` 读取 `RelationshipMemoryStore` 返回 redacted summary（tone/reply/topics）或诚实 `nothing_yet`；`ExplainSubjectKind` 扩展 `"relationship"`；集成测 6 cases（criteria alias×3、relationship explain×3）。195 测试全绿，无回归。05A_TASKS.md 勾选 T1.4.1、T1.4.2。
 
 <!-- AUTO:END -->
 

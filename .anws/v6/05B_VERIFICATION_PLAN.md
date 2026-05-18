@@ -14,9 +14,9 @@
 | 单元测试 | 局部状态转换、schema、policy、parser、validator | state schemas、registry parser、goal gate、Dream validator、grounding validator | `tests/unit/**` |
 | API接口功能测试 | CLI/tool/port 操作契约、错误语义、数据变更 before/after | `second_nature_ops` commands、state ports、connector registry APIs、observability query APIs | `tests/integration/**` |
 | 集成测试 | 跨系统读写、trace/read model、pipeline | Dream pipeline、heartbeat narrative、connector registry -> status | `tests/integration/**` |
-| 冒烟测试 | Sprint 关门任务 | INT-S1 到 INT-S4 | `reports/int-s*.md` |
+| 冒烟测试 | Sprint 关门任务 | INT-S1 到 INT-S5 | `reports/int-s*.md` |
 | 回归测试 | v5 不倒退 | heartbeat surface、state schema、connector parity、plugin runtime | existing v5 test suites + INT reports |
-| 手动验证 | 真实宿主能力与 host-safe/full runtime | INT-S4 OpenClaw session tool visibility and workspace bridge | `reports/int-s4-v6-ops-host-readiness.md` |
+| 手动验证 | 真实宿主能力与 host-safe/full runtime / life loop activation | INT-S4 OpenClaw session tool visibility and workspace bridge；INT-S5 one real connector + outreach loop | `reports/int-s4-v6-ops-host-readiness.md`, `reports/int-s5-v6-life-loop-activation.md` |
 
 > E2E/真实宿主验证只在本计划记录触发条件与证据预期；实际执行由 `/forge` 对应里程碑承接。
 
@@ -31,8 +31,11 @@
 | 授权越权 | agent-proposed goal 直接影响 planning | T4.1.4, T2.1.4, INT-S3 |
 | Ops surface 不可见 | goal/status/cycle 命令 producer task 与验证锚点必须同时存在 | T1.2.4, T1.2.5, T1.2.6, INT-S4 |
 | 隐私泄漏 | prompt、PII、credential、private message 进入 model/audit | T5.1.1, T7.1.3, T6.1.1, INT-S2 |
-| 验证不可见 | INT milestone 没有证据路径 | INT-S1, INT-S2, INT-S3, INT-S4 |
+| 验证不可见 | INT milestone 没有证据路径 | INT-S1, INT-S2, INT-S3, INT-S4, INT-S5 |
 | v5 回归 | existing heartbeat/state/plugin/connector behavior broken | T3.2.1, INT-S1, INT-S4 |
+| 运行时 secret 漂移 | encryption key / base URL / credential recovery 只存在于临时会话 | T1.4.1, INT-S5 |
+| 真实感知未激活 | connector dry-run pass 但 heartbeat 没有真实 evidence | T3.3.1, T2.4.1, INT-S5 |
+| 关系反馈未闭合 | owner reply 没有进入 RelationshipMemory 或不影响下次 outreach | T4.2.1, T1.4.2, INT-S5 |
 
 ---
 
@@ -379,6 +382,83 @@
 - 断言: full runtime returns data; carrier/unavailable responses are honest
 - 证据: `reports/int-s4-v6-ops-host-readiness.md`
 
+### T1.4.1
+- 关联需求: REQ-004, REQ-006
+- 关联契约: RuntimeSecretBootstrap, credential unavailable/decrypt failed error semantics, redacted diagnostics
+- 风险类别: 运行时 secret 漂移、credential 误报为平台故障、敏感信息泄漏
+- 单元测试覆盖: secret health mapper handles missing/wrong/valid key and missing base URL states
+- API接口功能测试覆盖: status/connector diagnostic returns actionable unavailable envelopes without raw secret material
+- 集成/E2E/冒烟覆盖: included in INT-S5
+- 前置数据: fixture credential rows encrypted with valid and invalid keys plus absent env vars
+- 断言: missing key/decrypt failure/base URL missing are distinguishable and redacted
+- 证据: `tests/integration/cli/t1-4-1-runtime-secret-bootstrap.test.ts`
+
+### T3.3.1
+- 关联需求: REQ-004
+- 关联契约: platformId:capability execution, LifeEvidence source refs, ConnectorAttemptAudit linkage
+- 风险类别: 真实感知未激活、dry-run 与 real execution 断层、空结果被伪造成 evidence
+- 单元测试覆盖: connector result mapper rejects source-less or credential-sensitive evidence candidates
+- API接口功能测试覆盖: real read capability writes evidence and attempt audit for success/empty/auth/network outcomes
+- 集成/E2E/冒烟覆盖: one real connector smoke included in INT-S5
+- 前置数据: one trusted connector fixture with runtime secret, credential, base URL and deterministic source response
+- 断言: successful read writes artifact + index with sourceRefs; empty/failure writes honest attempt without fabricated evidence
+- 证据: `tests/integration/connectors/t3-3-1-real-connector-evidence.test.ts`
+
+### T2.4.1
+- 关联需求: REQ-002, REQ-004
+- 关联契约: platformId:capability heartbeat intent contract, goal/narrative reason trace
+- 风险类别: heartbeat 泛化 intent 空转、ambiguous capability 执行错误平台、credential unavailable 被误选
+- 单元测试覆盖: planner selects platform-specific intent only when capability and credential route are unambiguous
+- API接口功能测试覆盖: heartbeat decision contains platformId/capability/reason refs for goal and narrative driven cases
+- 集成/E2E/冒烟覆盖: included in INT-S5 heartbeat smoke
+- 前置数据: accepted goal, narrative focus, registered connector capability, credential health states
+- 断言: selected intent includes platformId and capability; ambiguous/unavailable paths produce explicit denied reason
+- 证据: `tests/unit/control-plane/t2-4-1-platform-intent.test.ts`, `tests/integration/control-plane/t2-4-1-heartbeat-platform-intent.test.ts`
+
+### T2.4.2
+- 关联需求: REQ-005
+- 关联契约: source-backed outreach, delivery unavailable fallback, Narrative/Relationship context usage
+- 风险类别: outreach 无 source refs、delivery 不可用时静默丢失、fallback 没有叙事来由
+- 单元测试覆盖: outreach trigger mapper requires evidence + source refs + guard allow
+- API接口功能测试覆盖: evidence -> judgment -> draft -> delivery/fallback returns before/after audit rows
+- 集成/E2E/冒烟覆盖: included in INT-S5 source-backed outreach smoke
+- 前置数据: connector evidence, narrative state, relationship memory, delivery available/unavailable fixtures
+- 断言: draft includes what/why/source refs; unavailable delivery writes not_sent fallback with reason
+- 证据: `tests/integration/control-plane/t2-4-2-source-backed-outreach-loop.test.ts`
+
+### T4.2.1
+- 关联需求: REQ-003, REQ-005
+- 关联契约: owner reply chronicle event, RelationshipMemory feedback contract, relationship-aware outreach
+- 风险类别: 关系反馈未闭合、单次回复过度推断、下次 outreach 不受历史影响
+- 单元测试覆盖: reply classifier handles positive/negative/no_reply/busy and single-sample insufficient history
+- API接口功能测试覆盖: owner reply ingestion writes SessionChronicle and updates RelationshipMemory before/after
+- 集成/E2E/冒烟覆盖: included in INT-S5 relationship feedback smoke
+- 前置数据: delivered/fallback outreach row, owner reply fixture, existing relationship memory
+- 断言: reply updates tone/timing/topic/sourceRefs; next draft references the signal or marks insufficient_history
+- 证据: `tests/integration/state/t4-2-1-owner-reply-relationship-loop.test.ts`
+
+### T1.4.2
+- 关联需求: REQ-002, REQ-003, REQ-006
+- 关联契约: `sn goal set` criteria alias, `explain relationship` read contract, host-safe unavailable envelope
+- 风险类别: ops UX 契约漂移、goal completion criteria 丢失、relationship state 不可解释
+- 单元测试覆盖: goal input mapper accepts criteria and completionCriteria with deterministic precedence
+- API接口功能测试覆盖: goal set persists criteria before/after; explain relationship returns redacted summary or honest nothing_yet/unavailable
+- 集成/E2E/冒烟覆盖: included in INT-S5 activation UX smoke
+- 前置数据: goal command input variants, relationship memory fixture, host-safe carrier fixture
+- 断言: criteria persists to completionCriteria; explain relationship is supported and redacted
+- 证据: `tests/integration/cli/t1-4-2-activation-ux-contract.test.ts`
+
+### INT-S5
+- 关联需求: REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006
+- 关联契约: RuntimeSecretBootstrap, real connector evidence, platform-specific intent, source-backed outreach, relationship feedback, activation UX
+- 风险类别: v6 只完成工程面但 life loop 未激活
+- 单元测试覆盖: S5 unit suite must pass
+- API接口功能测试覆盖: runtime diagnostics, connector execution, heartbeat intent, outreach loop, reply ingestion, UX aliases
+- 集成/E2E/冒烟覆盖: one real connector + one source-backed outreach + one owner reply feedback smoke
+- 前置数据: configured runtime secret, one trusted connector, one accepted goal/narrative focus, delivery/fallback target
+- 断言: connector evidence -> heartbeat intent -> outreach/fallback -> owner reply -> relationship signal is traceable end-to-end
+- 证据: `reports/int-s5-v6-life-loop-activation.md`
+
 ---
 
 ## Contract Coverage Overlay
@@ -402,6 +482,12 @@
 | cycle:recent read model | T1.2.5 | T1.2.5, INT-S4 | recent activity invisible or fabricated | Planned |
 | status aggregate | T1.2.6 | T1.2.6, INT-S4 | v6 state invisible or sensitive leak | Planned |
 | v6 ops commands | T1.2.1-T1.2.6 | T1.2.1-T1.2.6, INT-S4 | host-safe/full runtime drift | Planned |
+| RuntimeSecretBootstrap | T1.4.1 | T1.4.1, INT-S5 | runtime secret drift / credential recovery invisible | Planned |
+| real connector evidence path | T3.3.1 | T3.3.1, INT-S5 | dry-run pass but no lived evidence | Planned |
+| platformId:capability heartbeat intent | T2.4.1 | T2.4.1, INT-S5 | generic intent never reaches connector | Planned |
+| source-backed outreach delivery loop | T2.4.2 | T2.4.2, INT-S5 | evidence never becomes owner-visible outreach | Planned |
+| owner reply relationship feedback | T4.2.1 | T4.2.1, INT-S5 | relationship memory not shaped by real replies | Planned |
+| activation UX aliases / relationship explain | T1.4.2 | T1.4.2, INT-S5 | manual/E2E surface mismatches implementation | Planned |
 | v5 compatibility | T3.2.1 and all state/ops tasks | INT-S1, INT-S4 | regression | Planned |
 
 ---
@@ -410,12 +496,12 @@
 
 | 测试类型 | 覆盖任务 | 说明 |
 | --- | --- | --- |
-| 单元测试 | T2.1.4, T2.1.5, T3.1.1, T3.1.2, T4.1.1-T4.1.5, T5.1.1-T5.1.3, T6.1.1, T7.1.1-T7.1.5 | schema、state transitions、policy、parser、validator、grounding |
-| API接口功能测试 | T1.2.1-T1.2.6, T1.3.1, T3.1.2, T4.1.1-T4.1.5, T5.1.1-T5.1.3, T7.1.1-T7.1.3 | CLI/tool/port inputs, error semantics, before/after assertions |
-| 集成测试 | T1.2.1-T1.2.6, T2.1.5, T2.3.1, T3.1.1, T3.2.1, T4.1.5, T6.1.1, T7.1.1, T7.1.2 | cross-system flow and read models |
-| 冒烟测试 | INT-S1, INT-S2, INT-S3, INT-S4 | sprint close gates |
-| 回归测试 | T3.2.1, INT-S1, INT-S4 | v5 connector/state/plugin/heartbeat non-regression |
-| 手动验证 | INT-S4 | true OpenClaw host/session smoke |
+| 单元测试 | T2.1.4, T2.1.5, T2.4.1, T3.1.1, T3.1.2, T4.1.1-T4.1.5, T4.2.1, T5.1.1-T5.1.3, T6.1.1, T7.1.1-T7.1.5 | schema、state transitions、policy、parser、validator、grounding、platform intent、reply classifier |
+| API接口功能测试 | T1.2.1-T1.2.6, T1.3.1, T1.4.1, T1.4.2, T2.4.2, T3.1.2, T3.3.1, T4.1.1-T4.1.5, T4.2.1, T5.1.1-T5.1.3, T7.1.1-T7.1.3 | CLI/tool/port inputs, error semantics, before/after assertions, runtime diagnostics |
+| 集成测试 | T1.2.1-T1.2.6, T1.4.1, T1.4.2, T2.1.5, T2.3.1, T2.4.1, T2.4.2, T3.1.1, T3.2.1, T3.3.1, T4.1.5, T4.2.1, T6.1.1, T7.1.1, T7.1.2 | cross-system flow, read models, real connector evidence, outreach and relationship feedback |
+| 冒烟测试 | INT-S1, INT-S2, INT-S3, INT-S4, INT-S5 | sprint close gates |
+| 回归测试 | T3.2.1, INT-S1, INT-S4, INT-S5 | v5 connector/state/plugin/heartbeat non-regression |
+| 手动验证 | INT-S4, INT-S5 | true OpenClaw host/session smoke and one real life-loop activation smoke |
 
 ---
 
@@ -423,15 +509,16 @@
 
 | REQ/Contract | Task | Verification | Test Material | Evidence | Status |
 | --- | --- | --- | --- | --- | --- |
-| REQ-001 Dream | T4.1.5, T7.1.1, T7.1.2, T7.1.3, T7.1.4, T7.1.5, T5.1.1, T1.2.2, INT-S2 | unit/API/integration/smoke | `tests/**/dream/**`, `tests/**/storage/**` | `reports/int-s2-v6-dream-engine.md` | Planned |
-| REQ-002 Narrative/Goal | T4.1.2, T4.1.4, T1.2.4, T2.1.4, T2.1.5, T5.1.2, T1.2.1, INT-S3 | unit/API/integration/smoke | `tests/**/control-plane/**`, `tests/**/storage/**`, `tests/**/cli/**` | `reports/int-s3-v6-agent-self.md` | Planned |
-| REQ-003 Relationship | T4.1.3, T7.1.5, T6.1.1, T2.3.1, INT-S3 | unit/API/integration/smoke | `tests/**/guidance/**`, `tests/**/dream/**` | `reports/int-s3-v6-agent-self.md` | Planned |
-| REQ-004 Connector Ecosystem | T3.1.1, T3.1.2, T3.2.1, T5.1.3, T1.3.1, T1.2.3, INT-S1 | unit/API/integration/smoke | `tests/**/connectors/**`, `tests/**/cli/**` | `reports/int-s1-v6-foundation-connector.md` | Planned |
-| REQ-005 Outreach | T6.1.1, T2.3.1, INT-S3 | unit/integration/smoke | `tests/**/guidance/**`, `tests/**/control-plane/**` | `reports/int-s3-v6-agent-self.md` | Planned |
-| REQ-006 Observability | T5.1.1, T5.1.2, T5.1.3, T1.2.1-T1.2.6, INT-S4 | API/integration/smoke/manual | `tests/**/observability/**`, `tests/**/cli/**` | `reports/int-s4-v6-ops-host-readiness.md` | Planned |
+| REQ-001 Dream | T4.1.5, T7.1.1, T7.1.2, T7.1.3, T7.1.4, T7.1.5, T5.1.1, T1.2.2, INT-S2, T3.3.1, INT-S5 | unit/API/integration/smoke | `tests/**/dream/**`, `tests/**/storage/**`, `tests/**/connectors/**` | `reports/int-s2-v6-dream-engine.md`, `reports/int-s5-v6-life-loop-activation.md` | Planned |
+| REQ-002 Narrative/Goal | T4.1.2, T4.1.4, T1.2.4, T1.4.2, T2.1.4, T2.1.5, T2.4.1, T5.1.2, T1.2.1, INT-S3, INT-S5 | unit/API/integration/smoke | `tests/**/control-plane/**`, `tests/**/storage/**`, `tests/**/cli/**` | `reports/int-s3-v6-agent-self.md`, `reports/int-s5-v6-life-loop-activation.md` | Planned |
+| REQ-003 Relationship | T4.1.3, T4.2.1, T7.1.5, T6.1.1, T2.3.1, T1.4.2, INT-S3, INT-S5 | unit/API/integration/smoke | `tests/**/guidance/**`, `tests/**/dream/**`, `tests/**/state/**`, `tests/**/cli/**` | `reports/int-s3-v6-agent-self.md`, `reports/int-s5-v6-life-loop-activation.md` | Planned |
+| REQ-004 Connector Ecosystem | T1.4.1, T3.1.1, T3.1.2, T3.2.1, T3.3.1, T5.1.3, T1.3.1, T1.2.3, INT-S1, INT-S5 | unit/API/integration/smoke/manual | `tests/**/connectors/**`, `tests/**/cli/**` | `reports/int-s1-v6-foundation-connector.md`, `reports/int-s5-v6-life-loop-activation.md` | Planned |
+| REQ-005 Outreach | T6.1.1, T2.3.1, T2.4.2, T4.2.1, INT-S3, INT-S5 | unit/integration/smoke/manual | `tests/**/guidance/**`, `tests/**/control-plane/**`, `tests/**/state/**` | `reports/int-s3-v6-agent-self.md`, `reports/int-s5-v6-life-loop-activation.md` | Planned |
+| REQ-006 Observability | T1.4.1, T1.4.2, T5.1.1, T5.1.2, T5.1.3, T1.2.1-T1.2.6, INT-S4, INT-S5 | API/integration/smoke/manual | `tests/**/observability/**`, `tests/**/cli/**` | `reports/int-s4-v6-ops-host-readiness.md`, `reports/int-s5-v6-life-loop-activation.md` | Planned |
 | ConnectorTrustPolicy | T3.1.1, T1.2.3, T1.3.1 | unit/API/integration | pending trust and executable=false fixtures | `reports/int-s1-v6-foundation-connector.md` | Planned |
 | DreamOutputLifecycle | T4.1.5, T7.1.1, T7.1.2 | unit/API/integration | candidate/accepted/partial fixtures | `reports/int-s2-v6-dream-engine.md` | Planned |
 | `sn goal` command | T1.2.4 | API/integration/smoke | `tests/integration/cli/t1-2-4-goal-command.test.ts` | `reports/int-s4-v6-ops-host-readiness.md` | Planned |
 | `sn cycle:recent` command | T1.2.5 | API/integration/smoke | `tests/integration/cli/t1-2-5-cycle-recent-command.test.ts` | `reports/int-s4-v6-ops-host-readiness.md` | Planned |
 | `sn status` aggregate | T1.2.6 | API/integration/smoke | `tests/integration/cli/t1-2-6-status-aggregate.test.ts` | `reports/int-s4-v6-ops-host-readiness.md` | Planned |
 | RuntimeMode ops envelope | T1.2.1-T1.2.6, INT-S4 | API/smoke/manual | host-safe/full runtime fixtures | `reports/int-s4-v6-ops-host-readiness.md` | Planned |
+| Life Loop Activation | T1.4.1, T3.3.1, T2.4.1, T2.4.2, T4.2.1, T1.4.2, INT-S5 | unit/API/integration/smoke/manual | runtime secret + real connector + heartbeat + outreach + reply fixtures | `reports/int-s5-v6-life-loop-activation.md` | Planned |

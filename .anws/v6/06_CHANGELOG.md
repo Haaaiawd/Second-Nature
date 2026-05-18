@@ -1,6 +1,6 @@
 # 变更日志 - .anws v6
 
-> 此文件记录本版本迭代过程中的微调变更（由 /change 处理）。新增功能/任务需创建新版本（由 /genesis 处理）。
+> 此文件记录本版本迭代过程中的微调变更（由 /change 处理）。改变需求/架构/ADR 核心前提的新功能需创建新版本（由 /genesis 处理）；不改前提、可追溯用户原话或 forge 回流的少量承接任务可由 /change 受控追加。
 
 ## 格式说明
 - **[CHANGE]** 微调已有任务（由 /change 处理）
@@ -35,3 +35,8 @@
 - [CHANGE] 回流 DR6-01 / TR6-01：在 `05A_TASKS.md` 新增 T1.2.4 `goal` command、T1.2.5 `cycle:recent` read model、T1.2.6 v6 `status` aggregate，补齐 `cli-system` ops surface producer tasks。
 - [CHANGE] 同步 `05B_VERIFICATION_PLAN.md` 的 Task-by-Task、Contract Coverage、Testing Coverage 与 Verification Traceability Matrix，为 `goal` / `cycle:recent` / `status` 增加 API、集成与 INT-S4 验证锚点。
 - [CHANGE] 更新 v6 任务统计：总任务数 31，Level-3 任务 27，INT 任务 4，P0 21，P1 10，P2 0。
+
+## 2026-05-18 - Round 7 Life Loop Activation 回流
+- [CHANGE] 在 `05A_TASKS.md` 新增 S5 `Life Loop Activation`：T1.4.1 runtime secret bootstrap、T3.3.1 real connector evidence、T2.4.1 platform-specific intent、T2.4.2 source-backed outreach delivery、T4.2.1 owner reply relationship feedback、T1.4.2 activation UX cleanup、INT-S5 关门验证。
+- [CHANGE] 同步 `05B_VERIFICATION_PLAN.md` 的风险类别、Task-by-Task、Contract Coverage、Testing Coverage 与 Verification Traceability Matrix，为 runtime secret、真实 connector evidence、heartbeat platform intent、outreach/fallback、relationship feedback 与 UX alias/explain 增加验证锚点。
+- [CHANGE] 更新 v6 任务统计：总任务数 38，Level-3 任务 33，INT 任务 5，P0 27，P1 11，P2 0。

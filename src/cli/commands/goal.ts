@@ -8,6 +8,8 @@ export interface GoalCommandInput {
   goalId?: string;
   description?: string;
   completionCriteria?: string;
+  /** T1.4.2 — alias for `completionCriteria`. */
+  criteria?: string;
   risk?: "low" | "medium" | "high";
   kind?: "short_term" | "long_term";
   statusFilter?: string;
@@ -96,13 +98,18 @@ export async function goalCommand(
       const goalId = input.goalId?.trim() || randomUUID();
       const now = new Date().toISOString();
 
+      // T1.4.2: `criteria` is an alias for `completionCriteria`.
+      const completionCriteria =
+        input.completionCriteria?.trim() ||
+        input.criteria?.trim() ||
+        "";
       await store.upsertAgentGoal({
         goalId,
         kind: input.kind ?? "short_term",
         status: "accepted",
         origin: "owner_set",
         description,
-        completionCriteria: input.completionCriteria?.trim() || "",
+        completionCriteria,
         risk: input.risk ?? "low",
         priorityHint: 0,
         sourceRefs: [],

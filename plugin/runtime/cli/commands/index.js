@@ -136,7 +136,7 @@ export function createCliCommands(deps) {
                         return explainSubjectError("EXPLAIN_SUBJECT_REQUIRES_ID", "subject must include identifier");
                     }
                     if (code === "explain_subject_unsupported") {
-                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:");
+                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:, relationship:");
                     }
                     return explainSubjectError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject");
                 }

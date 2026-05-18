@@ -50,8 +50,11 @@ export interface CredentialSummary {
     | "active"
     | "expired"
     | "revoked"
-    | "failed";
+    | "failed"
+    | "decrypt_failed";
   nextStep?: string;
+  /** T1.4.1 — diagnostic key health without leaking raw secret. */
+  keyHealth?: "missing_key" | "wrong_key" | "ok";
 }
 
 export interface RiskSummary {
@@ -179,10 +182,16 @@ export interface CredentialReadModel {
     | "active"
     | "expired"
     | "revoked"
-    | "failed";
+    | "failed"
+    | "decrypt_failed";
   verificationDeadline?: string;
   attemptsRemaining?: number;
   nextStep?: string;
+  /**
+   * T1.4.1 — redacted diagnostic: when true, the raw encrypted value could not be
+   * decrypted because SECOND_NATURE_ENCRYPTION_KEY is missing or wrong.
+   */
+  keyHealth?: "missing_key" | "wrong_key" | "ok";
 }
 
 export type ExplainSubjectKind =
@@ -194,7 +203,8 @@ export type ExplainSubjectKind =
   | "probe"
   | "delivery"
   | "report"
-  | "source_ref";
+  | "source_ref"
+  | "relationship";
 
 export interface ExplainReadModel {
   subjectType: ExplainSubjectKind;

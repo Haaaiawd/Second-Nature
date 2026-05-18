@@ -17,7 +17,8 @@ export type ExplainQuery =
   | { kind: "fallback"; fallbackRef: string }
   | { kind: "report"; reportId: string }
   | { kind: "delivery"; auditId: string }
-  | { kind: "source_ref"; sourceRefId: string };
+  | { kind: "source_ref"; sourceRefId: string }
+  | { kind: "relationship"; relationshipId: string };
 
 export interface RedactedExplainEvent {
   eventId: string;
@@ -96,6 +97,14 @@ function eventMatchesQuery(envelope: AuditEnvelope<unknown>, query: ExplainQuery
       );
     case "source_ref": {
       const needle = query.sourceRefId;
+      try {
+        return JSON.stringify(payload).includes(needle);
+      } catch {
+        return false;
+      }
+    }
+    case "relationship": {
+      const needle = query.relationshipId;
       try {
         return JSON.stringify(payload).includes(needle);
       } catch {

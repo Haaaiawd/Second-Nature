@@ -226,6 +226,10 @@ export function createOpsRouter(deps) {
                     completionCriteria: typeof input?.completionCriteria === "string"
                         ? input.completionCriteria
                         : undefined,
+                    // T1.4.2: criteria alias for completionCriteria
+                    criteria: typeof input?.criteria === "string"
+                        ? input.criteria
+                        : undefined,
                     risk: typeof input?.risk === "string"
                         ? input.risk
                         : undefined,

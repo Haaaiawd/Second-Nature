@@ -178,7 +178,7 @@ export function createCliCommands(
           if (code === "explain_subject_unsupported") {
             return explainSubjectError(
               "EXPLAIN_SUBJECT_UNSUPPORTED",
-              "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:",
+              "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:, relationship:",
             );
           }
           return explainSubjectError(

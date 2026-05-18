@@ -4,6 +4,8 @@ export interface GoalCommandInput {
     goalId?: string;
     description?: string;
     completionCriteria?: string;
+    /** T1.4.2 — alias for `completionCriteria`. */
+    criteria?: string;
     risk?: "low" | "medium" | "high";
     kind?: "short_term" | "long_term";
     statusFilter?: string;

@@ -12,6 +12,8 @@ import { mapOperatorExplainToReadModel } from "./operator-explain-map.js";
 import { loadOperatorFallbackRow, toOperatorFallbackView, } from "../../storage/fallback/load-operator-fallback.js";
 import { loadRhythmPolicySnapshot, } from "../../storage/rhythm/rhythm-policy-snapshot.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
+import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
+import { probeCredentialHealth } from "../../storage/services/credential-vault.js";
 const INTERNAL_RUNTIME_PLATFORM_ID = "second-nature-runtime";
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 function toExplainQuery(subject) {
@@ -31,6 +33,8 @@ function toExplainQuery(subject) {
             return { kind: "delivery", auditId: subject.id };
         case "source_ref":
             return { kind: "source_ref", sourceRefId: subject.id };
+        case "relationship":
+            return { kind: "relationship", relationshipId: subject.id };
         default:
             return undefined;
     }
@@ -47,6 +51,8 @@ function buildCredentialNextStep(status) {
         return "submit_verification_answer";
     if (status === "expired" || status === "revoked" || status === "failed")
         return "refresh_credential_context";
+    if (status === "decrypt_failed")
+        return "verify_or_re_create_credential_then_re_import";
     return undefined;
 }
 /**
@@ -207,12 +213,28 @@ async function buildBaseStatus(deps) {
                 : undefined,
         },
         connectors: connectorSummary,
-        credentials: credentials.map((item) => ({
-            platformId: item.platformId ??
-                item.platform_id,
-            status: item.status,
-            nextStep: buildCredentialNextStep(item.status),
-        })),
+        credentials: credentials.map((item) => {
+            const platformId = item.platformId ??
+                item.platform_id;
+            const encryptedValue = item.encryptedValue ??
+                item.encrypted_value;
+            const baseUrl = item.baseUrl ??
+                item.base_url;
+            const health = probeCredentialHealth(platformId, encryptedValue, baseUrl);
+            const effectiveStatus = health.state === "decrypt_failed"
+                ? "decrypt_failed"
+                : item.status;
+            return {
+                platformId,
+                status: effectiveStatus,
+                nextStep: health.diagnosticCode === "missing_runtime_secret"
+                    ? "set_SECOND_NATURE_ENCRYPTION_KEY_then_re_probe"
+                    : health.diagnosticCode === "credential_recovery_required"
+                        ? "verify_or_re_create_credential_then_re_import"
+                        : buildCredentialNextStep(effectiveStatus),
+                keyHealth: health.keyHealth,
+            };
+        }),
         risk: {
             level: riskFlags.length > 0 ? "medium" : "low",
             flags: riskFlags,
@@ -325,19 +347,40 @@ export function createCliReadModels(deps) {
                 record = undefined;
             }
             if (!record) {
+                // T1.4.1: even when no row exists, probe key health so status can surface
+                // missing_runtime_secret rather than a generic "missing".
+                const health = probeCredentialHealth(platformId, null, null);
                 return {
                     platformId,
-                    status: "missing",
-                    nextStep: "provide_credential_context",
+                    status: health.state,
+                    nextStep: health.diagnosticCode === "missing_runtime_secret"
+                        ? "set_SECOND_NATURE_ENCRYPTION_KEY_then_re_probe"
+                        : "provide_credential_context",
+                    keyHealth: health.keyHealth,
                 };
             }
+            // T1.4.1: attempt decryption to detect decrypt_failed / wrong_key.
+            const encryptedValue = record.encryptedValue ??
+                record.encrypted_value;
+            const baseUrl = record.baseUrl ??
+                record.base_url;
+            const health = probeCredentialHealth(platformId, encryptedValue, baseUrl);
+            // If decryption failed, surface the honest diagnostic; otherwise surface DB status.
+            const effectiveStatus = health.state === "decrypt_failed"
+                ? "decrypt_failed"
+                : record.status;
             return {
                 platformId: record.platformId ??
                     record.platform_id,
-                status: record.status,
+                status: effectiveStatus,
                 verificationDeadline: record.expiresAt ?? undefined,
                 attemptsRemaining: record.attemptsRemaining ?? undefined,
-                nextStep: buildCredentialNextStep(record.status),
+                nextStep: health.diagnosticCode === "missing_runtime_secret"
+                    ? "set_SECOND_NATURE_ENCRYPTION_KEY_then_re_probe"
+                    : health.diagnosticCode === "credential_recovery_required"
+                        ? "verify_or_re_create_credential_then_re_import"
+                        : buildCredentialNextStep(effectiveStatus),
+                keyHealth: health.keyHealth,
             };
         },
         async loadFallbackView(ref) {
@@ -388,6 +431,34 @@ export function createCliReadModels(deps) {
                     conclusion: "no_matching_audit_events",
                     keyFactors: [],
                     evidenceRefs: [],
+                };
+            }
+            // T1.4.2: relationship explain reads RelationshipMemory store directly.
+            if (subject.kind === "relationship") {
+                const relationshipStore = createRelationshipMemoryStore(deps.stateDb);
+                const memory = await relationshipStore.loadRelationshipMemory(subject.id);
+                if (!memory) {
+                    return {
+                        subjectType: "relationship",
+                        conclusion: "nothing_yet",
+                        keyFactors: ["no_relationship_memory_recorded"],
+                        evidenceRefs: [],
+                        nextStep: "interact_with_agent_then_re_check",
+                    };
+                }
+                return {
+                    subjectType: "relationship",
+                    conclusion: `tone:${memory.tonePreference} replies:${memory.noReplyCount === 0 ? "responsive" : "cooldown"}`,
+                    keyFactors: [
+                        `tone_preference:${memory.tonePreference}`,
+                        ...(memory.averageReplyDelayMinutes
+                            ? [`avg_reply_delay_minutes:${memory.averageReplyDelayMinutes}`]
+                            : []),
+                        ...(memory.topicAffinities.length > 0
+                            ? [`topics:${memory.topicAffinities.map((t) => t.topic).join(",")}`]
+                            : ["insufficient_history"]),
+                    ],
+                    evidenceRefs: memory.sourceRefs.map((s) => s.sourceId),
                 };
             }
             const query = subject.kind === "decision" ||

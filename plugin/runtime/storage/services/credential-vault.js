@@ -54,6 +54,58 @@ export function decryptCredentialAtRest(ciphertext) {
         return "";
     return decryptInternal(ciphertext);
 }
+/**
+ * T1.4.1 — probe a credential record for runtime secret health.
+ *
+ * Given a raw encrypted value from the DB, this function checks:
+ * 1. Is SECOND_NATURE_ENCRYPTION_KEY present and >= 32 chars?
+ * 2. Can the ciphertext be decrypted with that key?
+ *
+ * It never throws; all failures are encoded in the returned state.
+ */
+export function probeCredentialHealth(platformId, encryptedValue, baseUrl) {
+    // Key availability check
+    const rawKey = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
+    if (!rawKey || rawKey.length < 32) {
+        return {
+            platformId,
+            state: encryptedValue ? "decrypt_failed" : "missing",
+            keyHealth: "missing_key",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "missing_runtime_secret",
+        };
+    }
+    // No encrypted value to test
+    if (!encryptedValue) {
+        return {
+            platformId,
+            state: "missing",
+            keyHealth: "ok",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "ok",
+        };
+    }
+    // Decryption attempt
+    try {
+        decryptCredentialAtRest(encryptedValue);
+        return {
+            platformId,
+            state: "active",
+            keyHealth: "ok",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "ok",
+        };
+    }
+    catch {
+        return {
+            platformId,
+            state: "decrypt_failed",
+            keyHealth: "wrong_key",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "credential_recovery_required",
+        };
+    }
+}
 export function createCredentialVault(db) {
     return {
         async saveCredentialContext(input) {

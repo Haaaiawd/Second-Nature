@@ -43,13 +43,17 @@ export async function goalCommand(stateDb, input) {
             }
             const goalId = input.goalId?.trim() || randomUUID();
             const now = new Date().toISOString();
+            // T1.4.2: `criteria` is an alias for `completionCriteria`.
+            const completionCriteria = input.completionCriteria?.trim() ||
+                input.criteria?.trim() ||
+                "";
             await store.upsertAgentGoal({
                 goalId,
                 kind: input.kind ?? "short_term",
                 status: "accepted",
                 origin: "owner_set",
                 description,
-                completionCriteria: input.completionCriteria?.trim() || "",
+                completionCriteria,
                 risk: input.risk ?? "low",
                 priorityHint: 0,
                 sourceRefs: [],

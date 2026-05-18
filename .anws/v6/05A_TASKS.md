@@ -27,6 +27,10 @@
 | `second-nature connector init` | CLI 操作契约 | T1.3.1 | T1.3.1 |
 | `sn narrative` / `sn dream:recent` / `sn connector:status` | CLI / ops surface | T1.2.1, T1.2.2, T1.2.3 | T1.2.1, T1.2.2, T1.2.3, INT-S4 |
 | `sn goal` / `sn cycle:recent` / `sn status` | CLI / ops surface | T1.2.4, T1.2.5, T1.2.6 | T1.2.4, T1.2.5, T1.2.6, INT-S4 |
+| `RuntimeSecretBootstrap` | 配置 / 运行时契约 | T1.4.1 | T1.4.1, INT-S5 |
+| `platformId:capability` heartbeat intent | 跨系统执行契约 | T2.4.1, T3.3.1 | T2.4.1, T3.3.1, INT-S5 |
+| source-backed outreach delivery loop | 行为闭环 | T2.4.2, T4.2.1 | T2.4.2, T4.2.1, INT-S5 |
+| `sn goal` criteria alias / `explain relationship` | CLI / ops UX 契约 | T1.4.2 | T1.4.2, INT-S5 |
 | v5 schema 兼容性 | 回归契约 | 所有 state / connector / ops 任务 | INT-S1, INT-S4 |
 
 ---
@@ -39,6 +43,7 @@
 | S2 | Dream Engine | Dream pipeline, scheduler, insight/narrative/relationship update, DreamTrace | Dream 可产出 candidate output；timeout/partial/budget 可见；accepted projection 不污染输入 store | 7-8d |
 | S3 | Agent Self Integration | goal-directed planning, heartbeat narrative update, narrative outreach draft | accepted goal 可影响 intent；proposal 不越权；outreach 有 source-backed 来由 | 6-7d |
 | S4 | Outreach & Observability | CLI/read model, goal/status/cycle ops, connector status/test, documentation/readiness | owner 可通过 CLI 感知 narrative/dream/goal/connector/cycle/status；host-safe/full runtime 语义可验收 | 6-7d |
+| S5 | Life Loop Activation | runtime secret bootstrap, real connector evidence, platform-specific intent, outreach delivery, relationship feedback | 至少一个真实 connector 产出 source-backed evidence；heartbeat 选中 `platformId:capability`；outreach/fallback 与 owner reply 形成可追溯闭环 | 6-7d |
 
 ---
 
@@ -82,6 +87,12 @@ graph TD
     T1_2_4 --> INT_S4
     T1_2_5 --> INT_S4
     T1_2_6 --> INT_S4
+    T1_4_1[T1.4.1 Runtime secret bootstrap] --> T3_3_1[T3.3.1 Real connector evidence]
+    T3_3_1 --> T2_4_1[T2.4.1 Platform-specific intent]
+    T2_4_1 --> T2_4_2[T2.4.2 Source-backed outreach delivery]
+    T2_4_2 --> T4_2_1[T4.2.1 Owner reply relationship feedback]
+    T1_4_2[T1.4.2 UX contract cleanup] --> INT_S5[INT-S5]
+    T4_2_1 --> INT_S5
 ```
 
 ---
@@ -792,25 +803,178 @@ graph TD
 
 ---
 
+## Sprint S5: Life Loop Activation
+
+- [x] **T1.4.1** [REQ-004][REQ-006]: 实现 Runtime Secret Bootstrap 与 credential recovery 诊断
+  - **描述**: 将 `SECOND_NATURE_ENCRYPTION_KEY`、connector base URL 与 credential 解密健康度变成可诊断、可恢复、可验证的运行时契约。
+  - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5, §9；`04_SYSTEM_DESIGN/connector-system.md` §9；T1.2.3、T1.2.6 输出。
+  - **输出**: runtime secret health check、credential recovery guidance、ops/read model redacted diagnostic。
+  - **契约承接**: `RuntimeSecretBootstrap` 配置契约；credential unavailable / decrypt failed 错误语义；敏感信息 redaction。
+  - **参考**: ADR-002 Connector Ecosystem；`04_SYSTEM_DESIGN/observability-system.md` §6。
+  - **验收标准**:
+    - Given encryption key 缺失或无法解密已有 credential
+    - When 运行 status / connector diagnostic
+    - Then 返回可执行的 `missing_runtime_secret` 或 `credential_recovery_required`，不伪装成平台故障
+    - Given runtime secret 与平台 base URL 已配置
+    - When 读取 connector credential health
+    - Then credential 状态可区分 active / missing / decrypt_failed / pending_verification，且不泄漏 raw secret
+  - **验证类型**: API接口功能测试 + 集成测试 + 手动验证
+  - **验证摘要**: 覆盖缺 key、错 key、有效 key、缺 base URL 与 redaction 路径。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t1-4-1`
+  - **证据产出**: `tests/integration/cli/t1-4-1-runtime-secret-bootstrap.test.ts`, `reports/int-s5-v6-life-loop-activation.md`
+  - **估时**: 5h
+  - **依赖**: T1.2.3, T1.2.6
+  - **优先级**: P0
+
+- [ ] **T3.3.1** [REQ-004]: 打通一个真实 connector 的 source-backed evidence 写入
+  - **描述**: 选择一个已信任 connector，在非 dry-run 路径中执行真实 read capability，并写入带 source refs 的 life evidence。
+  - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §5, §7, §9；T1.4.1、T3.2.1 输出。
+  - **输出**: real connector execution path、LifeEvidenceCandidate append、ConnectorAttemptAudit linkage。
+  - **契约承接**: `platformId:capability` execution contract；LifeEvidence source refs；ConnectorAttemptAudit。
+  - **参考**: ADR-002；`04_SYSTEM_DESIGN/state-system.md` §LifeEvidence。
+  - **验收标准**:
+    - Given runtime secret、credential 与 base URL 均可用
+    - When 执行选定 connector 的 read capability
+    - Then 至少一条 life evidence 写入 artifact + index，且每条 evidence 有 sourceRefs
+    - Given connector 返回空结果或平台不可达
+    - When 执行同一路径
+    - Then 写入 honest attempt audit，不虚构 evidence
+  - **验证类型**: 集成测试 + 手动验证 + 回归测试
+  - **验证摘要**: 使用 fixture/mock 平台覆盖成功、空结果、auth failure、network unavailable；真实宿主只验证一个平台。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t3-3-1`
+  - **证据产出**: `tests/integration/connectors/t3-3-1-real-connector-evidence.test.ts`, `reports/int-s5-v6-life-loop-activation.md`
+  - **估时**: 6h
+  - **依赖**: T1.4.1, T3.2.1
+  - **优先级**: P0
+
+- [ ] **T2.4.1** [REQ-002][REQ-004]: 实现 heartbeat 的 platform-specific intent selection
+  - **描述**: 让 heartbeat 在有 goal、narrative 或 connector evidence need 时产出明确 `platformId:capability` intent。
+  - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5；`04_SYSTEM_DESIGN/connector-system.md` §5；T2.1.4、T3.3.1 输出。
+  - **输出**: platform-specific intent planner rule、route planner input、decision reason refs。
+  - **契约承接**: `platformId:capability` heartbeat intent contract；goal/narrative reason trace。
+  - **参考**: ADR-002；`02_ARCHITECTURE_OVERVIEW.md` §3.1。
+  - **验收标准**:
+    - Given accepted goal 与可执行 connector capability 匹配
+    - When heartbeat planning 执行
+    - Then selected intent 包含 `platformId` 与 `capability`
+    - Given capability 不明确或 credential 不可用
+    - When planning 执行
+    - Then 选择静默/maintenance 并记录明确 denied reason
+  - **验证类型**: 单元测试 + 集成测试
+  - **验证摘要**: 覆盖 goal->platform route、narrative->platform route、ambiguous capability、credential unavailable。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t2-4-1`
+  - **证据产出**: `tests/unit/control-plane/t2-4-1-platform-intent.test.ts`, `tests/integration/control-plane/t2-4-1-heartbeat-platform-intent.test.ts`
+  - **估时**: 5h
+  - **依赖**: T2.1.4, T3.3.1
+  - **优先级**: P0
+
+- [ ] **T2.4.2** [REQ-005]: 打通 source-backed outreach delivery / fallback 闭环
+  - **描述**: 从真实 connector evidence 触发 outreach judgment，生成有来由 draft，并写入 delivery 或 operator fallback。
+  - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5；T2.3.1、T2.4.1、T6.1.1 输出。
+  - **输出**: evidence->judgment->draft->delivery/fallback 集成路径与审计记录。
+  - **契约承接**: source-backed outreach；delivery unavailable fallback；Narrative/Relationship context usage。
+  - **参考**: ADR-004 Behavioral Guidance；ADR-007 Heartbeat Delivery。
+  - **验收标准**:
+    - Given connector evidence 与 narrative/interest/relationship 匹配
+    - When heartbeat/outreach flow 执行
+    - Then draft 包含发生了什么、为什么值得 owner 知道、source refs
+    - Given delivery target 不可用
+    - When outreach judgment allow
+    - Then 写入 operator-visible fallback 且 status 为 not_sent / delivery_unavailable
+  - **验证类型**: 集成测试 + 手动验证
+  - **验证摘要**: 覆盖 allow、deny、delivery unavailable 与 fallback read model。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t2-4-2`
+  - **证据产出**: `tests/integration/control-plane/t2-4-2-source-backed-outreach-loop.test.ts`, `reports/int-s5-v6-life-loop-activation.md`
+  - **估时**: 5h
+  - **依赖**: T2.3.1, T2.4.1, T6.1.1
+  - **优先级**: P0
+
+- [ ] **T4.2.1** [REQ-003][REQ-005]: 实现 owner reply → RelationshipMemory feedback loop
+  - **描述**: 将 owner 对 outreach 的回复记录为 SessionChronicle entry，并驱动 RelationshipMemory 更新与下次 outreach 策略变化。
+  - **输入**: `04_SYSTEM_DESIGN/state-system.md` §RelationshipMemory；`04_SYSTEM_DESIGN/dream-system.md` §Relationship update；T4.1.1、T4.1.3、T7.1.5、T2.4.2 输出。
+  - **输出**: owner reply chronicle ingestion、relationship memory update path、next outreach tone/timing evidence。
+  - **契约承接**: owner reply chronicle event；RelationshipMemory feedback contract；relationship-aware outreach。
+  - **参考**: `01_PRD.md` US-003；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5。
+  - **验收标准**:
+    - Given owner 回复一次 outreach
+    - When reply 被写入 SessionChronicle
+    - Then RelationshipMemory 更新 tone/timing/topic 与 sourceRefs
+    - Given 下一次 outreach draft
+    - When relationship memory 已更新
+    - Then draft strategy 能追溯到该 relationship signal 或诚实标记 insufficient_history
+  - **验证类型**: API接口功能测试 + 集成测试
+  - **验证摘要**: 覆盖 positive/negative/no_reply/busy/insufficient_history 路径。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t4-2-1`
+  - **证据产出**: `tests/integration/state/t4-2-1-owner-reply-relationship-loop.test.ts`, `reports/int-s5-v6-life-loop-activation.md`
+  - **估时**: 5h
+  - **依赖**: T4.1.1, T4.1.3, T7.1.5, T2.4.2
+  - **优先级**: P0
+
+- [x] **T1.4.2** [REQ-002][REQ-003][REQ-006]: 清理 activation UX 契约：goal criteria alias 与 relationship explain
+  - **描述**: 统一 `goal set` 的 `criteria` / `completionCriteria` 参数语义，并让 owner 可通过 explain surface 查看 relationship memory 摘要或诚实不可用状态。
+  - **输入**: `04_SYSTEM_DESIGN/cli-system.md` §5；`04_SYSTEM_DESIGN/observability-system.md` §Explain；T1.2.1、T1.2.4、T4.1.3 输出。
+  - **输出**: `criteria` alias、relationship explain subject、host-safe unavailable envelope。
+  - **契约承接**: `sn goal set` public parameter contract；`explain relationship` read contract。
+  - **参考**: `reports/v6-e2e-test-guide.md` B2/B3；`04_SYSTEM_DESIGN/cli-system.md` §5。
+  - **验收标准**:
+    - Given `goal set` 输入 `criteria`
+    - When command 执行
+    - Then `completionCriteria` 持久化为相同文本
+    - Given relationship memory 存在或不存在
+    - When `explain relationship` 执行
+    - Then 返回 redacted summary 或 honest unavailable/nothing_yet，不报 unknown subject
+  - **验证类型**: API接口功能测试 + 集成测试
+  - **验证摘要**: 覆盖 alias、before/after persistence、host-safe/full runtime explain。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t1-4-2`
+  - **证据产出**: `tests/integration/cli/t1-4-2-activation-ux-contract.test.ts`
+  - **估时**: 3h
+  - **依赖**: T1.2.1, T1.2.4, T4.1.3
+  - **优先级**: P1
+
+- [ ] **INT-S5** [MILESTONE][REQ-001][REQ-002][REQ-003][REQ-004][REQ-005][REQ-006]: S5 集成验证 — Life Loop Activation
+  - **描述**: 验证真实感知、意图、行动、outreach、owner reply 与 relationship/dream 输入形成端到端闭环。
+  - **输入**: T1.4.1, T1.4.2, T2.4.1, T2.4.2, T3.3.1, T4.2.1 产出。
+  - **输出**: `reports/int-s5-v6-life-loop-activation.md`
+  - **契约承接**: RuntimeSecretBootstrap、real connector evidence、platform-specific intent、source-backed outreach、relationship feedback、activation UX。
+  - **验收标准**:
+    - Given runtime secret 与一个真实 connector 可用
+    - When heartbeat 执行 platform-specific read intent
+    - Then evidence 写入、decision trace、connector attempt 与 source refs 可追溯
+    - Given evidence 匹配 outreach 条件
+    - When delivery 可用或不可用
+    - Then owner-visible delivery 或 fallback 含叙事来由
+    - Given owner reply 被记录
+    - When 下一次 outreach/dream 读取 state
+    - Then relationship signal 可见且影响策略或被诚实标记 insufficient_history
+  - **验证类型**: 冒烟测试 + 集成测试 + 手动验证 + 回归测试
+  - **验证摘要**: S5 关门任务；验证 v6 从可观测工程面进入真实 life loop activation。
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-s5`
+  - **证据产出**: `reports/int-s5-v6-life-loop-activation.md`
+  - **估时**: 4h
+  - **依赖**: T1.4.1, T1.4.2, T2.4.1, T2.4.2, T3.3.1, T4.2.1
+  - **优先级**: P0
+
+---
+
 ## User Story Overlay
 
 | User Story | 任务链 | 独立可测 | 状态 |
 | --- | --- | :---: | :---: |
-| US-001 Dream 异步记忆整理 | T4.1.1 -> T4.1.5 -> T7.1.1 -> T7.1.2 -> T7.1.3 -> T7.1.4 -> T7.1.5 -> T5.1.1 -> T1.2.2 -> INT-S2 | 是 | Planned |
-| US-002 Agent 自我叙事与目标追求 | T4.1.2 -> T4.1.4 -> T1.2.4 -> T2.1.4 -> T2.1.5 -> T5.1.2 -> T7.1.4 -> T1.2.1 -> INT-S3 | 是 | Planned |
-| US-003 与 owner 的关系记忆 | T4.1.3 -> T7.1.5 -> T6.1.1 -> T2.3.1 -> INT-S3 | 是 | Planned |
-| US-004 Connector Ecosystem 动态扩展 | T3.1.1 -> T3.1.2 -> T3.2.1 -> T5.1.3 -> T1.3.1 -> T1.2.3 -> INT-S1 | 是 | Planned |
-| US-005 Outreach 有叙事来由 | T2.1.4 -> T2.1.5 -> T6.1.1 -> T2.3.1 -> INT-S3 | 是 | Planned |
-| US-006 可观测性消费 | T5.1.1 -> T5.1.2 -> T5.1.3 -> T1.2.1 -> T1.2.2 -> T1.2.3 -> T1.2.4 -> T1.2.5 -> T1.2.6 -> INT-S4 | 是 | Planned |
+| US-001 Dream 异步记忆整理 | T4.1.1 -> T4.1.5 -> T7.1.1 -> T7.1.2 -> T7.1.3 -> T7.1.4 -> T7.1.5 -> T5.1.1 -> T1.2.2 -> INT-S2 -> T3.3.1 -> INT-S5 | 是 | Activation pending |
+| US-002 Agent 自我叙事与目标追求 | T4.1.2 -> T4.1.4 -> T1.2.4 -> T2.1.4 -> T2.1.5 -> T5.1.2 -> T7.1.4 -> T1.2.1 -> INT-S3 -> T2.4.1 -> INT-S5 | 是 | Activation pending |
+| US-003 与 owner 的关系记忆 | T4.1.3 -> T7.1.5 -> T6.1.1 -> T2.3.1 -> INT-S3 -> T4.2.1 -> T1.4.2 -> INT-S5 | 是 | Activation pending |
+| US-004 Connector Ecosystem 动态扩展 | T3.1.1 -> T3.1.2 -> T3.2.1 -> T5.1.3 -> T1.3.1 -> T1.2.3 -> INT-S1 -> T1.4.1 -> T3.3.1 -> INT-S5 | 是 | Activation pending |
+| US-005 Outreach 有叙事来由 | T2.1.4 -> T2.1.5 -> T6.1.1 -> T2.3.1 -> INT-S3 -> T2.4.2 -> T4.2.1 -> INT-S5 | 是 | Activation pending |
+| US-006 可观测性消费 | T5.1.1 -> T5.1.2 -> T5.1.3 -> T1.2.1 -> T1.2.2 -> T1.2.3 -> T1.2.4 -> T1.2.5 -> T1.2.6 -> INT-S4 -> T1.4.1 -> T1.4.2 -> INT-S5 | 是 | Activation pending |
 
 ---
 
 ## 任务统计
 
-- Level 3 任务数: 27
-- INT 任务数: 4
-- 总任务数: 31
-- P0 任务: 21
-- P1 任务: 10
+- Level 3 任务数: 33
+- INT 任务数: 5
+- 总任务数: 38
+- P0 任务: 27
+- P1 任务: 11
 - P2 任务: 0
-- 总预估工时: 138h
+- 总预估工时: 171h
