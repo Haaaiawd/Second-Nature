@@ -44,6 +44,7 @@ import {
 import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-from-snapshot.js";
 import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
 import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
+import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
 import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
 import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js";
@@ -217,6 +218,8 @@ export interface HeartbeatDeps {
   state?: StateDatabase;
   /** T3.3.1: workspace root for evidence artifact paths. */
   workspaceRoot?: string;
+  /** T2.4.1: when present, planner resolves platform-specific intents. */
+  connectorRegistry?: CapabilityContractRegistry;
 }
 
 /**
@@ -308,7 +311,10 @@ export async function ingestRhythmSignal(
   const snapshot = buildContinuitySnapshot(inputs);
   const timestamp = signal.payload.timestamp;
   const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
-  const rawCandidates = planCandidateIntents(runtime);
+  const rawCandidates = planCandidateIntents(runtime, {
+    acceptedGoals: inputs.acceptedGoals,
+    connectorRegistry: deps.connectorRegistry,
+  });
   const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
 
   const emitTrace = async (result: HeartbeatCycleResult): Promise<void> => {

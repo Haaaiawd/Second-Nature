@@ -188,7 +188,10 @@ export async function ingestRhythmSignal(signal, deps) {
     const snapshot = buildContinuitySnapshot(inputs);
     const timestamp = signal.payload.timestamp;
     const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
-    const rawCandidates = planCandidateIntents(runtime);
+    const rawCandidates = planCandidateIntents(runtime, {
+        acceptedGoals: inputs.acceptedGoals,
+        connectorRegistry: deps.connectorRegistry,
+    });
     const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
     const emitTrace = async (result) => {
         if (!deps.recordDecisionTrace)

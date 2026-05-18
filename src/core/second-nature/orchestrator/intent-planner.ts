@@ -13,6 +13,11 @@ import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js"
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import type { SnapshotInputs } from "../heartbeat/snapshot-builder.js";
 import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
+import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
+import {
+  resolvePlatformForIntent,
+  type PlatformResolutionContext,
+} from "./platform-capability-router.js";
 
 const MAX_CANDIDATE_INTENTS = 6;
 
@@ -40,52 +45,82 @@ function isAllowedKind(kind: IntentKind, runtime: HeartbeatRuntimeSnapshot): boo
   return runtime.rhythmWindow.allowedIntentKinds.includes(kind);
 }
 
-function planWorkIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+function planWorkIntents(
+  runtime: HeartbeatRuntimeSnapshot,
+  context?: PlatformResolutionContext,
+  registry?: CapabilityContractRegistry,
+): CandidateIntent[] {
   if (!isAllowedKind("work", runtime)) return [];
+  const platformId = resolvePlatformForIntent("work", context ?? {}, registry);
   return runtime.continuity.pendingObligations.map((obligation, index) => ({
-    id: `intent-obligation-${index}`,
+    id: platformId ? `intent-obligation-${platformId}-${index}` : `intent-obligation-${index}`,
     kind: "work" as const,
     priority: 100 - index,
     source: "obligation" as const,
-    summary: `fulfill obligation: ${obligation}`,
+    platformId,
+    summary: platformId
+      ? `fulfill obligation on ${platformId}: ${obligation}`
+      : `fulfill obligation: ${obligation}`,
     effectClass: "connector_action" as const,
     sourceRefs: [...OBLIGATION_SOURCE],
-    idempotencyKey: `obligation:${obligation}:${index}`,
+    idempotencyKey: platformId
+      ? `obligation:${platformId}:${obligation}:${index}`
+      : `obligation:${obligation}:${index}`,
     goalInfluenceRefs: [],
   }));
 }
 
-function planExplorationIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+function planExplorationIntents(
+  runtime: HeartbeatRuntimeSnapshot,
+  context?: PlatformResolutionContext,
+  registry?: CapabilityContractRegistry,
+): CandidateIntent[] {
   if (!isAllowedKind("exploration", runtime)) return [];
   const refs = evidenceRefsForConnector(runtime);
+  const platformId = resolvePlatformForIntent("exploration", context ?? {}, registry);
   return [
     {
-      id: "intent-exploration",
+      id: platformId ? `intent-exploration-${platformId}` : "intent-exploration",
       kind: "exploration",
       priority: 70,
       source: "tick",
-      summary: "scan platform opportunities",
+      platformId,
+      summary: platformId
+        ? `scan platform opportunities on ${platformId}`
+        : "scan platform opportunities",
       effectClass: "connector_action",
       sourceRefs: refs,
-      idempotencyKey: "exploration:scan platform opportunities",
+      idempotencyKey: platformId
+        ? `exploration:${platformId}`
+        : "exploration:scan platform opportunities",
       goalInfluenceRefs: [],
     },
   ];
 }
 
-function planSocialIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+function planSocialIntents(
+  runtime: HeartbeatRuntimeSnapshot,
+  context?: PlatformResolutionContext,
+  registry?: CapabilityContractRegistry,
+): CandidateIntent[] {
   if (!isAllowedKind("social", runtime)) return [];
   const refs = evidenceRefsForConnector(runtime);
+  const platformId = resolvePlatformForIntent("social", context ?? {}, registry);
   return [
     {
-      id: "intent-social",
+      id: platformId ? `intent-social-${platformId}` : "intent-social",
       kind: "social",
       priority: runtime.continuity.budgets && runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit ? 10 : 60,
       source: "tick",
-      summary: "engage social platforms",
+      platformId,
+      summary: platformId
+        ? `engage social platforms on ${platformId}`
+        : "engage social platforms",
       effectClass: "connector_action",
       sourceRefs: refs,
-      idempotencyKey: "social:engage social platforms",
+      idempotencyKey: platformId
+        ? `social:${platformId}`
+        : "social:engage social platforms",
       goalInfluenceRefs: [],
     },
   ];
@@ -160,10 +195,26 @@ function planOutreachIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent
   ];
 }
 
+export interface PlanCandidateIntentsOptions {
+  /** T2.4.1: accepted goals for platform-specific resolution. */
+  acceptedGoals?: import("../../../storage/goal/agent-goal-store.js").AgentGoal[];
+  /** T2.4.1: optional connector registry for capability validation. */
+  connectorRegistry?: CapabilityContractRegistry;
+}
+
 /**
  * Plan ordered candidates for one heartbeat turn using rhythm window + life evidence slice.
  */
-export function planCandidateIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+export function planCandidateIntents(
+  runtime: HeartbeatRuntimeSnapshot,
+  options?: PlanCandidateIntentsOptions,
+): CandidateIntent[] {
+  const context: PlatformResolutionContext = {
+    acceptedGoals: options?.acceptedGoals,
+    evidenceRefs: runtime.lifeEvidence.evidenceRefs,
+  };
+  const registry = options?.connectorRegistry;
+
   if (runtime.continuity.mode === "paused_for_interrupt") {
     const pausedMaintenance: CandidateIntent[] = [
       {
@@ -184,13 +235,13 @@ export function planCandidateIntents(runtime: HeartbeatRuntimeSnapshot): Candida
   }
 
   if (runtime.continuity.mode === "maintenance_only") {
-    return planWorkIntents(runtime).sort((a, b) => b.priority - a.priority).slice(0, MAX_CANDIDATE_INTENTS);
+    return planWorkIntents(runtime, context, registry).sort((a, b) => b.priority - a.priority).slice(0, MAX_CANDIDATE_INTENTS);
   }
 
   const intents: CandidateIntent[] = [
-    ...planWorkIntents(runtime),
-    ...planExplorationIntents(runtime),
-    ...planSocialIntents(runtime),
+    ...planWorkIntents(runtime, context, registry),
+    ...planExplorationIntents(runtime, context, registry),
+    ...planSocialIntents(runtime, context, registry),
     ...planQuietReflectionIntents(runtime),
     ...planOutreachIntents(runtime),
   ];

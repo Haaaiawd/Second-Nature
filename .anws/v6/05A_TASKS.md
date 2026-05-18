@@ -847,7 +847,7 @@ graph TD
   - **依赖**: T1.4.1, T3.2.1
   - **优先级**: P0
 
-- [ ] **T2.4.1** [REQ-002][REQ-004]: 实现 heartbeat 的 platform-specific intent selection
+- [x] **T2.4.1** [REQ-002][REQ-004]: 实现 heartbeat 的 platform-specific intent selection
   - **描述**: 让 heartbeat 在有 goal、narrative 或 connector evidence need 时产出明确 `platformId:capability` intent。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5；`04_SYSTEM_DESIGN/connector-system.md` §5；T2.1.4、T3.3.1 输出。
   - **输出**: platform-specific intent planner rule、route planner input、decision reason refs。

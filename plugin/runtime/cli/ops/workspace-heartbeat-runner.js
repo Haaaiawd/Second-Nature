@@ -102,6 +102,8 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 // T3.3.1: pass state + workspaceRoot so connector effects can write life evidence.
                 state: options.state,
                 workspaceRoot: options.workspaceRoot,
+                // T2.4.1: pass registry so planner resolves platform-specific intents.
+                connectorRegistry: options.connectorRegistry,
             },
         });
         if (options.runtimeRecorder) {

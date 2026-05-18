@@ -20,6 +20,7 @@ import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.
 import type { StateDatabase } from "../../../storage/db/index.js";
 import { type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
 import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
+import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
 import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 export interface HeartbeatDecisionTracePayload {
@@ -68,6 +69,8 @@ export interface HeartbeatDeps {
     state?: StateDatabase;
     /** T3.3.1: workspace root for evidence artifact paths. */
     workspaceRoot?: string;
+    /** T2.4.1: when present, planner resolves platform-specific intents. */
+    connectorRegistry?: CapabilityContractRegistry;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

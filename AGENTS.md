@@ -300,6 +300,9 @@ Round 7 `/change` 新增 S5：T1.4.1 RuntimeSecretBootstrap、T3.3.1 real connec
 ### 🌊 Wave 36 ✅ — v6 S5 Life Loop Activation: T3.3.1 real connector evidence
 **T3.3.1**：在 `resolveAllowedIntentResult`（`src/core/second-nature/heartbeat/heartbeat-loop.ts`）的 `connector_action` 分支中，connector 执行成功后调用 `mapLifeEvidence`（`src/connectors/base/map-life-evidence.ts`）将 `ConnectorResult` 映射为 `LifeEvidenceCandidate`，再通过 `appendLifeEvidence`（`src/storage/life-evidence/append-life-evidence.ts`）写入 SQLite index + JSON artifact；`HeartbeatDeps` 扩展 `state?: StateDatabase` 与 `workspaceRoot?: string`；`workspace-heartbeat-runner.ts` 将 `state` 与 `workspaceRoot` 注入 `runHeartbeatCycle` deps。失败或空结果时不虚构证据，仅由 connector policy 层记录尝试审计。集成测 4 cases（A: success+sourceRefs→artifact+index、B: empty→no fabrication、C: failure→no fabrication、D: missing state/workspaceRoot→no crash）。199 测试全绿，无回归。05A_TASKS.md 勾选 T3.3.1。
 
+### 🌊 Wave 37 ✅ — v6 S5 Life Loop Activation: T2.4.1 platform-specific intent
+**T2.4.1**：新增 `platform-capability-router.ts`（`src/core/second-nature/orchestrator/`），提供 `resolvePlatformForIntent` 从 `acceptedGoals` 文本和 `evidenceRefs` 中推断明确的 `platformId`，并通过可选的 `CapabilityContractRegistry` 验证 capability 支持；`intent-planner.ts` 的 `planCandidateIntents` 扩展 `PlanCandidateIntentsOptions`（`acceptedGoals` + `connectorRegistry`），在 `planWork/Exploration/SocialIntents` 中调用 router 设置 `platformId`；`heartbeat-loop.ts` 的 `HeartbeatDeps` 扩展 `connectorRegistry?: CapabilityContractRegistry`，`ingestRhythmSignal` 将 `acceptedGoals` 与 `registry` 传入 planner；`workspace-heartbeat-runner.ts` 的 `WorkspaceHeartbeatRunnerOptions` 扩展 `connectorRegistry` 并透传到 `runHeartbeatCycle`。向后兼容：不传 registry 时 planner 行为与之前完全一致（platformId undefined）。单元测 10 cases（goal→platform、evidence→platform、registry 验证、无信号→undefined、quiet→undefined）；集成测 5 cases（heartbeat→platformId、connectorExecutor 接收 platformId、无 registry→compat、ambiguous→compat、goal boost→works）。204 测试全绿，无回归。05A_TASKS.md 勾选 T2.4.1。
+
 <!-- AUTO:END -->
 
 ---

@@ -26,6 +26,7 @@ import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
+import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 
 export interface WorkspaceHeartbeatRunnerOptions {
   /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
@@ -47,6 +48,11 @@ export interface WorkspaceHeartbeatRunnerOptions {
    * connector-system instead of returning connector_dispatch_unwired.
    */
   connectorExecutor?: ConnectorExecutor;
+  /**
+   * T2.4.1: when present, planner resolves platform-specific intents from accepted goals
+   * and connector evidence.
+   */
+  connectorRegistry?: CapabilityContractRegistry;
 }
 
 export async function loadSnapshotInputsForWorkspaceHeartbeat(
@@ -165,6 +171,8 @@ export function createWorkspaceHeartbeatRunner(
         // T3.3.1: pass state + workspaceRoot so connector effects can write life evidence.
         state: options.state,
         workspaceRoot: options.workspaceRoot,
+        // T2.4.1: pass registry so planner resolves platform-specific intents.
+        connectorRegistry: options.connectorRegistry,
       },
     });
 

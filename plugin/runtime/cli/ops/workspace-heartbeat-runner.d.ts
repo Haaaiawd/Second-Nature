@@ -18,6 +18,7 @@ import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
+import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 export interface WorkspaceHeartbeatRunnerOptions {
     /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
     runtimeRecorder?: RuntimeDecisionRecorder;
@@ -38,6 +39,11 @@ export interface WorkspaceHeartbeatRunnerOptions {
      * connector-system instead of returning connector_dispatch_unwired.
      */
     connectorExecutor?: ConnectorExecutor;
+    /**
+     * T2.4.1: when present, planner resolves platform-specific intents from accepted goals
+     * and connector evidence.
+     */
+    connectorRegistry?: CapabilityContractRegistry;
 }
 export declare function loadSnapshotInputsForWorkspaceHeartbeat(readModels: CliReadModels, options?: {
     state?: StateDatabase;

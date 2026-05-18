@@ -1,5 +1,6 @@
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
+import { resolvePlatformForIntent, } from "./platform-capability-router.js";
 const MAX_CANDIDATE_INTENTS = 6;
 const OBLIGATION_SOURCE = [
     { id: "obligation-anchor", kind: "workspace_artifact", uri: "workspace://obligations/pending" },
@@ -22,53 +23,71 @@ function evidenceRefsForConnector(runtime) {
 function isAllowedKind(kind, runtime) {
     return runtime.rhythmWindow.allowedIntentKinds.includes(kind);
 }
-function planWorkIntents(runtime) {
+function planWorkIntents(runtime, context, registry) {
     if (!isAllowedKind("work", runtime))
         return [];
+    const platformId = resolvePlatformForIntent("work", context ?? {}, registry);
     return runtime.continuity.pendingObligations.map((obligation, index) => ({
-        id: `intent-obligation-${index}`,
+        id: platformId ? `intent-obligation-${platformId}-${index}` : `intent-obligation-${index}`,
         kind: "work",
         priority: 100 - index,
         source: "obligation",
-        summary: `fulfill obligation: ${obligation}`,
+        platformId,
+        summary: platformId
+            ? `fulfill obligation on ${platformId}: ${obligation}`
+            : `fulfill obligation: ${obligation}`,
         effectClass: "connector_action",
         sourceRefs: [...OBLIGATION_SOURCE],
-        idempotencyKey: `obligation:${obligation}:${index}`,
+        idempotencyKey: platformId
+            ? `obligation:${platformId}:${obligation}:${index}`
+            : `obligation:${obligation}:${index}`,
         goalInfluenceRefs: [],
     }));
 }
-function planExplorationIntents(runtime) {
+function planExplorationIntents(runtime, context, registry) {
     if (!isAllowedKind("exploration", runtime))
         return [];
     const refs = evidenceRefsForConnector(runtime);
+    const platformId = resolvePlatformForIntent("exploration", context ?? {}, registry);
     return [
         {
-            id: "intent-exploration",
+            id: platformId ? `intent-exploration-${platformId}` : "intent-exploration",
             kind: "exploration",
             priority: 70,
             source: "tick",
-            summary: "scan platform opportunities",
+            platformId,
+            summary: platformId
+                ? `scan platform opportunities on ${platformId}`
+                : "scan platform opportunities",
             effectClass: "connector_action",
             sourceRefs: refs,
-            idempotencyKey: "exploration:scan platform opportunities",
+            idempotencyKey: platformId
+                ? `exploration:${platformId}`
+                : "exploration:scan platform opportunities",
             goalInfluenceRefs: [],
         },
     ];
 }
-function planSocialIntents(runtime) {
+function planSocialIntents(runtime, context, registry) {
     if (!isAllowedKind("social", runtime))
         return [];
     const refs = evidenceRefsForConnector(runtime);
+    const platformId = resolvePlatformForIntent("social", context ?? {}, registry);
     return [
         {
-            id: "intent-social",
+            id: platformId ? `intent-social-${platformId}` : "intent-social",
             kind: "social",
             priority: runtime.continuity.budgets && runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit ? 10 : 60,
             source: "tick",
-            summary: "engage social platforms",
+            platformId,
+            summary: platformId
+                ? `engage social platforms on ${platformId}`
+                : "engage social platforms",
             effectClass: "connector_action",
             sourceRefs: refs,
-            idempotencyKey: "social:engage social platforms",
+            idempotencyKey: platformId
+                ? `social:${platformId}`
+                : "social:engage social platforms",
             goalInfluenceRefs: [],
         },
     ];
@@ -144,7 +163,12 @@ function planOutreachIntents(runtime) {
 /**
  * Plan ordered candidates for one heartbeat turn using rhythm window + life evidence slice.
  */
-export function planCandidateIntents(runtime) {
+export function planCandidateIntents(runtime, options) {
+    const context = {
+        acceptedGoals: options?.acceptedGoals,
+        evidenceRefs: runtime.lifeEvidence.evidenceRefs,
+    };
+    const registry = options?.connectorRegistry;
     if (runtime.continuity.mode === "paused_for_interrupt") {
         const pausedMaintenance = [
             {
@@ -164,12 +188,12 @@ export function planCandidateIntents(runtime) {
             .slice(0, MAX_CANDIDATE_INTENTS);
     }
     if (runtime.continuity.mode === "maintenance_only") {
-        return planWorkIntents(runtime).sort((a, b) => b.priority - a.priority).slice(0, MAX_CANDIDATE_INTENTS);
+        return planWorkIntents(runtime, context, registry).sort((a, b) => b.priority - a.priority).slice(0, MAX_CANDIDATE_INTENTS);
     }
     const intents = [
-        ...planWorkIntents(runtime),
-        ...planExplorationIntents(runtime),
-        ...planSocialIntents(runtime),
+        ...planWorkIntents(runtime, context, registry),
+        ...planExplorationIntents(runtime, context, registry),
+        ...planSocialIntents(runtime, context, registry),
         ...planQuietReflectionIntents(runtime),
         ...planOutreachIntents(runtime),
     ];
