@@ -13,7 +13,7 @@
 | `sn connector:status` / `sn connector:test` (T1.2.3) | pass | 见下表 #3 |
 | `sn goal` set/list/accept/reject (T1.2.4) | pass | 见下表 #4 |
 | `sn cycle:recent` — aggregate cycle buckets (T1.2.5) | pass | 见下表 #5 |
-| `sn status:v6` — v6 aggregate narrative+dream+cycles (T1.2.6) | pass | 见下表 #6 |
+| `sn status` — v6 aggregate narrative+dream+cycles (T1.2.6) | pass | 见下表 #6 |
 | host-safe carrier returns honest `runtimeMode=host_safe_carrier` | pass | 见下表 #7 |
 | workspace full runtime heartbeat returns `heartbeat_ok` | pass | 见下表 #8 |
 | plugin bridge `second_nature_ops` JSON-first surface | pass | 见下表 #9 |
@@ -31,7 +31,7 @@
 | 3 | connector manifest fixture + trust policy | `sn connector:status` / `sn connector:test` | status 返回 registered/trust/executable 摘要；test 返回 dry-run 诚实结果；命令已注册 | `T1.2.3 connector status/test` — `tests/unit/cli/t1-2-3-connector-status.test.ts` |
 | 4 | 空 / 有 AgentGoal（proposal/accepted/rejected） | `sn goal set / list / accept / reject` | set→ proposal 写入；list→ 按 status 过滤；accept/reject→ 治理边界正确；proposal goal 不影响优先级 | `T1.2.4 goal command` — `tests/unit/cli/t1-2-4-goal-command.test.ts`（11 cases） |
 | 5 | 空 audit / 多维度 events（decision+dream+connector）/ limit | `sn cycle:recent [limit]` | 空→ `nothing_yet`；有数据→ buckets 按小时聚合；dimensions 标记存在维度；limit 截断有效 | `T1.2.5-A/B/C/D` — `tests/integration/cli/t1-2-5-cycle-recent.test.ts`（4 cases） |
-| 6 | 空 / 有 narrative+dream+cycle 数据；部分缺失 | `sn status:v6` | 全空→ 三 section 均 `nothing_yet`；有数据→ narrative.status+focus+groundingStatus，dream.status+totalRuns，cycles.status+dimensions 正确；缺失 section 返回 `nothing_yet` 不伪造 | `T1.2.6-A/B/C/D` — `tests/integration/cli/t1-2-6-status-aggregate.test.ts`（4 cases） |
+| 6 | 空 / 有 narrative+dream+cycle 数据；部分缺失 | `sn status` | 全空→ 三 section 均 `nothing_yet`；有数据→ narrative.status+focus+groundingStatus，dream.status+totalRuns，cycles.status+dimensions 正确；缺失 section 返回 `nothing_yet` 不伪造 | `T1.2.6-A/B/C/D` — `tests/integration/cli/t1-2-6-status-aggregate.test.ts`（4 cases） |
 | 7 | carrier-only mode（无 workspaceRoot） | `heartbeat_check` | 返回 `runtimeMode:host_safe_carrier`；无 heartbeat_ok claim；无 lived-experience 断言 | `T1.1.4 carrier-only baseline` — `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` |
 | 8 | full runtime（有 workspaceRoot） | workspace `heartbeat_check` | 返回 `heartbeat_ok`；决策链路走通；runtime 决策写入 ledger | `T1.1.4 known workspaceRoot bridges heartbeat_check` — `tests/integration/cli/plugin-workspace-ops-bridge.test.ts` |
 | 9 | `second_nature_ops` tool call（root known / root unknown） | `openWorkspaceOpsBridge` → JSON-first dispatch | known root→ workspace_full_runtime read surface；unknown root→ carrier-only honest `ok:false`；explain/fallback/audit 命令可达 | `T1.1.4 bridge tests` — `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`（12 cases） |

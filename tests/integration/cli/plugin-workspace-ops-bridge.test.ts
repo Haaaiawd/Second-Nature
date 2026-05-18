@@ -455,6 +455,90 @@ test("T1.1.4 CH-13-01 — bridge: fallback + report + session + credential + exp
   assert.ok(typeof ex.data?.conclusion === "string");
 });
 
+test("T1.1.4 v6 ops commands reachable in full runtime", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-v6-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const narrative = JSON.parse(
+    (await tool.execute("1", { command: "narrative", workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { groundingStatus?: string } };
+  assert.equal(narrative.ok, true);
+  assert.ok(["pass", "degraded", "blocked", "nothing_yet"].includes(narrative.data?.groundingStatus ?? ""));
+
+  const goal = JSON.parse(
+    (await tool.execute("1", { command: "goal", workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { goals?: unknown[] } };
+  assert.equal(goal.ok, true);
+  assert.ok(Array.isArray(goal.data?.goals));
+
+  const dream = JSON.parse(
+    (await tool.execute("1", { command: "dream:recent", workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { totalRuns?: number } };
+  assert.equal(dream.ok, true);
+  assert.equal(typeof dream.data?.totalRuns, "number");
+
+  const connector = JSON.parse(
+    (await tool.execute("1", { command: "connector_status", workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { connectors?: unknown[] } };
+  assert.equal(connector.ok, true);
+  assert.ok(Array.isArray(connector.data?.connectors));
+
+  const cycle = JSON.parse(
+    (await tool.execute("1", { command: "cycle:recent", workspaceRoot: tmp })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { totalCycles?: number } };
+  assert.equal(cycle.ok, true);
+  assert.equal(typeof cycle.data?.totalCycles, "number");
+});
+
+test("T1.1.4 v6 ops commands unavailable in carrier-only", async () => {
+  delete process.env.SECOND_NATURE_WORKSPACE_ROOT;
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const narrative = JSON.parse(
+    (await tool.execute("1", { command: "narrative" })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; error?: { code?: string } };
+  assert.equal(narrative.ok, false);
+  assert.equal(narrative.error?.code, "HOST_SAFE_NARRATIVE_UNAVAILABLE");
+});
+
 test("T1.1.4 CH-13-01 — env-only SECOND_NATURE_WORKSPACE_ROOT bridges heartbeat_check (fresh process)", async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-env-"));
   fs.mkdirSync(path.join(tmp, "data"), { recursive: true });

@@ -26,6 +26,21 @@ test("T5.1.2 narrative trace emitted after successful narrative state update", a
       deniedIntents: [],
       budgets: { socialUsed: 0, socialLimit: 5 },
       awaitingUserInput: false,
+      acceptedGoals: [
+        {
+          goalId: "goal-check-email",
+          kind: "short_term",
+          status: "accepted",
+          origin: "owner_set",
+          description: "check-email inbox processing",
+          completionCriteria: "inbox zero",
+          risk: "low",
+          priorityHint: 1,
+          sourceRefs: [],
+          createdAt: "2026-05-16T00:00:00.000Z",
+          updatedAt: "2026-05-16T00:00:00.000Z",
+        },
+      ],
     }),
     narrativeStateStore: {
       loadNarrativeState: async () => ({
@@ -63,7 +78,9 @@ test("T5.1.2 narrative trace emitted after successful narrative state update", a
   assert.ok(Array.isArray(trace.sourceRefs));
   assert.ok(Array.isArray(trace.unsupportedClaims));
   assert.ok(["pass", "degraded", "blocked"].includes(trace.groundingStatus));
-  assert.ok(Array.isArray(trace.goalInfluenceRefs));
+  // T5.1.2: goalInfluenceRefs must propagate the actual accepted goal ids that
+  // influenced the selected intent (not just sourceRefs ids).
+  assert.deepEqual(trace.goalInfluenceRefs, ["goal-check-email"]);
   assert.ok(typeof trace.createdAt === "string");
 });
 

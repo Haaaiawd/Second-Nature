@@ -20,15 +20,15 @@ import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 const GOAL_PRIORITY_BOOST = 20;
 
 function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean {
-  if (!candidate.platformId) return false;
-
   const goalText = `${goal.description} ${goal.completionCriteria}`.toLowerCase();
-  const platformId = candidate.platformId.toLowerCase();
 
   // Direct platformId mention in goal text
-  if (goalText.includes(platformId)) return true;
+  if (candidate.platformId) {
+    const platformId = candidate.platformId.toLowerCase();
+    if (goalText.includes(platformId)) return true;
+  }
 
-  // Goal description contains candidate summary keywords
+  // Fallback: Goal description contains candidate summary keywords
   const summaryWords = candidate.summary.toLowerCase().split(/\s+/);
   for (const word of summaryWords) {
     if (word.length > 3 && goalText.includes(word)) return true;
