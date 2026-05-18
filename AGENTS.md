@@ -188,8 +188,9 @@ src/
 - 验证计划: `.anws/v6/05B_VERIFICATION_PLAN.md`
 - 总任务数: 31, Level-3: 27, INT: 4, P0: 21, P1: 10, P2: 0
 - Sprint 数: 4
-- **下一步**: `/forge` 从 **S1 Foundation & Connector Ecosystem** 起步，执行时必须同时读取 05A/05B；S1 关门任务为 **INT-S1**
-- 最近更新: `2026-05-16` (Round 6 `/change`: ops surface 任务承接闭合)
+- **状态**: v6 全部任务已完成，全部 INT 里程碑已签收（INT-S1 ✅, INT-S2 ✅, INT-S3 ✅, INT-S4 ✅）
+- **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved，0 Open
+- **最近更新**: `2026-05-18` (Challenge Round 8 closure: evidence gaps fixed)
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
