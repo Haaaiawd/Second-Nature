@@ -126,7 +126,11 @@ function planSocialIntents(
   ];
 }
 
-function planQuietReflectionIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+function planQuietReflectionIntents(
+  runtime: HeartbeatRuntimeSnapshot,
+  _context?: PlatformResolutionContext,
+  _registry?: CapabilityContractRegistry,
+): CandidateIntent[] {
   if (!runtime.rhythmWindow.quietBias && runtime.continuity.mode !== "quiet") {
     return [];
   }
@@ -174,22 +178,32 @@ function planQuietReflectionIntents(runtime: HeartbeatRuntimeSnapshot): Candidat
   return out;
 }
 
-function planOutreachIntents(runtime: HeartbeatRuntimeSnapshot): CandidateIntent[] {
+function planOutreachIntents(
+  runtime: HeartbeatRuntimeSnapshot,
+  context?: PlatformResolutionContext,
+  registry?: CapabilityContractRegistry,
+): CandidateIntent[] {
   if (!isAllowedKind("outreach", runtime)) return [];
   if (runtime.continuity.recentOutreachHashes.length > 3) {
     return [];
   }
   const refs = evidenceRefsForConnector(runtime);
+  const platformId = resolvePlatformForIntent("outreach", context ?? {}, registry);
   return [
     {
-      id: "intent-outreach",
+      id: platformId ? `intent-outreach-${platformId}` : "intent-outreach",
       kind: "outreach",
       priority: 40,
       source: "tick",
-      summary: "consider proactive user outreach",
+      platformId,
+      summary: platformId
+        ? `consider proactive user outreach on ${platformId}`
+        : "consider proactive user outreach",
       effectClass: "user_outreach",
       sourceRefs: refs,
-      idempotencyKey: "outreach:consider proactive user outreach",
+      idempotencyKey: platformId
+        ? `outreach:${platformId}`
+        : "outreach:consider proactive user outreach",
       goalInfluenceRefs: [],
     },
   ];
@@ -242,8 +256,8 @@ export function planCandidateIntents(
     ...planWorkIntents(runtime, context, registry),
     ...planExplorationIntents(runtime, context, registry),
     ...planSocialIntents(runtime, context, registry),
-    ...planQuietReflectionIntents(runtime),
-    ...planOutreachIntents(runtime),
+    ...planQuietReflectionIntents(runtime, context, registry),
+    ...planOutreachIntents(runtime, context, registry),
   ];
 
   return intents
