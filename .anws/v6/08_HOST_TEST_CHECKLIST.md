@@ -3,7 +3,7 @@
 > **版本**: 0.1.24  
 > **日期**: 2026-05-16  
 > **用途**: 交给 OpenClaw 宿主在会话中留意/触发的验证项  
-> **自动化基线**: `pnpm test` 436/436 pass（单测 + 集成测）
+> **自动化基线**: `pnpm test` 全量 pass（单测 + 集成测）
 
 ---
 
@@ -28,20 +28,18 @@
 | B1.3 | `connector:test` (executable) | `{ action: "connector:test", platformId: "moltbook" }` | `ok:true` + dry-run health checks | 默认 dry-run，不触发外部副作用 |
 | B1.4 | `connector:test` (pending-trust) | `{ action: "connector:test", platformId: "custom-agent" }` | `ok:false` + `PENDING_TRUST_DENIED` | **关键安全项**：不可执行 connector 必须返回 denied |
 | B1.5 | `connector:init` | `{ action: "connector:init", platformId: "test-plat", runnerKind: "custom_adapter" }` | `ok:true` + manifestPath + adapterPath + typesPath | 生成 3 个文件；目标已存在返回 `ok:false` |
-| B1.6 | `status` | `{ action: "status" }` | `ok:true` + v5/v6 混合摘要 | 缺 workspaceRoot 时退化为 carrier-only |
+| B1.6 | `status` | `{ action: "status" }` | `ok:true` + v6 聚合摘要 (narrative+dream+cycles) | 缺 workspaceRoot 时退化为 carrier-only |
 | B1.7 | `explain` | `{ action: "explain", subject: "narrative" }` | 结构化解释或 `EXPLAIN_READ_SURFACE_UNAVAILABLE` | carrier 模式下诚实返回不可用 |
 | B1.8 | `quiet` | `{ action: "quiet" }` | `ok:true` + reflection 结果或 `nothing_yet` | 依赖 source-backed evidence |
 | B1.9 | `storage_smoke` | `{ action: "storage_smoke" }` | `ok:true` + sql.js 语义验证 | 仅验证存储层可用 |
+| B1.10 | `narrative` | `{ action: "narrative" }` | `ok:true` + NarrativeState 摘要 / `nothing_yet` | workspace state db  required |
+| B1.11 | `dream:recent` | `{ action: "dream:recent", limit: 5 }` | `ok:true` + DreamTrace 列表 / `totalRuns:0` | workspace audit db required |
+| B1.12 | `goal` | `{ action: "goal", action: "list" }` | `ok:true` + goal 列表 | workspace state db required |
+| B1.13 | `cycle:recent` | `{ action: "cycle:recent", limit: 5 }` | `ok:true` + cycle buckets / `nothing_yet` | workspace audit db required |
 
-### B2. 未实现命令（0.1.24 应诚实返回不可用）
+### B2. 未实现命令
 
-| # | 命令 | 预期行为 | 备注 |
-|---| --- | --- | --- |
-| B2.1 | `narrative` | 返回 `unavailable` 或路由到 explain | T1.2.1 未实现 |
-| B2.2 | `dream:recent` | 返回 `unavailable` 或路由到 explain | T1.2.2 未实现 |
-| B2.3 | `goal set/list/accept/reject` | 返回 `unavailable` | T1.2.4 未实现 |
-| B2.4 | `cycle:recent` | 返回 `unavailable` | T1.2.5 未实现 |
-| B2.5 | `v6 status` 聚合 | 退化为 v5 status | T1.2.6 未实现 |
+v6 周期内所有计划命令均已实现（T1.2.1–T1.2.6）。无未实现命令。
 
 ---
 

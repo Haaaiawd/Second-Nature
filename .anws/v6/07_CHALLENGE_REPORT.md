@@ -27,9 +27,9 @@ No new Critical or High implementation issue was found in this recheck. Remainin
 | CR8-02 | High | Resolved in code | `status` now calls `loadV6Status`; source/tests no longer expose `status:v6`, but INT-S4 report still has stale references. |
 | CR8-03 | High | Resolved in code | `policy_allowlist` agent-proposed goals are included in priority; NarrativeTrace uses `selectedIntent.goalInfluenceRefs`. |
 | CR8-04 | Medium | Resolved | `05A_TASKS.md` now marks `T2.3.1`, `T5.1.2`, and `INT-S1` complete. |
-| CR9-01 | Medium | Open | INT-S4 report still documents `sn status:v6`, which no longer matches the public command. |
-| CR9-02 | Medium | Open | `second_nature_ops` v6 command reachability is implemented but not directly proven by plugin bridge tests. |
-| CR9-03 | Low | Open | NarrativeTrace test still only checks `goalInfluenceRefs` is an array, not that selected goal refs are propagated. |
+| CR9-01 | Medium | Resolved | INT-S4 report updated: `sn status:v6` → `sn status`. |
+| CR9-02 | Medium | Resolved | Plugin bridge tests now directly exercise `narrative`, `goal`, `dream:recent`, `connector_status`, `cycle:recent` in full-runtime and carrier-only modes. |
+| CR9-03 | Low | Resolved | NarrativeTrace test now asserts `goalInfluenceRefs` deep-equals the injected accepted goal id. |
 
 ---
 
