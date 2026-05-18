@@ -297,6 +297,9 @@ Round 7 `/change` 新增 S5：T1.4.1 RuntimeSecretBootstrap、T3.3.1 real connec
 ### 🌊 Wave 35 ✅ — v6 S5 Life Loop Activation: T1.4.1 + T1.4.2
 **T1.4.1**：`probeCredentialHealth` 函数（`src/storage/services/credential-vault.ts`）检测 key 缺失/错误/有效三种状态，返回 `missing_runtime_secret` / `credential_recovery_required` / `ok` 诊断码；`CredentialReadModel` / `CredentialSummary` 扩展 `decrypt_failed` 状态与 `keyHealth` 字段；`loadCredential` 与 `buildBaseStatus` 均尝试解密并诚实报告诊断，不泄漏 raw secret；集成测 4 cases（缺 key、错 key、有效 key、status aggregate）。**T1.4.2**：`goal set` 支持 `criteria` 作为 `completionCriteria` alias（`GoalCommandInput` 新增 `criteria` 字段，`ops-router.ts` goal dispatch 透传）；`explain relationship:{id}` 通过 `resolveExplainSubject` → `toExplainQuery` → `explain` 读取 `RelationshipMemoryStore` 返回 redacted summary（tone/reply/topics）或诚实 `nothing_yet`；`ExplainSubjectKind` 扩展 `"relationship"`；集成测 6 cases（criteria alias×3、relationship explain×3）。195 测试全绿，无回归。05A_TASKS.md 勾选 T1.4.1、T1.4.2。
 
+### 🌊 Wave 36 ✅ — v6 S5 Life Loop Activation: T3.3.1 real connector evidence
+**T3.3.1**：在 `resolveAllowedIntentResult`（`src/core/second-nature/heartbeat/heartbeat-loop.ts`）的 `connector_action` 分支中，connector 执行成功后调用 `mapLifeEvidence`（`src/connectors/base/map-life-evidence.ts`）将 `ConnectorResult` 映射为 `LifeEvidenceCandidate`，再通过 `appendLifeEvidence`（`src/storage/life-evidence/append-life-evidence.ts`）写入 SQLite index + JSON artifact；`HeartbeatDeps` 扩展 `state?: StateDatabase` 与 `workspaceRoot?: string`；`workspace-heartbeat-runner.ts` 将 `state` 与 `workspaceRoot` 注入 `runHeartbeatCycle` deps。失败或空结果时不虚构证据，仅由 connector policy 层记录尝试审计。集成测 4 cases（A: success+sourceRefs→artifact+index、B: empty→no fabrication、C: failure→no fabrication、D: missing state/workspaceRoot→no crash）。199 测试全绿，无回归。05A_TASKS.md 勾选 T3.3.1。
+
 <!-- AUTO:END -->
 
 ---

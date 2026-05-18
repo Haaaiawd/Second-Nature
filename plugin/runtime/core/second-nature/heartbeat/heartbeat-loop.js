@@ -8,6 +8,8 @@ import { buildJudgeOutreachInputFromSnapshot } from "../outreach/judge-input-fro
 import { runSourceBackedQuiet } from "../quiet/run-source-backed-quiet.js";
 import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
 import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js";
+import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
+import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
 /**
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
@@ -52,19 +54,42 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
         intent.kind === "maintenance";
     const connectorUnwired = intent.effectClass === "connector_action";
     if (connectorUnwired && deps.connectorExecutor) {
+        const decisionId = `decision:${intent.id}:${Date.now()}`;
         const result = await deps.connectorExecutor.executeEffect({
             platformId: intent.platformId ?? "unknown",
             intent: toCapabilityIntent(intent),
             payload: {},
-            decisionId: `decision:${intent.id}:${Date.now()}`,
+            decisionId,
             intentId: intent.id,
             idempotencyKey: `idem:${intent.id}:${Date.now()}`,
         });
+        // T3.3.1: on success, map connector result to life evidence and append.
+        // On failure or empty result, no evidence is fabricated — attempt audit
+        // is already recorded by the connector policy layer telemetry.
+        if (result.status === "success" &&
+            deps.state &&
+            deps.workspaceRoot) {
+            try {
+                const candidate = mapLifeEvidence({
+                    platformId: intent.platformId ?? "unknown",
+                    intent: toCapabilityIntent(intent),
+                    result,
+                    observedAt: new Date().toISOString(),
+                });
+                if (candidate) {
+                    await appendLifeEvidence(deps.state, deps.workspaceRoot, candidate);
+                }
+            }
+            catch {
+                // Evidence append must not break the heartbeat cycle.
+                // Missing evidence will be reflected in the next snapshot load.
+            }
+        }
         const base = {
             scope: "rhythm",
             status: "intent_selected",
             selectedIntentId: intent.id,
-            decisionId: `decision:${intent.id}:${Date.now()}`,
+            decisionId,
             reasons: result.status === "success"
                 ? ["connector_effect_executed"]
                 : result.status === "retryable_failure"

@@ -162,6 +162,9 @@ export function createWorkspaceHeartbeatRunner(
           : undefined,
         connectorExecutor: options.connectorExecutor,
         narrativeStateStore,
+        // T3.3.1: pass state + workspaceRoot so connector effects can write life evidence.
+        state: options.state,
+        workspaceRoot: options.workspaceRoot,
       },
     });
 

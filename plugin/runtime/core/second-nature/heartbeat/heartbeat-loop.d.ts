@@ -47,7 +47,7 @@ export interface HeartbeatQuietWorkflowDeps {
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
  */
-export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor">): Promise<HeartbeatCycleResult>;
+export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot">): Promise<HeartbeatCycleResult>;
 export interface HeartbeatDeps {
     /** Load snapshot inputs from state-system */
     loadSnapshotInputs: () => Promise<SnapshotInputs>;
@@ -64,6 +64,10 @@ export interface HeartbeatDeps {
     narrativeStateStore?: NarrativeStateStore;
     /** T5.1.2: when present, heartbeat records a NarrativeTrace after successful narrative state update. */
     recordNarrativeTrace?: (payload: NarrativeTracePayload) => Promise<void>;
+    /** T3.3.1: when present, successful connector effects write LifeEvidence artifacts. */
+    state?: StateDatabase;
+    /** T3.3.1: workspace root for evidence artifact paths. */
+    workspaceRoot?: string;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

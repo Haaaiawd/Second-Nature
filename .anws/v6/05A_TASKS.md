@@ -826,7 +826,7 @@ graph TD
   - **依赖**: T1.2.3, T1.2.6
   - **优先级**: P0
 
-- [ ] **T3.3.1** [REQ-004]: 打通一个真实 connector 的 source-backed evidence 写入
+- [x] **T3.3.1** [REQ-004]: 打通一个真实 connector 的 source-backed evidence 写入
   - **描述**: 选择一个已信任 connector，在非 dry-run 路径中执行真实 read capability，并写入带 source refs 的 life evidence。
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md` §5, §7, §9；T1.4.1、T3.2.1 输出。
   - **输出**: real connector execution path、LifeEvidenceCandidate append、ConnectorAttemptAudit linkage。
