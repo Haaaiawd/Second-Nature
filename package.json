@@ -1,14 +1,61 @@
 {
   "name": "second-nature",
-  "version": "0.1.24",
-  "private": true,
+  "version": "0.1.25",
+  "description": "Agent Self Layer with Dream memory, heartbeat decision loop, dynamic connector ecosystem, and source-backed outreach — an OpenClaw-native runtime.",
+  "keywords": [
+    "openclaw",
+    "agent",
+    "continuity",
+    "quiet",
+    "memory",
+    "observability",
+    "connector",
+    "dream",
+    "narrative",
+    "relationship"
+  ],
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.0.0",
-  "openclaw": {
-    "extensions": [
-      "./plugin/index.ts"
-    ]
+  "main": "./dist/src/core/second-nature/index.js",
+  "types": "./dist/src/core/second-nature/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/src/core/second-nature/index.js",
+      "types": "./dist/src/core/second-nature/index.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/src/cli/index.js",
+      "types": "./dist/src/cli/index.d.ts"
+    },
+    "./connectors": {
+      "import": "./dist/src/connectors/index.js",
+      "types": "./dist/src/connectors/index.d.ts"
+    },
+    "./storage": {
+      "import": "./dist/src/storage/index.js",
+      "types": "./dist/src/storage/index.d.ts"
+    },
+    "./observability": {
+      "import": "./dist/src/observability/index.js",
+      "types": "./dist/src/observability/index.d.ts"
+    },
+    "./dream": {
+      "import": "./dist/src/dream/index.js",
+      "types": "./dist/src/dream/index.d.ts"
+    },
+    "./guidance": {
+      "import": "./dist/src/guidance/index.js",
+      "types": "./dist/src/guidance/index.d.ts"
+    }
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "README.zh-CN.md",
+    "HEARTBEAT.md",
+    "LICENSE"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
