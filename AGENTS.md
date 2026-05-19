@@ -84,7 +84,7 @@
 - **最新架构版本**: `.anws/v6`
 - **活动任务清单**: `.anws/v6/05A_TASKS.md`
 - **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-18` (Wave 35 `/forge`: S5 Life Loop Activation — T1.4.1 RuntimeSecretBootstrap + T1.4.2 activation UX cleanup)
+- **最近一次更新**: `2026-05-18` (Wave 39 `/forge`: S5 Life Loop Activation — T4.2.1 owner reply → RelationshipMemory feedback; Waves 36-39 全部完成, 214 tests green)
 
 ### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
 
@@ -188,10 +188,10 @@ src/
 - 验证计划: `.anws/v6/05B_VERIFICATION_PLAN.md`
 - 总任务数: 38, Level-3: 33, INT: 5, P0: 27, P1: 11, P2: 0
 - Sprint 数: 5
-- **状态**: v6 主体任务已完成；S5 `Life Loop Activation` 已通过 `/change` 回流为待执行 backlog（INT-S5 未完成）
+- **状态**: v6 主体任务已完成；S5 `Life Loop Activation` 全部子任务完成（T1.4.1, T1.4.2, T2.4.1, T2.4.2, T3.3.1, T4.2.1），仅剩 **INT-S5 关门报告**
 - **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved，0 Open
-- **下一步**: `/forge` 从 **S5 Life Loop Activation** 起步，先执行 T1.4.1 runtime secret bootstrap，再打通 T3.3.1 real connector evidence
-- **最近更新**: `2026-05-18` (Round 7 `/change`: S5 Life Loop Activation backlog)
+- **下一步**: `/forge` **Wave 40** — INT-S5 集成验证关门报告
+- **最近更新**: `2026-05-18` (Wave 39 `/forge`: T4.2.1 owner reply → RelationshipMemory feedback)
 
 > **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
 
@@ -305,6 +305,9 @@ Round 7 `/change` 新增 S5：T1.4.1 RuntimeSecretBootstrap、T3.3.1 real connec
 
 ### 🌊 Wave 38 ✅ — v6 S5 Life Loop Activation: T2.4.2 source-backed outreach delivery
 **T2.4.2**：新增集成测试 `tests/integration/control-plane/t2-4-2-source-backed-outreach-loop.test.ts`，验证 evidence → outreach judgment → draft → delivery/fallback 完整闭环。核心链路已在 T2.3.1/T6.1.1 实现：connector evidence 通过 `lifeEvidenceRefs` 流入 `planCandidateIntents` 生成的 outreach candidate `sourceRefs`；`dispatchUserOutreachIntent` 加载 `NarrativeState` + `RelationshipMemory` 并通过 `buildOutreachDraftRequest` 注入 draft context；`GuidanceDraftPort.draftOutreachMessage` 生成含 source refs 的 draft；delivery 成功时 `writeDeliveryAttempt` 记录 messageId/hostProofRef，失败时 `writeOperatorFallback` 记录 candidateMessage + reason。4 个集成测试 cases（A: evidence→outreach candidate sourceRefs、B: evidence-backed draft→delivery sent、C: delivery unavailable→fallback with evidence context、D: no evidence→judgment deny）。208 测试全绿，无回归。05A_TASKS.md 勾选 T2.4.2。
+
+### 🌊 Wave 39 ✅ — v6 S5 Life Loop Activation: T4.2.1 owner reply → RelationshipMemory feedback
+**T4.2.1**：新增 `recordOwnerReplyFeedback()`（`src/core/second-nature/feedback/owner-reply-feedback.ts`），将 owner 对 outreach 的回复记录为 SessionChronicle `owner_reply` entry，并驱动 RelationshipMemory 更新。实现：通过 `inferToneFromReply`、`inferTimingFromReply`、`extractTopicsFromReply` 三个轻量推断函数分析回复文本，生成 `RelationshipUpdateProposal`（tone、timing、topicAffinities）；调用 `applyRelationshipUpdate` 将 proposal 合并入 `RelationshipMemoryStore`；若无现存 memory 则创建默认对象并应用推断。chronicle entry 与 memory update 均携带 `sourceRef`（reply signal id + chronicle id），保证可追溯。6 个集成测试 cases（A: chronicle entry written with owner_reply kind、B: positive reply→tone casual + noReplyCount reset、C: negative reply→tone quiet/reserved、D: busy reply→timing busy + topics extracted、E: no existing memory→creates default with inferred traits、F: sourceRef traceable to chronicle entry）。214 测试全绿（T4.2.1 新增 6 个），Waves 36-39 相关测试回归通过。05A_TASKS.md 勾选 T4.2.1。
 
 <!-- AUTO:END -->
 

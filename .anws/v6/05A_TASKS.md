@@ -889,7 +889,7 @@ graph TD
   - **依赖**: T2.3.1, T2.4.1, T6.1.1
   - **优先级**: P0
 
-- [ ] **T4.2.1** [REQ-003][REQ-005]: 实现 owner reply → RelationshipMemory feedback loop
+- [x] **T4.2.1** [REQ-003][REQ-005]: 实现 owner reply → RelationshipMemory feedback loop
   - **描述**: 将 owner 对 outreach 的回复记录为 SessionChronicle entry，并驱动 RelationshipMemory 更新与下次 outreach 策略变化。
   - **输入**: `04_SYSTEM_DESIGN/state-system.md` §RelationshipMemory；`04_SYSTEM_DESIGN/dream-system.md` §Relationship update；T4.1.1、T4.1.3、T7.1.5、T2.4.2 输出。
   - **输出**: owner reply chronicle ingestion、relationship memory update path、next outreach tone/timing evidence。
