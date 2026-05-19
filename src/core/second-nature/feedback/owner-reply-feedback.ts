@@ -110,7 +110,10 @@ function redactSensitive(text: string): string {
   return text
     .replace(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, "[REDACTED_CARD]")
     .replace(/password[:\s=]+\S+/gi, "[REDACTED_PASSWORD]")
-    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[REDACTED_EMAIL]");
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[REDACTED_EMAIL]")
+    .replace(/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g, "[REDACTED_PHONE]")
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED_SSN]")
+    .replace(/\b(?:sk-|pk-|Bearer\s+|api[_-]?key[:\s=]+)[A-Za-z0-9_\-\/+=]{20,}\b/gi, "[REDACTED_TOKEN]");
 }
 
 export interface ProcessOwnerReplyInput {
@@ -206,6 +209,17 @@ export async function processOwnerReply(
     // Missing memory update will be reflected in the next `explain relationship` query.
     const errorMessage = err instanceof Error ? err.message : String(err);
     console.warn(`[owner-reply-feedback] RelationshipMemory update failed: ${errorMessage}`);
+    // Write a diagnostic chronicle entry so operators can trace the failure.
+    await chronicleStore.appendSessionChronicle({
+      entryId: `${entryId}:diagnostic`,
+      eventKind: "system_notice",
+      actor: "system",
+      occurredAt: new Date().toISOString(),
+      summary: `RelationshipMemory update failed: ${errorMessage}`,
+      result: "failed",
+      sourceRefs: [{ sourceId: entryId, kind: "owner_reply_feedback", url: `chronicle://${entryId}` }],
+      relatedDecisionId: input.relatedDecisionId,
+    });
     return {
       chronicleEntryId: entryId,
       relationshipUpdated: false,

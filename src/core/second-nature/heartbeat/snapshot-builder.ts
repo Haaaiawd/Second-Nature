@@ -48,7 +48,6 @@ export interface SnapshotInputs {
     status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
     origin: "owner_set" | "agent_proposed" | "policy_seeded";
     acceptedBy?: "owner" | "policy_allowlist";
-    [key: string]: unknown;
   }>;
   /** When present, signals that acceptedGoals load failed (distinguishes from empty). */
   acceptedGoalsLoadError?: string;

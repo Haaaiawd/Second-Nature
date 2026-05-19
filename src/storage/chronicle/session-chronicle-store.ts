@@ -9,7 +9,8 @@ export type ChronicleEventKind =
   | "outreach"
   | "owner_reply"
   | "dream_run"
-  | "maintenance";
+  | "maintenance"
+  | "system_notice";
 
 export interface SourceRef {
   sourceId: string;
