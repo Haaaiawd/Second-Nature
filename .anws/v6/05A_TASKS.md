@@ -868,7 +868,7 @@ graph TD
   - **依赖**: T2.1.4, T3.3.1
   - **优先级**: P0
 
-- [ ] **T2.4.2** [REQ-005]: 打通 source-backed outreach delivery / fallback 闭环
+- [x] **T2.4.2** [REQ-005]: 打通 source-backed outreach delivery / fallback 闭环
   - **描述**: 从真实 connector evidence 触发 outreach judgment，生成有来由 draft，并写入 delivery 或 operator fallback。
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md` §5；`04_SYSTEM_DESIGN/behavioral-guidance-system.md` §5；T2.3.1、T2.4.1、T6.1.1 输出。
   - **输出**: evidence->judgment->draft->delivery/fallback 集成路径与审计记录。
