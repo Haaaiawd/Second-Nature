@@ -35,3 +35,7 @@ For **full read-bridge** behavior (`workspaceRootResolution` → `env` / `tool_a
 
 - This file defines the shipping heartbeat bridge entry.
 - Do not treat `second-nature-runtime` service startup as a per-heartbeat callback.
+
+## Agent habit
+
+Heartbeat only tells Claw how to touch the bridge. For the softer habit of using Second Nature in conversation, read `docs/claw-second-nature-inner-guide.md`: pause, look back at traces, and do not turn carrier acknowledgement into invented memory.

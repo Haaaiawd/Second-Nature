@@ -52,6 +52,9 @@
  * - tests/integration/cli/plugin-packaging-walkthrough.test.ts
  * - tests/integration/cli/plugin-workspace-ops-bridge.test.ts (T1.1.4 / CH-13 matrix, T1.1.5 ops docs cross-ref)
  */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   startRuntimeService,
   type RuntimeServiceHandle,
@@ -157,9 +160,34 @@ interface ActivationSpine {
   workspaceRootContext: WorkspaceRootContext;
 }
 
+interface SetupAckMarker {
+  acknowledgedAt: string;
+  acceptedBy: string;
+  placedIn: string;
+  note?: string;
+  guideVersion: string;
+  source: "second-nature-plugin";
+  skillPath: "SKILL.md";
+  guidePath: "agent-inner-guide.md";
+}
+
+interface SetupAckState {
+  status: "pending" | "acknowledged" | "workspace_root_unknown";
+  markerPath?: string;
+  acknowledgedAt?: string;
+  placedIn?: string;
+}
+
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 const HOST_SAFE_LIMITATION_MESSAGE =
   "Host-safe plugin package keeps synchronous register/load semantics, but mutating workspace runtime flows remain unavailable here.";
+const SETUP_MARKER_RELATIVE_PATH = path.join(
+  ".second-nature",
+  "setup",
+  "agent-inner-guide-ack.json",
+);
+const SETUP_GUIDE_VERSION = "0.1.26";
+const SETUP_COMMANDS = new Set(["setup_hint", "setup_ack"]);
 
 let activationSpine: ActivationSpine | null = null;
 
@@ -254,14 +282,15 @@ async function routeSecondNatureCommand(
         },
       };
     }
-    return (await bridge.dispatch(command, input)) as CommandPayload;
+    const payload = (await bridge.dispatch(command, input)) as CommandPayload;
+    return withSetupNudge(spine, command, payload);
   }
 
   const def = spine.router.resolve(command);
   if (!def) {
     return { ok: false, message: `Unknown Second Nature command: ${command}` };
   }
-  return def.execute(input);
+  return withSetupNudge(spine, command, await def.execute(input));
 }
 
 function resolveWorkspaceRoot(
@@ -329,6 +358,212 @@ function createUnavailableActionError(
       nextStep,
     },
     message: HOST_SAFE_LIMITATION_MESSAGE,
+  };
+}
+
+function getPluginPackageRoot(): string {
+  return path.dirname(fileURLToPath(import.meta.url));
+}
+
+function safeShortText(value: unknown, maxLength = 240): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.length > maxLength
+    ? `${trimmed.slice(0, maxLength - 3)}...`
+    : trimmed;
+}
+
+function resolveSetupMarkerPath(spine: ActivationSpine): string | undefined {
+  if (spine.workspaceRootContext.resolution === "unknown") {
+    return undefined;
+  }
+  return path.join(spine.workspaceRootContext.runtimeRoot, SETUP_MARKER_RELATIVE_PATH);
+}
+
+function readSetupAckMarker(spine: ActivationSpine): SetupAckState {
+  const markerPath = resolveSetupMarkerPath(spine);
+  if (!markerPath) {
+    return { status: "workspace_root_unknown" };
+  }
+  if (!fs.existsSync(markerPath)) {
+    return { status: "pending", markerPath };
+  }
+  try {
+    const marker = JSON.parse(
+      fs.readFileSync(markerPath, "utf-8"),
+    ) as Partial<SetupAckMarker>;
+    return {
+      status: "acknowledged",
+      markerPath,
+      acknowledgedAt: marker.acknowledgedAt,
+      placedIn: marker.placedIn,
+    };
+  } catch {
+    return { status: "pending", markerPath };
+  }
+}
+
+function readPackagedSetupText(fileName: "SKILL.md" | "agent-inner-guide.md"):
+  | { ok: true; path: string; content: string }
+  | { ok: false; path: string; error: string } {
+  const fullPath = path.join(getPluginPackageRoot(), fileName);
+  try {
+    return {
+      ok: true,
+      path: fileName,
+      content: fs.readFileSync(fullPath, "utf-8"),
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      path: fileName,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function summarizeSetupText(content: string): string {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith("#"));
+  return lines.slice(0, 6).join("\n");
+}
+
+function buildSetupNudge(spine: ActivationSpine): CommandPayload | undefined {
+  const ack = readSetupAckMarker(spine);
+  if (ack.status === "acknowledged") {
+    return undefined;
+  }
+
+  return {
+    status: ack.status,
+    command: "setup_hint",
+    ackCommand: "setup_ack",
+    message:
+      "Second Nature has an unread agent guide. Run setup_hint, read the returned SKILL and guide, place that guidance into the agent's working anchors, then run setup_ack.",
+    markerPath: ack.markerPath,
+    requiredUserInput:
+      ack.status === "workspace_root_unknown"
+        ? ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"]
+        : [],
+  };
+}
+
+function withSetupNudge(
+  spine: ActivationSpine,
+  command: string,
+  payload: CommandPayload,
+): CommandPayload {
+  if (SETUP_COMMANDS.has(command) || payload.setupNudge !== undefined) {
+    return payload;
+  }
+  const setupNudge = buildSetupNudge(spine);
+  return setupNudge ? { ...payload, setupNudge } : payload;
+}
+
+function buildSetupHintPayload(
+  spine: ActivationSpine,
+  input?: Record<string, unknown>,
+): CommandPayload {
+  const format = input?.format === "full" ? "full" : "summary";
+  const includeSkill = input?.includeSkill !== false;
+  const includeGuide = input?.includeGuide !== false;
+  const ack = readSetupAckMarker(spine);
+  const data: Record<string, unknown> = {
+    status: ack.status,
+    workspaceRootResolution: spine.workspaceRootContext.resolution,
+    markerPath: ack.markerPath,
+    acknowledgedAt: ack.acknowledgedAt,
+    placedIn: ack.placedIn,
+    recommendedPlacement: [
+      "agent prompt",
+      "workspace/IDENTITY.md",
+      "workspace/USER.md",
+    ],
+    nextStep:
+      ack.status === "acknowledged"
+        ? "setup_already_acknowledged"
+        : "read_returned_guidance_then_run_setup_ack",
+  };
+
+  if (includeSkill) {
+    const skill = readPackagedSetupText("SKILL.md");
+    data.skill = skill.ok
+      ? {
+          path: skill.path,
+          content:
+            format === "full" ? skill.content : summarizeSetupText(skill.content),
+        }
+      : skill;
+  }
+  if (includeGuide) {
+    const guide = readPackagedSetupText("agent-inner-guide.md");
+    data.guide = guide.ok
+      ? {
+          path: guide.path,
+          content:
+            format === "full" ? guide.content : summarizeSetupText(guide.content),
+        }
+      : guide;
+  }
+
+  return {
+    ok: true,
+    command: "setup_hint",
+    surfaceMode: "host_safe_carrier",
+    message:
+      "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
+    data,
+  };
+}
+
+function buildSetupAckPayload(
+  spine: ActivationSpine,
+  input?: Record<string, unknown>,
+): CommandPayload {
+  const markerPath = resolveSetupMarkerPath(spine);
+  if (!markerPath) {
+    return {
+      ok: false,
+      command: "setup_ack",
+      error: {
+        code: "SETUP_ACK_REQUIRES_WORKSPACE_ROOT",
+        message: "setup_ack needs a workspace root so the one-shot marker can be persisted.",
+        requiredUserInput: ["SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot"],
+        nextStep: "reinvoke_setup_ack_with_workspace_root",
+      },
+    };
+  }
+
+  const marker: SetupAckMarker = {
+    acknowledgedAt: new Date().toISOString(),
+    acceptedBy: safeShortText(input?.acceptedBy, 80) ?? "agent",
+    placedIn: safeShortText(input?.placedIn, 160) ?? "unspecified",
+    note: safeShortText(input?.note, 240),
+    guideVersion: SETUP_GUIDE_VERSION,
+    source: "second-nature-plugin",
+    skillPath: "SKILL.md",
+    guidePath: "agent-inner-guide.md",
+  };
+
+  fs.mkdirSync(path.dirname(markerPath), { recursive: true });
+  fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`, "utf-8");
+
+  return {
+    ok: true,
+    command: "setup_ack",
+    surfaceMode: "host_safe_carrier",
+    message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
+    data: {
+      markerPath,
+      ...marker,
+    },
   };
 }
 
@@ -757,6 +992,18 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
       execute: async () => buildStatusPayload(spine),
     },
     {
+      name: "setup_hint",
+      description:
+        "Return the packaged setup SKILL and agent inner guide for first-run onboarding",
+      execute: async (input) => buildSetupHintPayload(spine, input),
+    },
+    {
+      name: "setup_ack",
+      description:
+        "Persist that the packaged setup guide was read and placed into working anchors",
+      execute: async (input) => buildSetupAckPayload(spine, input),
+    },
+    {
       name: "policy",
       description: "Write or inspect policy state",
       execute: async (input) => {
@@ -1087,6 +1334,21 @@ function parseCommandInput(
   }
 
   switch (command) {
+    case "setup_hint":
+      return {
+        ok: true,
+        command,
+        input: rest.includes("--full") ? { format: "full" } : undefined,
+      };
+    case "setup_ack":
+      return {
+        ok: true,
+        command,
+        input:
+          rest.length > 0
+            ? { acceptedBy: rest[0], placedIn: rest.slice(1).join(" ") }
+            : undefined,
+      };
     case "status":
     case "quiet":
       return {

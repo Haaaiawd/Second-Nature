@@ -54,6 +54,8 @@
     "README.md",
     "README.zh-CN.md",
     "HEARTBEAT.md",
+    "SKILL.md",
+    "docs/claw-second-nature-inner-guide.md",
     "LICENSE"
   ],
   "scripts": {

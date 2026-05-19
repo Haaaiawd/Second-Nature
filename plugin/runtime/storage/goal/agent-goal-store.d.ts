@@ -18,7 +18,6 @@ export interface AgentGoal {
     acceptedBy?: "owner" | "policy_allowlist";
     createdAt: string;
     updatedAt: string;
-    [key: string]: unknown;
 }
 export interface AgentGoalWrite {
     goalId: string;

@@ -19,6 +19,8 @@
     "index.js",
     "workspace-ops-bridge.js",
     "openclaw.plugin.json",
+    "SKILL.md",
+    "agent-inner-guide.md",
     "runtime/"
   ],
   "publishConfig": {

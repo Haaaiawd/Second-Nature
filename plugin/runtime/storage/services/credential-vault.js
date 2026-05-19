@@ -141,16 +141,34 @@ export function createCredentialVault(db) {
             if (!record)
                 return null;
             let plain;
+            let status = record.status;
             if (record.encryptedValue) {
                 if (!isCredentialCiphertext(record.encryptedValue)) {
-                    throw new Error("credential_store_plaintext_or_invalid_legacy_record");
+                    // Fail-closed: return decrypt_failed so callers do not crash.
+                    return {
+                        platformId: record.platformId,
+                        credentialType: record.credentialType,
+                        status: "decrypt_failed",
+                        encryptedValue: undefined,
+                        verificationCode: record.verificationCode ?? undefined,
+                        challengeText: record.challengeText ?? undefined,
+                        verificationDeadline: record.expiresAt ?? undefined,
+                        attemptsRemaining: record.attemptsRemaining ?? undefined,
+                    };
                 }
-                plain = decryptCredentialAtRest(record.encryptedValue);
+                try {
+                    plain = decryptCredentialAtRest(record.encryptedValue);
+                }
+                catch {
+                    // Decryption failure must not break the whole state load.
+                    status = "decrypt_failed";
+                    plain = undefined;
+                }
             }
             return {
                 platformId: record.platformId,
                 credentialType: record.credentialType,
-                status: record.status,
+                status,
                 encryptedValue: plain,
                 verificationCode: record.verificationCode ?? undefined,
                 challengeText: record.challengeText ?? undefined,

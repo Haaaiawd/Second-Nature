@@ -89,9 +89,11 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
                     await appendLifeEvidence(deps.state, deps.workspaceRoot, candidate);
                 }
             }
-            catch {
+            catch (err) {
                 // Evidence append must not break the heartbeat cycle.
                 // Missing evidence will be reflected in the next snapshot load.
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                console.warn(`[heartbeat] evidence append failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
             }
         }
         const base = {

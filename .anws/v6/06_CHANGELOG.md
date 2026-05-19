@@ -40,3 +40,9 @@
 - [CHANGE] 在 `05A_TASKS.md` 新增 S5 `Life Loop Activation`：T1.4.1 runtime secret bootstrap、T3.3.1 real connector evidence、T2.4.1 platform-specific intent、T2.4.2 source-backed outreach delivery、T4.2.1 owner reply relationship feedback、T1.4.2 activation UX cleanup、INT-S5 关门验证。
 - [CHANGE] 同步 `05B_VERIFICATION_PLAN.md` 的风险类别、Task-by-Task、Contract Coverage、Testing Coverage 与 Verification Traceability Matrix，为 runtime secret、真实 connector evidence、heartbeat platform intent、outreach/fallback、relationship feedback 与 UX alias/explain 增加验证锚点。
 - [CHANGE] 更新 v6 任务统计：总任务数 38，Level-3 任务 33，INT 任务 5，P0 27，P1 11，P2 0。
+
+## 2026-05-19 - Claw Inner Guide Setup 回流
+- [ADD] 新增 `docs/claw-second-nature-inner-guide.md` 与 `docs/validation/claw-second-nature-inner-guide-checklist.md`，把 Second Nature 的软连接写成可被 Claw 自然吸收的便条与验收清单。
+- [ADD] 插件包新增 `SKILL.md` 与 `agent-inner-guide.md`，并在 npm pack 校验中纳入 packaged guide 文件，避免源码仓库外安装后读不到内化入口。
+- [CHANGE] 插件 `second_nature_ops` 新增 `setup_hint` / `setup_ack` 一次性 setup surface：安装后返回 skill + guide，guide 安放后写入 `.second-nature/setup/agent-inner-guide-ack.json` 取消后续提醒。
+- [CHANGE] README / README.zh-CN / HEARTBEAT / 根 `SKILL.md` 同步说明当前没有 `workspace_init`，初始化真相是 `connector_init` + one-shot setup hint + 手动安放长期 anchor。

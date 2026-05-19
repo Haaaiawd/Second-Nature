@@ -219,17 +219,21 @@ export function createOpsRouter(deps) {
                 const action = ["set", "list", "accept", "reject"].includes(rawAction)
                     ? rawAction
                     : "list";
+                const sanitizeText = (v, maxLen = 1000) => {
+                    if (typeof v !== "string")
+                        return undefined;
+                    const trimmed = v.trim();
+                    if (trimmed.length === 0)
+                        return undefined;
+                    return trimmed.slice(0, maxLen);
+                };
                 return goalCommand(deps.state, {
                     action,
-                    goalId: typeof input?.goalId === "string" ? input.goalId : undefined,
-                    description: typeof input?.description === "string" ? input.description : undefined,
-                    completionCriteria: typeof input?.completionCriteria === "string"
-                        ? input.completionCriteria
-                        : undefined,
+                    goalId: typeof input?.goalId === "string" ? input.goalId.trim().slice(0, 128) : undefined,
+                    description: sanitizeText(input?.description),
+                    completionCriteria: sanitizeText(input?.completionCriteria),
                     // T1.4.2: criteria alias for completionCriteria
-                    criteria: typeof input?.criteria === "string"
-                        ? input.criteria
-                        : undefined,
+                    criteria: sanitizeText(input?.criteria),
                     risk: typeof input?.risk === "string"
                         ? input.risk
                         : undefined,

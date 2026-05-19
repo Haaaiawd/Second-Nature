@@ -1,5 +1,5 @@
 import type { StateDatabase } from "../db/index.js";
-export type ChronicleEventKind = "heartbeat" | "connector_action" | "outreach" | "owner_reply" | "dream_run" | "maintenance";
+export type ChronicleEventKind = "heartbeat" | "connector_action" | "outreach" | "owner_reply" | "dream_run" | "maintenance" | "system_notice";
 export interface SourceRef {
     sourceId: string;
     kind: string;

@@ -191,7 +191,7 @@ src/
 - **状态**: v6 全部任务已完成；S5 `Life Loop Activation` INT-S5 已勾选；全部 6 个 User Story 标记为 `Activated`；208 测试全绿
 - **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved；Wave 39 静态审查 CR-01..CR-04 / H-01..H-03 / M-02..M-04 / L-01..L-03 全部修复，0 Open
 - **下一步**: v6 完成，进入维护/扩展阶段或启动 v7 `/genesis`
-- **最近更新**: `2026-05-18` (Wave 40 `/forge`: INT-S5 集成验证关门报告 + Wave 39 静态审查 Medium/Low 修复)
+- **最近更新**: `2026-05-19` (Wave 41 `/change` + `/forge`: Claw inner guide packaged setup + one-shot setup_hint/setup_ack)
 
 > **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
 
@@ -326,6 +326,11 @@ S5 Waves 36-39 测试增量明细：
 - **Low 3 项 → 修复**：L-01 empty-reason 映射注释、L-02 namespace:capability URI 解析增强、L-03 narrative progress 去重 key 改为 `${effectClass}:${id}`
 
 测试覆盖增量：14 个单元测试（owner reply inference）+ 4 个单元测试（evidence mapper）+ 2 个集成测试（ambiguous platform / conflicting tone）。208 测试全绿，无回归。三 commit：`657a2f6` (Wave 39 settlement) + `a6b3d27` (Critical/High fixes) + `99829a0` (Medium/Low fixes)。
+
+### 🌊 Wave 41 ✅ — Claw Inner Guide Setup
+`/change` 回流 Claw soft connection：新增 `docs/claw-second-nature-inner-guide.md` 与验证 checklist；README / README.zh-CN / HEARTBEAT / 根 `SKILL.md` 说明 hard bridge 后的自然吸收路径与当前初始化真相。
+
+`/forge` 实现插件 one-shot setup surface：`second_nature_ops setup_hint` 返回 packaged `SKILL.md` + `agent-inner-guide.md`，`setup_ack` 在 workspace 写入 `.second-nature/setup/agent-inner-guide-ack.json` 并取消后续 setup nudge。插件包纳入 `SKILL.md` / `agent-inner-guide.md`，pack dry-run 已确认可读。
 
 <!-- AUTO:END -->
 

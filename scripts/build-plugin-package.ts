@@ -216,6 +216,22 @@ function main() {
     console.error("❌ package.json still includes index.ts in files");
     process.exit(1);
   }
+  if (!pkg.files.includes("agent-inner-guide.md")) {
+    console.error("❌ package.json files must include agent-inner-guide.md");
+    process.exit(1);
+  }
+  if (!pkg.files.includes("SKILL.md")) {
+    console.error("❌ package.json files must include SKILL.md");
+    process.exit(1);
+  }
+  if (!fs.existsSync(path.resolve(pluginDir, "agent-inner-guide.md"))) {
+    console.error("❌ plugin/agent-inner-guide.md not found");
+    process.exit(1);
+  }
+  if (!fs.existsSync(path.resolve(pluginDir, "SKILL.md"))) {
+    console.error("❌ plugin/SKILL.md not found");
+    process.exit(1);
+  }
 
   console.log("✅ All verifications passed");
   console.log("\n📋 Build Summary:");

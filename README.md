@@ -146,6 +146,7 @@ Covered by **`pnpm test`** (includes `pnpm build` + `pnpm build:plugin`) and sum
 - **Connectors**: manifest contracts, execution policy / idempotency, **near-real** Moltbook `feed.read` + EvoMap `work.discover` smoke with life evidence ingest and dry `task.claim` (see T3.3.1).
 - **OpenClaw plugin + resolvable workspace root**: when `SECOND_NATURE_WORKSPACE_ROOT` or the tool’s `workspaceRoot` identifies a workspace, packaged `second_nature_ops` read-only commands use the **same** `plugin/runtime` + `createCliCommands` path as the workspace CLI (see `plugin/workspace-ops-bridge.ts` and `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`). Whether a **specific host VM** allows that lazy load + sql.js is still **validation-needed** (INT-S4 / CH-11-01).
 - **Where to point that root (OpenClaw)**: **recommended** — set env or `workspaceRoot` to the **same absolute directory** as the OpenClaw **agent workspace** (commonly `~/.openclaw/workspace`, or the path in `~/.openclaw/openclaw.json` → `agents.defaults.workspace`), so Second Nature `data/` sits next to `SOUL.md` / `HEARTBEAT.md` on the same “desk”. Do **not** assume you can derive this path from the plugin install tree. With **sandbox** or **multiple agents**, use the **actual** workspace path where state is written. Rationale: `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`. **Acceptance on hosts** should use the **`second_nature_ops` JSON** as ground truth; assistant natural language may still echo older narratives (e.g. `HEARTBEAT_OK`) — treat mismatches as a documentation / prompt issue, not a pass.
+- **Claw inner guide**: after the hard bridge is available, carry `docs/claw-second-nature-inner-guide.md` into the Claw agent prompt, workspace identity anchor, or equivalent long-lived instruction surface. The OpenClaw plugin package also ships `SKILL.md` plus the same note as `agent-inner-guide.md`, and exposes `setup_hint` / `setup_ack` so a newly installed agent can read the note once, place it deliberately, then silence the first-run nudge. It teaches the agent to pause, look back at Second Nature traces, and avoid inventing closeness when the traces are missing.
 
 ### Target (v5 design intent; not proven per-host in CI)
 
@@ -158,6 +159,7 @@ Covered by **`pnpm test`** (includes `pnpm build` + `pnpm build:plugin`) and sum
 Unknown until **you** run them; CI does not replace this:
 
 - Whether your prompts/tools actually invoke `heartbeat_check` (risk: `heartbeat_tool_not_invoked`).
+- Whether your Claw agent has read the setup `SKILL.md` and absorbed `docs/claw-second-nature-inner-guide.md` or the packaged `agent-inner-guide.md`, so Second Nature is used as a natural continuity layer without reducing it to a command checklist.
 - Real **delivery target** availability vs `target_none`, and how your host treats ack / policy drops.
 - Your credentials, workspace anchors, and connector reachability.
 
@@ -248,6 +250,8 @@ These anchor files matter:
 - `workspace/USER.md` for the relationship with the owner and what matters to them
 - `workspace/IDENTITY.md` for self-description, role, and behavioral boundaries
 - `workspace/MEMORY.md` for longer-lived facts and continuity worth carrying forward
+
+Current init reality: Second Nature does not yet ship a `workspace_init` command that creates these anchors or writes the inner guide for you. The only init-style CLI surface today is `connector_init`, which creates connector stubs under `.second-nature/connectors/`. The installed plugin does include a one-shot setup surface: `setup_hint` returns the packaged `SKILL.md` and `agent-inner-guide.md`; after you place the guide into the agent prompt, `workspace/IDENTITY.md`, or another long-lived identity anchor, `setup_ack` writes `.second-nature/setup/agent-inner-guide-ack.json` so future read surfaces stop nudging.
 
 During runtime, the guidance layer reads these files as source material, then selects a small number of relevant snippets for the current scene. The files stay as the source of truth. The runtime only carries what is useful for that moment.
 
