@@ -116,9 +116,11 @@ test("T4.2.1-D: busy reply → timing busy, topics extracted, affinities updated
   assert.equal(entries[0]!.ownerReply!.topics!.includes("work"), true);
 
   // Affinities should be updated
+  // L-04: baseline affinity = 0.5 (default), mergeTopicAffinities adds +0.1 per mention → expected >= 0.6
   const workAffinity = result.updatedMemory!.topicAffinities.find((t) => t.topic === "work");
   assert.ok(workAffinity);
-  assert.ok(workAffinity!.affinity > 0.6, "work affinity should be boosted after reply mentioning deadline/project");
+  const EXPECTED_MIN_AFFINITY = 0.6;
+  assert.ok(workAffinity!.affinity >= EXPECTED_MIN_AFFINITY, `work affinity should be boosted after reply mentioning deadline/project (expected >= ${EXPECTED_MIN_AFFINITY})`);
 });
 
 test("T4.2.1-E: no existing memory → creates default relationship with inferred traits", async () => {
@@ -163,4 +165,18 @@ test("T4.2.1-F: memory update includes sourceRef traceable to chronicle entry", 
   // Topics should include "tech" (architecture, design, feature)
   const techAffinity = memory.topicAffinities.find((t) => t.topic === "tech");
   assert.ok(techAffinity, "tech topic should be inferred from reply text");
+});
+
+test("T4.2.1-G: conflicting tone (positive + negative) → quiet wins", async () => {
+  const state = createStateDatabase(":memory:");
+  await seedRelationshipMemory(state);
+
+  const result = await processOwnerReply(
+    {
+      replyText: "I love this feature but I'm frustrated with the timing",
+      relatedDecisionId: "decision-007",
+    },
+    state,
+  );
+  assert.equal(result.updatedMemory!.tonePreference, "quiet");
 });

@@ -54,9 +54,18 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
         intent.kind === "maintenance";
     const connectorUnwired = intent.effectClass === "connector_action";
     if (connectorUnwired && deps.connectorExecutor) {
+        if (!intent.platformId || intent.platformId === "unknown") {
+            return {
+                scope: "rhythm",
+                status: "intent_selected",
+                selectedIntentId: intent.id,
+                decisionId: `decision:${intent.id}:${Date.now()}`,
+                reasons: ["connector_dispatch_unavailable"],
+            };
+        }
         const decisionId = `decision:${intent.id}:${Date.now()}`;
         const result = await deps.connectorExecutor.executeEffect({
-            platformId: intent.platformId ?? "unknown",
+            platformId: intent.platformId,
             intent: toCapabilityIntent(intent),
             payload: {},
             decisionId,
@@ -71,7 +80,7 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
             deps.workspaceRoot) {
             try {
                 const candidate = mapLifeEvidence({
-                    platformId: intent.platformId ?? "unknown",
+                    platformId: intent.platformId,
                     intent: toCapabilityIntent(intent),
                     result,
                     observedAt: new Date().toISOString(),
@@ -191,6 +200,8 @@ export async function ingestRhythmSignal(signal, deps) {
     const rawCandidates = planCandidateIntents(runtime, {
         acceptedGoals: inputs.acceptedGoals,
         connectorRegistry: deps.connectorRegistry,
+        narrativeState: runtime.narrativeState,
+        relationshipMemory: runtime.relationshipMemory,
     });
     const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
     const emitTrace = async (result) => {

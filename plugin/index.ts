@@ -7,6 +7,7 @@
  *   runtime graph currently contains async sql.js bootstrap that breaks vm sandbox loading
  * - expose a minimal in-memory activation spine so status/lifecycle stay truthful even when
  *   the full workspace runtime is not loaded inside the host
+ * - T4.2.1: owner reply ingestion → RelationshipMemory feedback (full runtime only)
  *
  * Dependencies:
  * - only imports runtime lifecycle/service modules that are synchronous at load time

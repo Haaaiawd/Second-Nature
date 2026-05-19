@@ -9,6 +9,7 @@
  */
 import type { CandidateIntent } from "../types.js";
 import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
+export declare function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean;
 export interface ApplyGoalPriorityResult {
     candidates: CandidateIntent[];
     goalInfluences: Array<{

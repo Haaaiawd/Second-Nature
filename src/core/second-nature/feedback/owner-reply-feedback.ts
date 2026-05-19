@@ -25,37 +25,67 @@ import {
   type TopicAffinity,
 } from "../../../storage/relationship/relationship-memory-store.js";
 
-const POSITIVE_KEYWORDS = ["agree", "thanks", "appreciate", "helpful", "good", "great", "love", "like", "enjoy", "excited", "happy"];
-const NEGATIVE_KEYWORDS = ["disagree", "frustrated", "annoying", "bad", "hate", "dislike", "angry", "upset", "disappointed", "concerned"];
-const BUSY_KEYWORDS = ["busy", "swamped", "occupied", "tight schedule", "no time", "later"];
+const DEFAULT_POSITIVE_KEYWORDS = [
+  "agree", "thanks", "appreciate", "helpful", "good", "great", "love", "like", "enjoy",
+  "excited", "happy", "nice", "wonderful", "awesome", "perfect", "cool", "ok", "yes",
+];
+const DEFAULT_NEGATIVE_KEYWORDS = [
+  "disagree", "frustrated", "annoying", "bad", "hate", "dislike", "angry", "upset",
+  "disappointed", "concerned", "no", "not", "never", "wrong", "terrible", "awful",
+  "useless", "stop", "don't",
+];
+const DEFAULT_BUSY_KEYWORDS = [
+  "busy", "swamped", "occupied", "tight schedule", "no time", "later",
+  "overloaded", "overwhelmed", "backlog", "not now", "another time", "schedule tight",
+];
 
-const TOPIC_PATTERNS: Record<string, string[]> = {
+const DEFAULT_TOPIC_PATTERNS: Record<string, string[]> = {
   work: ["work", "project", "task", "job", "delivery", "deadline"],
   personal: ["family", "life", "health", "weekend", "trip"],
   tech: ["code", "system", "bug", "feature", "architecture", "design"],
   social: ["friend", "community", "meetup", "event", "collaboration"],
 };
 
-function inferTone(text: string): "casual" | "direct" | "quiet" | "unknown" {
+export interface ReplyInferenceConfig {
+  positiveKeywords?: string[];
+  negativeKeywords?: string[];
+  busyKeywords?: string[];
+  topicPatterns?: Record<string, string[]>;
+}
+
+export function inferTone(
+  text: string,
+  config?: ReplyInferenceConfig,
+): "casual" | "direct" | "quiet" | "unknown" {
   const lower = text.toLowerCase();
-  const pos = POSITIVE_KEYWORDS.filter((w) => lower.includes(w)).length;
-  const neg = NEGATIVE_KEYWORDS.filter((w) => lower.includes(w)).length;
-  if (neg > pos && neg > 0) return "quiet"; // owner is negative → agent should be more reserved
+  const positiveKeywords = config?.positiveKeywords ?? DEFAULT_POSITIVE_KEYWORDS;
+  const negativeKeywords = config?.negativeKeywords ?? DEFAULT_NEGATIVE_KEYWORDS;
+  const pos = positiveKeywords.filter((w) => lower.includes(w)).length;
+  const neg = negativeKeywords.filter((w) => lower.includes(w)).length;
+  if (neg >= pos && neg > 0) return "quiet"; // owner is negative → agent should be more reserved
   if (pos > 0) return "casual"; // positive → casual is fine
   return "unknown";
 }
 
-function inferTiming(text: string): "responsive" | "busy" | undefined {
+export function inferTiming(
+  text: string,
+  config?: ReplyInferenceConfig,
+): "responsive" | "busy" | undefined {
   const lower = text.toLowerCase();
-  if (BUSY_KEYWORDS.some((w) => lower.includes(w))) return "busy";
+  const busyKeywords = config?.busyKeywords ?? DEFAULT_BUSY_KEYWORDS;
+  if (busyKeywords.some((w) => lower.includes(w))) return "busy";
   if (lower.includes("quick") || lower.includes("prompt")) return "responsive";
   return undefined;
 }
 
-function inferTopics(text: string): string[] {
+export function inferTopics(
+  text: string,
+  config?: ReplyInferenceConfig,
+): string[] {
   const lower = text.toLowerCase();
+  const topicPatterns = config?.topicPatterns ?? DEFAULT_TOPIC_PATTERNS;
   const topics: string[] = [];
-  for (const [topic, patterns] of Object.entries(TOPIC_PATTERNS)) {
+  for (const [topic, patterns] of Object.entries(topicPatterns)) {
     if (patterns.some((p) => lower.includes(p))) {
       topics.push(topic);
     }
@@ -63,7 +93,7 @@ function inferTopics(text: string): string[] {
   return topics;
 }
 
-function mergeTopicAffinities(
+export function mergeTopicAffinities(
   existing: TopicAffinity[],
   newTopics: string[],
 ): TopicAffinity[] {
@@ -74,6 +104,13 @@ function mergeTopicAffinities(
   return Array.from(map.entries())
     .map(([topic, affinity]) => ({ topic, affinity }))
     .sort((a, b) => b.affinity - a.affinity);
+}
+
+function redactSensitive(text: string): string {
+  return text
+    .replace(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, "[REDACTED_CARD]")
+    .replace(/password[:\s=]+\S+/gi, "[REDACTED_PASSWORD]")
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, "[REDACTED_EMAIL]");
 }
 
 export interface ProcessOwnerReplyInput {
@@ -90,6 +127,7 @@ export interface ProcessOwnerReplyResult {
   relationshipUpdated: boolean;
   priorMemory?: RelationshipMemory;
   updatedMemory?: RelationshipMemory;
+  relationshipUpdateError?: string;
 }
 
 /**
@@ -117,7 +155,7 @@ export async function processOwnerReply(
     eventKind: "owner_reply",
     actor: "owner",
     occurredAt: now,
-    summary: isEmpty ? "(empty reply)" : replyText.slice(0, 500),
+    summary: redactSensitive(isEmpty ? "(empty reply)" : replyText.slice(0, 500)),
     result: "succeeded",
     sourceRefs: [{ sourceId: entryId, kind: "owner_reply", url: `chronicle://${entryId}` }],
     relatedDecisionId: input.relatedDecisionId,
@@ -163,9 +201,18 @@ export async function processOwnerReply(
     await relStore.upsertRelationshipMemory(update);
     updatedMemory = (await relStore.loadRelationshipMemory()) ?? undefined;
     relationshipUpdated = true;
-  } catch {
+  } catch (err) {
     // Relationship update is best-effort; chronicle is the source of truth.
     // Missing memory update will be reflected in the next `explain relationship` query.
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.warn(`[owner-reply-feedback] RelationshipMemory update failed: ${errorMessage}`);
+    return {
+      chronicleEntryId: entryId,
+      relationshipUpdated: false,
+      priorMemory,
+      updatedMemory,
+      relationshipUpdateError: errorMessage,
+    };
   }
 
   return {

@@ -19,7 +19,7 @@ import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
  */
 const GOAL_PRIORITY_BOOST = 20;
 
-function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean {
+export function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean {
   const goalText = `${goal.description} ${goal.completionCriteria}`.toLowerCase();
 
   // Direct platformId mention in goal text

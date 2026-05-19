@@ -24,6 +24,7 @@ import type { StateDatabase } from "../../storage/db/index.js";
 import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-snapshot.js";
 import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
+import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
 import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
@@ -108,6 +109,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
 
   // T2.1.4: Load accepted goals from state DB when available.
   let acceptedGoals: import("../../storage/goal/agent-goal-store.js").AgentGoal[] | undefined;
+  let acceptedGoalsLoadError: string | undefined;
   if (options.state) {
     try {
       const goalStore = createAgentGoalStore(options.state);
@@ -115,8 +117,28 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
         statuses: ["accepted"],
         limit: 20,
       });
+    } catch (err) {
+      acceptedGoals = [];
+      acceptedGoalsLoadError = err instanceof Error ? err.message : String(err);
+      // H-05: Distinguish "load failed" from "no goals" for observability.
+    }
+  }
+
+  // CR-02: Load narrative state and relationship memory when state is available.
+  let narrativeState: import("../../storage/narrative/narrative-state-store.js").NarrativeState | undefined;
+  let relationshipMemory: import("../../storage/relationship/relationship-memory-store.js").RelationshipMemory | undefined;
+  if (options.state) {
+    try {
+      const narrativeStore = createNarrativeStateStore(options.state);
+      narrativeState = (await narrativeStore.loadNarrativeState()) ?? undefined;
     } catch {
-      acceptedGoals = undefined;
+      // Narrative state is optional; failure should not block the cycle.
+    }
+    try {
+      const relationshipStore = createRelationshipMemoryStore(options.state);
+      relationshipMemory = (await relationshipStore.loadRelationshipMemory()) ?? undefined;
+    } catch {
+      // Relationship memory is optional; failure should not block the cycle.
     }
   }
 
@@ -135,6 +157,9 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
     workEventCount,
     lifeEvidenceEmptyReason,
     acceptedGoals,
+    acceptedGoalsLoadError,
+    narrativeState,
+    relationshipMemory,
   };
 }
 

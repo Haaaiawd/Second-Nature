@@ -6,7 +6,7 @@
  * range from 40–100, so 200 provides ample headroom without overflow.
  */
 const GOAL_PRIORITY_BOOST = 20;
-function isGoalRelatedToCandidate(goal, candidate) {
+export function isGoalRelatedToCandidate(goal, candidate) {
     const goalText = `${goal.description} ${goal.completionCriteria}`.toLowerCase();
     // Direct platformId mention in goal text
     if (candidate.platformId) {

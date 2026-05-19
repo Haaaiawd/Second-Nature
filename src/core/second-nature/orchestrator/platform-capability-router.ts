@@ -88,7 +88,9 @@ function validatePlatformCapability(
   if (!capability) return false;
   try {
     return registry.hasCapability(platformId, capability);
-  } catch {
+  } catch (err) {
+    // H-08: Log registry validation failures for observability.
+    console.warn(`[platform-capability-router] Registry validation failed for ${platformId}:${capability}`, err);
     return false;
   }
 }

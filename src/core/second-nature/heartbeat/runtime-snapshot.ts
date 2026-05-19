@@ -28,6 +28,8 @@ export interface HeartbeatRuntimeSnapshot {
   lifeEvidence: PlannerLifeEvidenceSlice;
   rhythmWindow: PlannerRhythmWindowSlice;
   hardGuards: HardGuardDeps;
+  narrativeState?: import("../../../storage/narrative/narrative-state-store.js").NarrativeState;
+  relationshipMemory?: import("../../../storage/relationship/relationship-memory-store.js").RelationshipMemory;
 }
 
 export function buildLifeEvidenceSliceFromInputs(inputs: SnapshotInputs): PlannerLifeEvidenceSlice {
@@ -66,5 +68,5 @@ export function buildHeartbeatRuntimeSnapshot(
   const rhythmWindow = buildPlannerRhythmWindow(timestamp, continuity, policy);
   const lifeEvidence = buildLifeEvidenceSliceFromInputs(inputs);
   const hardGuards = buildHardGuardDeps(continuity, inputs);
-  return { continuity, lifeEvidence, rhythmWindow, hardGuards };
+  return { continuity, lifeEvidence, rhythmWindow, hardGuards, narrativeState: inputs.narrativeState, relationshipMemory: inputs.relationshipMemory };
 }

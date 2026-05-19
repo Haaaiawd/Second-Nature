@@ -2,6 +2,7 @@ import { runHeartbeatCycle } from "../../core/second-nature/heartbeat/run-heartb
 import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-snapshot.js";
 import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
+import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
 export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, options = {}) {
     const status = await readModels.loadStatus();
     const mode = status.rhythm.mode === "unknown" ? "active" : status.rhythm.mode;
@@ -47,6 +48,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
     }
     // T2.1.4: Load accepted goals from state DB when available.
     let acceptedGoals;
+    let acceptedGoalsLoadError;
     if (options.state) {
         try {
             const goalStore = createAgentGoalStore(options.state);
@@ -55,8 +57,29 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
                 limit: 20,
             });
         }
+        catch (err) {
+            acceptedGoals = [];
+            acceptedGoalsLoadError = err instanceof Error ? err.message : String(err);
+            // H-05: Distinguish "load failed" from "no goals" for observability.
+        }
+    }
+    // CR-02: Load narrative state and relationship memory when state is available.
+    let narrativeState;
+    let relationshipMemory;
+    if (options.state) {
+        try {
+            const narrativeStore = createNarrativeStateStore(options.state);
+            narrativeState = (await narrativeStore.loadNarrativeState()) ?? undefined;
+        }
         catch {
-            acceptedGoals = undefined;
+            // Narrative state is optional; failure should not block the cycle.
+        }
+        try {
+            const relationshipStore = createRelationshipMemoryStore(options.state);
+            relationshipMemory = (await relationshipStore.loadRelationshipMemory()) ?? undefined;
+        }
+        catch {
+            // Relationship memory is optional; failure should not block the cycle.
         }
     }
     return {
@@ -74,6 +97,9 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         workEventCount,
         lifeEvidenceEmptyReason,
         acceptedGoals,
+        acceptedGoalsLoadError,
+        narrativeState,
+        relationshipMemory,
     };
 }
 export function createWorkspaceHeartbeatRunner(readModels, options = {}) {

@@ -14,10 +14,14 @@ import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import type { SnapshotInputs } from "../heartbeat/snapshot-builder.js";
 import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
+import type { NarrativeState } from "../../../storage/narrative/narrative-state-store.js";
+import type { RelationshipMemory } from "../../../storage/relationship/relationship-memory-store.js";
 import {
   resolvePlatformForIntent,
   type PlatformResolutionContext,
 } from "./platform-capability-router.js";
+import { isGoalRelatedToCandidate } from "./goal-priority.js";
+import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 
 const MAX_CANDIDATE_INTENTS = 6;
 
@@ -29,20 +33,33 @@ function evidenceRefsForConnector(runtime: HeartbeatRuntimeSnapshot): ControlPla
   if (!isLifeEvidenceSliceEmpty(runtime.lifeEvidence) && runtime.lifeEvidence.evidenceRefs.length > 0) {
     return runtime.lifeEvidence.evidenceRefs.slice(0, 8);
   }
-  if (!isLifeEvidenceSliceEmpty(runtime.lifeEvidence)) {
-    return [
-      {
-        id: "life-evidence-summary",
-        kind: "connector_result",
-        uri: `workspace://life-evidence/counts/${runtime.lifeEvidence.platformEventCount}/${runtime.lifeEvidence.workEventCount}`,
-      },
-    ];
-  }
   return [];
 }
 
 function isAllowedKind(kind: IntentKind, runtime: HeartbeatRuntimeSnapshot): boolean {
   return runtime.rhythmWindow.allowedIntentKinds.includes(kind);
+}
+
+function focusMatchesKind(focus: string, kind: IntentKind): boolean {
+  const lower = focus.toLowerCase();
+  switch (kind) {
+    case "work":
+      return lower.includes("work") || lower.includes("obligation") || lower.includes("task");
+    case "exploration":
+      return lower.includes("explor") || lower.includes("opportunit") || lower.includes("scan") || lower.includes("discover");
+    case "social":
+      return lower.includes("social") || lower.includes("engage") || lower.includes("community");
+    case "outreach":
+      return lower.includes("outreach") || lower.includes("user") || lower.includes("proactive") || lower.includes("contact");
+    case "quiet":
+      return lower.includes("quiet") || lower.includes("bookkeep") || lower.includes("pause");
+    case "reflection":
+      return lower.includes("reflect") || lower.includes("narrative") || lower.includes("review");
+    case "maintenance":
+      return lower.includes("maintenance") || lower.includes("check") || lower.includes("upkeep");
+    default:
+      return false;
+  }
 }
 
 function planWorkIntents(
@@ -102,15 +119,20 @@ function planSocialIntents(
   runtime: HeartbeatRuntimeSnapshot,
   context?: PlatformResolutionContext,
   registry?: CapabilityContractRegistry,
+  narrativeState?: NarrativeState,
 ): CandidateIntent[] {
   if (!isAllowedKind("social", runtime)) return [];
   const refs = evidenceRefsForConnector(runtime);
   const platformId = resolvePlatformForIntent("social", context ?? {}, registry);
+  let priority = runtime.continuity.budgets && runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit ? 10 : 60;
+  if (narrativeState?.focus && focusMatchesKind(narrativeState.focus, "social")) {
+    priority += 15;
+  }
   return [
     {
       id: platformId ? `intent-social-${platformId}` : "intent-social",
       kind: "social",
-      priority: runtime.continuity.budgets && runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit ? 10 : 60,
+      priority,
       source: "tick",
       platformId,
       summary: platformId
@@ -182,18 +204,28 @@ function planOutreachIntents(
   runtime: HeartbeatRuntimeSnapshot,
   context?: PlatformResolutionContext,
   registry?: CapabilityContractRegistry,
+  narrativeState?: NarrativeState,
+  relationshipMemory?: RelationshipMemory,
 ): CandidateIntent[] {
   if (!isAllowedKind("outreach", runtime)) return [];
   if (runtime.continuity.recentOutreachHashes.length > 3) {
     return [];
   }
+  // CR-02: if noReplyCount is high, suppress outreach to avoid spam.
+  if (relationshipMemory && relationshipMemory.noReplyCount > 3) {
+    return [];
+  }
   const refs = evidenceRefsForConnector(runtime);
   const platformId = resolvePlatformForIntent("outreach", context ?? {}, registry);
+  let priority = 40;
+  if (narrativeState?.focus && focusMatchesKind(narrativeState.focus, "outreach")) {
+    priority += 15;
+  }
   return [
     {
       id: platformId ? `intent-outreach-${platformId}` : "intent-outreach",
       kind: "outreach",
-      priority: 40,
+      priority,
       source: "tick",
       platformId,
       summary: platformId
@@ -214,6 +246,10 @@ export interface PlanCandidateIntentsOptions {
   acceptedGoals?: import("../../../storage/goal/agent-goal-store.js").AgentGoal[];
   /** T2.4.1: optional connector registry for capability validation. */
   connectorRegistry?: CapabilityContractRegistry;
+  /** CR-02: optional narrative state to influence candidate priority. */
+  narrativeState?: NarrativeState;
+  /** CR-02: optional relationship memory to influence outreach timing. */
+  relationshipMemory?: RelationshipMemory;
 }
 
 /**
@@ -228,6 +264,8 @@ export function planCandidateIntents(
     evidenceRefs: runtime.lifeEvidence.evidenceRefs,
   };
   const registry = options?.connectorRegistry;
+  const narrativeState = options?.narrativeState ?? runtime.narrativeState;
+  const relationshipMemory = options?.relationshipMemory ?? runtime.relationshipMemory;
 
   if (runtime.continuity.mode === "paused_for_interrupt") {
     const pausedMaintenance: CandidateIntent[] = [
@@ -255,12 +293,37 @@ export function planCandidateIntents(
   const intents: CandidateIntent[] = [
     ...planWorkIntents(runtime, context, registry),
     ...planExplorationIntents(runtime, context, registry),
-    ...planSocialIntents(runtime, context, registry),
+    ...planSocialIntents(runtime, context, registry, narrativeState),
     ...planQuietReflectionIntents(runtime, context, registry),
-    ...planOutreachIntents(runtime, context, registry),
+    ...planOutreachIntents(runtime, context, registry, narrativeState, relationshipMemory),
   ];
 
-  return intents
+  // Pre-fill goalInfluenceRefs for non-obligation intents before returning.
+  // applyGoalPriority will later refine/override with the same logic.
+  const acceptedGoals = options?.acceptedGoals?.filter(
+    (g) =>
+      g.status === "accepted" &&
+      (g.origin !== "agent_proposed" || g.acceptedBy === "policy_allowlist"),
+  ) ?? [];
+
+  for (const intent of intents) {
+    if (intent.source === "obligation") continue;
+    const related = acceptedGoals.filter((g) => isGoalRelatedToCandidate(g, intent));
+    if (related.length > 0) {
+      intent.goalInfluenceRefs = related.map((g) => g.goalId);
+    }
+  }
+
+  // CR-02: apply narrative-focus bias globally across all candidate kinds.
+  const adjusted = intents.map((intent) => {
+    let priority = intent.priority;
+    if (narrativeState?.focus && focusMatchesKind(narrativeState.focus, intent.kind)) {
+      priority += 15;
+    }
+    return { ...intent, priority };
+  });
+
+  return adjusted
     .filter((intent) => runtime.rhythmWindow.allowedIntentKinds.includes(intent.kind))
     .sort((a, b) => b.priority - a.priority)
     .slice(0, MAX_CANDIDATE_INTENTS);

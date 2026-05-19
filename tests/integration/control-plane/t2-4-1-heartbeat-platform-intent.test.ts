@@ -73,8 +73,12 @@ test("T2.4.1-A: goal names moltbook → heartbeat selects exploration intent wit
   });
 
   assert.equal(result.status, "intent_selected");
-  // The selected intent should have platformId set by the planner
-  // We verify through the connectorExecutor mock that receives the correct platformId
+  // The selected intent should have platformId set by the planner.
+  // selectedIntentId encodes the platform (e.g. "intent-exploration-moltbook").
+  assert.ok(
+    result.selectedIntentId?.includes("moltbook"),
+    `expected selected intent to reference moltbook, got id=${result.selectedIntentId}`,
+  );
 });
 
 test("T2.4.1-A: goal names moltbook with connectorExecutor → executeEffect receives platformId=moltbook", async () => {

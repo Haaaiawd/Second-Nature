@@ -307,7 +307,14 @@ Round 7 `/change` 新增 S5：T1.4.1 RuntimeSecretBootstrap、T3.3.1 real connec
 **T2.4.2**：新增集成测试 `tests/integration/control-plane/t2-4-2-source-backed-outreach-loop.test.ts`，验证 evidence → outreach judgment → draft → delivery/fallback 完整闭环。核心链路已在 T2.3.1/T6.1.1 实现：connector evidence 通过 `lifeEvidenceRefs` 流入 `planCandidateIntents` 生成的 outreach candidate `sourceRefs`；`dispatchUserOutreachIntent` 加载 `NarrativeState` + `RelationshipMemory` 并通过 `buildOutreachDraftRequest` 注入 draft context；`GuidanceDraftPort.draftOutreachMessage` 生成含 source refs 的 draft；delivery 成功时 `writeDeliveryAttempt` 记录 messageId/hostProofRef，失败时 `writeOperatorFallback` 记录 candidateMessage + reason。4 个集成测试 cases（A: evidence→outreach candidate sourceRefs、B: evidence-backed draft→delivery sent、C: delivery unavailable→fallback with evidence context、D: no evidence→judgment deny）。208 测试全绿，无回归。05A_TASKS.md 勾选 T2.4.2。
 
 ### 🌊 Wave 39 ✅ — v6 S5 Life Loop Activation: T4.2.1 owner reply → RelationshipMemory feedback
-**T4.2.1**：新增 `recordOwnerReplyFeedback()`（`src/core/second-nature/feedback/owner-reply-feedback.ts`），将 owner 对 outreach 的回复记录为 SessionChronicle `owner_reply` entry，并驱动 RelationshipMemory 更新。实现：通过 `inferToneFromReply`、`inferTimingFromReply`、`extractTopicsFromReply` 三个轻量推断函数分析回复文本，生成 `RelationshipUpdateProposal`（tone、timing、topicAffinities）；调用 `applyRelationshipUpdate` 将 proposal 合并入 `RelationshipMemoryStore`；若无现存 memory 则创建默认对象并应用推断。chronicle entry 与 memory update 均携带 `sourceRef`（reply signal id + chronicle id），保证可追溯。6 个集成测试 cases（A: chronicle entry written with owner_reply kind、B: positive reply→tone casual + noReplyCount reset、C: negative reply→tone quiet/reserved、D: busy reply→timing busy + topics extracted、E: no existing memory→creates default with inferred traits、F: sourceRef traceable to chronicle entry）。214 测试全绿（T4.2.1 新增 6 个），Waves 36-39 相关测试回归通过。05A_TASKS.md 勾选 T4.2.1。
+**T4.2.1**：新增 `recordOwnerReplyFeedback()`（`src/core/second-nature/feedback/owner-reply-feedback.ts`），将 owner 对 outreach 的回复记录为 SessionChronicle `owner_reply` entry，并驱动 RelationshipMemory 更新。实现：通过 `inferToneFromReply`、`inferTimingFromReply`、`extractTopicsFromReply` 三个轻量推断函数分析回复文本，生成 `RelationshipUpdateProposal`（tone、timing、topicAffinities）；调用 `applyRelationshipUpdate` 将 proposal 合并入 `RelationshipMemoryStore`；若无现存 memory 则创建默认对象并应用推断。chronicle entry 与 memory update 均携带 `sourceRef`（reply signal id + chronicle id），保证可追溯。
+
+S5 Waves 36-39 测试增量明细：
+- Wave 36 T3.3.1: 4 个集成测试（real connector evidence 路径）
+- Wave 37 T2.4.1: 12 个测试（7 单元 + 5 集成，platform-specific intent 路径）
+- Wave 38 T2.4.2: 4 个集成测试（source-backed outreach delivery 路径）
+- Wave 39 T4.2.1: 6 个集成测试（owner reply → relationship feedback 路径）
+合计新增 26 个，214 测试全绿，无回归。05A_TASKS.md 勾选 T4.2.1。
 
 <!-- AUTO:END -->
 

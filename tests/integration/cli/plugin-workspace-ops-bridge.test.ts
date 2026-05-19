@@ -164,8 +164,12 @@ test("T2.2.3 bridge full-runtime heartbeat wires connectorExecutor for connector
   assert.equal(payload.ok, true);
   assert.equal(payload.surfaceMode, "workspace_full_runtime");
   assert.equal(payload.status, "intent_selected");
+  // When platformId cannot be resolved the executor is not invoked (M-08).
+  // The bridge still wires connectorExecutor; this test verifies the full-runtime
+  // path does not fall back to connector_dispatch_unwired.
   assert.ok(
-    payload.reasons.includes("connector_terminal_failure") ||
+    payload.reasons.includes("connector_dispatch_unavailable") ||
+      payload.reasons.includes("connector_terminal_failure") ||
       payload.reasons.includes("connector_retryable_failure") ||
       payload.reasons.includes("connector_effect_executed"),
     `expected connector executor result reason, got ${JSON.stringify(payload.reasons)}`,
