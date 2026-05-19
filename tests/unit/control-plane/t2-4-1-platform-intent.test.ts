@@ -90,7 +90,7 @@ test("T2.4.1-B: evidence ref uri platform://evomap → work resolves platformId=
   assert.equal(platformId, "evomap");
 });
 
-test("T2.4.1-C: registry validates capability; unsupported capability returns first candidate anyway", () => {
+test("T2.4.1-C: registry validates capability; unsupported capability returns undefined", () => {
   const registry = buildRegistry();
   // evomap supports work.discover but NOT feed.read (exploration)
   const platformId = resolvePlatformForIntent(
@@ -100,10 +100,8 @@ test("T2.4.1-C: registry validates capability; unsupported capability returns fi
     },
     registry,
   );
-  // With registry, it validates; evomap doesn't support feed.read,
-  // but the current implementation returns first candidate anyway
-  // (guard layer will deny with specific reason).
-  assert.equal(platformId, "evomap");
+  // With registry, unsupported capability → undefined (guard layer denies)
+  assert.equal(platformId, undefined);
 });
 
 test("T2.4.1-C: registry validates supported capability → returns validated platform", () => {
@@ -130,7 +128,7 @@ test("T2.4.1-D: goal mentions unknown platform → platformId undefined", () => 
   assert.equal(platformId, undefined);
 });
 
-test("T2.4.1-D: goal and evidence both present → goal takes precedence (first match)", () => {
+test("T2.4.1-D: goal and evidence point to different platforms → ambiguous, returns undefined", () => {
   const platformId = resolvePlatformForIntent("exploration", {
     acceptedGoals: [makeGoal("Look at moltbook")],
     evidenceRefs: [
@@ -141,9 +139,35 @@ test("T2.4.1-D: goal and evidence both present → goal takes precedence (first 
       },
     ],
   });
-  // goal matches moltbook first, then evidence matches evomap
-  // but deduplication preserves order, so moltbook wins
-  assert.equal(platformId, "moltbook");
+  // Multiple distinct platforms → ambiguous, return undefined (guard layer denies)
+  assert.equal(platformId, undefined);
+});
+
+test("T2.4.1-E: dynamic registry includes new platform → resolves new platformId", () => {
+  const registry = new CapabilityContractRegistry();
+  registry.register({
+    platformId: "agentworld",
+    supportedCapabilities: ["feed.read"],
+    channelPriority: ["api_rest"],
+    credentialTypes: ["api_key"],
+    sourceRefPolicy: { minSourceRefs: 1 },
+  });
+  const platformId = resolvePlatformForIntent(
+    "exploration",
+    {
+      acceptedGoals: [makeGoal("Explore agentworld")],
+    },
+    registry,
+  );
+  assert.equal(platformId, "agentworld");
+});
+
+test("T2.4.1-F: no registry, unknown platform → undefined (not in built-in fallback)", () => {
+  const platformId = resolvePlatformForIntent("exploration", {
+    acceptedGoals: [makeGoal("Explore agentworld")],
+  });
+  // Without registry, built-in fallback only knows moltbook/instreet/evomap
+  assert.equal(platformId, undefined);
 });
 
 test("T2.4.1: priority order: work → exploration → social → outreach → quiet", () => {

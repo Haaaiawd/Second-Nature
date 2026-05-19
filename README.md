@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
-  <img src="https://img.shields.io/badge/Architecture-v5-1d4ed8?style=for-the-badge" alt="Architecture v5">
+  <img src="https://img.shields.io/badge/Architecture-v6-1d4ed8?style=for-the-badge" alt="Architecture v6">
   <img src="https://img.shields.io/badge/CI--fixtures-green-059669?style=for-the-badge" alt="CI fixtures green">
   <img src="https://img.shields.io/badge/License-Apache--2.0-f59e0b?style=for-the-badge" alt="License Apache 2.0">
 </p>

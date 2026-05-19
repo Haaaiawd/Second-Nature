@@ -105,16 +105,19 @@ export async function processOwnerReply(
 
   // 1. Write chronicle entry (source of truth)
   const entryId = `owner_reply:${input.relatedDecisionId}:${Date.now()}`;
-  const tone = inferTone(input.replyText);
-  const timing = inferTiming(input.replyText);
-  const topics = inferTopics(input.replyText);
+  const replyText = input.replyText?.trim() ?? "";
+  const isEmpty = replyText.length === 0;
+
+  const tone = isEmpty ? "unknown" : inferTone(replyText);
+  const timing = isEmpty ? undefined : inferTiming(replyText);
+  const topics = isEmpty ? [] : inferTopics(replyText);
 
   const chronicleEntry: SessionChronicleEntry = {
     entryId,
     eventKind: "owner_reply",
     actor: "owner",
     occurredAt: now,
-    summary: input.replyText.slice(0, 500),
+    summary: isEmpty ? "(empty reply)" : replyText.slice(0, 500),
     result: "succeeded",
     sourceRefs: [{ sourceId: entryId, kind: "owner_reply", url: `chronicle://${entryId}` }],
     relatedDecisionId: input.relatedDecisionId,
