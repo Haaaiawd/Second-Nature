@@ -13,9 +13,15 @@
  */
 import type { IntentKind } from "../types.js";
 import type { ControlPlaneSourceRef } from "../types.js";
-import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 import type { CapabilityIntent } from "../../../connectors/base/contract.js";
+
+/** Minimal goal shape accepted by the router to avoid coupling to AgentGoal. M-03 decoupling. */
+interface GoalRouterContext {
+  goalId: string;
+  description: string;
+  completionCriteria?: string;
+}
 
 function kindToCapability(kind: IntentKind): CapabilityIntent | null {
   if (kind === "exploration") return "feed.read";
@@ -34,7 +40,7 @@ function getPlatformIds(registry?: CapabilityContractRegistry): string[] {
 }
 
 function extractPlatformIdsFromGoals(
-  goals: AgentGoal[],
+  goals: GoalRouterContext[],
   kind: IntentKind,
   platformIds: string[],
 ): string[] {
@@ -68,11 +74,19 @@ function extractPlatformIdsFromEvidence(
         }
       }
     }
-    // Parse platform:// URIs
+    // Parse platform:// URIs (e.g. platform://moltbook/feed.read)
     if (ref.uri && ref.uri.startsWith("platform://")) {
-      const platformPart = ref.uri.slice("platform://".length).split("/")[0];
+      const afterScheme = ref.uri.slice("platform://".length);
+      const platformPart = afterScheme.split("/")[0];
       if (platformPart && platformIds.includes(platformPart)) {
         results.add(platformPart);
+      }
+    }
+    // L-02: Also support namespace format moltbook:feed.read (connector-system §5.3)
+    if (ref.uri && !ref.uri.includes("://") && ref.uri.includes(":")) {
+      const nsPart = ref.uri.split(":")[0];
+      if (nsPart && platformIds.includes(nsPart)) {
+        results.add(nsPart);
       }
     }
   }
@@ -97,7 +111,7 @@ function validatePlatformCapability(
 
 export interface PlatformResolutionContext {
   /** Accepted goals that may name a platform or capability. */
-  acceptedGoals?: AgentGoal[];
+  acceptedGoals?: GoalRouterContext[];
   /** Evidence refs that may embed platform identity. */
   evidenceRefs?: ControlPlaneSourceRef[];
 }

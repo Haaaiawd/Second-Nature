@@ -28,6 +28,7 @@ import { createRelationshipMemoryStore } from "../../storage/relationship/relati
 import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
+import type { GoalContext } from "../../core/second-nature/orchestrator/intent-planner.js";
 
 export interface WorkspaceHeartbeatRunnerOptions {
   /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
@@ -93,6 +94,8 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
       platformEventCount = snapshot.platformEvents.length;
       workEventCount = snapshot.workEvents.length;
       if (snapshot.empty) {
+        // L-01: Currently snapshot only exposes `empty` boolean.
+        // Future: if snapshot adds `emptyReason` (e.g. "redacted_only"), map it here.
         lifeEvidenceEmptyReason = "no_sources";
       }
     } catch {
@@ -108,7 +111,8 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
   }
 
   // T2.1.4: Load accepted goals from state DB when available.
-  let acceptedGoals: import("../../storage/goal/agent-goal-store.js").AgentGoal[] | undefined;
+  // M-03: typed as GoalContext to avoid coupling to the full AgentGoal schema.
+  let acceptedGoals: GoalContext[] | undefined;
   let acceptedGoalsLoadError: string | undefined;
   if (options.state) {
     try {

@@ -8,7 +8,20 @@
  * All other statuses (proposal / rejected / completed / paused) are implicitly excluded.
  */
 import type { CandidateIntent } from "../types.js";
-import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
+
+/**
+ * Minimal goal context used by the priority module to avoid coupling
+ * to the full AgentGoal schema. M-03 decoupling.
+ */
+export interface GoalPriorityContext {
+  goalId: string;
+  description: string;
+  completionCriteria?: string;
+  status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
+  origin: "owner_set" | "agent_proposed" | "policy_seeded";
+  acceptedBy?: "owner" | "policy_allowlist";
+  [key: string]: unknown;
+}
 
 /**
  * Per-goal priority boost applied when an accepted goal matches a candidate.
@@ -19,8 +32,8 @@ import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
  */
 const GOAL_PRIORITY_BOOST = 20;
 
-export function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean {
-  const goalText = `${goal.description} ${goal.completionCriteria}`.toLowerCase();
+export function isGoalRelatedToCandidate(goal: GoalPriorityContext, candidate: CandidateIntent): boolean {
+  const goalText = `${goal.description} ${goal.completionCriteria ?? ""}`.toLowerCase();
 
   // Direct platformId mention in goal text
   if (candidate.platformId) {
@@ -48,7 +61,7 @@ export interface ApplyGoalPriorityResult {
 
 export function applyGoalPriority(
   candidates: CandidateIntent[],
-  goals: AgentGoal[] | undefined,
+  goals: GoalPriorityContext[] | undefined,
 ): ApplyGoalPriorityResult {
   const acceptedGoals = (goals ?? []).filter(
     (g) =>

@@ -7,9 +7,24 @@ import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js"
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 import type { NarrativeState } from "../../../storage/narrative/narrative-state-store.js";
 import type { RelationshipMemory } from "../../../storage/relationship/relationship-memory-store.js";
+import { type PlatformResolutionContext } from "./platform-capability-router.js";
+import { type GoalPriorityContext } from "./goal-priority.js";
+/** Alias for GoalPriorityContext to keep intent-planner local naming consistent. M-03 decoupling. */
+export type GoalContext = GoalPriorityContext;
+export interface PlanIntentOptions {
+    narrativeState?: NarrativeState;
+    relationshipMemory?: RelationshipMemory;
+    budgetCheck?: boolean;
+    multiSource?: string[];
+}
+/**
+ * Factory for planning a candidate intent of a given kind.
+ * M-04: consolidates the previously separate plan{Work,Exploration,Social,Outreach}Intents.
+ */
+export declare function planIntentWithKind(kind: "work" | "exploration" | "social" | "outreach", basePriority: number, runtime: HeartbeatRuntimeSnapshot, context: PlatformResolutionContext, registry?: CapabilityContractRegistry, options?: PlanIntentOptions): CandidateIntent[];
 export interface PlanCandidateIntentsOptions {
     /** T2.4.1: accepted goals for platform-specific resolution. */
-    acceptedGoals?: import("../../../storage/goal/agent-goal-store.js").AgentGoal[];
+    acceptedGoals?: GoalContext[];
     /** T2.4.1: optional connector registry for capability validation. */
     connectorRegistry?: CapabilityContractRegistry;
     /** CR-02: optional narrative state to influence candidate priority. */

@@ -43,11 +43,19 @@ function extractPlatformIdsFromEvidence(refs, platformIds) {
                 }
             }
         }
-        // Parse platform:// URIs
+        // Parse platform:// URIs (e.g. platform://moltbook/feed.read)
         if (ref.uri && ref.uri.startsWith("platform://")) {
-            const platformPart = ref.uri.slice("platform://".length).split("/")[0];
+            const afterScheme = ref.uri.slice("platform://".length);
+            const platformPart = afterScheme.split("/")[0];
             if (platformPart && platformIds.includes(platformPart)) {
                 results.add(platformPart);
+            }
+        }
+        // L-02: Also support namespace format moltbook:feed.read (connector-system §5.3)
+        if (ref.uri && !ref.uri.includes("://") && ref.uri.includes(":")) {
+            const nsPart = ref.uri.split(":")[0];
+            if (nsPart && platformIds.includes(nsPart)) {
+                results.add(nsPart);
             }
         }
     }

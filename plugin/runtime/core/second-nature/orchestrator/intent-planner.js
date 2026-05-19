@@ -36,75 +36,100 @@ function focusMatchesKind(focus, kind) {
             return false;
     }
 }
-function planWorkIntents(runtime, context, registry) {
-    if (!isAllowedKind("work", runtime))
-        return [];
-    const platformId = resolvePlatformForIntent("work", context ?? {}, registry);
-    return runtime.continuity.pendingObligations.map((obligation, index) => ({
-        id: platformId ? `intent-obligation-${platformId}-${index}` : `intent-obligation-${index}`,
-        kind: "work",
-        priority: 100 - index,
-        source: "obligation",
-        platformId,
-        summary: platformId
-            ? `fulfill obligation on ${platformId}: ${obligation}`
-            : `fulfill obligation: ${obligation}`,
+const INTENT_CONFIGS = {
+    work: {
+        basePriority: 100,
         effectClass: "connector_action",
-        sourceRefs: [...OBLIGATION_SOURCE],
-        idempotencyKey: platformId
-            ? `obligation:${platformId}:${obligation}:${index}`
-            : `obligation:${obligation}:${index}`,
-        goalInfluenceRefs: [],
-    }));
-}
-function planExplorationIntents(runtime, context, registry) {
-    if (!isAllowedKind("exploration", runtime))
+        summary: (platformId, detail) => platformId ? `fulfill obligation on ${platformId}: ${detail}` : `fulfill obligation: ${detail}`,
+        source: "obligation",
+        idPrefix: "intent-obligation",
+        idempotencyPrefix: "obligation",
+    },
+    exploration: {
+        basePriority: 70,
+        effectClass: "connector_action",
+        summary: (platformId) => platformId ? `scan platform opportunities on ${platformId}` : "scan platform opportunities",
+        source: "tick",
+        idPrefix: "intent-exploration",
+        idempotencyPrefix: "exploration",
+    },
+    social: {
+        basePriority: 60,
+        effectClass: "connector_action",
+        summary: (platformId) => platformId ? `engage social platforms on ${platformId}` : "engage social platforms",
+        source: "tick",
+        idPrefix: "intent-social",
+        idempotencyPrefix: "social",
+    },
+    outreach: {
+        basePriority: 40,
+        effectClass: "user_outreach",
+        summary: (platformId) => platformId ? `consider proactive user outreach on ${platformId}` : "consider proactive user outreach",
+        source: "tick",
+        idPrefix: "intent-outreach",
+        idempotencyPrefix: "outreach",
+    },
+};
+/**
+ * Factory for planning a candidate intent of a given kind.
+ * M-04: consolidates the previously separate plan{Work,Exploration,Social,Outreach}Intents.
+ */
+export function planIntentWithKind(kind, basePriority, runtime, context, registry, options) {
+    if (!isAllowedKind(kind, runtime))
         return [];
-    const refs = evidenceRefsForConnector(runtime);
-    const platformId = resolvePlatformForIntent("exploration", context ?? {}, registry);
-    return [
-        {
-            id: platformId ? `intent-exploration-${platformId}` : "intent-exploration",
-            kind: "exploration",
-            priority: 70,
-            source: "tick",
-            platformId,
-            summary: platformId
-                ? `scan platform opportunities on ${platformId}`
-                : "scan platform opportunities",
-            effectClass: "connector_action",
-            sourceRefs: refs,
-            idempotencyKey: platformId
-                ? `exploration:${platformId}`
-                : "exploration:scan platform opportunities",
-            goalInfluenceRefs: [],
-        },
-    ];
-}
-function planSocialIntents(runtime, context, registry, narrativeState) {
-    if (!isAllowedKind("social", runtime))
-        return [];
-    const refs = evidenceRefsForConnector(runtime);
-    const platformId = resolvePlatformForIntent("social", context ?? {}, registry);
-    let priority = runtime.continuity.budgets && runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit ? 10 : 60;
-    if (narrativeState?.focus && focusMatchesKind(narrativeState.focus, "social")) {
+    const config = INTENT_CONFIGS[kind];
+    const platformId = resolvePlatformForIntent(kind, context ?? {}, registry);
+    let priority = basePriority;
+    // Social budget exhaustion → cap priority.
+    if (kind === "social" &&
+        runtime.continuity.budgets &&
+        runtime.continuity.budgets.socialUsed >= runtime.continuity.budgets.socialLimit) {
+        priority = 10;
+    }
+    // Narrative focus bias (preserved from original per-kind functions).
+    if (options?.narrativeState?.focus && focusMatchesKind(options.narrativeState.focus, kind)) {
         priority += 15;
     }
+    // Outreach suppression checks.
+    if (kind === "outreach") {
+        if (runtime.continuity.recentOutreachHashes.length > 3) {
+            return [];
+        }
+        if (options?.relationshipMemory && options.relationshipMemory.noReplyCount > 3) {
+            return [];
+        }
+    }
+    // Work special case: multi-source from pending obligations.
+    if (kind === "work" && options?.multiSource) {
+        return options.multiSource.map((source, index) => ({
+            id: platformId ? `${config.idPrefix}-${platformId}-${index}` : `${config.idPrefix}-${index}`,
+            kind: "work",
+            priority: basePriority - index,
+            source: "obligation",
+            platformId,
+            summary: config.summary(platformId, source),
+            effectClass: config.effectClass,
+            sourceRefs: [...OBLIGATION_SOURCE],
+            idempotencyKey: platformId
+                ? `${config.idempotencyPrefix}:${platformId}:${source}:${index}`
+                : `${config.idempotencyPrefix}:${source}:${index}`,
+            goalInfluenceRefs: [],
+        }));
+    }
+    const refs = kind === "work" ? [...OBLIGATION_SOURCE] : evidenceRefsForConnector(runtime);
     return [
         {
-            id: platformId ? `intent-social-${platformId}` : "intent-social",
-            kind: "social",
+            id: platformId ? `${config.idPrefix}-${platformId}` : config.idPrefix,
+            kind,
             priority,
-            source: "tick",
+            source: config.source,
             platformId,
-            summary: platformId
-                ? `engage social platforms on ${platformId}`
-                : "engage social platforms",
-            effectClass: "connector_action",
+            summary: config.summary(platformId),
+            effectClass: config.effectClass,
             sourceRefs: refs,
             idempotencyKey: platformId
-                ? `social:${platformId}`
-                : "social:engage social platforms",
+                ? `${config.idempotencyPrefix}:${platformId}`
+                : `${config.idempotencyPrefix}:${config.summary(undefined)}`,
             goalInfluenceRefs: [],
         },
     ];
@@ -156,41 +181,6 @@ function planQuietReflectionIntents(runtime, _context, _registry) {
     }
     return out;
 }
-function planOutreachIntents(runtime, context, registry, narrativeState, relationshipMemory) {
-    if (!isAllowedKind("outreach", runtime))
-        return [];
-    if (runtime.continuity.recentOutreachHashes.length > 3) {
-        return [];
-    }
-    // CR-02: if noReplyCount is high, suppress outreach to avoid spam.
-    if (relationshipMemory && relationshipMemory.noReplyCount > 3) {
-        return [];
-    }
-    const refs = evidenceRefsForConnector(runtime);
-    const platformId = resolvePlatformForIntent("outreach", context ?? {}, registry);
-    let priority = 40;
-    if (narrativeState?.focus && focusMatchesKind(narrativeState.focus, "outreach")) {
-        priority += 15;
-    }
-    return [
-        {
-            id: platformId ? `intent-outreach-${platformId}` : "intent-outreach",
-            kind: "outreach",
-            priority,
-            source: "tick",
-            platformId,
-            summary: platformId
-                ? `consider proactive user outreach on ${platformId}`
-                : "consider proactive user outreach",
-            effectClass: "user_outreach",
-            sourceRefs: refs,
-            idempotencyKey: platformId
-                ? `outreach:${platformId}`
-                : "outreach:consider proactive user outreach",
-            goalInfluenceRefs: [],
-        },
-    ];
-}
 /**
  * Plan ordered candidates for one heartbeat turn using rhythm window + life evidence slice.
  */
@@ -221,14 +211,22 @@ export function planCandidateIntents(runtime, options) {
             .slice(0, MAX_CANDIDATE_INTENTS);
     }
     if (runtime.continuity.mode === "maintenance_only") {
-        return planWorkIntents(runtime, context, registry).sort((a, b) => b.priority - a.priority).slice(0, MAX_CANDIDATE_INTENTS);
+        return planIntentWithKind("work", INTENT_CONFIGS.work.basePriority, runtime, context, registry, { multiSource: runtime.continuity.pendingObligations })
+            .sort((a, b) => b.priority - a.priority)
+            .slice(0, MAX_CANDIDATE_INTENTS);
     }
     const intents = [
-        ...planWorkIntents(runtime, context, registry),
-        ...planExplorationIntents(runtime, context, registry),
-        ...planSocialIntents(runtime, context, registry, narrativeState),
+        ...planIntentWithKind("work", INTENT_CONFIGS.work.basePriority, runtime, context, registry, { multiSource: runtime.continuity.pendingObligations }),
+        ...planIntentWithKind("exploration", INTENT_CONFIGS.exploration.basePriority, runtime, context, registry),
+        ...planIntentWithKind("social", INTENT_CONFIGS.social.basePriority, runtime, context, registry, {
+            narrativeState,
+            budgetCheck: true,
+        }),
         ...planQuietReflectionIntents(runtime, context, registry),
-        ...planOutreachIntents(runtime, context, registry, narrativeState, relationshipMemory),
+        ...planIntentWithKind("outreach", INTENT_CONFIGS.outreach.basePriority, runtime, context, registry, {
+            narrativeState,
+            relationshipMemory,
+        }),
     ];
     // Pre-fill goalInfluenceRefs for non-obligation intents before returning.
     // applyGoalPriority will later refine/override with the same logic.

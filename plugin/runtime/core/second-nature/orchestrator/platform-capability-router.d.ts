@@ -13,11 +13,16 @@
  */
 import type { IntentKind } from "../types.js";
 import type { ControlPlaneSourceRef } from "../types.js";
-import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
+/** Minimal goal shape accepted by the router to avoid coupling to AgentGoal. M-03 decoupling. */
+interface GoalRouterContext {
+    goalId: string;
+    description: string;
+    completionCriteria?: string;
+}
 export interface PlatformResolutionContext {
     /** Accepted goals that may name a platform or capability. */
-    acceptedGoals?: AgentGoal[];
+    acceptedGoals?: GoalRouterContext[];
     /** Evidence refs that may embed platform identity. */
     evidenceRefs?: ControlPlaneSourceRef[];
 }
@@ -26,3 +31,4 @@ export interface PlatformResolutionContext {
  * Returns `undefined` when no unambiguous platform can be inferred.
  */
 export declare function resolvePlatformForIntent(kind: IntentKind, context: PlatformResolutionContext, registry?: CapabilityContractRegistry): string | undefined;
+export {};

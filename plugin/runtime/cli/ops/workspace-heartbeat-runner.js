@@ -31,6 +31,8 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
             platformEventCount = snapshot.platformEvents.length;
             workEventCount = snapshot.workEvents.length;
             if (snapshot.empty) {
+                // L-01: Currently snapshot only exposes `empty` boolean.
+                // Future: if snapshot adds `emptyReason` (e.g. "redacted_only"), map it here.
                 lifeEvidenceEmptyReason = "no_sources";
             }
         }
@@ -47,6 +49,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         lifeEvidenceEmptyReason = "state_unavailable";
     }
     // T2.1.4: Load accepted goals from state DB when available.
+    // M-03: typed as GoalContext to avoid coupling to the full AgentGoal schema.
     let acceptedGoals;
     let acceptedGoalsLoadError;
     if (options.state) {

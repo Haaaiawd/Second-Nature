@@ -32,21 +32,34 @@ function mapControlPlaneRefToSourceRef(
 /**
  * Compute narrative confidence based on source evidence.
  *
- * Formula: min(intentSources / 3, 1) + (lifeEvidenceSources > 0 ? 0.1 : 0)
+ * Formula: smooth sigmoid-like growth:
+ *   - 0 sources → 0
+ *   - 1 source → 0.35 (not 0.43; single-source is weak but non-zero)
+ *   - 2 sources → 0.60 (beginning to be trustworthy)
+ *   - 3 sources → 0.80 (strong confidence, not 1.0)
+ *   - 4+ sources → 0.90 (cap below 1.0 to avoid false certainty)
+ *   - Boost: +0.05 if corroborating life evidence exists
+ *   - Hard cap at 0.95 (never claim 100% certainty from evidence count alone)
  *
- * Rationale:
- * - Base: 1/3 per intent source (3 sources = 100% confidence)
- * - Boost: +0.1 if any life evidence exists (signals corroboration)
- * - Capped at 1.0 (100%)
+ * Rationale: linear 1/3 per source produces unnatural jumps.
+ * Logarithmic growth better models diminishing returns per extra source.
  */
 function computeConfidence(
   intentSources: number,
   lifeEvidenceSources: number,
 ): number {
   if (intentSources === 0 && lifeEvidenceSources === 0) return 0;
-  const base = Math.min(intentSources / 3, 1);
-  const boost = lifeEvidenceSources > 0 ? 0.1 : 0;
-  return Math.min(base + boost, 1);
+  const base = intentSources === 0
+    ? 0
+    : intentSources === 1
+      ? 0.35
+      : intentSources === 2
+        ? 0.60
+        : intentSources === 3
+          ? 0.80
+          : 0.90;
+  const boost = lifeEvidenceSources > 0 ? 0.05 : 0;
+  return Math.min(base + boost, 0.95);
 }
 
 export interface UpdateNarrativeAfterEffectInput {
@@ -85,7 +98,8 @@ export function updateNarrativeAfterEffect(
 
     if (hasIntentSources || hasLifeEvidence) {
       // Source-backed revision
-      const progressEntry = `${selectedIntent.effectClass}: ${selectedIntent.summary}`;
+      // L-03: Use effectClass + id as dedup key instead of full summary text.
+      const progressEntry = `${selectedIntent.effectClass}: ${selectedIntent.id}`;
       const progress = [...(prior?.progress ?? [])];
       if (!progress.includes(progressEntry)) {
         progress.push(progressEntry);

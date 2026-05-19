@@ -10,7 +10,6 @@ import type { ContinuitySnapshot, ControlPlaneSourceRef, TopLevelMode } from "..
 import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
 import type { DeliveryCapabilitySnapshot } from "../outreach/delivery-target.js";
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
-import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
 import type { NarrativeState } from "../../../storage/narrative/narrative-state-store.js";
 import type { RelationshipMemory } from "../../../storage/relationship/relationship-memory-store.js";
 
@@ -42,7 +41,15 @@ export interface SnapshotInputs {
   /** When present, outreach judgment uses this user-interest read model (T4.2.2). */
   userInterestSnapshot?: UserInterestSnapshot;
   /** T2.1.4: accepted goals to influence candidate intent priority. */
-  acceptedGoals?: AgentGoal[];
+  acceptedGoals?: Array<{
+    goalId: string;
+    description: string;
+    completionCriteria?: string;
+    status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
+    origin: "owner_set" | "agent_proposed" | "policy_seeded";
+    acceptedBy?: "owner" | "policy_allowlist";
+    [key: string]: unknown;
+  }>;
   /** When present, signals that acceptedGoals load failed (distinguishes from empty). */
   acceptedGoalsLoadError?: string;
   /** When present, planner uses narrative focus to influence candidate priority. */

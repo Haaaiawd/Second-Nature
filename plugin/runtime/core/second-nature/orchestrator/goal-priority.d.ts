@@ -8,8 +8,20 @@
  * All other statuses (proposal / rejected / completed / paused) are implicitly excluded.
  */
 import type { CandidateIntent } from "../types.js";
-import type { AgentGoal } from "../../../storage/goal/agent-goal-store.js";
-export declare function isGoalRelatedToCandidate(goal: AgentGoal, candidate: CandidateIntent): boolean;
+/**
+ * Minimal goal context used by the priority module to avoid coupling
+ * to the full AgentGoal schema. M-03 decoupling.
+ */
+export interface GoalPriorityContext {
+    goalId: string;
+    description: string;
+    completionCriteria?: string;
+    status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
+    origin: "owner_set" | "agent_proposed" | "policy_seeded";
+    acceptedBy?: "owner" | "policy_allowlist";
+    [key: string]: unknown;
+}
+export declare function isGoalRelatedToCandidate(goal: GoalPriorityContext, candidate: CandidateIntent): boolean;
 export interface ApplyGoalPriorityResult {
     candidates: CandidateIntent[];
     goalInfluences: Array<{
@@ -18,4 +30,4 @@ export interface ApplyGoalPriorityResult {
         boost: number;
     }>;
 }
-export declare function applyGoalPriority(candidates: CandidateIntent[], goals: AgentGoal[] | undefined): ApplyGoalPriorityResult;
+export declare function applyGoalPriority(candidates: CandidateIntent[], goals: GoalPriorityContext[] | undefined): ApplyGoalPriorityResult;

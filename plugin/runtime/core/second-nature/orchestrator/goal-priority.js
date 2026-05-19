@@ -7,7 +7,7 @@
  */
 const GOAL_PRIORITY_BOOST = 20;
 export function isGoalRelatedToCandidate(goal, candidate) {
-    const goalText = `${goal.description} ${goal.completionCriteria}`.toLowerCase();
+    const goalText = `${goal.description} ${goal.completionCriteria ?? ""}`.toLowerCase();
     // Direct platformId mention in goal text
     if (candidate.platformId) {
         const platformId = candidate.platformId.toLowerCase();
