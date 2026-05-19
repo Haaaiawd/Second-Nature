@@ -46,3 +46,8 @@
 - [ADD] 插件包新增 `SKILL.md` 与 `agent-inner-guide.md`，并在 npm pack 校验中纳入 packaged guide 文件，避免源码仓库外安装后读不到内化入口。
 - [CHANGE] 插件 `second_nature_ops` 新增 `setup_hint` / `setup_ack` 一次性 setup surface：安装后返回 skill + guide，guide 安放后写入 `.second-nature/setup/agent-inner-guide-ack.json` 取消后续提醒。
 - [CHANGE] README / README.zh-CN / HEARTBEAT / 根 `SKILL.md` 同步说明当前没有 `workspace_init`，初始化真相是 `connector_init` + one-shot setup hint + 手动安放长期 anchor。
+
+## 2026-05-19 - MoltBook Connector Auth Failure 修复
+- [FIX] 修复 `CredentialVault.loadCredentialContext()` 只读取 camelCase 字段导致 sql.js/drizzle 返回 snake_case 行时丢失 `platformId` / `credentialType` / `encryptedValue` 的问题；该问题会让 active credential 在 connector executor 中表现为 `auth_failure`。
+- [ADD] 新增 connector executor 回归测试：写入 `moltbook` active credential 后必须能解密 token，并实际命中 MoltBook API mock。
+- [CHANGE] 同步插件 `runtime/storage/services/credential-vault.js`，保证 OpenClaw 安装包路径带上同一修复。

@@ -12,6 +12,30 @@ import { credentialRecords } from "../db/schema/index.js";
 
 const ALGORITHM = "aes-256-gcm";
 
+type CredentialRecordLike = {
+  platformId?: string;
+  platform_id?: string;
+  credentialType?: string;
+  credential_type?: string;
+  encryptedValue?: string | null;
+  encrypted_value?: string | null;
+  status?: string;
+  verificationCode?: string | null;
+  verification_code?: string | null;
+  challengeText?: string | null;
+  challenge_text?: string | null;
+  expiresAt?: string | null;
+  expires_at?: string | null;
+  attemptsRemaining?: number | null;
+  attempts_remaining?: number | null;
+};
+
+function normalizeCredentialRecord(record: unknown): CredentialRecordLike {
+  return record && typeof record === "object"
+    ? (record as CredentialRecordLike)
+    : {};
+}
+
 function resolveKeyBuffer(): Buffer {
   const raw = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
   if (!raw || raw.length < 32) {
@@ -171,24 +195,33 @@ export function createCredentialVault(db: StateDatabase["db"]): CredentialVault 
       });
       if (!record) return null;
 
+      const row = normalizeCredentialRecord(record);
+      const resolvedPlatformId = row.platformId ?? row.platform_id ?? platformId;
+      const credentialType = row.credentialType ?? row.credential_type ?? "api_key";
+      const encryptedValue = row.encryptedValue ?? row.encrypted_value ?? "";
+      const verificationCode = row.verificationCode ?? row.verification_code ?? undefined;
+      const challengeText = row.challengeText ?? row.challenge_text ?? undefined;
+      const expiresAt = row.expiresAt ?? row.expires_at ?? undefined;
+      const attemptsRemaining = row.attemptsRemaining ?? row.attempts_remaining ?? undefined;
+
       let plain: string | undefined;
-      let status = record.status as CredentialState;
-      if (record.encryptedValue) {
-        if (!isCredentialCiphertext(record.encryptedValue)) {
+      let status = (row.status ?? "missing") as CredentialState;
+      if (encryptedValue) {
+        if (!isCredentialCiphertext(encryptedValue)) {
           // Fail-closed: return decrypt_failed so callers do not crash.
           return {
-            platformId: record.platformId,
-            credentialType: record.credentialType as CredentialType,
+            platformId: resolvedPlatformId,
+            credentialType: credentialType as CredentialType,
             status: "decrypt_failed",
             encryptedValue: undefined,
-            verificationCode: record.verificationCode ?? undefined,
-            challengeText: record.challengeText ?? undefined,
-            verificationDeadline: record.expiresAt ?? undefined,
-            attemptsRemaining: record.attemptsRemaining ?? undefined,
+            verificationCode,
+            challengeText,
+            verificationDeadline: expiresAt,
+            attemptsRemaining,
           };
         }
         try {
-          plain = decryptCredentialAtRest(record.encryptedValue);
+          plain = decryptCredentialAtRest(encryptedValue);
         } catch {
           // Decryption failure must not break the whole state load.
           status = "decrypt_failed";
@@ -197,14 +230,14 @@ export function createCredentialVault(db: StateDatabase["db"]): CredentialVault 
       }
 
       return {
-        platformId: record.platformId,
-        credentialType: record.credentialType as CredentialType,
+        platformId: resolvedPlatformId,
+        credentialType: credentialType as CredentialType,
         status,
         encryptedValue: plain,
-        verificationCode: record.verificationCode ?? undefined,
-        challengeText: record.challengeText ?? undefined,
-        verificationDeadline: record.expiresAt ?? undefined,
-        attemptsRemaining: record.attemptsRemaining ?? undefined,
+        verificationCode,
+        challengeText,
+        verificationDeadline: expiresAt,
+        attemptsRemaining,
       };
     },
 
@@ -212,7 +245,8 @@ export function createCredentialVault(db: StateDatabase["db"]): CredentialVault 
       const record = await db.query.credentialRecords.findFirst({
         where: (tbl) => eq(tbl.platformId, platformId),
       });
-      return (record?.status as CredentialState) || "missing";
+      const row = normalizeCredentialRecord(record);
+      return (row.status as CredentialState) || "missing";
     },
   };
 }

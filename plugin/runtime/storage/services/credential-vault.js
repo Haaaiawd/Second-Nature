@@ -8,6 +8,11 @@ import * as crypto from "crypto";
 import { eq } from "drizzle-orm";
 import { credentialRecords } from "../db/schema/index.js";
 const ALGORITHM = "aes-256-gcm";
+function normalizeCredentialRecord(record) {
+    return record && typeof record === "object"
+        ? record
+        : {};
+}
 function resolveKeyBuffer() {
     const raw = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
     if (!raw || raw.length < 32) {
@@ -140,24 +145,32 @@ export function createCredentialVault(db) {
             });
             if (!record)
                 return null;
+            const row = normalizeCredentialRecord(record);
+            const resolvedPlatformId = row.platformId ?? row.platform_id ?? platformId;
+            const credentialType = row.credentialType ?? row.credential_type ?? "api_key";
+            const encryptedValue = row.encryptedValue ?? row.encrypted_value ?? "";
+            const verificationCode = row.verificationCode ?? row.verification_code ?? undefined;
+            const challengeText = row.challengeText ?? row.challenge_text ?? undefined;
+            const expiresAt = row.expiresAt ?? row.expires_at ?? undefined;
+            const attemptsRemaining = row.attemptsRemaining ?? row.attempts_remaining ?? undefined;
             let plain;
-            let status = record.status;
-            if (record.encryptedValue) {
-                if (!isCredentialCiphertext(record.encryptedValue)) {
+            let status = (row.status ?? "missing");
+            if (encryptedValue) {
+                if (!isCredentialCiphertext(encryptedValue)) {
                     // Fail-closed: return decrypt_failed so callers do not crash.
                     return {
-                        platformId: record.platformId,
-                        credentialType: record.credentialType,
+                        platformId: resolvedPlatformId,
+                        credentialType: credentialType,
                         status: "decrypt_failed",
                         encryptedValue: undefined,
-                        verificationCode: record.verificationCode ?? undefined,
-                        challengeText: record.challengeText ?? undefined,
-                        verificationDeadline: record.expiresAt ?? undefined,
-                        attemptsRemaining: record.attemptsRemaining ?? undefined,
+                        verificationCode,
+                        challengeText,
+                        verificationDeadline: expiresAt,
+                        attemptsRemaining,
                     };
                 }
                 try {
-                    plain = decryptCredentialAtRest(record.encryptedValue);
+                    plain = decryptCredentialAtRest(encryptedValue);
                 }
                 catch {
                     // Decryption failure must not break the whole state load.
@@ -166,21 +179,22 @@ export function createCredentialVault(db) {
                 }
             }
             return {
-                platformId: record.platformId,
-                credentialType: record.credentialType,
+                platformId: resolvedPlatformId,
+                credentialType: credentialType,
                 status,
                 encryptedValue: plain,
-                verificationCode: record.verificationCode ?? undefined,
-                challengeText: record.challengeText ?? undefined,
-                verificationDeadline: record.expiresAt ?? undefined,
-                attemptsRemaining: record.attemptsRemaining ?? undefined,
+                verificationCode,
+                challengeText,
+                verificationDeadline: expiresAt,
+                attemptsRemaining,
             };
         },
         async getCredentialState(platformId) {
             const record = await db.query.credentialRecords.findFirst({
                 where: (tbl) => eq(tbl.platformId, platformId),
             });
-            return record?.status || "missing";
+            const row = normalizeCredentialRecord(record);
+            return row.status || "missing";
         },
     };
 }

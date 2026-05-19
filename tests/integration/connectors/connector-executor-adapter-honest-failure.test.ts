@@ -10,6 +10,17 @@ import assert from "node:assert/strict";
 import { createStateDatabase } from "../../../src/storage/index.js";
 import { createObservabilityDatabase } from "../../../src/observability/index.js";
 import { createConnectorExecutorAdapter } from "../../../src/connectors/services/connector-executor-adapter.js";
+import { createCredentialVault } from "../../../src/storage/services/credential-vault.js";
+
+const ORIGINAL_KEY = process.env.SECOND_NATURE_ENCRYPTION_KEY;
+const ORIGINAL_MOLTBOOK_BASE_URL = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
+
+test.afterEach(() => {
+  if (ORIGINAL_KEY === undefined) delete process.env.SECOND_NATURE_ENCRYPTION_KEY;
+  else process.env.SECOND_NATURE_ENCRYPTION_KEY = ORIGINAL_KEY;
+  if (ORIGINAL_MOLTBOOK_BASE_URL === undefined) delete process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
+  else process.env.SECOND_NATURE_MOLTBOOK_BASE_URL = ORIGINAL_MOLTBOOK_BASE_URL;
+});
 
 test("connector executor adapter returns terminal_failure when credential missing", async () => {
   const stateDb = createStateDatabase();
@@ -65,6 +76,61 @@ test("connector executor adapter returns terminal_failure for evomap (not yet im
     );
     assert.equal(result.metadata.platformId, "evomap");
   } finally {
+    stateDb.close();
+    observabilityDb.close();
+  }
+});
+
+test("connector executor adapter reads sql.js credential row and reaches Moltbook API", async () => {
+  process.env.SECOND_NATURE_ENCRYPTION_KEY = "x".repeat(32);
+  process.env.SECOND_NATURE_MOLTBOOK_BASE_URL = "https://moltbook.test";
+
+  const originalFetch = globalThis.fetch;
+  let observedAuthorization: string | undefined;
+  globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+    const headers = init?.headers as Record<string, string> | undefined;
+    observedAuthorization = headers?.Authorization ?? headers?.authorization;
+    return new Response(JSON.stringify({ items: [{ id: "mb-1", title: "ok" }] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const stateDb = createStateDatabase(":memory:");
+  const observabilityDb = createObservabilityDatabase(":memory:");
+  try {
+    const vault = createCredentialVault(stateDb.db);
+    await vault.saveCredentialContext({
+      platformId: "moltbook",
+      credentialType: "api_key",
+      encryptedValue: "token-123",
+      status: "active",
+    });
+
+    const loaded = await vault.loadCredentialContext("moltbook");
+    assert.equal(loaded?.platformId, "moltbook");
+    assert.equal(loaded?.credentialType, "api_key");
+    assert.equal(loaded?.status, "active");
+    assert.equal(loaded?.encryptedValue, "token-123");
+
+    const adapter = createConnectorExecutorAdapter({
+      stateDb,
+      observabilityDb,
+    });
+    const result = await adapter.executeEffect({
+      platformId: "moltbook",
+      intent: "feed.read",
+      payload: { limit: 1 },
+      decisionId: "dec-test-success",
+      intentId: "intent-test-success",
+      idempotencyKey: "idem-test-success",
+    });
+
+    assert.equal(result.status, "success");
+    assert.equal(result.metadata.platformId, "moltbook");
+    assert.equal(observedAuthorization, "Bearer token-123");
+  } finally {
+    globalThis.fetch = originalFetch;
     stateDb.close();
     observabilityDb.close();
   }
