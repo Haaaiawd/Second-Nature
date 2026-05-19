@@ -188,10 +188,10 @@ src/
 - 验证计划: `.anws/v6/05B_VERIFICATION_PLAN.md`
 - 总任务数: 38, Level-3: 33, INT: 5, P0: 27, P1: 11, P2: 0
 - Sprint 数: 5
-- **状态**: v6 主体任务已完成；S5 `Life Loop Activation` 全部子任务完成（T1.4.1, T1.4.2, T2.4.1, T2.4.2, T3.3.1, T4.2.1），仅剩 **INT-S5 关门报告**
-- **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved，0 Open
-- **下一步**: `/forge` **Wave 40** — INT-S5 集成验证关门报告
-- **最近更新**: `2026-05-18` (Wave 39 `/forge`: T4.2.1 owner reply → RelationshipMemory feedback)
+- **状态**: v6 全部任务已完成；S5 `Life Loop Activation` INT-S5 已勾选；全部 6 个 User Story 标记为 `Activated`；208 测试全绿
+- **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved；Wave 39 静态审查 CR-01..CR-04 / H-01..H-03 / M-02..M-04 / L-01..L-03 全部修复，0 Open
+- **下一步**: v6 完成，进入维护/扩展阶段或启动 v7 `/genesis`
+- **最近更新**: `2026-05-18` (Wave 40 `/forge`: INT-S5 集成验证关门报告 + Wave 39 静态审查 Medium/Low 修复)
 
 > **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
 
@@ -315,6 +315,17 @@ S5 Waves 36-39 测试增量明细：
 - Wave 38 T2.4.2: 4 个集成测试（source-backed outreach delivery 路径）
 - Wave 39 T4.2.1: 6 个集成测试（owner reply → relationship feedback 路径）
 合计新增 26 个，214 测试全绿，无回归。05A_TASKS.md 勾选 T4.2.1。
+
+### 🌊 Wave 40 ✅ — INT-S5 关门报告 + Wave 39 静态审查修复
+**INT-S5 关门报告**：产出 `reports/int-s5-v6-life-loop-activation.md`，汇总 S5 全部 6 个任务的 Given/When/Then 证据表（T1.4.1/1.4.2、T2.4.1/2.4.2、T3.3.1、T4.2.1），确认 208 测试全绿，全部 6 个 User Story 标记为 `Activated`。05A_TASKS.md 勾选 INT-S5。
+
+**Wave 39 静态审查修复**：四子代理并行审查（Lens 1-6），产出 `.anws/v6/wave-reviews/wave-39-review.md`。
+- **Critical 4 项 → 修复**：CR-01 平台 ID 硬编码消除、CR-02 意图规划读取 snapshot narrative/relationship、CR-04 owner reply inference 可配置 + PII redaction
+- **High 3 项 → 修复**：H-01 平台路由多信号歧义返回 undefined、H-03 goalInfluenceRefs 预填充、H-07 owner reply 空输入防御
+- **Medium 3 项 → 修复**：M-02 narrative-update confidence tiered sigmoid 映射（0/0.35/0.60/0.80/0.90，hard cap 0.95）、M-03 AgentGoal 隐性耦合 → 本地 GoalRouterContext/GoalContext/GoalPriorityContext、M-04 intent-planner 提取 INTENT_CONFIGS + planIntentWithKind 工厂
+- **Low 3 项 → 修复**：L-01 empty-reason 映射注释、L-02 namespace:capability URI 解析增强、L-03 narrative progress 去重 key 改为 `${effectClass}:${id}`
+
+测试覆盖增量：14 个单元测试（owner reply inference）+ 4 个单元测试（evidence mapper）+ 2 个集成测试（ambiguous platform / conflicting tone）。208 测试全绿，无回归。三 commit：`657a2f6` (Wave 39 settlement) + `a6b3d27` (Critical/High fixes) + `99829a0` (Medium/Low fixes)。
 
 <!-- AUTO:END -->
 

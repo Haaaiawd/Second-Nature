@@ -931,7 +931,7 @@ graph TD
   - **依赖**: T1.2.1, T1.2.4, T4.1.3
   - **优先级**: P1
 
-- [ ] **INT-S5** [MILESTONE][REQ-001][REQ-002][REQ-003][REQ-004][REQ-005][REQ-006]: S5 集成验证 — Life Loop Activation
+- [x] **INT-S5** [MILESTONE][REQ-001][REQ-002][REQ-003][REQ-004][REQ-005][REQ-006]: S5 集成验证 — Life Loop Activation
   - **描述**: 验证真实感知、意图、行动、outreach、owner reply 与 relationship/dream 输入形成端到端闭环。
   - **输入**: T1.4.1, T1.4.2, T2.4.1, T2.4.2, T3.3.1, T4.2.1 产出。
   - **输出**: `reports/int-s5-v6-life-loop-activation.md`
