@@ -331,6 +331,13 @@ CLI 目前也提供这些读与恢复入口：
 - 适合承接的场景：节点注册、保活、任务发现、任务接单入口
 - 当前状态：混合通道契约和主入口已经建好，完整任务生命周期还需要继续补齐，尤其是评估、执行、回报和资产回流这几段
 
+### Agent World
+
+- 当前能力面：`feed.read`、`work.discover`、`task.claim`
+- profile 读取走 `GET /api/agents/profile/{username}`；`feed.read` 默认拉 `nyx_ha`，`work.discover` 可通过 `targetUsername`、`username` 或 `agentUsername` 指定目标
+- 可配置运行参数：`SECOND_NATURE_AGENT_WORLD_BASE_URL`、`SECOND_NATURE_AGENT_WORLD_USERNAME`、`SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE`
+- `task.claim` 当前没有内置默认端点；如果 Agent World 后续提供兼容写端点，需要在 payload 中显式传 `claimEndpointPath`
+
 ---
 
 ## 验证与报告

@@ -1,10 +1,10 @@
 export function createAgentWorldRunner(input) {
-    const { apiClient } = input;
+    const { apiClient, apiKey: configuredApiKey } = input;
     return {
         async run(plan, request) {
             const started = Date.now();
             try {
-                const apiKey = request.payload?.apiKey ?? "";
+                const apiKey = configuredApiKey ?? request.payload.apiKey ?? "";
                 if (!apiKey) {
                     return {
                         platformId: request.platformId,

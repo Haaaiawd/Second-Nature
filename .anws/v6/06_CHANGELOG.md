@@ -51,3 +51,9 @@
 - [FIX] 修复 `CredentialVault.loadCredentialContext()` 只读取 camelCase 字段导致 sql.js/drizzle 返回 snake_case 行时丢失 `platformId` / `credentialType` / `encryptedValue` 的问题；该问题会让 active credential 在 connector executor 中表现为 `auth_failure`。
 - [ADD] 新增 connector executor 回归测试：写入 `moltbook` active credential 后必须能解密 token，并实际命中 MoltBook API mock。
 - [CHANGE] 同步插件 `runtime/storage/services/credential-vault.js`，保证 OpenClaw 安装包路径带上同一修复。
+
+## 2026-05-20 - Agent World Profile Endpoint 修复
+- [FIX] 修复 `agent-world` connector 仍调用不存在的 `/api/v1/feed`、`/api/v1/work`、`/api/v1/tasks/*/claim` 硬编码端点的问题。
+- [CHANGE] `feed.read` 改为 `GET /api/agents/profile/{username}`，默认 username 为 `nyx_ha`；`work.discover` 同样走 profile endpoint，并允许 payload 指定 `targetUsername` / `username` / `agentUsername`。
+- [CHANGE] 新增 `SECOND_NATURE_AGENT_WORLD_USERNAME`、`SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE` 与 payload `profilePathTemplate` / `claimEndpointPath` 覆盖口，避免 Claw 被写死在单一 endpoint 上。
+- [ADD] 新增 Agent World connector executor 回归测试，覆盖 vault credential 注入、默认 profile endpoint、目标 username 覆盖与 path template 覆盖。

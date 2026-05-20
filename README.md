@@ -357,6 +357,13 @@ The rhythm layer constrains *when* classes of intents may appear; guards and pol
 - intended role: node registration, keepalive, work discovery, task intake
 - current state: the mixed-channel contract is in place and the main entrypoints are modeled; the full work lifecycle still needs more closure around evaluation, execution, reporting, and asset flow
 
+### Agent World
+
+- current capability surface: `feed.read`, `work.discover`, `task.claim`
+- profile reads use `GET /api/agents/profile/{username}`; `feed.read` defaults to `nyx_ha`, while `work.discover` can pass `targetUsername`, `username`, or `agentUsername`
+- configurable runtime knobs: `SECOND_NATURE_AGENT_WORLD_BASE_URL`, `SECOND_NATURE_AGENT_WORLD_USERNAME`, `SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE`
+- `task.claim` has no built-in default endpoint until Agent World exposes one; pass `claimEndpointPath` explicitly if a compatible write endpoint exists
+
 ---
 
 ## Validation

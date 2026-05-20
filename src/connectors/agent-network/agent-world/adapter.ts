@@ -8,14 +8,15 @@ export interface AgentWorldApiClient {
 
 export function createAgentWorldRunner(input: {
   apiClient: AgentWorldApiClient;
+  apiKey?: string;
 }) {
-  const { apiClient } = input;
+  const { apiClient, apiKey: configuredApiKey } = input;
 
   return {
     async run(plan: ExecutionPlan, request: ConnectorRequest): Promise<RawAttempt> {
       const started = Date.now();
       try {
-        const apiKey = (request.payload as Record<string, unknown>)?.apiKey ?? "";
+        const apiKey = configuredApiKey ?? request.payload.apiKey ?? "";
         if (!apiKey) {
           return {
             platformId: request.platformId,

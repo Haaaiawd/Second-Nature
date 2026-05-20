@@ -37,6 +37,68 @@ export interface ConnectorExecutorAdapterOptions {
   observabilityDb: ObservabilityDatabase;
 }
 
+const DEFAULT_AGENT_WORLD_USERNAME = "nyx_ha";
+const DEFAULT_AGENT_WORLD_PROFILE_PATH_TEMPLATE = "/api/agents/profile/{username}";
+
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function resolveAgentWorldUsername(
+  payload: Record<string, unknown>,
+  purpose: "feed" | "discover",
+): string {
+  const payloadUsername =
+    (purpose === "discover" ? readString(payload.targetUsername) : undefined) ??
+    readString(payload.username) ??
+    readString(payload.agentUsername);
+  return (
+    payloadUsername ??
+    readString(process.env.SECOND_NATURE_AGENT_WORLD_USERNAME) ??
+    DEFAULT_AGENT_WORLD_USERNAME
+  );
+}
+
+function resolveAgentWorldProfilePath(
+  payload: Record<string, unknown>,
+  username: string,
+): string {
+  const template =
+    readString(payload.profilePathTemplate) ??
+    readString(process.env.SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE) ??
+    DEFAULT_AGENT_WORLD_PROFILE_PATH_TEMPLATE;
+  return template.replaceAll("{username}", encodeURIComponent(username));
+}
+
+function joinAgentWorldUrl(baseUrl: string, path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+async function fetchAgentWorldJson(input: {
+  baseUrl: string;
+  path: string;
+  apiKey: string;
+  method?: string;
+  body?: unknown;
+  label: string;
+}): Promise<unknown> {
+  const resp = await fetch(joinAgentWorldUrl(input.baseUrl, input.path), {
+    method: input.method ?? "GET",
+    headers: {
+      "Authorization": `Bearer ${input.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: input.body === undefined ? undefined : JSON.stringify(input.body),
+  });
+  if (!resp.ok) {
+    throw { code: "api_error", detail: `agent-world ${input.label}: ${resp.status}` };
+  }
+  return resp.json();
+}
+
 function createAdaptiveExecutionRunner(
   vault: ReturnType<typeof createCredentialVault>,
 ): ExecutionRunner {
@@ -127,29 +189,42 @@ function createAdaptiveExecutionRunner(
           };
         }
         const runner = createAgentWorldRunner({
+          apiKey: credential.encryptedValue,
           apiClient: {
             async readFeed(payload, _apiKey) {
-              const resp = await fetch(`${baseUrl}/api/v1/feed`, {
-                headers: { "Authorization": `Bearer ${_apiKey}`, "Content-Type": "application/json" },
+              const username = resolveAgentWorldUsername(payload, "feed");
+              return fetchAgentWorldJson({
+                baseUrl,
+                path: resolveAgentWorldProfilePath(payload, username),
+                apiKey: _apiKey,
+                label: "profile feed",
               });
-              if (!resp.ok) throw { code: "api_error", detail: `agent-world feed: ${resp.status}` };
-              return resp.json();
             },
             async discoverWork(payload, _apiKey) {
-              const resp = await fetch(`${baseUrl}/api/v1/work`, {
-                headers: { "Authorization": `Bearer ${_apiKey}`, "Content-Type": "application/json" },
+              const username = resolveAgentWorldUsername(payload, "discover");
+              return fetchAgentWorldJson({
+                baseUrl,
+                path: resolveAgentWorldProfilePath(payload, username),
+                apiKey: _apiKey,
+                label: "profile discover",
               });
-              if (!resp.ok) throw { code: "api_error", detail: `agent-world work: ${resp.status}` };
-              return resp.json();
             },
             async claimTask(payload, _apiKey) {
-              const resp = await fetch(`${baseUrl}/api/v1/tasks/${payload.taskId ?? "unknown"}/claim`, {
+              const claimPath = readString(payload.claimEndpointPath);
+              if (!claimPath) {
+                throw {
+                  code: "protocol_mismatch",
+                  detail: "agent_world_task_claim_endpoint_not_configured",
+                };
+              }
+              return fetchAgentWorldJson({
+                baseUrl,
+                path: claimPath,
+                apiKey: _apiKey,
                 method: "POST",
-                headers: { "Authorization": `Bearer ${_apiKey}`, "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: payload,
+                label: "task claim",
               });
-              if (!resp.ok) throw { code: "api_error", detail: `agent-world claim: ${resp.status}` };
-              return resp.json();
             },
           },
         });

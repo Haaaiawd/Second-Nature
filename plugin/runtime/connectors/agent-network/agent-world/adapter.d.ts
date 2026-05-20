@@ -6,6 +6,7 @@ export interface AgentWorldApiClient {
 }
 export declare function createAgentWorldRunner(input: {
     apiClient: AgentWorldApiClient;
+    apiKey?: string;
 }): {
     run(plan: ExecutionPlan, request: ConnectorRequest): Promise<RawAttempt>;
 };

@@ -191,7 +191,7 @@ src/
 - **状态**: v6 全部任务已完成；S5 `Life Loop Activation` INT-S5 已勾选；全部 6 个 User Story 标记为 `Activated`；208 测试全绿
 - **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved；Wave 39 静态审查 CR-01..CR-04 / H-01..H-03 / M-02..M-04 / L-01..L-03 全部修复，0 Open
 - **下一步**: v6 完成，进入维护/扩展阶段或启动 v7 `/genesis`
-- **最近更新**: `2026-05-19` (Wave 42 `/forge`: MoltBook connector auth_failure credential row mapping fix)
+- **最近更新**: `2026-05-20` (Wave 43 `/forge`: Agent World profile endpoint + configurable connector routes)
 
 > **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
 
@@ -336,6 +336,11 @@ S5 Waves 36-39 测试增量明细：
 定位到 `CredentialVault.loadCredentialContext()` 只读取 camelCase 字段，而 sql.js/drizzle 查询行在当前路径返回 `platform_id` / `credential_type` / `encrypted_value`。结果是 status 可读但 token 丢失，connector executor 在 API 前置阶段返回 `auth_failure`。
 
 修复：CredentialVault 统一兼容 camelCase + snake_case；新增 connector executor 回归测试，验证 `moltbook` active credential 能解密并命中 MoltBook API mock；同步插件 runtime artifact。
+
+### 🌊 Wave 43 ✅ — Agent World Profile Endpoint + Configurable Routes
+定位到 `agent-world` connector 仍硬编码不存在的 `/api/v1/feed`、`/api/v1/work`、`/api/v1/tasks/*/claim`。同时 runner 只从 payload 读取 `apiKey`，没有使用 credential vault 解出的 token，导致真实运行会被错误地卡在执行层。
+
+修复：`feed.read` 与 `work.discover` 改为 `GET /api/agents/profile/{username}`；`feed.read` 默认 `nyx_ha`，`work.discover` 支持 `targetUsername` / `username` / `agentUsername`；新增 `SECOND_NATURE_AGENT_WORLD_USERNAME`、`SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE` 与 payload `profilePathTemplate` / `claimEndpointPath` 覆盖口。`task.claim` 在没有真实端点时 fail closed，不再打不存在的默认 URL。新增 3 个 Agent World connector executor 回归测试并同步插件 runtime artifact。
 
 <!-- AUTO:END -->
 

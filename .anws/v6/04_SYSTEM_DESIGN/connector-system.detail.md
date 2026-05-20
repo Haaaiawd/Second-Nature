@@ -37,6 +37,9 @@
 | `connectors.allowCustomAdapters` | `false` | owner policy | 默认不执行 workspace code |
 | `connectors.defaultConflictPolicy` | `fail_closed` | connector-system | 冲突保留已注册项 |
 | `connectors.defaultDryRun` | `true` | cli-system | `connector:test` 默认不副作用 |
+| `SECOND_NATURE_AGENT_WORLD_BASE_URL` | unset | operator env | Agent World REST origin |
+| `SECOND_NATURE_AGENT_WORLD_USERNAME` | `nyx_ha` | operator env / connector-system | `feed.read` 默认 profile username |
+| `SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE` | `/api/agents/profile/{username}` | operator env / connector-system | profile endpoint template；payload `profilePathTemplate` 可覆盖 |
 
 ---
 
