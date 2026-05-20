@@ -308,6 +308,17 @@ export function createCliCommands(
       },
     },
     {
+      name: "connector_behavior_add",
+      description:
+        "Add a workspace-defined connector behavior to an existing manifest without executing custom code",
+      execute: async (input) => {
+        const surface = await Promise.resolve(
+          opsRouter.dispatch("connector_behavior_add", input),
+        );
+        return surface as Record<string, unknown>;
+      },
+    },
+    {
       name: "connector_status",
       description:
         "T1.2.3 — show connector inventory, trust/executable/conflict summary",

@@ -20,14 +20,16 @@ Use this skill when setting up Second Nature from an installed OpenClaw plugin p
 5. Place the guide deliberately into the Claw agent prompt, `IDENTITY.md`, or another long-lived identity anchor.
 6. Run `second_nature_ops` with `command=setup_ack` and the same `workspaceRoot`; this writes `.second-nature/setup/agent-inner-guide-ack.json` and removes the first-run nudge.
 7. Run `second_nature_ops` with `command=heartbeat_check` and inspect the JSON result.
+8. If a repeated platform action is missing from a connector manifest, use `command=connector_behavior_add` with `platformId`, `behaviorId`, and a short `description`.
 
 ## Current Boundary
 
-Second Nature does not currently expose a `workspace_init` command that creates anchors or writes the guide for you. The init-like runtime command currently available is `connector_init`, which only creates connector stubs.
+Second Nature does not currently expose a `workspace_init` command that creates anchors or writes the guide for you. The init-like runtime command currently available is `connector_init`, which creates connector stubs. After that, `connector_behavior_add` can append new behavior declarations to an existing connector manifest.
 
 The plugin does expose a small one-shot setup surface:
 
 - `setup_hint`: returns the packaged setup skill and inner guide.
 - `setup_ack`: records that the guide was read and placed into a long-lived working anchor.
+- `connector_behavior_add`: records a newly discovered connector behavior as a manifest capability without granting execution trust.
 
 The setup is complete only when the installed package is readable, the workspace root is known, anchors are present, and Claw has actually absorbed `agent-inner-guide.md`.

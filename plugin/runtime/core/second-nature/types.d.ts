@@ -32,6 +32,8 @@ export type CandidateEffectClass = "external_platform_action" | "connector_actio
 export interface CandidateIntent {
     id: string;
     kind: IntentKind;
+    /** Optional connector capability override, including workspace-defined behavior IDs. */
+    capabilityIntent?: string;
     priority: number;
     source: "tick" | "interrupt" | "obligation" | "quiet_plan";
     platformId?: string;

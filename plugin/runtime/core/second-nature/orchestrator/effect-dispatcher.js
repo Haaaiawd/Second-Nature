@@ -12,6 +12,8 @@ function isConnectorEffect(effectClass) {
         effectClass === "connector_action");
 }
 export function toCapabilityIntent(intent) {
+    if (intent.capabilityIntent?.trim())
+        return intent.capabilityIntent.trim();
     if (intent.kind === "work")
         return "work.discover";
     if (intent.kind === "exploration")

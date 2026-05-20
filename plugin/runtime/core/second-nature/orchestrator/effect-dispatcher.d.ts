@@ -6,6 +6,7 @@ export interface AllowedIntent {
     kind: "work" | "exploration" | "social" | "quiet" | "reflection" | "outreach" | "maintenance";
     summary: string;
     effectClass: EffectClass;
+    capabilityIntent?: string;
     platformId?: string;
     payload?: Record<string, unknown>;
 }
@@ -74,7 +75,7 @@ export type DispatchResult = {
     status: "maintenance_done";
     commitId: string;
 };
-export declare function toCapabilityIntent(intent: Pick<AllowedIntent, "kind">): CapabilityIntent;
+export declare function toCapabilityIntent(intent: Pick<AllowedIntent, "kind" | "capabilityIntent">): CapabilityIntent;
 export declare class EffectDispatcher {
     private readonly leaseManager;
     private readonly commitPort;

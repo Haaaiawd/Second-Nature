@@ -253,6 +253,8 @@ These anchor files matter:
 
 Current init reality: Second Nature does not yet ship a `workspace_init` command that creates these anchors or writes the inner guide for you. The only init-style CLI surface today is `connector_init`, which creates connector stubs under `.second-nature/connectors/`. The installed plugin does include a one-shot setup surface: `setup_hint` returns the packaged `SKILL.md` and `agent-inner-guide.md`; after you place the guide into the agent prompt, `workspace/IDENTITY.md`, or another long-lived identity anchor, `setup_ack` writes `.second-nature/setup/agent-inner-guide-ack.json` so future read surfaces stop nudging.
 
+Connector behavior can evolve after init. If Claw repeatedly needs an action that is not in a connector manifest yet, `connector_behavior_add` appends a capability declaration to `.second-nature/connectors/{platformId}/manifest.yaml`. This is only a note in the manifest: execution still goes through registry reload, route planning, credentials, idempotency, and trust policy.
+
 During runtime, the guidance layer reads these files as source material, then selects a small number of relevant snippets for the current scene. The files stay as the source of truth. The runtime only carries what is useful for that moment.
 
 If you are writing these files from scratch, first-person writing works well. It gives the agent something it can actually inhabit instead of a pile of detached notes.

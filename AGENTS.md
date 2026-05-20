@@ -84,7 +84,7 @@
 - **最新架构版本**: `.anws/v6`
 - **活动任务清单**: `.anws/v6/05A_TASKS.md`
 - **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-18` (Wave 39 `/forge`: S5 Life Loop Activation — T4.2.1 owner reply → RelationshipMemory feedback; Waves 36-39 全部完成, 214 tests green)
+- **最近一次更新**: `2026-05-20` (Wave 44 `/forge`: Connector Behavior Evolution — open capability ids + `connector_behavior_add`)
 
 ### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
 
@@ -191,7 +191,7 @@ src/
 - **状态**: v6 全部任务已完成；S5 `Life Loop Activation` INT-S5 已勾选；全部 6 个 User Story 标记为 `Activated`；208 测试全绿
 - **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved；Wave 39 静态审查 CR-01..CR-04 / H-01..H-03 / M-02..M-04 / L-01..L-03 全部修复，0 Open
 - **下一步**: v6 完成，进入维护/扩展阶段或启动 v7 `/genesis`
-- **最近更新**: `2026-05-20` (Wave 43 `/forge`: Agent World profile endpoint + configurable connector routes)
+- **最近更新**: `2026-05-20` (Wave 44 `/forge`: Connector Behavior Evolution)
 
 > **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
 
@@ -341,6 +341,11 @@ S5 Waves 36-39 测试增量明细：
 定位到 `agent-world` connector 仍硬编码不存在的 `/api/v1/feed`、`/api/v1/work`、`/api/v1/tasks/*/claim`。同时 runner 只从 payload 读取 `apiKey`，没有使用 credential vault 解出的 token，导致真实运行会被错误地卡在执行层。
 
 修复：`feed.read` 与 `work.discover` 改为 `GET /api/agents/profile/{username}`；`feed.read` 默认 `nyx_ha`，`work.discover` 支持 `targetUsername` / `username` / `agentUsername`；新增 `SECOND_NATURE_AGENT_WORLD_USERNAME`、`SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE` 与 payload `profilePathTemplate` / `claimEndpointPath` 覆盖口。`task.claim` 在没有真实端点时 fail closed，不再打不存在的默认 URL。新增 3 个 Agent World connector executor 回归测试并同步插件 runtime artifact。
+
+### 🌊 Wave 44 ✅ — Connector Behavior Evolution
+`/change` 回流“行为进化”：connector capability ID 从封闭枚举改为受限开放字符串，manifest registry 可登记 `github:issue.search`、`agent-world:profile.inspect` 这类 workspace-defined behavior。`connector-system` L0/L1 文档明确：行为登记只是 capability declaration，不授予执行代码、凭据、trust allowlist 或 side-effect 权限。
+
+`/forge` 新增 `connector_behavior_add` runtime command，并接入 CLI ops router 与 OpenClaw plugin bridge。Agent 在 heartbeat / Quiet 里发现反复出现但未登记的平台动作时，可以把它追加到 `.second-nature/connectors/{platformId}/manifest.yaml` 的 `capabilities[]`；后续是否执行仍由 registry reload、route planner、credential gate、idempotency 与 trust policy 判断。README / README.zh-CN / HEARTBEAT / plugin setup guide / inner guide 已同步说明。
 
 <!-- AUTO:END -->
 

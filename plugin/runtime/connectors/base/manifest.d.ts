@@ -2,34 +2,24 @@ import { z } from "zod";
 import { type CapabilityIntent, type ChannelType } from "./contract.js";
 declare const connectorManifestSchema: z.ZodObject<{
     platformId: z.ZodString;
-    supportedCapabilities: z.ZodArray<z.ZodEnum<{
-        "feed.read": "feed.read";
-        "post.publish": "post.publish";
-        "comment.reply": "comment.reply";
-        "notification.list": "notification.list";
-        "message.send": "message.send";
-        "agent.register": "agent.register";
-        "agent.heartbeat": "agent.heartbeat";
-        "work.discover": "work.discover";
-        "task.claim": "task.claim";
-    }>>;
+    supportedCapabilities: z.ZodArray<z.ZodString>;
     channelPriority: z.ZodArray<z.ZodEnum<{
+        skill: "skill";
         api_rest: "api_rest";
         api_rpc: "api_rpc";
         a2a: "a2a";
         mcp: "mcp";
         cli: "cli";
-        skill: "skill";
         browser: "browser";
     }>>;
     credentialTypes: z.ZodArray<z.ZodString>;
     degradedChannels: z.ZodOptional<z.ZodArray<z.ZodEnum<{
+        skill: "skill";
         api_rest: "api_rest";
         api_rpc: "api_rpc";
         a2a: "a2a";
         mcp: "mcp";
         cli: "cli";
-        skill: "skill";
         browser: "browser";
     }>>>;
     sourceRefPolicy: z.ZodOptional<z.ZodObject<{

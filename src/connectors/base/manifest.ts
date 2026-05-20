@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CAPABILITY_INTENTS, CHANNEL_TYPES, type CapabilityIntent, type ChannelType, type ConnectorManifestLike } from "./contract.js";
+import { CHANNEL_TYPES, type CapabilityIntent, type ChannelType, type ConnectorManifestLike } from "./contract.js";
 
 const sourceRefPolicySchema = z
   .object({
@@ -11,7 +11,7 @@ const sourceRefPolicySchema = z
 
 const connectorManifestSchema = z.object({
   platformId: z.string().min(1),
-  supportedCapabilities: z.array(z.enum(CAPABILITY_INTENTS)).min(1),
+  supportedCapabilities: z.array(z.string().min(1).regex(/^[a-zA-Z0-9_.:-]+$/)).min(1),
   channelPriority: z.array(z.enum(CHANNEL_TYPES)).min(1),
   credentialTypes: z.array(z.string().min(1)).min(1),
   degradedChannels: z.array(z.enum(CHANNEL_TYPES)).optional(),
@@ -73,8 +73,8 @@ export class CapabilityContractRegistry {
     if (colonIndex >= 0) {
       const platformId = intentWithNamespace.slice(0, colonIndex);
       const intent = intentWithNamespace.slice(colonIndex + 1) as CapabilityIntent;
-      if (!CAPABILITY_INTENTS.includes(intent)) {
-        throw new Error(`capability_not_recognized:${intent}`);
+      if (!intent) {
+        throw new Error("capability_not_recognized:");
       }
       if (!this.byPlatform.has(platformId)) {
         throw new Error(`platform_not_found:${platformId}`);
@@ -83,8 +83,8 @@ export class CapabilityContractRegistry {
     }
 
     const intent = intentWithNamespace as CapabilityIntent;
-    if (!CAPABILITY_INTENTS.includes(intent)) {
-      throw new Error(`capability_not_recognized:${intent}`);
+    if (!intent) {
+      throw new Error("capability_not_recognized:");
     }
 
     if (explicitPlatformId) {

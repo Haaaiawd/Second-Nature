@@ -32,7 +32,12 @@ export const CAPABILITY_INTENTS = [
   "work.discover",
   "task.claim",
 ] as const;
-export type CapabilityIntent = (typeof CAPABILITY_INTENTS)[number];
+export type BuiltInCapabilityIntent = (typeof CAPABILITY_INTENTS)[number];
+export type CapabilityIntent = BuiltInCapabilityIntent | (string & {});
+
+export function isKnownCapabilityIntent(intent: string): intent is BuiltInCapabilityIntent {
+  return (CAPABILITY_INTENTS as readonly string[]).includes(intent);
+}
 
 export interface ConnectorRequest {
   platformId: string;
@@ -137,9 +142,11 @@ export interface ConnectorExecutor {
   }): Promise<ConnectorResult<unknown>>;
 }
 
+const capabilityIntentSchema = z.string().min(1).regex(/^[a-zA-Z0-9_.:-]+$/);
+
 const connectorRequestSchema = z.object({
   platformId: z.string().min(1),
-  intent: z.enum(CAPABILITY_INTENTS),
+  intent: capabilityIntentSchema,
   payload: z.record(z.string(), z.unknown()),
   preferredChannel: z.enum(CHANNEL_TYPES).optional(),
   timeoutMs: z.number().int().positive().optional(),

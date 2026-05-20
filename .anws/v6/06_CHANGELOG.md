@@ -57,3 +57,8 @@
 - [CHANGE] `feed.read` 改为 `GET /api/agents/profile/{username}`，默认 username 为 `nyx_ha`；`work.discover` 同样走 profile endpoint，并允许 payload 指定 `targetUsername` / `username` / `agentUsername`。
 - [CHANGE] 新增 `SECOND_NATURE_AGENT_WORLD_USERNAME`、`SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE` 与 payload `profilePathTemplate` / `claimEndpointPath` 覆盖口，避免 Claw 被写死在单一 endpoint 上。
 - [ADD] 新增 Agent World connector executor 回归测试，覆盖 vault credential 注入、默认 profile endpoint、目标 username 覆盖与 path template 覆盖。
+
+## 2026-05-20 - Connector Behavior Evolution 回流
+- [CHANGE] `connector-system` 设计回流 Behavior Evolution：capability ID 从封闭枚举演进为受限开放字符串，支持 GitHub、Agent 社区站点和其他平台声明自定义行为。
+- [ADD] 新增 `connector_behavior_add` runtime command：Agent 可把重复出现的新平台动作追加到 `.second-nature/connectors/{platformId}/manifest.yaml` 的 `capabilities[]`，但不写 adapter、credential、trust allowlist 或 executable code。
+- [CHANGE] HEARTBEAT / plugin setup guide / README 同步说明：heartbeat 或 Quiet 发现未登记但可复用的动作时，可以先登记行为，再等待 reload/status 与既有 trust policy 决定是否可执行。

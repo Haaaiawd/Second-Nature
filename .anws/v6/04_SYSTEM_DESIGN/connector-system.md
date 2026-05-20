@@ -44,6 +44,8 @@
 
 `connector-system` 是 Second Nature 唯一允许直接接触外部 agent-native 平台的执行层。v6 让 connector 从硬编码平台注册演进为动态生态：workspace 放置声明式 `manifest.yaml` 后可注册平台能力，但 custom adapter、skill、browser runner 默认不能自动执行。
 
+Wave 44 引入 **行为进化 (Behavior Evolution)**：当 heartbeat / Quiet / 人类协作过程中发现某个平台存在可重复的新动作时，Agent 可以先把它登记为 manifest capability。登记只是让系统“知道这件事”，不会自动授予执行代码或绕过 trust policy。
+
 ### 1.2 System Boundary (系统边界)
 
 - **输入 (Input)**: `control-plane-system` 发起的 capability execution request；`cli-system` 发起的 connector status/test/init/reload；workspace `.second-nature/connectors/{platformId}/manifest.yaml`。
@@ -58,6 +60,7 @@
 - 合并 built-in connector 与 dynamic connector registry。
 - 支持 `platformId:capability` 命名空间路由。
 - 对 connector runner 执行 trust policy：declarative 自动启用，custom adapter pending trust。
+- 支持 `connector_behavior_add` 追加 workspace-defined capability，让 Agent 能把新发现的平台行为写回 manifest。
 - 执行 route planning、credential/cooldown 检查、idempotency gate、degraded channel policy。
 - 将平台响应归一化为 `ConnectorResult` 和 `LifeEvidenceCandidate`。
 - 记录 connector inventory、attempt audit、validation failure 和 reload result。
@@ -80,6 +83,7 @@
 - **[G3]**: custom adapter / skill / browser runner 默认标记为 `custom_adapter_pending_trust`，不得自动执行。[REQ-004]
 - **[G4]**: v5 built-in connector 与 dynamic manifest 在相同 capability 下行为一致。[REQ-004]
 - **[G5]**: `connector:status`、`connector:test`、`connector init` 能消费 registry 与 manifest schema。[REQ-006]
+- **[G6]**: Agent 可在不修改核心代码的前提下登记新行为 capability，并保持 trust / execution policy 不被放松。[REQ-004]
 
 ### 2.2 Non-Goals
 
@@ -106,8 +110,9 @@ v5 证明了 connector 可以把 Moltbook/EvoMap 等平台行为转成 source-ba
 - `src/connectors/base/manifest.ts` 的 zod manifest parser 和 `CapabilityContractRegistry`。
 - `src/connectors/base/route-planner.ts` 的 credential/cooldown/channel 选择和 degraded side-effect guard。
 - `src/connectors/services/connector-executor-adapter.ts` 的 hardcoded Moltbook/EvoMap registry。
+- `connector_behavior_add` runtime command，可把新行为追加到 `.second-nature/connectors/{platformId}/manifest.yaml`。
 
-v6 的设计重点是把 hardcoded registry 演进为 built-in + dynamic merge，而不是推翻现有 route planner。
+v6 的设计重点是把 hardcoded registry 演进为 built-in + dynamic merge，而不是推翻现有 route planner。行为进化沿用同一条线：开放 capability 命名，不开放任意执行。
 
 ### 3.3 Constraints (约束条件)
 
@@ -141,6 +146,7 @@ graph TD
 
     CP[control-plane-system] --> REQ[ConnectorExecutionRequest]
     CLI[cli-system] --> OPS[Connector Ops API]
+    AGENT[Heartbeat / Quiet] --> OPS
     OPS --> REG
     REQ --> ROUTE[Route Planner]
     CAP --> ROUTE
@@ -169,6 +175,7 @@ graph TD
 | `RegistrySnapshotStore` | 发布不可变 registry snapshot | reload 与 execute 并发时使用 atomic swap |
 | `ConnectorTrustPolicy` | 将 manifest 分类为 declarative / pending / trusted | custom code 不自动执行 |
 | `CapabilityContractRegistry` | 支持 `platformId:capability` namespace | v5 capability 兼容 |
+| `BehaviorEvolutionWriter` | 将 Agent 新发现的行为追加为 capability 声明 | 不写 adapter，不写凭据 |
 | `RoutePlanner` | 根据 manifest、credential、health、policy 选 channel | 继承 v5 |
 | `ExecutionPolicyLayer` | idempotency、retry、cooldown、degraded guard | side-effect safety |
 | `DeclarativeRunner` | HTTP/A2A/MCP/CLI descriptor 的受控执行 | P0 自动执行范围 |
@@ -247,6 +254,7 @@ flowchart TD
 | `mapLifeEvidence(result)` | [REQ-005] | source refs resolvable | normalized result | evidence candidates | L0 |
 | `getConnectorStatus()` | [REQ-006] | registry loaded | none | inventory + health + trust status | L0 |
 | `initConnectorSkeleton(input)` | [REQ-004] | target path safe | platform id, base url, runner kind | manifest skeleton + stubs | L0 |
+| `connectorBehaviorAdd(input)` | [REQ-004] | manifest exists; ids valid | platform id, behavior id, optional note | appends capability declaration | L0 |
 
 ### 5.2 跨系统接口协议 (Cross-System Interface)
 
@@ -281,6 +289,7 @@ export interface ConnectorObservabilityPort {
 | --- | --- | --- |
 | `moltbook:feed.read` | platform=`moltbook`, capability=`feed.read` | v6 namespace |
 | `agent-world:work.discover` | platform=`agent-world`, capability=`work.discover` | dynamic connector |
+| `github:issue.search` | platform=`github`, capability=`issue.search` | workspace-defined behavior |
 | `feed.read` + explicit platformId | platform from request | v5 compatibility |
 | `feed.read` without platformId | error or planner default only if unambiguous | 防止隐式漂移 |
 
@@ -328,6 +337,12 @@ export interface ConnectorManifestV6 {
   credentials: CredentialRequirementDeclaration[];
   sourceRefPolicy: SourceRefPolicyDeclaration;
   trust?: ConnectorTrustDeclaration;
+}
+
+export interface ConnectorCapabilityDeclaration {
+  id: string;
+  description?: string;
+  channel?: string;
 }
 
 export interface ConnectorInventoryEntry {
@@ -385,6 +400,7 @@ classDiagram
 ### 6.3 数据流向 (Data Flow Direction)
 
 - Workspace manifest 只进入 registry 和 inventory，不直接进入 execution。
+- Behavior Evolution 只追加 `capabilities[]` 声明，不生成 adapter、credential 或 allowlist。
 - Reload 构建新的不可变 `ConnectorRegistrySnapshot`，验证完成后 atomic swap 为 active snapshot。
 - Route planner 只消费 validated manifest view 和 trust status。
 - Credential 由 `state-system` 提供最小 context，connector 不保存 canonical credential。
@@ -482,11 +498,24 @@ src/connectors/
 
 **Decision**: v6 支持 namespace，同时保留 v5 explicit platform request。
 
+### 8.6 Closed Capability Enum vs Behavior Evolution
+
+**Option A: built-in capability enum only**
+- 优点: 编译期枚举简单。
+- 缺点: 每接一个社区网站或传统平台都要改核心代码，Agent 也无法把真实使用中发现的动作沉淀回来。
+
+**Option B: open capability id with manifest validation (Selected)**
+- 优点: GitHub、Agent World、MoltBook 或任意社区站点都可以先声明行为，再逐步补执行描述。
+- 缺点: capability 命名需要更严格的校验和 namespace 习惯。
+
+**Decision**: capability ID 使用受限开放字符串；执行仍由 manifest、trust policy、route planner 与 credential gate 共同决定。
+
 ---
 
 ## 9. 安全性考虑 (Security Considerations)
 
 - `manifest.yaml` 是不可信输入，禁止 YAML custom tags/object constructors。
+- `connector_behavior_add` 只允许追加 capability declaration，不允许写入 executable custom code、credential、secret 或 trust allowlist。
 - `custom_adapter`、`skill`、`browser` 默认 `custom_adapter_pending_trust`，不可执行。
 - side-effecting capability 缺少 idempotency key 时不得自动 retry。
 - degraded channel 不得默认执行 high-risk side effect。
@@ -554,6 +583,7 @@ Hot reload 是 P1；P0 只要求 startup scan 和 manual reload。
 - Manual reload should return scanned/registered/skipped/conflict counts.
 - `connector:status` must show trust status, executable flag, health, validation errors and degraded channels.
 - `connector:test --platform {id}` must default to dry-run/read-only and must not trigger side effects.
+- `connector_behavior_add` is safe to expose to heartbeat / Quiet surfaces because it mutates only workspace manifest capability declarations.
 
 ---
 
@@ -564,6 +594,7 @@ Hot reload 是 P1；P0 只要求 startup scan 和 manual reload。
 - Add connector profile templates for social/community/work platforms.
 - Add MCP runner once host support and trust policy are proven.
 - Add marketplace lint that validates manifest before distribution.
+- Add behavior proposal scoring: promote repeated failed/unknown platform actions into suggested capability declarations with owner-visible rationale.
 
 ---
 
@@ -575,6 +606,7 @@ Hot reload 是 P1；P0 只要求 startup scan 和 manual reload。
 - **Declarative runner**: 不执行 workspace 代码、只按 manifest descriptor 调用 HTTP/A2A/MCP/CLI 的受控 runner。
 - **Pending trust**: 注册可见但不可执行的 custom runner 状态。
 - **Capability namespace**: `platformId:capability` 格式。
+- **Behavior Evolution**: Agent 将反复出现的新平台动作登记为 manifest capability 的机制；它记录意图，不自动授予执行权。
 - **Fail-closed conflict**: 冲突时保留已注册项，跳过后加载项。
 
 ### 14.2 References

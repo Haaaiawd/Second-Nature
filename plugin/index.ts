@@ -230,6 +230,7 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "dream:recent",
   "connector_status",
   "connector_test",
+  "connector_behavior_add",
   "cycle:recent",
 ]);
 
@@ -1201,6 +1202,17 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
         ),
     },
     {
+      name: "connector_behavior_add",
+      description: "Add a workspace connector behavior declaration (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_CONNECTOR_BEHAVIOR_ADD_UNAVAILABLE",
+          "Connector behavior authoring writes workspace manifests; host-safe plugin cannot mutate connector files.",
+          ["platformId", "behaviorId"],
+          "run_workspace_second_nature_cli_or_full_runtime_package",
+        ),
+    },
+    {
       name: "cycle:recent",
       description: "Show recent cycle summary (workspace runtime required)",
       execute: async () =>
@@ -1433,6 +1445,15 @@ function parseCommandInput(
         ok: true,
         command,
         input: rest[0] ? { platformId: rest[0] } : undefined,
+      };
+    case "connector_behavior_add":
+      return {
+        ok: true,
+        command,
+        input:
+          rest.length > 1
+            ? { platformId: rest[0], behaviorId: rest[1], description: rest.slice(2).join(" ") }
+            : undefined,
       };
     case "cycle:recent":
       return {

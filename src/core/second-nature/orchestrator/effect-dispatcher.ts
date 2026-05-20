@@ -20,6 +20,7 @@ export interface AllowedIntent {
     | "maintenance";
   summary: string;
   effectClass: EffectClass;
+  capabilityIntent?: string;
   platformId?: string;
   payload?: Record<string, unknown>;
 }
@@ -120,8 +121,9 @@ function isConnectorEffect(effectClass: EffectClass): boolean {
 }
 
 export function toCapabilityIntent(
-  intent: Pick<AllowedIntent, "kind">,
+  intent: Pick<AllowedIntent, "kind" | "capabilityIntent">,
 ): CapabilityIntent {
+  if (intent.capabilityIntent?.trim()) return intent.capabilityIntent.trim() as CapabilityIntent;
   if (intent.kind === "work") return "work.discover";
   if (intent.kind === "exploration") return "feed.read";
   if (intent.kind === "social") return "comment.reply";

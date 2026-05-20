@@ -15,6 +15,7 @@ import {
   connectorInit,
   type ConnectorInitResult,
 } from "../../../src/cli/commands/connector-init.js";
+import { connectorBehaviorAdd } from "../../../src/cli/commands/connector-behavior.js";
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sn-connector-init-"));
@@ -161,6 +162,55 @@ test("T1.3.1 generated manifest has custom_adapter_pending_trust and executable=
   const content = fs.readFileSync(manifestPath, "utf-8");
   assert.ok(content.includes("status: custom_adapter_pending_trust"));
   assert.ok(content.includes("reason: generated_by_connector_init"));
+
+  fs.rmSync(root, { recursive: true });
+});
+
+test("connector_behavior_add appends a custom behavior to an existing manifest", async () => {
+  const root = tmpDir();
+  await connectorInit({
+    platformId: "github",
+    workspaceRoot: root,
+  });
+
+  const result = await connectorBehaviorAdd({
+    platformId: "github",
+    behaviorId: "issue.search",
+    description: "Search issues before deciding whether to comment",
+    workspaceRoot: root,
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.added, true);
+
+  const manifestPath = path.join(root, ".second-nature", "connectors", "github", "manifest.yaml");
+  const content = fs.readFileSync(manifestPath, "utf-8");
+  assert.ok(content.includes("id: issue.search"));
+  assert.ok(content.includes("Search issues before deciding whether to comment"));
+
+  const second = await connectorBehaviorAdd({
+    platformId: "github",
+    behaviorId: "issue.search",
+    workspaceRoot: root,
+  });
+  assert.equal(second.ok, true);
+  assert.equal(second.added, false);
+
+  fs.rmSync(root, { recursive: true });
+});
+
+test("connector_behavior_add rejects unsafe platform ids", async () => {
+  const root = tmpDir();
+
+  const result = await connectorBehaviorAdd({
+    platformId: "..",
+    behaviorId: "issue.search",
+    workspaceRoot: root,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.added, false);
+  assert.match(result.reason ?? "", /platformId is required/);
 
   fs.rmSync(root, { recursive: true });
 });

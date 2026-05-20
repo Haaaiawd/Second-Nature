@@ -66,6 +66,37 @@ test("manifest registry validates capability/channel and supports capability loo
   );
 });
 
+test("manifest registry accepts workspace-defined behavior ids", async () => {
+  const registry = new CapabilityContractRegistry();
+  registry.register({
+    platformId: "github",
+    supportedCapabilities: ["repo.inspect", "issue.search", "agent.community.scan"],
+    channelPriority: ["api_rest"],
+    credentialTypes: ["api_key"],
+  });
+
+  assert.equal(registry.hasCapability("github", "issue.search"), true);
+  assert.deepEqual(registry.resolveCapability("github:repo.inspect"), {
+    platformId: "github",
+    intent: "repo.inspect",
+    source: "namespace",
+  });
+
+  const planner = new ConnectorRoutePlanner(
+    registry,
+    makeRouteContext({ credentialState: "active" }),
+    new ChannelHealthStore(),
+  );
+  const plan = await planner.planRoute("agent.community.scan", {
+    platformId: "github",
+    intent: "agent.community.scan",
+    payload: {},
+  });
+
+  assert.equal(plan.intent, "agent.community.scan");
+  assert.equal(plan.channel, "api_rest");
+});
+
 test("failure taxonomy classifies rate-limit and verification errors uniformly", () => {
   const rateLimited = classifyFailure({ status: 429, retryAfterSeconds: 7 });
   assert.equal(rateLimited.class, "rate_limited");

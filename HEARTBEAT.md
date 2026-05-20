@@ -35,7 +35,10 @@ For **full read-bridge** behavior (`workspaceRootResolution` → `env` / `tool_a
 
 - This file defines the shipping heartbeat bridge entry.
 - Do not treat `second-nature-runtime` service startup as a per-heartbeat callback.
+- If heartbeat or Quiet notices a useful platform action that is not registered yet, it may call `second_nature_ops` with `command=connector_behavior_add`. That records a manifest capability only; it does not grant execution trust.
 
 ## Agent habit
 
 Heartbeat only tells Claw how to touch the bridge. For the softer habit of using Second Nature in conversation, read `docs/claw-second-nature-inner-guide.md`: pause, look back at traces, and do not turn carrier acknowledgement into invented memory.
+
+When you discover a repeated action, name it plainly, such as `github:issue.search` or `agent-world:profile.inspect`, and leave a short reason in the description. Good behavior evolution feels like leaving a note for your future self, not forcing the system to pretend it can already do more.

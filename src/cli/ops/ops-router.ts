@@ -23,6 +23,7 @@ import type {
 } from "../host-capability/types.js";
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
 import { connectorInit } from "../commands/connector-init.js";
+import { connectorBehaviorAdd } from "../commands/connector-behavior.js";
 import { connectorStatus, connectorTest } from "../commands/connector-status.js";
 import { goalCommand } from "../commands/goal.js";
 import type { DynamicConnectorRegistry } from "../../connectors/registry/index.js";
@@ -276,6 +277,24 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           });
           return result as unknown as Record<string, unknown>;
         })();
+      }
+      if (command === "connector_behavior_add") {
+        return connectorBehaviorAdd({
+          platformId: typeof input?.platformId === "string" ? input.platformId : "",
+          behaviorId:
+            typeof input?.behaviorId === "string"
+              ? input.behaviorId
+              : typeof input?.capabilityId === "string"
+                ? input.capabilityId
+                : "",
+          description:
+            typeof input?.description === "string" ? input.description : undefined,
+          channel: typeof input?.channel === "string" ? input.channel : undefined,
+          workspaceRoot:
+            typeof input?.workspaceRoot === "string"
+              ? input.workspaceRoot
+              : deps.workspaceRoot,
+        }) as unknown as Record<string, unknown>;
       }
       if (command === "connector_status") {
         return connectorStatus(deps.registry, undefined, {
