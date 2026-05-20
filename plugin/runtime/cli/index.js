@@ -54,6 +54,7 @@ const BUILT_IN_CONNECTOR_MANIFESTS = [
     },
 ];
 export function createCliRuntimeDeps(overrides = {}) {
+    const workspaceRoot = overrides.workspaceRoot ?? process.cwd();
     const stateDb = overrides.stateDb ?? createStateDatabase();
     const observabilityDb = overrides.observabilityDb ?? createObservabilityDatabase();
     const stateApi = overrides.stateApi ?? createStateAPI(stateDb);
@@ -61,7 +62,7 @@ export function createCliRuntimeDeps(overrides = {}) {
         createCliReadModels({
             stateDb,
             observabilityDb,
-            workspaceRoot: process.cwd(),
+            workspaceRoot,
             livedExperienceAuditStore: overrides.livedExperienceAuditStore,
         });
     const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
@@ -70,6 +71,7 @@ export function createCliRuntimeDeps(overrides = {}) {
         createConnectorExecutorAdapter({
             stateDb,
             observabilityDb,
+            workspaceRoot,
         });
     const registry = overrides.registry ??
         new DynamicConnectorRegistry({
@@ -88,6 +90,7 @@ export function createCliRuntimeDeps(overrides = {}) {
     };
 }
 export function createCommandRouter(options = {}) {
+    const workspaceRoot = process.cwd();
     const runtime = createCliRuntimeDeps(options.deps);
     const pluginRoot = path.join(process.cwd(), "plugin");
     const opsRouter = createOpsRouter({
@@ -95,7 +98,7 @@ export function createCommandRouter(options = {}) {
         readModels: runtime.readModels,
         runtimeRecorder: runtime.runtimeRecorder,
         state: runtime.stateDb,
-        workspaceRoot: process.cwd(),
+        workspaceRoot,
         observabilityDb: runtime.observabilityDb,
         connectorExecutor: runtime.connectorExecutor,
         registry: runtime.registry,

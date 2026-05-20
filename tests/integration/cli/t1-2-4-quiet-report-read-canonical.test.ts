@@ -37,7 +37,7 @@ const today = new Date().toISOString().slice(0, 10);
 
 // ─── Case A: 写盘后 loadQuiet 非零 ───────────────────────────────────────────
 
-test("T1.2.4 A — after Quiet artifact persisted, loadQuiet returns non-zero sourceCount", async () => {
+test("T1.2.4 A — after empty Quiet artifact persisted, loadQuiet tracks empty state separately", async () => {
   const ws = makeTempWorkspace();
   const stateDb = createStateDatabase(":memory:");
   const observabilityDb = createObservabilityDatabase(":memory:");
@@ -72,16 +72,18 @@ test("T1.2.4 A — after Quiet artifact persisted, loadQuiet returns non-zero so
   const ack = writeQuietArtifact(input);
   await persistQuietArtifactToWorkspace(ws, ack, input);
 
-  // After: loadQuiet should reflect the persisted artifact.
+  // After: empty_state is visible, but does not masquerade as a source-backed report.
   const after = await readModels.loadQuiet();
-  assert.ok(
-    after.sourceCount > 0,
-    `Expected sourceCount > 0 after Quiet artifact persisted; got ${after.sourceCount}`,
+  assert.equal(
+    after.sourceCount,
+    0,
+    `Expected sourceCount to remain 0 for empty_state; got ${after.sourceCount}`,
   );
-  assert.notEqual(
+  assert.equal(after.emptyStateCount, 1);
+  assert.equal(
     after.mode,
     "unknown",
-    "After Quiet artifact persisted, mode must not be unknown",
+    "Empty state alone must not switch Quiet read model into source-backed mode",
   );
 
   stateDb.close();
@@ -235,14 +237,33 @@ test("T1.2.4 E — after Quiet artifact persisted, loadDailyReport sourceRefs is
     "Before artifact persisted, sourceRefs must be empty",
   );
 
-  // Write a Quiet artifact for today.
+  // Write a source-backed Quiet report artifact for today.
   const input = {
     day: today,
-    kind: "empty_state" as const,
+    kind: "daily_report" as const,
     title: "Quiet — daily report test",
-    body: "No evidence.",
-    claims: [],
-    sourceRefs: [],
+    body: "Saw a source-backed event worth carrying forward.",
+    claims: [
+      {
+        id: "fact:daily-report-source",
+        text: "Source-backed event observed.",
+        claimType: "fact" as const,
+        sourceRefs: [
+          {
+            id: "src-daily-report-source",
+            kind: "platform_item" as const,
+            uri: "moltbook://daily-report-source",
+          },
+        ],
+      },
+    ],
+    sourceRefs: [
+      {
+        id: "src-daily-report-source",
+        kind: "platform_item" as const,
+        uri: "moltbook://daily-report-source",
+      },
+    ],
   };
   const ack = writeQuietArtifact(input);
   await persistQuietArtifactToWorkspace(ws, ack, input);

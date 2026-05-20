@@ -2,15 +2,6 @@ import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import { writeQuietArtifact } from "../../../storage/quiet/quiet-artifact-writer.js";
 import { persistQuietArtifactToWorkspace } from "../../../storage/quiet/persist-quiet-artifact.js";
 import { buildEvidencePack, buildQuietNarrativeGuidance, selectInterestBasis } from "../../../guidance/evidence-guidance.js";
-function toSourceRefFromControlPlane(r) {
-    return {
-        id: r.id,
-        kind: r.kind,
-        uri: r.uri,
-        excerptHash: r.excerptHash,
-        observedAt: r.observedAt,
-    };
-}
 function toGuidanceRef(r) {
     return {
         id: r.id,
@@ -49,7 +40,6 @@ export async function runSourceBackedQuiet(params) {
             persistedRelativePath,
         };
     }
-    const bundleRefs = runtime.lifeEvidence.evidenceRefs.map(toSourceRefFromControlPlane);
     const guidanceRefs = runtime.lifeEvidence.evidenceRefs.map(toGuidanceRef);
     const ep = buildEvidencePack(guidanceRefs);
     if (!ep.ok) {
@@ -62,11 +52,28 @@ export async function runSourceBackedQuiet(params) {
             },
         };
     }
+    if (ep.pack.sensitiveBlocked) {
+        return {
+            result: {
+                scope: "rhythm",
+                status: "denied",
+                selectedIntentId: candidate.id,
+                reasons: ["quiet_guidance_sensitive_source_blocked"],
+            },
+        };
+    }
     const basis = selectInterestBasis({
         staleness: userInterestSnapshot?.staleness ?? "insufficient",
         confidence: userInterestSnapshot?.confidence ?? 0,
         signalCount: userInterestSnapshot?.signals.length ?? 0,
     });
+    const groundedSourceRefs = ep.pack.groundedRefs.map((g) => ({
+        id: g.id,
+        kind: g.kind,
+        uri: g.uri,
+        excerptHash: g.excerptHash,
+        observedAt: g.observedAt,
+    }));
     const claims = ep.pack.groundedRefs.map((g, i) => ({
         id: `fact:${g.id}`,
         text: `Evidence-backed note ${i + 1}`,
@@ -85,9 +92,9 @@ export async function runSourceBackedQuiet(params) {
         day,
         kind: "daily_report",
         title: "Quiet daily report",
-        body: `Source-backed quiet summary (${bundleRefs.length} refs).`,
+        body: `Source-backed quiet summary (${groundedSourceRefs.length} refs).`,
         claims,
-        sourceRefs: bundleRefs,
+        sourceRefs: groundedSourceRefs,
     };
     const ack = writeQuietArtifact(reportWrite);
     const gq = buildQuietNarrativeGuidance({

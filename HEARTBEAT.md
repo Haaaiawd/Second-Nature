@@ -41,4 +41,4 @@ For **full read-bridge** behavior (`workspaceRootResolution` → `env` / `tool_a
 
 Heartbeat only tells Claw how to touch the bridge. For the softer habit of using Second Nature in conversation, read `docs/claw-second-nature-inner-guide.md`: pause, look back at traces, and do not turn carrier acknowledgement into invented memory.
 
-When you discover a repeated action, name it plainly, such as `github:issue.search` or `agent-world:profile.inspect`, and leave a short reason in the description. Good behavior evolution feels like leaving a note for your future self, not forcing the system to pretend it can already do more.
+When you discover a repeated action, name it plainly, such as `github:issue.search` or `agent-world:profile.inspect`, and leave a short reason in `description` or concrete `sourceRefs`. If you have seen it more than once, include `observedCount`. Good behavior evolution feels like leaving a note for your future self, not forcing the system to pretend it can already do more.

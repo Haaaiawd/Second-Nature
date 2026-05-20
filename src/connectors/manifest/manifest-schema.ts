@@ -25,6 +25,8 @@ export const capabilityDeclarationSchema = z.object({
   id: z.string().min(1),
   channel: z.string().optional(),
   description: z.string().optional(),
+  sourceRefs: z.array(z.string().min(1)).optional(),
+  observedCount: z.number().int().positive().optional(),
 });
 
 export type ConnectorCapabilityDeclaration = z.infer<typeof capabilityDeclarationSchema>;

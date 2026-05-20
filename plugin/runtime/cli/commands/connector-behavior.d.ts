@@ -3,6 +3,8 @@ export interface ConnectorBehaviorAddInput {
     behaviorId: string;
     description?: string;
     channel?: string;
+    sourceRefs?: unknown;
+    observedCount?: number;
     workspaceRoot?: string;
 }
 export interface ConnectorBehaviorAddResult {

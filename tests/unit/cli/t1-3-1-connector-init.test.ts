@@ -199,6 +199,51 @@ test("connector_behavior_add appends a custom behavior to an existing manifest",
   fs.rmSync(root, { recursive: true });
 });
 
+test("connector_behavior_add requires a reviewable motive for new behaviors", async () => {
+  const root = tmpDir();
+  await connectorInit({
+    platformId: "github",
+    workspaceRoot: root,
+  });
+
+  const result = await connectorBehaviorAdd({
+    platformId: "github",
+    behaviorId: "issue.search",
+    workspaceRoot: root,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.added, false);
+  assert.match(result.reason ?? "", /description or sourceRefs is required/);
+
+  fs.rmSync(root, { recursive: true });
+});
+
+test("connector_behavior_add records source refs and observed count", async () => {
+  const root = tmpDir();
+  await connectorInit({
+    platformId: "github",
+    workspaceRoot: root,
+  });
+
+  const result = await connectorBehaviorAdd({
+    platformId: "github",
+    behaviorId: "issue.search",
+    sourceRefs: ["quiet:proposal:github-issue-search"],
+    observedCount: 2,
+    workspaceRoot: root,
+  });
+
+  assert.equal(result.ok, true);
+  const manifestPath = path.join(root, ".second-nature", "connectors", "github", "manifest.yaml");
+  const content = fs.readFileSync(manifestPath, "utf-8");
+  assert.ok(content.includes("sourceRefs:"));
+  assert.ok(content.includes("quiet:proposal:github-issue-search"));
+  assert.ok(content.includes("observedCount: 2"));
+
+  fs.rmSync(root, { recursive: true });
+});
+
 test("connector_behavior_add rejects unsafe platform ids", async () => {
   const root = tmpDir();
 

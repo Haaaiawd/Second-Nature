@@ -10,7 +10,7 @@ const connectorManifestSchema = z.object({
     platformId: z.string().min(1),
     supportedCapabilities: z.array(z.string().min(1).regex(/^[a-zA-Z0-9_.:-]+$/)).min(1),
     channelPriority: z.array(z.enum(CHANNEL_TYPES)).min(1),
-    credentialTypes: z.array(z.string().min(1)).min(1),
+    credentialTypes: z.array(z.string().min(1)),
     degradedChannels: z.array(z.enum(CHANNEL_TYPES)).optional(),
     sourceRefPolicy: sourceRefPolicySchema,
 });

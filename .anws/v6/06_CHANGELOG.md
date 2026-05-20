@@ -62,3 +62,9 @@
 - [CHANGE] `connector-system` 设计回流 Behavior Evolution：capability ID 从封闭枚举演进为受限开放字符串，支持 GitHub、Agent 社区站点和其他平台声明自定义行为。
 - [ADD] 新增 `connector_behavior_add` runtime command：Agent 可把重复出现的新平台动作追加到 `.second-nature/connectors/{platformId}/manifest.yaml` 的 `capabilities[]`，但不写 adapter、credential、trust allowlist 或 executable code。
 - [CHANGE] HEARTBEAT / plugin setup guide / README 同步说明：heartbeat 或 Quiet 发现未登记但可复用的动作时，可以先登记行为，再等待 reload/status 与既有 trust policy 决定是否可执行。
+
+## 2026-05-20 - Connector + Quiet Review Closure
+- [FIX] `connector_behavior_add` 改为 JSON schema YAML 解析，并在写入前后用 v6 manifest schema 校验，避免宽松 YAML 或坏 manifest 进入行为进化闭环。
+- [FIX] 新增行为必须携带可审查动机：`description` 或 `sourceRefs`；manifest capability 支持 `sourceRefs` 与 `observedCount`，让 Quiet / heartbeat 添加动作时留下来由。
+- [FIX] connector executor 读取 workspace manifest 后可识别新增 capability；未知平台在 runner 边界返回 `unknown_platform_change`，不再被凭据缺失误归类为 `auth_failure`。
+- [FIX] Quiet 对敏感 source refs 直接拒绝写入，`empty_state` 使用确定性文件名并从 source-backed report 计数中剥离，避免空态 artifact 膨胀 read model。

@@ -84,7 +84,7 @@
 - **最新架构版本**: `.anws/v6`
 - **活动任务清单**: `.anws/v6/05A_TASKS.md`
 - **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-20` (Wave 44 `/forge`: Connector Behavior Evolution — open capability ids + `connector_behavior_add`)
+- **最近一次更新**: `2026-05-20` (Wave 45 `/forge`: Connector + Quiet review closure)
 
 ### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
 
@@ -346,6 +346,11 @@ S5 Waves 36-39 测试增量明细：
 `/change` 回流“行为进化”：connector capability ID 从封闭枚举改为受限开放字符串，manifest registry 可登记 `github:issue.search`、`agent-world:profile.inspect` 这类 workspace-defined behavior。`connector-system` L0/L1 文档明确：行为登记只是 capability declaration，不授予执行代码、凭据、trust allowlist 或 side-effect 权限。
 
 `/forge` 新增 `connector_behavior_add` runtime command，并接入 CLI ops router 与 OpenClaw plugin bridge。Agent 在 heartbeat / Quiet 里发现反复出现但未登记的平台动作时，可以把它追加到 `.second-nature/connectors/{platformId}/manifest.yaml` 的 `capabilities[]`；后续是否执行仍由 registry reload、route planner、credential gate、idempotency 与 trust policy 判断。README / README.zh-CN / HEARTBEAT / plugin setup guide / inner guide 已同步说明。
+
+### 🌊 Wave 45 ✅ — Connector + Quiet Review Closure
+静态审查发现行为进化与 Quiet 还有 5 个闭环缺口：新增 capability 只到 manifest/status，没进 executor registry；`connector_behavior_add` YAML 解析和 manifest 校验过松；新增行为缺少动机/source 记录；Quiet 会把敏感 source refs 带入 artifact；`empty_state` 会重复写随机文件并污染 read model 计数。
+
+修复：executor adapter 现在扫描 workspace manifests 并把新增 capability 注册到 `CapabilityContractRegistry`，未知平台在 runner 边界诚实返回 `unknown_platform_change`；无 credential manifest 可路由到 runner fail-closed，而不是被 route planner 卡成 auth failure。`connector_behavior_add` 改用 JSON schema YAML 解析，写入前后做 v6 manifest schema 校验，并要求 `description` 或 `sourceRefs`，支持 `observedCount`。Quiet 对 sensitive source refs 直接 denied，不落盘；`empty_state` 使用确定性 `empty_state.json`，并从 source-backed report/sourceCount 中剥离，仅通过 `emptyStateCount` 暴露。插件 runtime 已重建。
 
 <!-- AUTO:END -->
 

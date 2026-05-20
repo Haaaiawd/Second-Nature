@@ -55,19 +55,31 @@ function buildCredentialNextStep(status) {
         return "verify_or_re_create_credential_then_re_import";
     return undefined;
 }
-/**
- * T1.2.4: count persisted Quiet artifact JSON files under `.second-nature/quiet/{day}/`
- * so `loadQuiet` / `loadDailyReport` can reflect Quiet artifacts in the read model.
- */
-function countQuietArtifactsForDay(workspaceRoot, day) {
+function classifyQuietArtifactsForDay(workspaceRoot, day) {
     try {
         const dir = path.join(workspaceRoot, ".second-nature", "quiet", day);
         if (!fs.existsSync(dir))
-            return 0;
-        return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).length;
+            return { reportArtifacts: 0, emptyStateArtifacts: 0, totalArtifacts: 0 };
+        let reportArtifacts = 0;
+        let emptyStateArtifacts = 0;
+        let totalArtifacts = 0;
+        for (const file of fs.readdirSync(dir).filter((f) => f.endsWith(".json"))) {
+            totalArtifacts++;
+            try {
+                const raw = JSON.parse(fs.readFileSync(path.join(dir, file), "utf-8"));
+                if (raw.write?.kind === "empty_state")
+                    emptyStateArtifacts++;
+                else
+                    reportArtifacts++;
+            }
+            catch {
+                reportArtifacts++;
+            }
+        }
+        return { reportArtifacts, emptyStateArtifacts, totalArtifacts };
     }
     catch {
-        return 0;
+        return { reportArtifacts: 0, emptyStateArtifacts: 0, totalArtifacts: 0 };
     }
 }
 /**
@@ -78,22 +90,26 @@ function countRecentQuietArtifacts(workspaceRoot, windowDays = 2) {
     try {
         const quietRoot = path.join(workspaceRoot, ".second-nature", "quiet");
         if (!fs.existsSync(quietRoot))
-            return { totalArtifacts: 0, recentDays: [] };
+            return { totalArtifacts: 0, reportArtifacts: 0, emptyStateArtifacts: 0, recentDays: [] };
         const now = Date.now();
         const recentDays = [];
         let total = 0;
+        let reports = 0;
+        let emptyStates = 0;
         for (let i = 0; i < windowDays; i++) {
             const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
-            const count = countQuietArtifactsForDay(workspaceRoot, d);
-            if (count > 0) {
+            const count = classifyQuietArtifactsForDay(workspaceRoot, d);
+            if (count.totalArtifacts > 0) {
                 recentDays.push(d);
-                total += count;
+                total += count.totalArtifacts;
+                reports += count.reportArtifacts;
+                emptyStates += count.emptyStateArtifacts;
             }
         }
-        return { totalArtifacts: total, recentDays };
+        return { totalArtifacts: total, reportArtifacts: reports, emptyStateArtifacts: emptyStates, recentDays };
     }
     catch {
-        return { totalArtifacts: 0, recentDays: [] };
+        return { totalArtifacts: 0, reportArtifacts: 0, emptyStateArtifacts: 0, recentDays: [] };
     }
 }
 function mapRuntimeStatus(attempt) {
@@ -282,7 +298,7 @@ export function createCliReadModels(deps) {
             // into the daily report sourceRefs so the read model reflects artifacts written by
             // `persistQuietArtifactToWorkspace` (closes the canonical read/write gap for loadDailyReport).
             const fsArtifactCount = deps.workspaceRoot
-                ? countQuietArtifactsForDay(deps.workspaceRoot, day)
+                ? classifyQuietArtifactsForDay(deps.workspaceRoot, day).reportArtifacts
                 : 0;
             const report = bundle.dailyReports[0];
             const existingSources = report?.sources ?? [];
@@ -314,15 +330,16 @@ export function createCliReadModels(deps) {
             // journal path is empty.
             const quietArtifacts = deps.workspaceRoot
                 ? countRecentQuietArtifacts(deps.workspaceRoot, 2)
-                : { totalArtifacts: 0, recentDays: [] };
-            const totalSourceCount = bundle.sourceCount + quietArtifacts.totalArtifacts;
-            const totalReportCount = bundle.dailyReports.length + quietArtifacts.totalArtifacts;
+                : { totalArtifacts: 0, reportArtifacts: 0, emptyStateArtifacts: 0, recentDays: [] };
+            const totalSourceCount = bundle.sourceCount + quietArtifacts.reportArtifacts;
+            const totalReportCount = bundle.dailyReports.length + quietArtifacts.reportArtifacts;
             return {
                 scope,
                 mode: totalSourceCount > 0 ? "quiet" : "unknown",
                 sourceCount: totalSourceCount,
                 reportCount: totalReportCount,
                 recentJournalCount: bundle.journalEntries.length,
+                emptyStateCount: quietArtifacts.emptyStateArtifacts,
             };
         },
         async loadSession(sessionId) {

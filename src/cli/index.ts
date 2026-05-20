@@ -112,11 +112,13 @@ export interface CreateCommandRouterOptions {
 export interface CreateCliRuntimeDepsOptions extends Partial<CliRuntimeDeps> {
   /** T1.2.7 — pass an explicit audit store so `loadAuditSummary()` reflects test-injected events. */
   livedExperienceAuditStore?: AppendOnlyAuditStore;
+  workspaceRoot?: string;
 }
 
 export function createCliRuntimeDeps(
   overrides: CreateCliRuntimeDepsOptions = {},
 ): CliRuntimeDeps {
+  const workspaceRoot = overrides.workspaceRoot ?? process.cwd();
   const stateDb = overrides.stateDb ?? createStateDatabase();
   const observabilityDb =
     overrides.observabilityDb ?? createObservabilityDatabase();
@@ -126,7 +128,7 @@ export function createCliRuntimeDeps(
     createCliReadModels({
       stateDb,
       observabilityDb,
-      workspaceRoot: process.cwd(),
+      workspaceRoot,
       livedExperienceAuditStore: overrides.livedExperienceAuditStore,
     });
   const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
@@ -137,6 +139,7 @@ export function createCliRuntimeDeps(
     createConnectorExecutorAdapter({
       stateDb,
       observabilityDb,
+      workspaceRoot,
     });
   const registry =
     overrides.registry ??
@@ -160,6 +163,7 @@ export function createCliRuntimeDeps(
 export function createCommandRouter(
   options: CreateCommandRouterOptions = {},
 ): CommandRouter {
+  const workspaceRoot = process.cwd();
   const runtime = createCliRuntimeDeps(options.deps);
   const pluginRoot = path.join(process.cwd(), "plugin");
   const opsRouter = createOpsRouter({
@@ -167,7 +171,7 @@ export function createCommandRouter(
     readModels: runtime.readModels,
     runtimeRecorder: runtime.runtimeRecorder,
     state: runtime.stateDb,
-    workspaceRoot: process.cwd(),
+    workspaceRoot,
     observabilityDb: runtime.observabilityDb,
     connectorExecutor: runtime.connectorExecutor,
     registry: runtime.registry,

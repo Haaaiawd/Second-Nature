@@ -162,6 +162,7 @@ export interface QuietReadModel {
   sourceCount: number;
   reportCount: number;
   recentJournalCount: number;
+  emptyStateCount?: number;
 }
 
 export interface SessionDetailReadModel {

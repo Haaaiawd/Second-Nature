@@ -6,11 +6,16 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import { createStateDatabase } from "../../../src/storage/index.js";
 import { createObservabilityDatabase } from "../../../src/observability/index.js";
 import { createConnectorExecutorAdapter } from "../../../src/connectors/services/connector-executor-adapter.js";
 import { createCredentialVault } from "../../../src/storage/services/credential-vault.js";
+import { connectorInit } from "../../../src/cli/commands/connector-init.js";
+import { connectorBehaviorAdd } from "../../../src/cli/commands/connector-behavior.js";
 
 const ORIGINAL_KEY = process.env.SECOND_NATURE_ENCRYPTION_KEY;
 const ORIGINAL_MOLTBOOK_BASE_URL = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
@@ -33,6 +38,45 @@ test.afterEach(() => {
   } else {
     process.env.SECOND_NATURE_AGENT_WORLD_PROFILE_PATH_TEMPLATE =
       ORIGINAL_AGENT_WORLD_PROFILE_PATH_TEMPLATE;
+  }
+});
+
+test("connector executor adapter loads workspace-defined behavior and fails closed at runner boundary", async () => {
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sn-dynamic-executor-"));
+  const stateDb = createStateDatabase();
+  const observabilityDb = createObservabilityDatabase();
+  try {
+    await connectorInit({ platformId: "github", workspaceRoot });
+    const add = await connectorBehaviorAdd({
+      platformId: "github",
+      behaviorId: "issue.search",
+      description: "Search issues before deciding whether to comment",
+      sourceRefs: ["quiet:proposal:github-issue-search"],
+      workspaceRoot,
+    });
+    assert.equal(add.ok, true);
+
+    const adapter = createConnectorExecutorAdapter({
+      stateDb,
+      observabilityDb,
+      workspaceRoot,
+    });
+    const result = await adapter.executeEffect({
+      platformId: "github",
+      intent: "issue.search",
+      payload: {},
+      decisionId: "dec-dynamic-1",
+      intentId: "intent-dynamic-1",
+      idempotencyKey: "idem-dynamic-1",
+    });
+
+    assert.equal(result.status, "terminal_failure");
+    assert.equal(result.failureClass, "unknown_platform_change");
+    assert.equal(result.metadata.platformId, "github");
+  } finally {
+    stateDb.close();
+    observabilityDb.close();
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
   }
 });
 

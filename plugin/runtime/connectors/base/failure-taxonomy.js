@@ -118,6 +118,11 @@ export function classifyFailure(error) {
                     class: "permanent_input_error",
                     retryable: RETRYABLE_BY_CLASS.permanent_input_error,
                 };
+            if (code === "unknown_platform" || code === "unknown_platform_change")
+                return {
+                    class: "unknown_platform_change",
+                    retryable: RETRYABLE_BY_CLASS.unknown_platform_change,
+                };
         }
         const status = record.status;
         if (status === 429) {

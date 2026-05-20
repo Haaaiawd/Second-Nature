@@ -20,7 +20,7 @@ Use this skill when setting up Second Nature from an installed OpenClaw plugin p
 5. Place the guide deliberately into the Claw agent prompt, `IDENTITY.md`, or another long-lived identity anchor.
 6. Run `second_nature_ops` with `command=setup_ack` and the same `workspaceRoot`; this writes `.second-nature/setup/agent-inner-guide-ack.json` and removes the first-run nudge.
 7. Run `second_nature_ops` with `command=heartbeat_check` and inspect the JSON result.
-8. If a repeated platform action is missing from a connector manifest, use `command=connector_behavior_add` with `platformId`, `behaviorId`, and a short `description`.
+8. If a repeated platform action is missing from a connector manifest, use `command=connector_behavior_add` with `platformId`, `behaviorId`, and a short `description` or concrete `sourceRefs`; include `observedCount` when the same need has appeared repeatedly.
 
 ## Current Boundary
 

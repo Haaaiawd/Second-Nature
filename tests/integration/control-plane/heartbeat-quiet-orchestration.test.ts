@@ -39,6 +39,36 @@ test("T2.3.3 quiet non-empty: unresolved evidence refs -> denied (low path)", as
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
+test("T2.3.3 quiet non-empty: sensitive source refs are denied and not persisted", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-quiet-sensitive-"));
+  const signal: HeartbeatSignal = {
+    trigger: "heartbeat_bridge",
+    scopeHint: "rhythm",
+    payload: { timestamp: "2026-05-02T22:30:00.000Z" },
+  };
+  const snapshotInputs: SnapshotInputs = {
+    mode: "quiet",
+    currentWindowId: "window-quiet",
+    pendingObligations: [],
+    recentOutreachHashes: [],
+    deniedIntents: [],
+    quietEnabledBridge: true,
+    lifeEvidenceRefs: [{ id: "secret-ref", kind: "connector_result", uri: "credential://github/token" }],
+  };
+
+  const deps: HeartbeatDeps = {
+    loadSnapshotInputs: async () => snapshotInputs,
+    quietWorkflow: { workspaceRoot: tmp },
+  };
+
+  const result = await ingestRhythmSignal(signal, deps);
+  assert.equal(result.status, "denied");
+  assert.ok(result.reasons.includes("quiet_guidance_sensitive_source_blocked"));
+  const quietDir = path.join(tmp, ".second-nature", "quiet", "2026-05-02");
+  assert.equal(fs.existsSync(quietDir), false);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 test("T2.3.3 quiet non-empty: grounded evidence -> intent_selected with quiet artifact hints", async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-quiet-ok-"));
   const signal: HeartbeatSignal = {

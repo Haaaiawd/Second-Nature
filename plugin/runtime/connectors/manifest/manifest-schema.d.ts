@@ -20,6 +20,8 @@ export declare const capabilityDeclarationSchema: z.ZodObject<{
     id: z.ZodString;
     channel: z.ZodOptional<z.ZodString>;
     description: z.ZodOptional<z.ZodString>;
+    sourceRefs: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    observedCount: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>;
 export type ConnectorCapabilityDeclaration = z.infer<typeof capabilityDeclarationSchema>;
 export declare const runnerDeclarationSchema: z.ZodObject<{
@@ -72,6 +74,8 @@ export declare const connectorManifestV6Schema: z.ZodObject<{
         id: z.ZodString;
         channel: z.ZodOptional<z.ZodString>;
         description: z.ZodOptional<z.ZodString>;
+        sourceRefs: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        observedCount: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>>;
     runner: z.ZodObject<{
         kind: z.ZodEnum<{

@@ -290,6 +290,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           description:
             typeof input?.description === "string" ? input.description : undefined,
           channel: typeof input?.channel === "string" ? input.channel : undefined,
+          sourceRefs: input?.sourceRefs,
+          observedCount:
+            typeof input?.observedCount === "number" ? input.observedCount : undefined,
           workspaceRoot:
             typeof input?.workspaceRoot === "string"
               ? input.workspaceRoot

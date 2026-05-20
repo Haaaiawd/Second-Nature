@@ -12,12 +12,61 @@ import { createAgentWorldRunner } from "../agent-network/agent-world/adapter.js"
 import { ExecutionTelemetry } from "../../observability/services/execution-telemetry.js";
 import { createCredentialVault } from "../../storage/services/credential-vault.js";
 import { createCredentialRouteContextPort } from "./credential-route-context.js";
+import { scanConnectorManifests } from "../registry/manifest-scanner.js";
+import { parseConnectorManifestV6 } from "../manifest/manifest-parser.js";
 const DEFAULT_AGENT_WORLD_USERNAME = "nyx_ha";
 const DEFAULT_AGENT_WORLD_PROFILE_PATH_TEMPLATE = "/api/agents/profile/{username}";
 function readString(value) {
     return typeof value === "string" && value.trim().length > 0
         ? value.trim()
         : undefined;
+}
+function channelPriorityForRunner(manifest) {
+    const declared = manifest.capabilities
+        .map((capability) => capability.channel)
+        .filter((channel) => channel === "api_rest" ||
+        channel === "api_rpc" ||
+        channel === "a2a" ||
+        channel === "mcp" ||
+        channel === "cli" ||
+        channel === "skill" ||
+        channel === "browser");
+    if (declared.length > 0)
+        return [...new Set(declared)];
+    if (manifest.runner.kind === "declarative_a2a")
+        return ["a2a"];
+    if (manifest.runner.kind === "declarative_mcp")
+        return ["mcp"];
+    if (manifest.runner.kind === "cli_descriptor")
+        return ["cli"];
+    if (manifest.runner.kind === "skill")
+        return ["skill"];
+    if (manifest.runner.kind === "browser")
+        return ["browser"];
+    return ["api_rest"];
+}
+function registerWorkspaceManifests(registry, workspaceRoot) {
+    if (!workspaceRoot)
+        return;
+    for (const file of scanConnectorManifests(workspaceRoot)) {
+        const parsed = parseConnectorManifestV6(file.content, file.path);
+        if (!parsed.ok)
+            continue;
+        const manifest = parsed.manifest;
+        try {
+            registry.register({
+                platformId: manifest.platformId,
+                supportedCapabilities: manifest.capabilities.map((capability) => capability.id),
+                channelPriority: channelPriorityForRunner(manifest),
+                credentialTypes: manifest.credentials.map((credential) => credential.type),
+                sourceRefPolicy: manifest.sourceRefPolicy,
+            });
+        }
+        catch {
+            // Invalid workspace manifests remain visible through connector_status validation.
+            // Execution side keeps fail-closed behavior by not registering them here.
+        }
+    }
 }
 function resolveAgentWorldUsername(payload, purpose) {
     const payloadUsername = (purpose === "discover" ? readString(payload.targetUsername) : undefined) ??
@@ -57,6 +106,20 @@ function createAdaptiveExecutionRunner(vault) {
         async run(_plan, request) {
             const platformId = request.platformId;
             const started = Date.now();
+            if (platformId !== "moltbook" &&
+                platformId !== "evomap" &&
+                platformId !== "agent-world") {
+                return {
+                    platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "unknown_platform",
+                        detail: `no execution runner for ${platformId}`,
+                    },
+                };
+            }
             const credential = await vault.loadCredentialContext(platformId);
             if (!credential ||
                 credential.status !== "active" ||
@@ -172,16 +235,7 @@ function createAdaptiveExecutionRunner(vault) {
                 });
                 return runner.run(_plan, request);
             }
-            return {
-                platformId,
-                channel: request.preferredChannel ?? "api_rest",
-                latencyMs: Date.now() - started,
-                success: false,
-                error: {
-                    code: "unknown_platform",
-                    detail: `no execution runner for ${platformId}`,
-                },
-            };
+            throw new Error(`unreachable_connector_platform:${platformId}`);
         },
     };
 }
@@ -191,6 +245,7 @@ export function createConnectorExecutorAdapter(options) {
     registry.register({ ...moltbookManifest });
     registry.register({ ...evomapManifest });
     registry.register({ ...agentWorldManifest });
+    registerWorkspaceManifests(registry, options.workspaceRoot);
     const routeContextPort = createCredentialRouteContextPort(vault);
     const routePlanner = new ConnectorRoutePlanner(registry, routeContextPort, new ChannelHealthStore());
     const telemetry = new ExecutionTelemetry(options.observabilityDb);
@@ -204,6 +259,7 @@ export function createConnectorExecutorAdapter(options) {
     });
     return {
         async executeEffect(input) {
+            registerWorkspaceManifests(registry, options.workspaceRoot);
             return policy.executeWithPolicy(input.intent, {
                 platformId: input.platformId,
                 intent: input.intent,

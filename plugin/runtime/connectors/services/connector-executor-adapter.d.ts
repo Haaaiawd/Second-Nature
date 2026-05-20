@@ -12,5 +12,6 @@ import type { StateDatabase } from "../../storage/db/index.js";
 export interface ConnectorExecutorAdapterOptions {
     stateDb: StateDatabase;
     observabilityDb: ObservabilityDatabase;
+    workspaceRoot?: string;
 }
 export declare function createConnectorExecutorAdapter(options: ConnectorExecutorAdapterOptions): ConnectorExecutor;

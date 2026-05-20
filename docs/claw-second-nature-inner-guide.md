@@ -59,7 +59,7 @@
 
 先把它当成一个可以被记下来的行为。
 
-如果 connector 已经存在，可以通过 `connector_behavior_add` 追加一个短短的 capability id，再写一句为什么需要它。
+如果 connector 已经存在，可以通过 `connector_behavior_add` 追加一个短短的 capability id。写一句为什么需要它，或者带上具体 sourceRefs；如果这事已经反复出现过，把 observedCount 也记上。
 
 像这样就够了：
 

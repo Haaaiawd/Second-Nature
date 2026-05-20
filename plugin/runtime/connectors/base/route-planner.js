@@ -72,15 +72,18 @@ export class ConnectorRoutePlanner {
         if (cooldown.blocked) {
             throw new ConnectorPolicyError("cooldown_blocked", "platform_or_intent_cooldown_blocked", cooldown.retryAfterMs);
         }
-        const credential = await this.statePort.loadCredentialState(request.platformId);
-        if (credential.status === "missing" || credential.status === "revoked" || credential.status === "failed") {
-            throw new ConnectorPolicyError("auth_failure", "credential_unavailable_for_route");
-        }
-        if (credential.status === "expired") {
-            throw new ConnectorPolicyError("credential_expired", "credential_expired_for_route");
-        }
         const channels = [...manifest.channelPriority];
-        const byCredential = chooseByCredentialState(channels, credential);
+        let byCredential;
+        if (manifest.credentialTypes.length > 0) {
+            const credential = await this.statePort.loadCredentialState(request.platformId);
+            if (credential.status === "missing" || credential.status === "revoked" || credential.status === "failed") {
+                throw new ConnectorPolicyError("auth_failure", "credential_unavailable_for_route");
+            }
+            if (credential.status === "expired") {
+                throw new ConnectorPolicyError("credential_expired", "credential_expired_for_route");
+            }
+            byCredential = chooseByCredentialState(channels, credential);
+        }
         const preferred = choosePreferred(channels, request.preferredChannel);
         const selected = byCredential ?? preferred ?? chooseHealthy(channels, request.platformId, this.channelHealth);
         if (!selected) {

@@ -36,7 +36,11 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
         const obsPath = path.join(dataDir, "observability.db");
         const stateDb = storageDb.createStateDatabase(statePath);
         const observabilityDb = obsDb.createObservabilityDatabase(obsPath);
-        const deps = cliIndex.createCliRuntimeDeps({ stateDb, observabilityDb });
+        const deps = cliIndex.createCliRuntimeDeps({
+            stateDb,
+            observabilityDb,
+            workspaceRoot: resolvedRoot,
+        });
         const runtimeResolved = boundary.resolvePackagedRuntime(pluginPackageRoot);
         const opsRouter = cliIndex.createOpsRouter({
             runtimeAvailable: runtimeResolved.ok,
