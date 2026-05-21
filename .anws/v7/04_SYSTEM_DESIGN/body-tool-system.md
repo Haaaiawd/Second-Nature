@@ -208,7 +208,10 @@ sequenceDiagram
 
     BTS->>SMS: updateBreakerState(HalfOpen)
     BTS->>OBS: writeAuditEvent(breaker_half_open)
-    CS->>BTS: reportProbeResult(wetProbeResult)
+    Note over BTS,CS: DR-002: CircuitBreakerManager 主动发起 probe 请求
+    BTS->>CS: runWetProbe(platformId, capabilityId, probeConfig)
+    CS->>CS: WetProbeRunner 执行真实 HTTP 探测
+    CS-->>BTS: CapabilityProbeResult
     alt probe success
         BTS->>SMS: writeBreakerState(Closed)
         BTS->>OBS: writeAuditEvent(breaker_closed)
@@ -222,6 +225,7 @@ sequenceDiagram
 1. `assembleAffordanceMap` 聚合 connector manifest、trust tier、breaker state、health probe，输出 status-filtered 视图；全量 connector inventory 不暴露给 agent。
 2. `reportExecutionResult` 触发 `ExperienceWriter`，raw payload 在写入前被 redact；`CircuitBreakerManager` 同步评估连续失败计数。
 3. breaker 状态转换（Closed → Open → HalfOpen → Closed/Open）全部写入 `observability-health-system` audit；`state-memory-system` 持久化 breaker state 以支持进程重启恢复。
+4. **HalfOpen probe 发起职责**（DR-002）：`CircuitBreakerManager` 在 cooldown 到期后将状态更新为 HalfOpen，并**主动调用** `connector-system` 的 `runWetProbe(platformId, capabilityId, probeConfig)` 发起真实探测；body-tool 不直接执行 HTTP，但拥有"决定何时探测"的控制权；connector-system 只负责执行探测并返回 `CapabilityProbeResult`。
 
 ### 4.4 CircuitBreaker 状态机
 
@@ -236,6 +240,8 @@ stateDiagram-v2
 ```
 
 > 完整状态转换伪代码与配置常量（failureThreshold、cooldownMs、maxCooldownMs）详见 [L1 §3.1](./body-tool-system.detail.md#31-circuitbreakermanager-状态转换) 与 [L1 §1](./body-tool-system.detail.md#1-配置常量-config-constants)。
+
+> **职责边界**（DR-002）：`CircuitBreakerManager`（body-tool）负责状态机转换决策与 probe 发起时机；`WetProbeRunner`（connector-system）负责执行真实 HTTP 探测。HalfOpen → probe 的完整调用路径：`CircuitBreakerManager` 检测到 cooldown 到期 → 调用 `connector-system.runWetProbe(platformId, capabilityId, probeConfig)` → 收到 `CapabilityProbeResult` → 依结果转换为 Closed 或 Open。body-tool 不直接发 HTTP，connector-system 不感知 breaker state。
 
 ---
 

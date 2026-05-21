@@ -13,8 +13,9 @@
 
 1. **读取根目录的 AGENTS.md** → 获取项目地图
 2. **查看下方"当前状态"** → 找到最新架构版本
-3. **读取 `.anws/v{N}/05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`** → 了解执行与验证待办
-4. **开始工作**
+3. 若 `05A_TASKS.md` / `05B_VERIFICATION_PLAN.md` 已存在，读取它们 → 了解执行与验证待办
+4. 若最新版本尚未 blueprint-ready，先按导航进入 `/design-system` / `/challenge` / `/blueprint`
+5. **开始工作**
 
 ---
 
@@ -81,14 +82,14 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v6`
-- **活动任务清单**: `.anws/v6/05A_TASKS.md`
-- **活动验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-20` (Wave 45 `/forge`: Connector + Quiet review closure)
+- **最新架构版本**: `.anws/v7`
+- **活动任务清单**: 尚未生成 (`/blueprint` 后创建 `.anws/v7/05A_TASKS.md`)
+- **活动验证计划**: 尚未生成 (`/blueprint` 后创建 `.anws/v7/05B_VERIFICATION_PLAN.md`)
+- **最近一次更新**: `2026-05-21` (`/genesis`: Embodied Agent Loop)
 
-### 🌱 Genesis v6 ✅ — Agent Self Layer & Dream Blueprint Ready
+### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
-v6 将 Second Nature 从 lived-experience closure 推进为 Agent Self Layer + Dream + Connector Ecosystem：NarrativeState、RelationshipMemory、AgentGoal、MemoryStore、Dream lifecycle、dynamic connector trust policy 与 JSON-first ops surface 已进入 canonical 任务/验证双文档。
+v7 将 Second Nature 从 Agent Self Layer 推进为具身闭环：LLM 是头脑，Second Nature 是身体和生活环境。新增 IdentityProfile、EmbodiedContext、ToolAffordance、ToolExperience、connector wet probe、CircuitBreaker、Quiet DailyDiary、Dream auto-schedule、HeartbeatDigest、NarrativeTimeline、RestoreSnapshot 与 RuntimeSecretAnchor。
 
 ---
 
@@ -119,21 +120,22 @@ src/
 └── shared/
 
 .anws/
-└── v6/
+└── v7/
    ├── 00_MANIFEST.md
    ├── 01_PRD.md
    ├── 02_ARCHITECTURE_OVERVIEW.md
    ├── 03_ADR/
    │   ├── ADR_001_TECH_STACK.md
-   │   ├── ADR_002_CONNECTOR_ECOSYSTEM.md
-   │   ├── ADR_003_AGENT_SELF_LAYER.md
-   │   └── ADR_004_DREAM_MECHANISM.md
+   │   ├── ADR_002_EMBODIED_AGENT_LOOP.md
+   │   ├── ADR_003_TOOL_AFFORDANCE_AND_EXPERIENCE.md
+   │   ├── ADR_004_GOAL_LIFECYCLE_AND_IDLE_CURIOSITY.md
+   │   ├── ADR_005_DREAM_QUIET_PROJECTION.md
+   │   ├── ADR_006_CHANNEL_FEEDBACK_AND_SELF_HEALTH.md
+   │   ├── ADR_007_IDENTITY_DIGEST_AND_RECOVERY.md
+   │   └── ADR_008_CONNECTOR_PROBE_CIRCUIT_BREAKER_AND_ROLLBACK.md
    ├── 04_SYSTEM_DESIGN/
-   │   └── _research/
-   ├── 05A_TASKS.md
-   ├── 05B_VERIFICATION_PLAN.md
+   │   └── README.md
    ├── 06_CHANGELOG.md
-   ├── 07_CHALLENGE_REPORT.md
    └── concept_model.json
 ```
 
@@ -143,17 +145,17 @@ src/
 
 > **注意**: 此部分由 `/genesis` 维护。
 
-- **架构总览**: `.anws/v6/02_ARCHITECTURE_OVERVIEW.md`
-- **PRD**: `.anws/v6/01_PRD.md`
-- **ADR**: `.anws/v6/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: `control-plane-system`、`cli-system`、`state-system`、`behavioral-guidance-system`、`observability-system`、`connector-system`、`dream-system` 已完成
-- **执行主清单**: `.anws/v6/05A_TASKS.md`
-- **验证计划**: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- **质疑报告**: `.anws/v6/07_CHALLENGE_REPORT.md`
+- **架构总览**: `.anws/v7/02_ARCHITECTURE_OVERVIEW.md`
+- **PRD**: `.anws/v7/01_PRD.md`
+- **ADR**: `.anws/v7/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: 待 `/design-system` 生成；索引见 `.anws/v7/04_SYSTEM_DESIGN/README.md`
+- **执行主清单**: 待 `/blueprint` 生成 `.anws/v7/05A_TASKS.md`
+- **验证计划**: 待 `/blueprint` 生成 `.anws/v7/05B_VERIFICATION_PLAN.md`
+- **质疑报告**: 待 `/challenge` 生成 `.anws/v7/07_CHALLENGE_REPORT.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
-- **ADR** 记录跨系统决策 (如 heartbeat delivery、life evidence 闭环、plugin packaging 边界)
+- **ADR** 记录跨系统决策 (如 embodied context、tool affordance、wet probe、digest、rollback、secret recovery)
 - **SYSTEM_DESIGN** §8 Trade-offs 引用 ADR,不复制决策内容
 - 修改 ADR 时,检查影响范围章节,确认引用该 ADR 的系统
 
@@ -163,37 +165,40 @@ src/
 - 语言: TypeScript
 - Runtime: Node.js + OpenClaw native plugin
 - 存储: SQLite/sql.js index + Markdown/JSON workspace artifacts
-- 主运行入口: OpenClaw heartbeat delivery + plugin hooks / injection
+- 主运行入口: OpenClaw heartbeat + plugin ops surface + bounded embodied context
+- Runtime secret: `SECOND_NATURE_ENCRYPTION_KEY` 必须由宿主稳定持久化；AGENTS/README/self_health 只记录管理位置与恢复原则，不记录 key 明文
 
 ### 系统边界
-- `cli-system`: `narrative` / `goal` / `dream:recent` / `connector:*` / `cycle:recent` 与 JSON-first ops surface — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/cli-system.md`
-- `control-plane-system`: self-aware heartbeat、goal priority、narrative update 与 Dream trigger — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/control-plane-system.md`
-- `connector-system`: dynamic manifest registration、CapabilityContractRegistry、trust policy、v5 parity — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/connector-system.md`
-- `state-system`: SessionChronicle、NarrativeState、RelationshipMemory、AgentGoal、MemoryStore 与 Dream I/O lifecycle — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/state-system.md`
-- `observability-system`: DreamTrace、NarrativeTrace、ConnectorInventoryAudit、RedactionManifest 与 explain read models — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/observability-system.md`
-- `behavioral-guidance-system`: source-backed outreach、insight/narrative/relationship proposal 与 ModelAssistPort — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/behavioral-guidance-system.md`
-- `dream-system`: 异步记忆整理、candidate/accepted/archived/partial lifecycle、budget/timeout/redaction — 详细设计见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.md`
+- `runtime-ops-system`: plugin/CLI/bridge/manual run、`connector_test --wet`、digest、timeline、restore 与 secret recovery surface — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/runtime-ops-system.md`
+- `control-plane-system`: heartbeat、EmbodiedContext、GoalLifecycle、IdleCuriosity 与 outreach/Quiet/Dream 编排 — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/control-plane-system.md`
+- `state-memory-system`: IdentityProfile、AgentGoal、ToolExperience、DailyDiary、DreamOutput、NarrativeTimeline、RestoreSnapshot — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/state-memory-system.md`
+- `body-tool-system`: ToolAffordanceMap、ToolExperienceLog、ConnectorCircuitBreaker 与 behavior promotion — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/body-tool-system.md`
+- `connector-system`: manifest/registry/trust/credential execution、auto-probe、actualCapabilities 与 endpoint mapping — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/connector-system.md`
+- `dream-quiet-system`: Quiet DailyDiary、QuietClaim、Dream auto-schedule、candidate/accepted projection — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/dream-quiet-system.md`
+- `guidance-voice-system`: source-backed draft、朋友式但有来处的表达、channel-safe copy — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/guidance-voice-system.md`
+- `observability-health-system`: SelfHealth、HeartbeatDigest、NarrativeTimeline、restore audit、redaction 与 explain — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/observability-health-system.md`
 
 ### 活跃 ADR
-- ADR-001: 主技术栈、宿主运行时与验证策略选择 — 继续 TypeScript/Node/OpenClaw plugin，验证重点转向 heartbeat delivery 与 source-backed outreach
-- ADR-002: 平台连接器模型与执行边界 — connector 采用 Contract + Execution Adapter，API-first，CLI/skill 仅作显式 fallback
-- ADR-003: Second Nature 行为节律、Quiet 与记忆治理原则 — Quiet / reflection 必须基于 source-backed life evidence
-- ADR-004: Behavioral Guidance Layer 的系统边界与实现形态 — guidance 可生成朋友式草稿，但不拥有决策或投递权
-- ADR-005: Heartbeat 作为 Second Nature 的主运行入口与三层运行时边界 — heartbeat 仍是自由心跳主入口
-- ADR-006: 可发布的自足 Plugin Runtime Package — 发布包必须包含自足 runtime artifact
-- ADR-007: Heartbeat Delivery 与 Life Evidence 闭环 — delivery target 是主动联系成立的硬前提
+- ADR-001: Continue TypeScript / Node / OpenClaw Plugin Runtime
+- ADR-002: Embodied Agent Loop Guides the Mind Without Scripted Control
+- ADR-003: Tool Affordance and Tool Experience Form the Agent Body
+- ADR-004: Goals Give Direction, IdleCuriosity Gives Natural Observation
+- ADR-005: Quiet Writes Diary, Dream Continues Sleep Consolidation
+- ADR-006: Delivery, Channel Feedback, and Self Health Must Be Truthful
+- ADR-007: Identity, Digest, and Runtime Secret Recovery Are First-Class Body Signals
+- ADR-008: Probe Truth, History Browser, and Bounded Rollback
 
 ### 当前任务状态
-- 执行主清单: `.anws/v6/05A_TASKS.md`
-- 验证计划: `.anws/v6/05B_VERIFICATION_PLAN.md`
-- 总任务数: 38, Level-3: 33, INT: 5, P0: 27, P1: 11, P2: 0
-- Sprint 数: 5
-- **状态**: v6 全部任务已完成；S5 `Life Loop Activation` INT-S5 已勾选；全部 6 个 User Story 标记为 `Activated`；208 测试全绿
-- **Challenge**: Round 8 完成，CR8-01..04 + CR9-01..03 全部 Resolved；Wave 39 静态审查 CR-01..CR-04 / H-01..H-03 / M-02..M-04 / L-01..L-03 全部修复，0 Open
-- **下一步**: v6 完成，进入维护/扩展阶段或启动 v7 `/genesis`
-- **最近更新**: `2026-05-20` (Wave 44 `/forge`: Connector Behavior Evolution)
+- 执行主清单: 尚未生成
+- 验证计划: 尚未生成
+- User Story 数: 12
+- 系统数: 8
+- **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；`/challenge` 完成 + **Review Gate: PASS**（7 条 Critical 全部修复，2026-05-21）
+- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（DR-001 ~ DR-042，42 条发现）
+- **下一步**: 执行 `/blueprint` 生成 `05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`
+- **最近更新**: `2026-05-21` (Critical 修复: connector CapabilityProbeResult+capabilityId、body-tool HalfOpen probe 职责、state-memory EmbodiedContextStatePort 补全、control-plane GoalLifecyclePolicy 职责分离、dream-quiet acceptance policy 主体、observability 循环依赖降级策略)
 
-> **历史 Wave 说明**: 下方 Wave 1-20 是 v5/早期实现历史记录，存在与 v6 新任务相同的裸任务 ID；当前可执行真相以 `.anws/v6/05A_TASKS.md` 为准，未完成 backlog 从 Wave 34 / S5 开始。
+> **历史 Wave 说明**: 下方 Wave 1-45 是 v5/v6 实现历史记录。v7 当前没有可执行任务清单；进入实现前必须先生成 `.anws/v7/05A_TASKS.md` 与 `.anws/v7/05B_VERIFICATION_PLAN.md`。
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2

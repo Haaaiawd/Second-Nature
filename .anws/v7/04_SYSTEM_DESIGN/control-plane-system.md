@@ -146,7 +146,7 @@ graph TD
 | --- | --- | --- |
 | `ScopeRouter` | Classifies `rhythm`, `user_task`, `user_reply` and applies runtime availability gate. | Does not load state on carrier-only path. |
 | `EmbodiedContextAssembler` | Loads bounded context slices and emits per-slice status/reasons. | Reads via ports; does not write state. |
-| `GoalLifecyclePolicy` | Filters active goals and emits transition requests. | Durable goal mutation belongs to state-memory. |
+| `GoalLifecyclePolicy` | Evaluates active goals, detects replace/expire/complete conditions, and emits typed `GoalTransitionRequest`. Does NOT write goal state directly. | Durable goal mutation belongs to state-memory（`transitionGoalLifecycle`）；control-plane 评估 + 发出请求，state-memory 执行状态转换，两者职责不重叠（DR-012）。 |
 | `IdleCuriosityPolicy` | Selects at most one healthy read-only sensing intent. | Does not execute connector. |
 | `CandidateIntentPlanner` | Produces ordered candidates from context, goals, rhythm, and idle policy. | Candidate is not authorization. |
 | `HardGuardEvaluator` | Applies source, affordance, breaker, budget, cooldown, quiet, risk, and privacy guards. | Guard result is final for control-plane. |

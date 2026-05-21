@@ -236,7 +236,7 @@ graph TD
 | `InsightExtractor` | keyword pattern/learning/conflict/observation extraction | TypeScript rules | 现有 `insight-extractor.ts` |
 | `OutputValidator` | schema + source grounding + sensitivity + unsupported claims check | TypeScript | 现有 `output-validator.ts` |
 | `DreamScheduler` | cron / evidence_threshold / quiet_completion / manual trigger + lock | TypeScript | 现有 `dream-scheduler.ts` + v7 quiet_completion |
-| `ProjectionLifecycleManager` | candidate -> accepted / archived / partial 状态转换 | TypeScript | v7 新增 |
+| `ProjectionLifecycleManager` | 执行 Dream output 的 validation（schema + source grounding + sensitivity），验证通过后调用 `state-memory.transitionDreamOutputLifecycle(outputId, "accepted", validationSummary)`，验证失败则调用 `transitionDreamOutputLifecycle(outputId, "archived", rejectReason)`。**唯一 acceptance policy 执行主体**（DR-023）：validation 逻辑在 dream-quiet 中运行，状态写入由 state-memory 执行；state-memory 不自行决策 acceptance，只处理来自本组件的 transition 请求。 | TypeScript | v7 新增 |
 
 ### 4.3 Data Flow (数据流)
 

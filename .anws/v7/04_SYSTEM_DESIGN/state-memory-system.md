@@ -246,10 +246,12 @@ stateDiagram-v2
 | --- | --- | --- |
 | `IdentityStatePort` | `upsertIdentityProfile`, `loadIdentityProfile` | control-plane, connector, runtime-ops |
 | `GoalLifecyclePort` | `upsertAgentGoal`, `transitionGoalLifecycle`, `listActiveGoals` | control-plane, runtime-ops |
-| `EmbodiedContextStatePort` | `loadRecentInteractionSnapshot`, `loadToolExperienceSlice`, `loadAcceptedDreamProjection` | control-plane |
+| `EmbodiedContextStatePort` | `loadIdentityProfile`, `listActiveGoals`, `loadRecentInteractionSnapshot`, `loadToolExperienceSlice`, `loadAcceptedDreamProjection` | control-plane |
 | `DreamQuietStatePort` | `writeDailyDiary`, `writeDreamOutput`, `transitionDreamOutputLifecycle` | dream-quiet |
 | `BodyFeedbackStatePort` | `appendToolExperience`, `appendCapabilityProbeResult` | body-tool, connector |
 | `HistoryRecoveryStatePort` | `appendHeartbeatDigest`, `appendNarrativeTimelineEvent`, `captureRestoreSnapshot`, `restoreFromSnapshot` | runtime-ops, observability-health |
+
+> **EmbodiedContext 完整读取路径**（DR-011/DR-013）：`control-plane` 组装 `EmbodiedContext` 时，通过 `EmbodiedContextStatePort` 读取 state-memory 中的 identity / active goals / recent interactions / experience / accepted dream 五类切片；affordance 切片由 `body-tool-system` 的 `assembleAffordanceMap` 提供（非 state-memory 直接读取）；self-health 切片由 `observability-health-system` 的 `SelfHealthSnapshot` 提供。三类来源通过不同 port 注入，`EmbodiedContextAssembler` 统一聚合。
 
 ### 5.3 Failure Semantics
 

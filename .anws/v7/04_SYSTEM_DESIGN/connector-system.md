@@ -246,7 +246,7 @@ sequenceDiagram
 | `registerConnector(manifest)` | [REQ-009] | manifest 符合 v7 Zod schema | ConnectorManifestV7 JSON/YAML | registry 原子替换 snapshot；manifest 校验失败时返回 `ConnectorManifestValidationError[]`；注册成功后触发 auto wet probe | [§3.1](./connector-system.detail.md#31-registerconnector) |
 | `resolveCapability(platformId, capabilityId)` | [REQ-002] | platformId 已注册 | platformId: string; capabilityId: string | `ResolvedConnectorCapability`；platformId 不存在时返回 `StructuredUnavailableReason{not_registered}` | [§3.2](./connector-system.detail.md#32-resolvecapability) |
 | `executeCapability(request, credentialCtx, trustDecision)` | [REQ-002], [REQ-003] | credential active; trust passed; idempotency key 存在（side_effect） | `ConnectorExecutionRequest`; `CredentialContext`; `TrustDecision` | `ConnectorResult`（executionId / status / sourceRef / redactedSummary / telemetry）；credential 不进入结果 | [§3.3](./connector-system.detail.md#33-executecapability) |
-| `runWetProbe(platformId, probeConfig)` | [REQ-009] | platformId 已注册; probeConfig.safeEndpoint 已声明; safe_for_probe: true | platformId; `ProbeConfig` | `CapabilityProbeResult`（httpStatus / latencyMs / actualCapabilities / endpointMismatch / redactedSample）；结果持久化至 state-memory-system | [§3.4](./connector-system.detail.md#34-runwetprobe) |
+| `runWetProbe(platformId, capabilityId, probeConfig)` | [REQ-009] | platformId 已注册; capabilityId 已声明; probeConfig.safeEndpoint 已声明; safe_for_probe: true | platformId; capabilityId; `ProbeConfig` | `CapabilityProbeResult`（capabilityId / httpStatus / latencyMs / actualCapabilities / endpointMismatch / redactedSample）；结果持久化至 state-memory-system | [§3.4](./connector-system.detail.md#34-runwetprobe) |
 | `connector_test --wet (platformId)` | [REQ-009] | platformId 已注册; safe_for_probe: true | platformId: string | 真实 HTTP status、path、redacted response；不返回 dry-run ok；结果写入 `CapabilityProbeResult` | [§3.5](./connector-system.detail.md#35-connector_test---wet) |
 | `resolveUnavailableReason(context)` | [REQ-002], [REQ-009] | — | `UnavailableContext`（platformId / capabilityId / failureSource） | `StructuredUnavailableReason{reason, details}`；不允许静默失败 | [§3.6](./connector-system.detail.md#36-resolveunavailablereason) |
 | `unregisterConnector(platformId)` | [REQ-009] | platformId 已注册 | platformId: string | 从 registry 移除；正在执行中的 capability 不中断；返回 unregister 审计记录 | [§3.7](./connector-system.detail.md#37-unregisterconnector) |
@@ -348,6 +348,7 @@ interface ExecutionTelemetry {
 // CapabilityProbeResult — wet probe 结果
 interface CapabilityProbeResult {
   platformId: string;
+  capabilityId: string;                 // DR-001: 关联具体 capability，支持多 capability connector 的逐条 probe 结果映射
   probeEndpoint: string;       // 实际请求的 URL
   probedAt: string;            // ISO 8601
   httpStatus: number;
