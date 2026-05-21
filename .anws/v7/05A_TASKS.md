@@ -82,7 +82,7 @@
 
 ---
 
-- [ ] **T-SMS.F.2** [REQ-001, REQ-003, REQ-011]: 实现 SQLite schema migration 机制（DR-018）
+- [x] **T-SMS.F.2** [REQ-001, REQ-003, REQ-011]: 实现 SQLite schema migration 机制（DR-018）
   - **描述**: 在 `src/storage/db/` 下实现 `_meta` 表版本号管理、事务迁移执行器、失败后标记 `schema_migration_failed`、新增列 DEFAULT NULL 规则；包含 v7 全部新增表（identity_profile、agent_goal v7 扩展、tool_experience、daily_diary_index、dream_output_index、capability_probe_result、restore_snapshot、runtime_secret_anchor、heartbeat_digest、narrative_timeline 等）
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §12.X`（Schema Migration 策略）、T-SMS.F.1 产出
   - **输出**: `src/storage/db/migrations/` 目录、`src/storage/db/migration-runner.ts`、初始 migration SQL 文件（v1 schema）
@@ -102,7 +102,7 @@
 
 ---
 
-- [ ] **T-SMS.F.3** [REQ-001, REQ-003]: 实现 Write Queue 与并发保护（DR-019）
+- [x] **T-SMS.F.3** [REQ-001, REQ-003]: 实现 Write Queue 与并发保护（DR-019）
   - **描述**: 在 `src/storage/db/` 下实现串行 write queue 单例；所有写入路径通过 `BEGIN EXCLUSIVE` transaction；50ms 退避重试最多 3 次；flush 失败写 stderr 而非阻塞读路径；支持 `triggerSource` 字段区分 `heartbeat`/`manual_run`/`probe`
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §12.Y`（Write Queue 并发保护）、T-SMS.F.2 产出
   - **输出**: `src/storage/db/write-queue.ts`、`src/storage/db/transaction-utils.ts`
@@ -122,7 +122,7 @@
 
 ---
 
-- [ ] **T-OBS.F.1** [REQ-001, REQ-003, REQ-007]: 实现 audit family registry（DR-040）
+- [x] **T-OBS.F.1** [REQ-001, REQ-003, REQ-007]: 实现 audit family registry（DR-040）
   - **描述**: 创建 `src/observability/audit/audit-family-registry.json`，注册 8 个系统的 audit family/plane；实现运行时注册接口；新增系统写入 audit 前必须在 registry 注册其 family
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §6.1`、DR-040
   - **输出**: `src/observability/audit/audit-family-registry.json`、`src/observability/audit/family-registry.ts`
