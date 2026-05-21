@@ -29,3 +29,21 @@
 
 - [CHANGE] README / README.zh-CN 改为 v7 embodied mental model：首页解释“头脑与身体”，明确 v7 是 Genesis/design phase。
 - [CHANGE] AGENTS.md 当前状态更新为 `.anws/v7`，并记录 RuntimeSecretAnchor 风险提示。
+
+## 2026-05-21 - Task Challenge 回流修复
+
+- [CHANGE] 修复 `05A_TASKS.md` User Story Overlay：移除幽灵任务引用，补齐 REQ-008/REQ-011/REQ-012 的真实任务承接，并将 US-002 绑定到 runtime manual surface。
+- [CHANGE] 修正 `T-BTS.C.3` 的需求归属：BehaviorPromotion 归入 REQ-004 goal/behavior promotion，不再归入 REQ-009 auto-probe。
+- [CHANGE] 补强 `T-BTS.C.4`：显式承接 `getPainSignal(connectorId, capabilityId?)`，并规划 bounded pain signal 查询测试。
+- [CHANGE] 补强 `T-CP.C.2`：增加 heartbeat P95 < 2s 性能断言与 `reports/heartbeat-p95-v7.md` 证据。
+- [CHANGE] 将 SelfHealth 从固定枚举式探针调整为动态维度模型，定义 env/cron/secret/credential/storage/delivery/dream/bridge/circuit_breaker/state_memory 最小必测维度集。
+- [CHANGE] 修复 INT-S1~INT-S6 里程碑依赖，避免只依赖 Sprint 尾任务导致提前关门。
+- [CHANGE] 补强 `T-ROS.C.1` 前置依赖与验收，覆盖 observability/body/connector/recovery 的命令承接。
+- [CHANGE] 补强 `T-GVS.C.3` 语言质量验证，从抽象 checklist 改为 fixture-based style lint 与 fallback copy 断言。
+- [CHANGE] 同步更新 `05B_VERIFICATION_PLAN.md` 的 Task-by-Task、Contract Coverage、Testing Coverage、Traceability Matrix 与 E2E 触发记录。
+
+## 2026-05-21 - Task Recheck 回流修复
+
+- [CHANGE] 修复 TRR-001：将 `05A_TASKS.md` / `05B_VERIFICATION_PLAN.md` 中 `getPainSignal` 的任务签名从 `platformId, capabilityId` 对齐为设计契约 `connectorId, capabilityId?`。
+- [CHANGE] 修复 TRR-001：将 pain signal 验收字段对齐为 `PainSignal`（connectorId、capabilityId、painLevel、recentFailureRate、consecutiveFailures、cooldownRecommended、lastOutcomes），不再使用 `failureClass/lastFailedAt/recentFailureCount`。
+- [CHANGE] `/challenge TASKS` 最终复审通过：0 Critical / 0 High / 1 Medium note，`05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md` 可进入 `/forge`。

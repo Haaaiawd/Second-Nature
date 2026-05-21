@@ -83,9 +83,9 @@
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
 - **最新架构版本**: `.anws/v7`
-- **活动任务清单**: 尚未生成 (`/blueprint` 后创建 `.anws/v7/05A_TASKS.md`)
-- **活动验证计划**: 尚未生成 (`/blueprint` 后创建 `.anws/v7/05B_VERIFICATION_PLAN.md`)
-- **最近一次更新**: `2026-05-21` (`/genesis`: Embodied Agent Loop)
+- **活动任务清单**: `.anws/v7/05A_TASKS.md`
+- **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
+- **最近一次更新**: `2026-05-21` (`/challenge`: Task Final Recheck PASS)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -135,7 +135,10 @@ src/
    │   └── ADR_008_CONNECTOR_PROBE_CIRCUIT_BREAKER_AND_ROLLBACK.md
    ├── 04_SYSTEM_DESIGN/
    │   └── README.md
+   ├── 05A_TASKS.md
+   ├── 05B_VERIFICATION_PLAN.md
    ├── 06_CHANGELOG.md
+   ├── 07_CHALLENGE_REPORT.md
    └── concept_model.json
 ```
 
@@ -148,10 +151,10 @@ src/
 - **架构总览**: `.anws/v7/02_ARCHITECTURE_OVERVIEW.md`
 - **PRD**: `.anws/v7/01_PRD.md`
 - **ADR**: `.anws/v7/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: 待 `/design-system` 生成；索引见 `.anws/v7/04_SYSTEM_DESIGN/README.md`
-- **执行主清单**: 待 `/blueprint` 生成 `.anws/v7/05A_TASKS.md`
-- **验证计划**: 待 `/blueprint` 生成 `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **质疑报告**: 待 `/challenge` 生成 `.anws/v7/07_CHALLENGE_REPORT.md`
+- **详细设计**: `.anws/v7/04_SYSTEM_DESIGN/`；索引见 `.anws/v7/04_SYSTEM_DESIGN/README.md`
+- **执行主清单**: `.anws/v7/05A_TASKS.md`
+- **验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
+- **质疑报告**: `.anws/v7/07_CHALLENGE_REPORT.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
@@ -189,16 +192,16 @@ src/
 - ADR-008: Probe Truth, History Browser, and Bounded Rollback
 
 ### 当前任务状态
-- 执行主清单: 尚未生成
-- 验证计划: 尚未生成
+- 执行主清单: `.anws/v7/05A_TASKS.md`（42 个任务 + 6 个 INT 里程碑）
+- 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；`/challenge` 完成 + **Review Gate: PASS**（7 条 Critical 全部修复，2026-05-21）
-- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（DR-001 ~ DR-042，42 条发现）
-- **下一步**: 执行 `/blueprint` 生成 `05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`
-- **最近更新**: `2026-05-21` (Critical 修复: connector CapabilityProbeResult+capabilityId、body-tool HalfOpen probe 职责、state-memory EmbodiedContextStatePort 补全、control-plane GoalLifecyclePolicy 职责分离、dream-quiet acceptance policy 主体、observability 循环依赖降级策略)
+- **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；设计 `/challenge` PASS；`/blueprint` 完成；任务最终复审 `/challenge` **PASS**（0 Critical / 0 High / 1 Medium note，2026-05-21）
+- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Task Final Recheck PASS；TRR-001 已闭合，TRR-002 为设计清理 note）
+- **下一步**: 进入 `/forge`，按 `05A_TASKS.md` + `05B_VERIFICATION_PLAN.md` 执行 v7 实现
+- **最近更新**: `2026-05-21` (`/challenge`: Task Final Recheck PASS)
 
-> **历史 Wave 说明**: 下方 Wave 1-45 是 v5/v6 实现历史记录。v7 当前没有可执行任务清单；进入实现前必须先生成 `.anws/v7/05A_TASKS.md` 与 `.anws/v7/05B_VERIFICATION_PLAN.md`。
+> **历史 Wave 说明**: 下方 Wave 1-45 是 v5/v6 实现历史记录。v7 已生成 `05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`；进入实现前建议先执行任务层 `/challenge`，通过后再 `/forge`。
 
 ### 🌊 Wave 1 ✅ — Host & State Foundation 起步
 T1.1.1, T5.1.1, T4.1.1, T4.1.2
