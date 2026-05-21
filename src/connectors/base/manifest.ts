@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { CAPABILITY_INTENTS, CHANNEL_TYPES, type CapabilityIntent, type ChannelType, type ConnectorManifestLike } from "./contract.js";
+import { CHANNEL_TYPES, type CapabilityIntent, type ChannelType, type ConnectorManifestLike } from "./contract.js";
 
 const sourceRefPolicySchema = z
   .object({
@@ -11,14 +11,20 @@ const sourceRefPolicySchema = z
 
 const connectorManifestSchema = z.object({
   platformId: z.string().min(1),
-  supportedCapabilities: z.array(z.enum(CAPABILITY_INTENTS)).min(1),
+  supportedCapabilities: z.array(z.string().min(1).regex(/^[a-zA-Z0-9_.:-]+$/)).min(1),
   channelPriority: z.array(z.enum(CHANNEL_TYPES)).min(1),
-  credentialTypes: z.array(z.string().min(1)).min(1),
+  credentialTypes: z.array(z.string().min(1)),
   degradedChannels: z.array(z.enum(CHANNEL_TYPES)).optional(),
   sourceRefPolicy: sourceRefPolicySchema,
 });
 
 export type ConnectorManifest = z.infer<typeof connectorManifestSchema>;
+
+export interface ResolvedConnectorCapability {
+  platformId: string;
+  intent: CapabilityIntent;
+  source: "namespace" | "v5_explicit" | "unambiguous_default";
+}
 
 export class CapabilityContractRegistry {
   private readonly byPlatform = new Map<string, ConnectorManifest>();
@@ -51,6 +57,61 @@ export class CapabilityContractRegistry {
 
   listChannels(platformId: string): ChannelType[] {
     return [...this.loadManifest(platformId).channelPriority];
+  }
+
+  /**
+   * Resolve a capability string that may be namespaced (`platformId:capability`)
+   * or a bare v5 capability. Returns the platform + intent pair.
+   * If bare capability and no explicit platform is provided, only succeeds when
+   * exactly one registered platform supports it (unambiguous_default).
+   */
+  resolveCapability(
+    intentWithNamespace: string,
+    explicitPlatformId?: string,
+  ): ResolvedConnectorCapability {
+    const colonIndex = intentWithNamespace.indexOf(":");
+    if (colonIndex >= 0) {
+      const platformId = intentWithNamespace.slice(0, colonIndex);
+      const intent = intentWithNamespace.slice(colonIndex + 1) as CapabilityIntent;
+      if (!intent) {
+        throw new Error("capability_not_recognized:");
+      }
+      if (!this.byPlatform.has(platformId)) {
+        throw new Error(`platform_not_found:${platformId}`);
+      }
+      return { platformId, intent, source: "namespace" };
+    }
+
+    const intent = intentWithNamespace as CapabilityIntent;
+    if (!intent) {
+      throw new Error("capability_not_recognized:");
+    }
+
+    if (explicitPlatformId) {
+      if (!this.byPlatform.has(explicitPlatformId)) {
+        throw new Error(`platform_not_found:${explicitPlatformId}`);
+      }
+      return { platformId: explicitPlatformId, intent, source: "v5_explicit" };
+    }
+
+    const platforms = this.findPlatformsForIntent(intent);
+    if (platforms.length === 0) {
+      throw new Error(`no_platform_supports_capability:${intent}`);
+    }
+    if (platforms.length > 1) {
+      throw new Error(`ambiguous_capability:${intent}:${platforms.join(",")}`);
+    }
+    return { platformId: platforms[0]!, intent, source: "unambiguous_default" };
+  }
+
+  findPlatformsForIntent(intent: CapabilityIntent): string[] {
+    const result: string[] = [];
+    for (const [platformId, manifest] of this.byPlatform) {
+      if (manifest.supportedCapabilities.includes(intent)) {
+        result.push(platformId);
+      }
+    }
+    return result;
   }
 }
 

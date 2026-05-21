@@ -1,391 +1,200 @@
 ---
-description: "将架构设计拆解为可执行的 WBS 任务清单。适用于已完成 /genesis 后的任务规划阶段。产出 05_TASKS.md（含验收标准、Sprint 划分、Mermaid 依赖图、User Story Overlay）。"
+description: "编排 /blueprint：基于已批准设计输入生成 05A/05B；宿主只保留序、门禁与移交契约；字段与模板以工作区 **`.agents/skills/task-planner/`** 为权威。"
 ---
 
 # /blueprint
 
 <phase_context>
-你是 **TASK ARCHITECT (任务规划师)**。
+你是 **TASK ARCHITECT（任务规划师）**。
 
-**核心使命**：
-读取最新的架构版本 (`.anws/v{N}`)，将其拆解为**可执行的任务清单**。
-
-**核心原则**：
-- **验证驱动** - 每个任务必须有验证说明
-- **需求追溯** - 每个任务关联 [REQ-XXX]
-- **适度粒度** - 每个任务 2-8 小时工作量
-
-**Output Goal**: `.anws/v{N}/05_TASKS.md`
+**使命**：把已批准的设计输入编排为可执行的 `05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`，并跑通收口门禁。  
+**能力**：版本定位、前置校验、契约映射、调用 `task-planner`、收口检查、`AGENTS.md` 双文档入口更新。  
+**限制**：只做编排与关卡；**不**在宿主内复述 `task-planner` 的字段级规范或粘贴 `TASK_TEMPLATE_*` 全文；**不**在 Step 2 之前预读 `task-planner`（见下文 **预读门禁**）。  
+**与用户的关系**：交付可验证的任务/验证骨架与追溯链，不越权执行实现或 E2E。  
+**Output Goal**：`.anws/v{N}/05A_TASKS.md` + `.anws/v{N}/05B_VERIFICATION_PLAN.md`。
 </phase_context>
 
 ---
 
-## ⚠️ CRITICAL 前提条件
+## CRITICAL 凝练与版式（/craft + /challenge 思想）
 
 > [!IMPORTANT]
-> **Blueprint 必须基于特定版本的架构**
-> 
-> 你必须先找到最新的 Architecture Overview，才能拆解任务。
+> **craft**：改稿前 Read **`.agents/skills/craft-authoring/SKILL.md`** 与 **`.agents/workflows/craft.md`**；各 `## Step …` 使用 **`### 做什么` / `### 为什么` / `### 怎么验收`**；文末 `<completion_criteria>` 必填。  
+> **凝练**：会话与对用户的说明 **一句一事**；与 `task-planner` 重复的表格口径 **只保留在 SKILL/references**。  
+> **不注入**：不在本 workflow 粘贴 `TASK_TEMPLATE_05A` / `TASK_TEMPLATE_05B` 大段或示例任务块——**唯一权威**见下文 **task-planner 路径**。
 
 ---
 
-## Step 0: 定位架构版本 (Locate Architecture)
-
-**目标**: 找到 Source of Truth。
-
-1.  **扫描版本**:
-    扫描 `.anws/` 目录，找到最新版本号 `v{N}`
-2.  **确定最新版本**:
-    - 找到数字最大的文件夹 `v{N}` (例如 `v3`)。
-    - **TARGET_DIR** = `.anws/v{N}`。
-
-3.  **检查必需文件**:
-    - [ ] `{TARGET_DIR}/01_PRD.md` 存在
-    - [ ] `{TARGET_DIR}/02_ARCHITECTURE_OVERVIEW.md` 存在
-
-4.  **检查条件性必需文件**:
-    - [ ] `{TARGET_DIR}/04_SYSTEM_DESIGN/` 存在
-    - 如缺失: 提示 "建议先运行 `/design-system` 为每个系统生成详细设计。跳过此步可能导致任务粒度过粗。"
-    - **如果本版本涉及公共接口、CLI 参数语义、配置结构、文件格式、错误语义、跨系统协议或持久化结构** → `04_SYSTEM_DESIGN/` 视为**必需**，缺失时不得继续正常拆解
-
-5.  **如果必需文件缺失**: 报错并提示运行 `/genesis` 更新该版本。
-
----
-
-## Step 1: 加载设计文档
-
-**目标**: 从 **`{TARGET_DIR}`** 加载文档。
-
-1.  **读取 Architecture**: 读取 `{TARGET_DIR}/02_ARCHITECTURE_OVERVIEW.md`
-2.  **读取 PRD**: 读取 `{TARGET_DIR}/01_PRD.md`
-3.  **读取 ADRs**: 扫描 `{TARGET_DIR}/03_ADR/` 目录
-4.  **加载测试策略约束**:
-    - 如 `{TARGET_DIR}/03_ADR/` 中存在测试策略、质量门禁、验证分层相关 ADR，必须一并读取
-    - 将其中关于单元/集成/E2E/冒烟/回归测试的约束视为 Task 生成输入，而不是事后参考
-5.  **提取公共契约与验证责任**:
-    - 从 `02_ARCHITECTURE_OVERVIEW.md`、`03_ADR/`、`04_SYSTEM_DESIGN/` 中提取所有公共契约
-    - 至少覆盖：操作契约、跨系统接口、HTTP API、CLI 命令/参数语义、配置结构、文件格式、错误语义、持久化结构
-    - 这些契约必须作为 Task 生成输入，而不是留给 `/forge` 临场猜测
-6.  **调用技能**: `task-planner`
-
----
-
-## Step 1.5: 契约承接建模 (Contract Mapping)
-
-**目标**: 在任务拆解前，先确认哪些公共契约必须被任务和验证接住。
+## CRITICAL 编排约束（规范闸门不可削弱）
 
 > [!IMPORTANT]
-> **公共契约必须有承接。**
+> **task-planner 唯一权威（字段 / 表结构）**  
+> 读取 **`.agents/skills/task-planner/SKILL.md`**（与当前 workflow 同级 `.agents/` 树）。
+> `.agents/skills/task-planner/references/TASK_TEMPLATE_05A.md`  
+> `.agents/skills/task-planner/references/TASK_TEMPLATE_05B.md`  
 >
-> Blueprint 不只要覆盖 REQ 和 User Story，还要确保对外可观察契约不会在实现阶段裸奔。
+> - 输入文档（`01` / `02` / `03` / 条件 `04`）是拆解的**唯一事实源**。  
+> - 若上游规范冲突，**修正 SKILL/references 事实源**；禁止仅在 `blueprint.md` 内打补丁稀释权威。  
+> - **仅在 05A/05B 记录** E2E 触发条件、范围与证据预期；**`/blueprint` 阶段不得执行 `e2e-testing-guide`**。  
 >
-> **如果公共契约需要依赖 `04_SYSTEM_DESIGN` 才能被明确定义，而该目录缺失，应直接报告“契约定义缺口”，而不是继续生成看似完整的任务清单。**
-
-执行要求：
-
-1. 从设计文档中提取所有公共契约
-2. 判断每个契约属于：
-   - 基础规则层契约
-   - 跨模块/跨系统契约
-   - 关键用户路径契约
-3. 对每个公共契约至少规划：
-   - 一个实现承接任务
-   - 一个验证承接点（单元测试 / 集成测试 / INT / E2E / 手动验证 之一）
-4. 如契约属于基础层纯逻辑、映射、解析、归一化、注册表、schema、planner、diff/merge 等低依赖逻辑：
-   - 默认优先生成单元测试承接
-   - 主要分支、边界情况和错误路径应尽量被单元测试覆盖
-
-> [!IMPORTANT]
-> **禁止把“公共契约的验证责任”全部拖到高层集成或 E2E。**
+> **格言**：带着已知契约缺口调用 `task-planner`，等于把技术债**分期付款**写进 sprint。
 
 ---
 
-## Step 2: 任务拆解 (Task Decomposition)
-
-**目标**: 使用 WBS 方法拆解任务。
+## CRITICAL 与 task-planner 配合契约（宿主 → SKILL）
 
 > [!IMPORTANT]
-> **任务格式要求** (CRITICAL):
-> 每个 Level 3 任务必须包含以下字段。
-
-> [!IMPORTANT]
-> **调用 `task-planner` 时必须显式传递以下约束**:
-> - 当前版本的 PRD、Architecture、ADRs、System Design 是唯一事实来源
-> - 如 ADR 中存在测试策略与质量门禁，`task-planner` 必须优先遵循
-> - 默认按“最轻但足够”的原则选择验证类型
-> - 每个公共契约至少要有一个实现任务承接
-> - 每个高风险公共契约至少要有一个明确的验证承接点
-> - 基础层纯逻辑、规则映射、解析、归一化、注册表、schema、planner、diff/merge 等低依赖逻辑，应默认优先单元测试，且主要分支/边界/错误路径应尽量覆盖
-> - **冒烟测试默认仅放在 `INT-S{N}` 或极少数里程碑任务**
-> - 不得因为“更保险”就把大量任务默认升级成 E2E测试
-
-### 任务格式模板
-
-```markdown
-- [ ] **T{X}.{Y}.{Z}** [REQ-XXX]: 任务标题
-  - **描述**: 具体要做什么
-  - **输入**: 设计文档引用 + 前置任务产出（必须包含至少一个文档引用）
-  - **输出**: 产出的文件/组件/接口
-  - **契约承接**: [本任务实现或验证的公共契约；如无可写“无”]
-  - **📎 参考**: ADR_XXX_*.md 或 System Design 章节（如有）
-  - **验收标准**:
-    - Given [前置条件]
-    - When [执行动作]
-    - Then [预期结果]
-    - （仅当纯技术性基础任务不适合 GWT 时，才允许使用清晰的 Done When 列表）
-  - **验证类型**: [单元测试 | 集成测试 | E2E测试 | 冒烟测试 | 回归测试 | 手动验证 | 编译检查 | Lint检查]
-  - **验证说明**: [如何检查完成，检查什么，具体命令或步骤]
-  - **估时**: Xh
-  - **依赖**: T{A}.{B}.{C} (如有)
-```
-
-### 测试分层标准
-
-> [!IMPORTANT]
-> **Blueprint 必须按测试分层生成任务，而不是把所有验证都塞成 E2E。**
+> **预读门禁**  
+> **禁止**在 Step 0–1.5 预读 `task-planner/SKILL.md` 或 `TASK_TEMPLATE_*`（避免先背版式再凑合输入）。**仅当**进入 **Step 2** 且即将按 SKILL 执行拆解时，再读取 **`.agents/skills/task-planner/SKILL.md`** 与按需打开的 **references**；读完后立刻消费 Step 1 的契约映射，不在无关步骤复读 SKILL。
 >
-> 默认采用以下层次：
-> - **单元测试**: 验证局部逻辑；基础层、共享层、纯逻辑层默认优先，且应尽量覆盖主要分支、边界情况和错误路径
-> - **集成测试**: 验证模块/系统协作
-> - **冒烟测试**: 验证里程碑关口的少量关键路径是否可运行
-> - **E2E测试**: 验证关键用户故事或主业务链路
-> - **回归测试**: 验证新变更未破坏已完成的关键能力
-
-### 契约覆盖规则
-
-> [!IMPORTANT]
-> **Blueprint 必须确保公共契约被任务和验证接住。**
+> **移交包（进入 Step 2 时须显式交给 task-planner 执行上下文）**  
+> 以下用**短列表或路径清单**即可（不必贴进 05A/05B）：
 >
-> 公共契约包括：操作契约、跨系统接口、HTTP API、CLI 参数语义、配置结构、文件格式、错误语义、持久化结构。
-
-要求：
-- 每个公共契约至少有一个实现任务承接
-- 每个高风险公共契约至少有一个验证承接点
-- 不得仅因为“后面会有集成测试”就省略基础规则层的单元测试
-- 若某契约会影响既有关键能力，应额外规划最小回归验证责任
-
-### 冒烟测试使用原则
-
-> [!IMPORTANT]
-> **冒烟测试应当少而真实，主要用于里程碑门控，不应泛滥到每个任务。**
+> - `TARGET_DIR`；本回合已读**真实路径**列表：`01`、`02`、`03_ADR/`（及已纳入的 `04_SYSTEM_DESIGN/` 文件）。  
+> - Step 1 产出的 **契约表**：每条含「契约类型/名称 → 拟承接的 05A 意图 + 拟承接的 05B 验证意图」（与 SKILL「契约覆盖规则」可逐条对读）。  
+> - 若 ADR 含**测试策略 / 质量门禁**：注明 **ADR 文件路径 + 条目/小节锚点**，满足 SKILL「若 ADR 中存在测试策略/质量门禁，必须优先遵循」。  
+> - **WBS Level-1 系统 ID** 必须与 `02_ARCHITECTURE_OVERVIEW` 系统清单一致，**禁止**发明未在 `02` 出现的系统代号。  
+> - PRD 中 `[REQ-*]`：要求任务行挂载关系由 SKILL 与模板约束；宿主须抽查「关键 REQ 未悬空」。
 >
-> Blueprint 生成任务时，应优先把冒烟测试放在**大进展、大功能完成、准备进入下一阶段**的关口。
-> 它的目标是验证“系统是否基本可用 / 可演示 / 可继续推进”，而不是替代全量回归测试。
-
-### 回归测试使用原则
-
-> [!IMPORTANT]
-> **回归测试不是每次小改都跑全量，而是对“已有能力是否被破坏”的有针对性复验。**
-
-### 接口追溯规则
-
-> [!IMPORTANT]
-> **任务间的输入/输出必须对齐。**
+> **与 SKILL 硬约束对齐（宿主在 Step 2–4 负责盯紧，不替 SKILL 写字段定义）**  
+> 除上文 CRITICAL 与 Step 2 已列外，`task-planner` 尚含下列**不可被落盘结果违背**的条文类别——若产出违反，须**回 Step 2** 让 planner 迭代，**禁止**仅在 blueprint 会话里用自由表格「补丁冒充完成」：
 >
-> 如果任务 B 依赖任务 A，则 B 的「输入」必须明确引用 A 的「输出」的具体产物（文件路径、接口名、数据格式）。
-
----
-
-## Step 3: Sprint 路线图与退出标准 (Sprint Roadmap)
-
-**目标**: 将任务分组为 Sprint/里程碑，每个 Sprint 必须有明确的退出标准和集成验证任务。
-
-> [!IMPORTANT]
-> **每个 Sprint 必须有退出标准和 INT 集成验证任务。**
+> - **测试标准**：项目级须同时规划 **单元测试** 与 **API 接口功能测试**（见 SKILL「测试标准（硬约束）」）。  
+> - **05B 结构**：**Contract Coverage Overlay**、**Testing Coverage Overlay**、**Verification Traceability Matrix** 三章为硬性必选（见 SKILL 声明）。  
+> - **E2E 边界**：仅记录触发/范围/证据预期；**不**执行 `e2e-testing-guide`。  
+> - **反膨胀**：风险类别闭合优先，禁止无差别组合爆炸（见 SKILL「反测试膨胀原则」）。  
+> - **任务质量**：单 Task 粒度 **2h–2d**、依赖边须 **输入/输出产物对齐**（见 SKILL「任务质量守则」）；**INT-S{N}** 为 Sprint 关门任务，冒烟优先绑 INT。  
 >
-> Sprint 不只是“一堆任务”，而是一个有明确入口和出口的工作单元。
-> 退出标准定义“什么算做完”，集成验证任务负责“证明做完”。
-
-### Sprint 路线图格式
-
-```markdown
-## 📊 Sprint 路线图
-
-| Sprint | 代号 | 核心任务 | 退出标准 | 预估 |
-|--------|------|---------|---------|------|
-| S1 | Hello World | 基础设施+核心数据 | headless 运行通过 + 基本渲染可见 | 3-4d |
-| S2 | 功能成型 | 实体+交互 | 完整功能可演示 + HUD 正常 | 5-6d |
-```
-
-### 集成验证任务 (INT Task)
-
-每个 Sprint 末尾必须生成一个 **INT-S{N}** 集成验证任务，专门负责验证该 Sprint 的退出标准：
-
-```markdown
-- [ ] **INT-S{N}** [MILESTONE]: S{N} 集成验证 — {代号}
-  - **描述**: 验证 S{N} 退出标准，确认所有跨系统功能正常协作
-  - **输入**: S{N} 所有任务的产出
-  - **输出**: 集成验证报告（通过/失败 + Bug 清单）
-  - **验收标准**:
-    - Given S{N} 所有任务已完成
-    - When 执行退出标准中的每一项检查
-    - Then 全部通过 → Sprint 完成; 有失败 → 记录 Bug 并触发修复波次
-  - **验证类型**: 集成测试 / 冒烟测试 / E2E测试（按退出标准选择其一或组合）
-  - **验证说明**: 按退出标准逐条执行；如适用，增加少量真实冒烟检查验证关键路径是否可运行；若本 Sprint 改动触及已完成关键能力，可追加最小回归检查，使用截图/录屏/日志确认
-  - **估时**: 2-4h
-  - **依赖**: S{N} 所有任务
-```
-
-> INT 任务是该 Sprint 的“关门任务”。未通过 INT 任务的 Sprint 不得标记为完成。
-> 默认优先将“真实冒烟测试”收敛在 INT 任务中，而不是扩散到所有开发任务。
-> 调用 `task-planner` 时，应把 **Sprint 边界 + INT 任务 + 冒烟测试绑定规则** 一并传入，禁止 skill 自行把冒烟测试扩散到普通开发任务。
+> **落盘对账**  
+> Step 3 写盘之后，Step 4 检查清单须与 SKILL 末节 **「输出质量检查」** 逐项对读；缺任一项 → **回 Step 2** 补一轮 planner，直至对账通过。
 
 ---
 
-## Step 4: 依赖分析 (Dependency Analysis)
+## Step 0: 定位版本与前置检查
 
-**目标**: 生成 Mermaid 依赖图。
+### 做什么
 
-```mermaid
-graph TD
-    T1.1.1[初始化项目] --> T2.1.1[实现API]
-    T2.1.1 --> T3.1.1[前端集成]
-    T1.2.1[数据库Schema] --> T2.1.1
-```
+1. 扫描 `.anws/` 取最新 `v{N}`，设 `TARGET_DIR = .anws/v{N}`。  
+2. **必需**：`{TARGET_DIR}/01_PRD.md`、`{TARGET_DIR}/02_ARCHITECTURE_OVERVIEW.md`。  
+3. **条件必需**：若本版涉及公共契约（HTTP API、CLI 语义、配置/文件格式、错误语义、跨系统协议、持久化结构等），`{TARGET_DIR}/04_SYSTEM_DESIGN/` **视为必需**。  
+4. 若不满足：停止，提示先 `/genesis` 或 `/design-system`。
 
-**输出**: 插入到 `{TARGET_DIR}/05_TASKS.md` 开头。
+### 为什么
 
----
+无版本锚点与输入契约，`05A/05B` 会与真实架构脱节。
 
-## Step 5: User Story Overlay (交叉验证)
+### 怎么验收
 
-**目标**: 从**用户价值维度**验证任务完备性。WBS 按系统拆解，这一步从 User Story 视角交叉检查。
-
-> [!IMPORTANT]
-> **User Story Overlay 是覆盖率安全网**
->
-> WBS 确保每个系统都有任务，但无法保证每个用户故事都能端到端跑通。
-> 这一步能捕获"系统内任务齐全，但跨系统 User Story 链断裂"的问题。
-
-### 执行步骤
-
-1. **读取 PRD 的 User Stories**: 从 `{TARGET_DIR}/01_PRD.md` 提取所有 `US-XXX`
-2. **构建映射**: 将每个 US 涉及的系统 → 对应的 tasks（通过 REQ 追溯 + 系统归属匹配）
-3. **验证三项闭环**:
-   - 每个 US 是否有足够的 tasks 覆盖其**所有涉及系统**？
-   - 每个 US 的 task 链是否能形成**可独立验证**的闭环？
-   - 高优先级 US (P0) 的 task 是否分布在靠前的 Sprint？
-
-4. **生成 User Story View**: 追加到 `05_TASKS.md` 末尾
-
-5. **生成 Contract Coverage Overlay**: 如存在公共契约，追加到 `05_TASKS.md` 末尾
-
-### Contract Coverage Overlay 格式
-
-```markdown
-## 🔐 Contract Coverage Overlay
-
-| 契约 | 类型 | 实现承接 | 验证承接 | 状态 |
-|------|------|---------|---------|:----:|
-| `update --target` 显式选择语义 | CLI | T1.2.1 | T6.2.1 | ✅ |
-| install-lock fallback 重建语义 | 文件/状态格式 | T4.1.1 | T6.2.1 | ✅ |
-```
-
-### User Story View 格式
-
-```markdown
-## 🎯 User Story Overlay
-
-### US-001: [标题] (P1)
-**涉及任务**: T2.1.1 → T2.1.2 → T7.2.1 → T6.1.2
-**关键路径**: T2.1.1 → T2.1.2 → T7.2.1
-**独立可测**: ✅ S1 结束即可演示
-**覆盖状态**: ✅ 完整
-
-### US-003: [标题] (P2)
-**涉及任务**: T3.2.1
-**关键路径**: T3.1.1 → T3.2.1
-**独立可测**: ❌ 缺少 T4.x 衔接
-**覆盖状态**: ⚠️ 不完整 — 缺少 executor 侧任务
-```
-
-### 覆盖 GAP 处理
-
-- 如有不完整的 US → 在 Overlay 中标注 `⚠️`，并在任务清单中补充缺失的 task
-- 如有 US 的 task 全部在后期 Sprint → 建议前移部分 task 以实现早期验证
-- 补充的 task 必须遵守 Step 2 的任务格式模板
+- 会话内可复述 `TARGET_DIR` 与「缺哪份输入导致停止」。  
+- 条件必需触发时，**未**在缺 `04` 的情况下继续调用 planner。
 
 ---
 
-## Step 6: 生成文档
+## Step 1: 加载输入并建立契约映射
 
-**目标**: 保存最终的任务清单，并**更新 AGENTS.md**。
+### 做什么
 
-1.  **保存**: 将内容保存到 `.anws/v{N}/05_TASKS.md`
-2.  **验证**: 确保文件包含所有任务、验收标准和依赖图。
-3.  **更新 AGENTS.md "当前状态"**:
-    - 活动任务清单: `.anws/v{N}/05_TASKS.md`
-    - 最近一次更新: `{Today}`
-    - 写入初始波次建议，让 `/forge` 可以直接启动：
-    ```markdown
-    ### 🌊 Wave 1 — {S1 的第一批任务目标}
-    T{X.Y.Z}, T{X.Y.Z}, T{X.Y.Z}
-    ```
+1. 读取 `01`、`02`、`03_ADR/`（及存在/必需时的 `04_SYSTEM_DESIGN/`）。  
+2. 抽出**公共契约**与高风险点。  
+3. 形成交给 `task-planner` 的**硬约束**（口述或短列表即可，字段名遵从 SKILL）：  
+   - 每个公共契约至少一条 **05A 实现承接**；  
+   - 每个高风险公共契约至少一条 **05B 验证承接**；  
+   - **禁止**把契约验证责任全部后推到高层集成或 E2E。
 
----
+### 为什么
 
-## 检查清单
-- ✅ 每个 Sprint 有退出标准和 INT 集成验证任务？
-- ✅ 05_TASKS.md 是否包含所有 WBS 任务？
-- ✅ 每个任务是否有 Context 和 Acceptance Criteria？
-- ✅ 任务间的输入/输出是否对齐（接口追溯）？
-- ✅ 公共契约是否都被实现任务与验证承接点接住？
-- ✅ 基础层低依赖逻辑是否默认获得单元测试承接，且覆盖主要分支/边界/错误路径？
-- ✅ 是否生成了 Mermaid 依赖图？
-- ✅ User Story Overlay 已生成，覆盖 GAP 已补充？
-- ✅ 已更新 AGENTS.md（含初始波次建议）？
+planner 只负责拆解形态；**谁该实现、谁该证明**，必须在编排层先钉死。
+
+### 怎么验收
+
+- 能列出至少三条「契约 → 05A/05B 承接」映射，且无「全部推 E2E」式逃避。
 
 ---
 
-## Step 7: 最终确认
+## Step 1.5: 编排思考准绳（进入 planner 前）
 
-**展示统计**:
-```markdown
-✅ Blueprint 阶段完成！
+### 做什么
 
-📊 任务统计:
-  - 总任务数: {N}
-  - P0 任务: {X}
-  - P1 任务: {Y}
-  - P2 任务: {Z}
-  - 总预估工时: {T}h
+快速自检三项（任一项失败则回到 Step 1 修映射，**再**调 planner）：
 
-📁 产出: {TARGET_DIR}/05_TASKS.md
+1. **真实性**：任务树是否承接**外部可观察契约**，而非仅堆砌实现动作。  
+2. **风险闭合**：高风险契约是否在 05B 有**明确、可降级**的验证落点（非盲目堆 E2E）。  
+3. **可验收**：Sprint/INT 关口是否可被日志/报告/截图等客观证据验证。
 
-📋 下一步行动:
-  1. 按依赖顺序执行 P0 任务
-  2. 每完成一个任务，标记 [x] 并运行验证
-```
+### 为什么
+
+否则 planner 只会把混乱拆成更多行。
+
+### 怎么验收
+
+- 三项均有**是/否+一句理由**；若有「否」，会话显示已回退修补后再前进。
 
 ---
 
-### Agent Context 自更新
+## Step 2: 调用 task-planner 生成 05A / 05B
 
-**更新 `AGENTS.md` 的 `AUTO:BEGIN` ~ `AUTO:END` 区块**:
+### 做什么
 
-在 `### 当前任务状态` 下写入：
+1. **本步开头**再读取 **`.agents/skills/task-planner/SKILL.md`**（及按需打开 `references/TASK_TEMPLATE_05A.md`、`TASK_TEMPLATE_05B.md`），按 SKILL 协议调用。  
+2. 将 **「CRITICAL 与 task-planner 配合契约」** 中的 **移交包** 全文交给 planner 执行上下文（路径、契约表、ADR 测试锚点、系统 ID 对齐声明）。  
+3. 显式传递（口径以 SKILL 为准，此处只列**门禁意图**）：输入为唯一事实源；ADR 测试策略与质量门禁**优先**；验证 **最轻但足够**；单元 + **API 接口功能测试**必规划；冒烟优先 `INT-S{N}`；E2E 仅记触发与证据预期，**不执行** e2e skill。  
+4. 产出须可逐条对照 SKILL **「输出质量检查」**；若本轮未过，**在同一 Step 内**修订映射或补读输入后再次走 planner，**不**前进到 Step 3。
 
-```markdown
-### 当前任务状态
-- 任务清单: .anws/v{N}/05_TASKS.md
-- 总任务数: {N}, P0: {X}, P1: {Y}, P2: {Z}
-- Sprint 数: {S}
-- Wave 1 建议: T{X.Y.Z}, T{X.Y.Z}, T{X.Y.Z}
-- 最近更新: {Today}
-```
+### 为什么
+
+字段与表结构以 SKILL 为真源；宿主负责 **移交完整 + 对账 SKILL 硬约束**，避免「调了 skill 但上下文半截」。
+
+### 怎么验收
+
+- 会话内可见：已读 SKILL 路径 + 移交包要点 + 一轮 planner 结果；或与用户约定的手工等效（须声明）且仍通过 Step 4 与 SKILL 输出质量检查对读。
+
+---
+
+## Step 3: 收口写入与状态更新
+
+### 做什么
+
+1. 将产物保存为 `{TARGET_DIR}/05A_TASKS.md` 与 `{TARGET_DIR}/05B_VERIFICATION_PLAN.md`。  
+2. `05A` 保留执行主线（WBS、依赖、Sprint、INT、User Story Overlay 等——**小节名与必填列**以 TASK_TEMPLATE_05A 为准）。  
+3. `05B` 保留验证主线（Task-by-Task、Contract Coverage、Testing Coverage、Traceability Matrix 等——以 TASK_TEMPLATE_05B 为准）。  
+4. 更新 `AGENTS.md` 中 **05A/05B 文档入口**状态（**不**在此粘贴长模板）。
+
+### 为什么
+
+落盘与入口一致，`/forge` 与审查才有锚。
+
+### 怎么验收
+
+- 两文件路径存在且非空占位；`AGENTS.md` 已反映双文档入口。
+
+---
+
+## Step 4: 必过检查清单
+
+### 做什么
+
+在进入 blueprint 收口或移交 `/forge` 前，对 `05A` / `05B` / `AGENTS.md` 与 **task-planner** 输出质量做一次硬性对账（下列清单逐项勾选）。
+
+### 为什么
+
+漏检会在 forge 阶段放大为返工；本步把「已生成」与「下游可执行」分开验收。
+
+### 怎么验收
+
+- [ ] `05A` 与 `05B` 均已生成。  
+- [ ] 与 **`task-planner` SKILL 末节「输出质量检查」** 对读无缺口（含：`验证引用`+`证据产出`、User Story Overlay 在 05A、三章在 05B、INT/冒烟关系、无 E2E 滥用）。  
+- [ ] 每个 05A 任务含 **验证引用** 且可在 05B 定位对应条目。  
+- [ ] 05B 保留 Contract / Testing / Traceability **三类覆盖叙事**（具体表头以模板为准）。  
+- [ ] 单元测试与 API 接口功能测试职责均已规划。  
+- [ ] 覆盖按风险闭合，无明显组合爆炸；任务粒度与依赖 **输入/输出对齐** 符合 SKILL 守则。  
+- [ ] `AGENTS.md` 已更新 A/B 入口。
 
 ---
 
 <completion_criteria>
-- ✅ 定位到最新架构版本 `v{N}`
-- ✅ 任务清单 `05_TASKS.md` 已生成
-- ✅ 每个 Level 3 任务包含验证说明
-- ✅ 任务间输入/输出已对齐（接口追溯）
-- ✅ 每个 Sprint 有退出标准和 INT 集成验证任务
-- ✅ 生成了 Mermaid 依赖图
-- ✅ User Story Overlay 已生成并验证覆盖完整性
-- ✅ 已更新 AGENTS.md（含初始波次建议）
-- ✅ 更新了 AGENTS.md AUTO:BEGIN 区块 (当前任务状态)
-- ✅ 用户已确认
+- **凝练与版式**：`CRITICAL 凝练与版式` 已遵守；未向宿主粘贴 TASK 模板全文。  
+- 版本定位与前置阻断正确；契约映射在进入 planner 前已通过 Step 1.5。  
+- 未在 Step 2 之前预读 `task-planner`；Step 2 已交付完整 **移交包** 并按 SKILL **输出质量检查** 对账通过。  
+- **未**在 `/blueprint` 阶段执行 `e2e-testing-guide`。  
+- `AGENTS.md` 双文档入口已更新。  
 </completion_criteria>
-

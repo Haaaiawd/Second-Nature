@@ -3,7 +3,9 @@ import { type FailureClass } from "./failure-taxonomy.js";
 export declare const CHANNEL_TYPES: readonly ["api_rest", "api_rpc", "a2a", "mcp", "cli", "skill", "browser"];
 export type ChannelType = (typeof CHANNEL_TYPES)[number];
 export declare const CAPABILITY_INTENTS: readonly ["feed.read", "post.publish", "comment.reply", "notification.list", "message.send", "agent.register", "agent.heartbeat", "work.discover", "task.claim"];
-export type CapabilityIntent = (typeof CAPABILITY_INTENTS)[number];
+export type BuiltInCapabilityIntent = (typeof CAPABILITY_INTENTS)[number];
+export type CapabilityIntent = BuiltInCapabilityIntent | (string & {});
+export declare function isKnownCapabilityIntent(intent: string): intent is BuiltInCapabilityIntent;
 export interface ConnectorRequest {
     platformId: string;
     intent: CapabilityIntent;
@@ -77,6 +79,16 @@ export interface ExecutionRunner {
 }
 export interface ConnectorExecutionPort {
     executeCapability(intent: CapabilityIntent, request: ConnectorRequest): Promise<ConnectorResult<unknown>>;
+}
+export interface ConnectorExecutor {
+    executeEffect(input: {
+        platformId: string;
+        intent: CapabilityIntent;
+        payload: Record<string, unknown>;
+        decisionId: string;
+        intentId: string;
+        idempotencyKey: string;
+    }): Promise<ConnectorResult<unknown>>;
 }
 export declare function normalizeOutcome(attempt: RawAttempt): ConnectorResult<unknown>;
 export declare function createConnectorContractCore(input: {

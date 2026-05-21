@@ -7,3 +7,8 @@ export * from "./proposals.js";
 export * from "./provenance.js";
 export * from "./delivery-attempts.js";
 export * from "./operator-fallback-artifacts.js";
+export * from "./session-chronicle.js";
+export * from "./narrative-state.js";
+export * from "./relationship-memory.js";
+export * from "./agent-goal.js";
+export * from "./memory-store.js";

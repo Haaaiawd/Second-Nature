@@ -12,6 +12,30 @@ import { credentialRecords } from "../db/schema/index.js";
 
 const ALGORITHM = "aes-256-gcm";
 
+type CredentialRecordLike = {
+  platformId?: string;
+  platform_id?: string;
+  credentialType?: string;
+  credential_type?: string;
+  encryptedValue?: string | null;
+  encrypted_value?: string | null;
+  status?: string;
+  verificationCode?: string | null;
+  verification_code?: string | null;
+  challengeText?: string | null;
+  challenge_text?: string | null;
+  expiresAt?: string | null;
+  expires_at?: string | null;
+  attemptsRemaining?: number | null;
+  attempts_remaining?: number | null;
+};
+
+function normalizeCredentialRecord(record: unknown): CredentialRecordLike {
+  return record && typeof record === "object"
+    ? (record as CredentialRecordLike)
+    : {};
+}
+
 function resolveKeyBuffer(): Buffer {
   const raw = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
   if (!raw || raw.length < 32) {
@@ -69,6 +93,73 @@ export interface CredentialVault {
   getCredentialState(platformId: string): Promise<CredentialState>;
 }
 
+/** T1.4.1 — runtime secret health probe result for a single credential row. */
+export interface CredentialHealthProbe {
+  platformId: string;
+  state: CredentialState | "decrypt_failed";
+  keyHealth: "missing_key" | "wrong_key" | "ok";
+  hasBaseUrl: boolean;
+  diagnosticCode: "missing_runtime_secret" | "credential_recovery_required" | "ok";
+}
+
+/**
+ * T1.4.1 — probe a credential record for runtime secret health.
+ *
+ * Given a raw encrypted value from the DB, this function checks:
+ * 1. Is SECOND_NATURE_ENCRYPTION_KEY present and >= 32 chars?
+ * 2. Can the ciphertext be decrypted with that key?
+ *
+ * It never throws; all failures are encoded in the returned state.
+ */
+export function probeCredentialHealth(
+  platformId: string,
+  encryptedValue: string | undefined | null,
+  baseUrl: string | undefined | null,
+): CredentialHealthProbe {
+  // Key availability check
+  const rawKey = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
+  if (!rawKey || rawKey.length < 32) {
+    return {
+      platformId,
+      state: encryptedValue ? "decrypt_failed" : "missing",
+      keyHealth: "missing_key",
+      hasBaseUrl: Boolean(baseUrl),
+      diagnosticCode: "missing_runtime_secret",
+    };
+  }
+
+  // No encrypted value to test
+  if (!encryptedValue) {
+    return {
+      platformId,
+      state: "missing",
+      keyHealth: "ok",
+      hasBaseUrl: Boolean(baseUrl),
+      diagnosticCode: "ok",
+    };
+  }
+
+  // Decryption attempt
+  try {
+    decryptCredentialAtRest(encryptedValue);
+    return {
+      platformId,
+      state: "active",
+      keyHealth: "ok",
+      hasBaseUrl: Boolean(baseUrl),
+      diagnosticCode: "ok",
+    };
+  } catch {
+    return {
+      platformId,
+      state: "decrypt_failed",
+      keyHealth: "wrong_key",
+      hasBaseUrl: Boolean(baseUrl),
+      diagnosticCode: "credential_recovery_required",
+    };
+  }
+}
+
 export function createCredentialVault(db: StateDatabase["db"]): CredentialVault {
   return {
     async saveCredentialContext(input: CredentialContextWrite): Promise<void> {
@@ -104,23 +195,49 @@ export function createCredentialVault(db: StateDatabase["db"]): CredentialVault 
       });
       if (!record) return null;
 
+      const row = normalizeCredentialRecord(record);
+      const resolvedPlatformId = row.platformId ?? row.platform_id ?? platformId;
+      const credentialType = row.credentialType ?? row.credential_type ?? "api_key";
+      const encryptedValue = row.encryptedValue ?? row.encrypted_value ?? "";
+      const verificationCode = row.verificationCode ?? row.verification_code ?? undefined;
+      const challengeText = row.challengeText ?? row.challenge_text ?? undefined;
+      const expiresAt = row.expiresAt ?? row.expires_at ?? undefined;
+      const attemptsRemaining = row.attemptsRemaining ?? row.attempts_remaining ?? undefined;
+
       let plain: string | undefined;
-      if (record.encryptedValue) {
-        if (!isCredentialCiphertext(record.encryptedValue)) {
-          throw new Error("credential_store_plaintext_or_invalid_legacy_record");
+      let status = (row.status ?? "missing") as CredentialState;
+      if (encryptedValue) {
+        if (!isCredentialCiphertext(encryptedValue)) {
+          // Fail-closed: return decrypt_failed so callers do not crash.
+          return {
+            platformId: resolvedPlatformId,
+            credentialType: credentialType as CredentialType,
+            status: "decrypt_failed",
+            encryptedValue: undefined,
+            verificationCode,
+            challengeText,
+            verificationDeadline: expiresAt,
+            attemptsRemaining,
+          };
         }
-        plain = decryptCredentialAtRest(record.encryptedValue);
+        try {
+          plain = decryptCredentialAtRest(encryptedValue);
+        } catch {
+          // Decryption failure must not break the whole state load.
+          status = "decrypt_failed";
+          plain = undefined;
+        }
       }
 
       return {
-        platformId: record.platformId,
-        credentialType: record.credentialType as CredentialType,
-        status: record.status as CredentialState,
+        platformId: resolvedPlatformId,
+        credentialType: credentialType as CredentialType,
+        status,
         encryptedValue: plain,
-        verificationCode: record.verificationCode ?? undefined,
-        challengeText: record.challengeText ?? undefined,
-        verificationDeadline: record.expiresAt ?? undefined,
-        attemptsRemaining: record.attemptsRemaining ?? undefined,
+        verificationCode,
+        challengeText,
+        verificationDeadline: expiresAt,
+        attemptsRemaining,
       };
     },
 
@@ -128,7 +245,8 @@ export function createCredentialVault(db: StateDatabase["db"]): CredentialVault 
       const record = await db.query.credentialRecords.findFirst({
         where: (tbl) => eq(tbl.platformId, platformId),
       });
-      return (record?.status as CredentialState) || "missing";
+      const row = normalizeCredentialRecord(record);
+      return (row.status as CredentialState) || "missing";
     },
   };
 }

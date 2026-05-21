@@ -6,7 +6,8 @@ import * as path from "node:path";
 export async function persistQuietArtifactToWorkspace(workspaceRoot, ack, input) {
     const dir = path.join(workspaceRoot, ".second-nature", "quiet", input.day);
     await fs.mkdir(dir, { recursive: true });
-    const file = path.join(dir, `${ack.artifactId}.json`);
+    const fileName = input.kind === "empty_state" ? "empty_state.json" : `${ack.artifactId}.json`;
+    const file = path.join(dir, fileName);
     const payload = {
         artifactId: ack.artifactId,
         artifactRef: ack.artifactRef,

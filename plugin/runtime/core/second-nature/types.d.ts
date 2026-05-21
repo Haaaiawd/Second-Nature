@@ -32,6 +32,8 @@ export type CandidateEffectClass = "external_platform_action" | "connector_actio
 export interface CandidateIntent {
     id: string;
     kind: IntentKind;
+    /** Optional connector capability override, including workspace-defined behavior IDs. */
+    capabilityIntent?: string;
     priority: number;
     source: "tick" | "interrupt" | "obligation" | "quiet_plan";
     platformId?: string;
@@ -41,6 +43,10 @@ export interface CandidateIntent {
     sourceRefs: ControlPlaneSourceRef[];
     /** Dedupe / cooldown key; defaults to stable fingerprint in guard layer when omitted. */
     idempotencyKey?: string;
+    /** T2.1.4: IDs of accepted AgentGoals that influenced this candidate's priority. */
+    goalInfluenceRefs?: string[];
+    /** T2.1.4: Human-readable reasons for the priority value (goal influence, user task, rhythm). */
+    priorityReasons?: string[];
 }
 export interface GuardEvaluation {
     verdict: GuardVerdict;

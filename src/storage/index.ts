@@ -35,6 +35,54 @@ export {
 
 export { createStateAPI, type StateAPI, type MemoryReadPort, type MemoryWritePort, type CredentialContextPort, type IntentCommitPort, type ProvenancePort } from "./state-api.js";
 
+export {
+  createSessionChronicleStore,
+  type SessionChronicleStore,
+  type SessionChronicleEntry,
+  type ChronicleQuery,
+  type ChronicleWriteAck,
+  type ChronicleEventKind,
+} from "./chronicle/session-chronicle-store.js";
+
+export {
+  createNarrativeStateStore,
+  type NarrativeStateStore,
+  type NarrativeState,
+  type NarrativeStateUpdate,
+  type NarrativeStateWriteAck,
+} from "./narrative/narrative-state-store.js";
+
+export {
+  createRelationshipMemoryStore,
+  type RelationshipMemoryStore,
+  type RelationshipMemory,
+  type RelationshipMemoryUpdate,
+  type RelationshipMemoryWriteAck,
+  type TopicAffinity,
+} from "./relationship/relationship-memory-store.js";
+
+export {
+  createAgentGoalStore,
+  type AgentGoalStore,
+  type AgentGoal,
+  type AgentGoalWrite,
+  type AgentGoalStatusTransition,
+  type AgentGoalQuery,
+  type AgentGoalWriteAck,
+} from "./goal/agent-goal-store.js";
+
+export {
+  createMemoryStoreLifecycle,
+  type MemoryStorePort,
+  type MemoryStore,
+  type MemoryStoreWrite,
+  type MemoryStoreLifecycleTransition,
+  type MemoryStoreAck,
+  type CanonicalMemoryEntry,
+  type DreamInsight,
+  type MemoryStoreValidation,
+} from "./memory-store/memory-store-lifecycle.js";
+
 export type {
   LifeEvidence,
   LifeEvidenceCandidate,

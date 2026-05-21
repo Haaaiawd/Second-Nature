@@ -1,10 +1,12 @@
-import type { ConnectorResult, CapabilityIntent } from "../../../connectors/base/contract.js";
+import type { ConnectorResult, CapabilityIntent, ConnectorExecutor } from "../../../connectors/base/contract.js";
+export type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 import { LeaseManager, type EffectClass } from "./lease-manager.js";
 export interface AllowedIntent {
     id: string;
     kind: "work" | "exploration" | "social" | "quiet" | "reflection" | "outreach" | "maintenance";
     summary: string;
     effectClass: EffectClass;
+    capabilityIntent?: string;
     platformId?: string;
     payload?: Record<string, unknown>;
 }
@@ -30,16 +32,6 @@ export interface IntentCommitPort {
         outcomeRef: string;
     }): Promise<void>;
     abortIntentCommit(id: string, reason: string): Promise<void>;
-}
-export interface ConnectorExecutor {
-    executeEffect(input: {
-        platformId: string;
-        intent: CapabilityIntent;
-        payload: Record<string, unknown>;
-        decisionId: string;
-        intentId: string;
-        idempotencyKey: string;
-    }): Promise<ConnectorResult<unknown>>;
 }
 export interface CheckpointPort {
     saveCheckpoint(input: {
@@ -83,6 +75,7 @@ export type DispatchResult = {
     status: "maintenance_done";
     commitId: string;
 };
+export declare function toCapabilityIntent(intent: Pick<AllowedIntent, "kind" | "capabilityIntent">): CapabilityIntent;
 export declare class EffectDispatcher {
     private readonly leaseManager;
     private readonly commitPort;

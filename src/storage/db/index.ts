@@ -102,6 +102,81 @@ const STATE_SCHEMA_SQL = `
     created_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS operator_fallback_decision_idx ON operator_fallback_artifacts(decision_id);
+  CREATE TABLE IF NOT EXISTS session_chronicle (
+    entry_id TEXT PRIMARY KEY,
+    event_kind TEXT NOT NULL,
+    actor TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    result TEXT NOT NULL,
+    source_refs_json TEXT NOT NULL,
+    related_decision_id TEXT,
+    related_dream_run_id TEXT,
+    owner_reply_json TEXT
+  );
+  CREATE INDEX IF NOT EXISTS session_chronicle_event_kind_idx ON session_chronicle(event_kind);
+  CREATE INDEX IF NOT EXISTS session_chronicle_occurred_at_idx ON session_chronicle(occurred_at);
+  CREATE INDEX IF NOT EXISTS session_chronicle_actor_idx ON session_chronicle(actor);
+  CREATE INDEX IF NOT EXISTS session_chronicle_decision_idx ON session_chronicle(related_decision_id);
+  CREATE TABLE IF NOT EXISTS narrative_state (
+    narrative_id TEXT PRIMARY KEY,
+    revision INTEGER NOT NULL DEFAULT 1,
+    focus TEXT NOT NULL,
+    progress_json TEXT NOT NULL,
+    next_intent TEXT NOT NULL,
+    confidence INTEGER NOT NULL DEFAULT 0,
+    source_refs_json TEXT NOT NULL,
+    unsupported_claims_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS narrative_state_status_idx ON narrative_state(status);
+  CREATE INDEX IF NOT EXISTS narrative_state_updated_at_idx ON narrative_state(updated_at);
+  CREATE TABLE IF NOT EXISTS relationship_memory (
+    relationship_id TEXT PRIMARY KEY,
+    revision INTEGER NOT NULL DEFAULT 1,
+    tone_preference TEXT NOT NULL,
+    average_reply_delay_minutes INTEGER,
+    no_reply_count INTEGER NOT NULL DEFAULT 0,
+    topic_affinities_json TEXT NOT NULL,
+    last_interaction_at TEXT,
+    source_refs_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS relationship_memory_updated_at_idx ON relationship_memory(updated_at);
+  CREATE TABLE IF NOT EXISTS agent_goal (
+    goal_id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    status TEXT NOT NULL,
+    origin TEXT NOT NULL,
+    description TEXT NOT NULL,
+    completion_criteria TEXT NOT NULL,
+    risk TEXT NOT NULL,
+    priority_hint INTEGER NOT NULL DEFAULT 0,
+    source_refs_json TEXT NOT NULL,
+    accepted_by TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS agent_goal_status_idx ON agent_goal(status);
+  CREATE INDEX IF NOT EXISTS agent_goal_origin_idx ON agent_goal(origin);
+  CREATE INDEX IF NOT EXISTS agent_goal_updated_at_idx ON agent_goal(updated_at);
+  CREATE TABLE IF NOT EXISTS memory_store (
+    memory_store_id TEXT PRIMARY KEY,
+    lifecycle_status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    input_memory_store_id TEXT,
+    dream_run_id TEXT,
+    canonical_entries_json TEXT NOT NULL,
+    insights_json TEXT NOT NULL,
+    narrative_snapshot_json TEXT,
+    relationship_snapshot_json TEXT,
+    validation_json TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS memory_store_lifecycle_idx ON memory_store(lifecycle_status);
+  CREATE INDEX IF NOT EXISTS memory_store_created_at_idx ON memory_store(created_at);
+  CREATE INDEX IF NOT EXISTS memory_store_input_idx ON memory_store(input_memory_store_id);
+  CREATE INDEX IF NOT EXISTS memory_store_dream_run_idx ON memory_store(dream_run_id);
 `;
 
 export interface StateDatabase {

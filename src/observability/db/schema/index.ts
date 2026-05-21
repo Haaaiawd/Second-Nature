@@ -90,3 +90,8 @@ export {
   type HostCapabilityReportRow,
   type NewHostCapabilityReportRow,
 } from "./host-capability-reports.js";
+export {
+  connectorInventoryAudit,
+  type ConnectorInventoryAuditRow,
+  type NewConnectorInventoryAuditRow,
+} from "./connector-inventory.js";

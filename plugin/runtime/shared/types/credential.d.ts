@@ -1,4 +1,4 @@
-export type CredentialState = "missing" | "pending_verification" | "active" | "expired" | "revoked" | "failed";
+export type CredentialState = "missing" | "pending_verification" | "active" | "expired" | "revoked" | "failed" | "decrypt_failed";
 export type CredentialType = "api_key" | "oauth_token" | "node_secret" | "verification_code";
 export interface CredentialContext {
     platformId: string;

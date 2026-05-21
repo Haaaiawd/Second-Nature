@@ -8,6 +8,11 @@ import * as crypto from "crypto";
 import { eq } from "drizzle-orm";
 import { credentialRecords } from "../db/schema/index.js";
 const ALGORITHM = "aes-256-gcm";
+function normalizeCredentialRecord(record) {
+    return record && typeof record === "object"
+        ? record
+        : {};
+}
 function resolveKeyBuffer() {
     const raw = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
     if (!raw || raw.length < 32) {
@@ -54,6 +59,58 @@ export function decryptCredentialAtRest(ciphertext) {
         return "";
     return decryptInternal(ciphertext);
 }
+/**
+ * T1.4.1 — probe a credential record for runtime secret health.
+ *
+ * Given a raw encrypted value from the DB, this function checks:
+ * 1. Is SECOND_NATURE_ENCRYPTION_KEY present and >= 32 chars?
+ * 2. Can the ciphertext be decrypted with that key?
+ *
+ * It never throws; all failures are encoded in the returned state.
+ */
+export function probeCredentialHealth(platformId, encryptedValue, baseUrl) {
+    // Key availability check
+    const rawKey = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
+    if (!rawKey || rawKey.length < 32) {
+        return {
+            platformId,
+            state: encryptedValue ? "decrypt_failed" : "missing",
+            keyHealth: "missing_key",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "missing_runtime_secret",
+        };
+    }
+    // No encrypted value to test
+    if (!encryptedValue) {
+        return {
+            platformId,
+            state: "missing",
+            keyHealth: "ok",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "ok",
+        };
+    }
+    // Decryption attempt
+    try {
+        decryptCredentialAtRest(encryptedValue);
+        return {
+            platformId,
+            state: "active",
+            keyHealth: "ok",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "ok",
+        };
+    }
+    catch {
+        return {
+            platformId,
+            state: "decrypt_failed",
+            keyHealth: "wrong_key",
+            hasBaseUrl: Boolean(baseUrl),
+            diagnosticCode: "credential_recovery_required",
+        };
+    }
+}
 export function createCredentialVault(db) {
     return {
         async saveCredentialContext(input) {
@@ -88,29 +145,56 @@ export function createCredentialVault(db) {
             });
             if (!record)
                 return null;
+            const row = normalizeCredentialRecord(record);
+            const resolvedPlatformId = row.platformId ?? row.platform_id ?? platformId;
+            const credentialType = row.credentialType ?? row.credential_type ?? "api_key";
+            const encryptedValue = row.encryptedValue ?? row.encrypted_value ?? "";
+            const verificationCode = row.verificationCode ?? row.verification_code ?? undefined;
+            const challengeText = row.challengeText ?? row.challenge_text ?? undefined;
+            const expiresAt = row.expiresAt ?? row.expires_at ?? undefined;
+            const attemptsRemaining = row.attemptsRemaining ?? row.attempts_remaining ?? undefined;
             let plain;
-            if (record.encryptedValue) {
-                if (!isCredentialCiphertext(record.encryptedValue)) {
-                    throw new Error("credential_store_plaintext_or_invalid_legacy_record");
+            let status = (row.status ?? "missing");
+            if (encryptedValue) {
+                if (!isCredentialCiphertext(encryptedValue)) {
+                    // Fail-closed: return decrypt_failed so callers do not crash.
+                    return {
+                        platformId: resolvedPlatformId,
+                        credentialType: credentialType,
+                        status: "decrypt_failed",
+                        encryptedValue: undefined,
+                        verificationCode,
+                        challengeText,
+                        verificationDeadline: expiresAt,
+                        attemptsRemaining,
+                    };
                 }
-                plain = decryptCredentialAtRest(record.encryptedValue);
+                try {
+                    plain = decryptCredentialAtRest(encryptedValue);
+                }
+                catch {
+                    // Decryption failure must not break the whole state load.
+                    status = "decrypt_failed";
+                    plain = undefined;
+                }
             }
             return {
-                platformId: record.platformId,
-                credentialType: record.credentialType,
-                status: record.status,
+                platformId: resolvedPlatformId,
+                credentialType: credentialType,
+                status,
                 encryptedValue: plain,
-                verificationCode: record.verificationCode ?? undefined,
-                challengeText: record.challengeText ?? undefined,
-                verificationDeadline: record.expiresAt ?? undefined,
-                attemptsRemaining: record.attemptsRemaining ?? undefined,
+                verificationCode,
+                challengeText,
+                verificationDeadline: expiresAt,
+                attemptsRemaining,
             };
         },
         async getCredentialState(platformId) {
             const record = await db.query.credentialRecords.findFirst({
                 where: (tbl) => eq(tbl.platformId, platformId),
             });
-            return record?.status || "missing";
+            const row = normalizeCredentialRecord(record);
+            return row.status || "missing";
         },
     };
 }

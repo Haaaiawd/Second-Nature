@@ -1,6 +1,14 @@
 import { z } from "zod";
-import { classifyFailure, ConnectorPolicyError } from "./failure-taxonomy.js";
-export const CHANNEL_TYPES = ["api_rest", "api_rpc", "a2a", "mcp", "cli", "skill", "browser"];
+import { classifyFailure, ConnectorPolicyError, } from "./failure-taxonomy.js";
+export const CHANNEL_TYPES = [
+    "api_rest",
+    "api_rpc",
+    "a2a",
+    "mcp",
+    "cli",
+    "skill",
+    "browser",
+];
 export const CAPABILITY_INTENTS = [
     "feed.read",
     "post.publish",
@@ -12,9 +20,13 @@ export const CAPABILITY_INTENTS = [
     "work.discover",
     "task.claim",
 ];
+export function isKnownCapabilityIntent(intent) {
+    return CAPABILITY_INTENTS.includes(intent);
+}
+const capabilityIntentSchema = z.string().min(1).regex(/^[a-zA-Z0-9_.:-]+$/);
 const connectorRequestSchema = z.object({
     platformId: z.string().min(1),
-    intent: z.enum(CAPABILITY_INTENTS),
+    intent: capabilityIntentSchema,
     payload: z.record(z.string(), z.unknown()),
     preferredChannel: z.enum(CHANNEL_TYPES).optional(),
     timeoutMs: z.number().int().positive().optional(),

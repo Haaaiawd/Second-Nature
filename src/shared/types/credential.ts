@@ -4,7 +4,8 @@ export type CredentialState =
   | "active"
   | "expired"
   | "revoked"
-  | "failed";
+  | "failed"
+  | "decrypt_failed";
 
 export type CredentialType = "api_key" | "oauth_token" | "node_secret" | "verification_code";
 

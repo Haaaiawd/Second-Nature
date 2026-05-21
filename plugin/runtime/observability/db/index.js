@@ -83,6 +83,19 @@ const OBSERVABILITY_SCHEMA_SQL = `
     conflict_records_json TEXT NOT NULL,
     full_report_json TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS connector_inventory_audit (
+    audit_id TEXT PRIMARY KEY,
+    snapshot_id TEXT NOT NULL,
+    scanned INTEGER NOT NULL,
+    registered INTEGER NOT NULL,
+    skipped INTEGER NOT NULL,
+    conflicts_json TEXT NOT NULL,
+    validation_errors_json TEXT NOT NULL,
+    trust_summary_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS connector_inventory_snapshot_idx ON connector_inventory_audit(snapshot_id);
+  CREATE INDEX IF NOT EXISTS connector_inventory_created_at_idx ON connector_inventory_audit(created_at);
 `;
 function resolveDbPath(filename) {
     if (path.isAbsolute(filename) || filename === ":memory:") {

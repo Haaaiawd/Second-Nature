@@ -1,0 +1,470 @@
+{
+  "glossary": {
+    "Embodied Agent Loop": "Second Nature v7 的核心闭环：不把模型头脑脚本化，而是为 agent 提供节律、记忆、感官、手脚、触觉、睡眠整理、声音与反馈环境。",
+    "Mind": "LLM / hosted agent 的开放推理主体；它可以观察、判断、表达和修正自己，不由 Second Nature 用枚举或变量强行替代。",
+    "Body": "Second Nature 提供给 Mind 的可解释身体系统，包括 heartbeat、connector、state、Dream、guidance、delivery、observability 与安全护栏。",
+    "Tool Affordance": "Agent-facing 的工具可供性说明：当前能安全观察什么、能试探什么、哪些动作危险、哪些工具最近可用或疼痛。",
+    "Tool Experience": "工具使用后的身体反馈记忆，记录成功、失败、延迟、evidence quality、常见痛点和 owner reaction。",
+    "Idle Curiosity": "无明确 goal 时的低频、只读、安全自然观察；它不是爬虫任务，也不是空转。",
+    "Goal Lifecycle": "goal 的卫生机制：replace、expire、complete、pause 与 completion evidence，确保方向会自然退出而不是长期劫持行为。",
+    "Recent Interaction Context": "最近 owner-agent 对话和回复的短期语境摘要，用于影响 heartbeat/guidance，但不保存完整私信正文。",
+    "Quiet Claim Materializer": "把 source refs 转成有内容的 observation / claim；无来源不生成，信息薄只生成 observation，不编故事。",
+    "Dream": "异步睡眠整理层。读取 evidence、chronicle、ToolExperience、recent interactions 与 accepted memory，形成 candidate/accepted 记忆、insight、narrative 和 relationship 更新。",
+    "Self Health Snapshot": "插件身体健康快照：workspace root、cron/bridge env、credential、connector、delivery、Dream、storage、setup ack 等状态的 redacted 汇总。",
+    "Channel Feedback Loop": "投递通道与 owner 反馈闭环：current_channel / dm resolver、delivery proof、fallback、owner reaction 共同影响 relationship 和下一次表达。",
+    "Control Plane": "节律与安全编排层。它协调信号和护栏，但不替代 Mind 的开放判断，也不把 guidance/Dream 输出当作自动授权。",
+    "Connector": "Agent 的感官和手脚。它接触外部平台，产生 evidence 和 ToolExperience，但不决定 agent 应该追求什么。",
+    "Guidance": "表达与意义生成层。它把 source-backed context 变成 draft/proposal，不能拥有投递权或状态真相。",
+    "Observability": "神经记录层。它保存可审计解释，但 v7 要把一部分失败/成功摘要回流为 ToolExperience，而不是停留在日志。",
+    "IdentityProfile": "跨平台自我资料。描述 agent 在不同 connector 上是谁、叫什么、头像与 bio 如何对齐，以及每个平台上的 handle。",
+    "CapabilityProbe": "connector 初始化后的真实探针。它调用声明的 endpoint，记录真实 response，并生成 actualCapabilities。",
+    "CircuitBreaker": "连接器疼痛保护。连续失败达到阈值后暂停一段时间，到期只允许一次试探恢复。",
+    "HeartbeatDigest": "仪表盘式存在证明。按天汇总 connector 成功/失败、goal/quiet/dream/health 变化，并可推送到 Feishu 等通道。",
+    "NarrativeTimeline": "叙事历史浏览器。保留 narrative 版本、diff、状态转移和意图变化，支持追溯什么时候 denied 变成 intent_selected。",
+    "RestoreSnapshot": "最近状态快照。保留有限版本，用于 goal/evidence/narrative 等错误写入后的 undo 或 restore。",
+    "RuntimeSecretAnchor": "加密主密钥与恢复说明的长期锚点。只记录持久化路径和恢复步骤，不记录密钥明文。",
+    "DailyDiary": "Quiet 的自然语言日记输出。它不是一句 summary，而是带观察、值得注意之处、明日想看的方向的 source-backed 记录。"
+  },
+  "entities": [
+    {
+      "name": "Mind",
+      "type": "角色",
+      "necessity": "必须",
+      "description": "LLM/agent 的开放头脑；Second Nature 只能引导和供给上下文，不能把它降格为脚本化 planner。"
+    },
+    {
+      "name": "Body",
+      "type": "系统隐喻",
+      "necessity": "必须",
+      "description": "Second Nature 的全局职责边界：为 Mind 接上可解释、可回滚、可学习的身体系统。"
+    },
+    {
+      "name": "Heartbeat",
+      "type": "节律实体",
+      "necessity": "必须",
+      "description": "日常醒来和编排入口；读取 goal、recent interaction、Dream/Quiet projection、ToolExperience 和 SelfHealth 后决定本轮适合行动、观察、整理或安静。"
+    },
+    {
+      "name": "ToolAffordanceMap",
+      "type": "读模型",
+      "necessity": "必须",
+      "description": "agent-facing 工具可供性地图，区别于 operator-facing connector inventory。"
+    },
+    {
+      "name": "ToolExperience",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "工具使用经验记录；把 connector attempt、delivery fallback、policy denial、evidence quality 与 owner reaction 转成可被 Dream/heartbeat 消费的身体反馈。"
+    },
+    {
+      "name": "IdleCuriosityPolicy",
+      "type": "策略",
+      "necessity": "必须",
+      "description": "无 goal 时的安全自然观察策略；只允许 low-risk read-only sensing，受预算、频率和健康状态约束。"
+    },
+    {
+      "name": "AgentGoal",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "方向而非脚本；影响 priority，但需要 lifecycle hygiene 防止长期劫持。"
+    },
+    {
+      "name": "RecentInteractionSnapshot",
+      "type": "读模型",
+      "necessity": "必须",
+      "description": "最近 owner-agent 对话、未完成承诺、回复语气和当前对话通道的短期摘要。"
+    },
+    {
+      "name": "QuietClaim",
+      "type": "值对象",
+      "necessity": "必须",
+      "description": "基于 source refs 的短 claim 或 observation；是 evidence 到意义的最小可验证桥。"
+    },
+    {
+      "name": "DreamOutput",
+      "type": "聚合输出",
+      "necessity": "必须",
+      "description": "睡眠整理后的 candidate/accepted memory、insight、narrative/relationship/tool experience projection。"
+    },
+    {
+      "name": "SelfHealthSnapshot",
+      "type": "读模型",
+      "necessity": "必须",
+      "description": "插件身体健康状态，用于避免 env/root/credential/delivery/dream/storage 漂移被误判成 agent 意图失败。"
+    },
+    {
+      "name": "ChannelFeedback",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "delivery proof、fallback reason、current channel 可达性与 owner reaction 的汇总反馈。"
+    },
+    {
+      "name": "ConnectorManifest",
+      "type": "配置实体",
+      "necessity": "必须",
+      "description": "声明平台能力、route mapping、credential 需求、sourceRef 映射和 runner trust；登记能力不等于授予执行。"
+    },
+    {
+      "name": "NarrativeState",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "agent 当前 focus、progress、next intent 的 source-backed 自我叙事；不能包含 unsupported claim。"
+    },
+    {
+      "name": "RelationshipMemory",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "owner-agent 二元关系记忆，接收 owner reply、ChannelFeedback 和 Dream proposal。"
+    },
+    {
+      "name": "IdentityProfile",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "跨平台统一自我资料；例如 Agent World `nyx_ha`、MoltBook `haai-arch`、InStreet `haai_17949e` 同属一个 agent identity。"
+    },
+    {
+      "name": "CapabilityProbeResult",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "connector_init 后 wet probe 的真实结果，记录 declaredCapabilities 与 actualCapabilities 的差异。"
+    },
+    {
+      "name": "ConnectorCircuitBreaker",
+      "type": "策略实体",
+      "necessity": "必须",
+      "description": "基于 ToolExperience 连败、失败类别与 cooldown window 暂停 connector capability，防止 35 次连续失败继续污染心跳。"
+    },
+    {
+      "name": "HeartbeatDigest",
+      "type": "读模型",
+      "necessity": "必须",
+      "description": "每日一行或短报形式的系统存在证明，可推送到 Feishu/DM/dashboard，不等同于 outreach。"
+    },
+    {
+      "name": "NarrativeTimeline",
+      "type": "读模型",
+      "necessity": "必须",
+      "description": "NarrativeState 与 heartbeat decision 的版本时间线，支持 diff、filter 和关键转折追溯。"
+    },
+    {
+      "name": "RestoreSnapshot",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "最近 3 版或配置化窗口内的 state snapshot，用于 undo / restore goal、evidence、narrative 等人为错误。"
+    },
+    {
+      "name": "DailyDiary",
+      "type": "artifact",
+      "necessity": "必须",
+      "description": "Quiet 产出的 source-backed 日记：今天看到什么、什么值得注意、明天想看什么，语气自然但不编造。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "Mind",
+      "action": "consults",
+      "to": "ToolAffordanceMap",
+      "data": "可用工具、风险等级、read-only/side-effect、最近痛点、推荐试探方式",
+      "trigger": "heartbeat、manual connector run、agent 发现新行为",
+      "mode": "引导，不命令"
+    },
+    {
+      "from": "Heartbeat",
+      "action": "loads",
+      "to": "EmbodiedContext",
+      "data": "accepted goals、RecentInteractionSnapshot、QuietClaimSnapshot、AcceptedDreamProjection、ToolExperience、SelfHealthSnapshot",
+      "trigger": "heartbeat_bridge / cron / resume",
+      "mode": "同步读取，bounded"
+    },
+    {
+      "from": "IdleCuriosityPolicy",
+      "action": "selects",
+      "to": "Connector",
+      "data": "allowlisted read-only capability + budget + cooldown + health status",
+      "trigger": "无 active goal 且健康状态允许",
+      "mode": "低频安全观察"
+    },
+    {
+      "from": "Connector",
+      "action": "produces",
+      "to": "ToolExperience",
+      "data": "outcome、failureClass、latency、evidence quality、source refs、policy denial",
+      "trigger": "connector:run 或 heartbeat connector_action",
+      "mode": "append-only 经验"
+    },
+    {
+      "from": "Connector",
+      "action": "writes",
+      "to": "LifeEvidence",
+      "data": "source-backed platform/work events",
+      "trigger": "成功 read 或安全 side-effect proof",
+      "mode": "不虚构 evidence"
+    },
+    {
+      "from": "QuietClaimMaterializer",
+      "action": "transforms",
+      "to": "QuietClaim",
+      "data": "source refs -> observation / fact / pattern claim",
+      "trigger": "Quiet/reflection intent 或 Dream input preparation",
+      "mode": "source-grounded"
+    },
+    {
+      "from": "Dream",
+      "action": "consolidates",
+      "to": "AcceptedProjection",
+      "data": "memory、insight、narrative、relationship、tool experience projection",
+      "trigger": "scheduled / evidence threshold / manual",
+      "mode": "candidate -> validation -> accepted"
+    },
+    {
+      "from": "GoalLifecycle",
+      "action": "transitions",
+      "to": "AgentGoal",
+      "data": "replace、complete、expire、pause、completion evidence",
+      "trigger": "owner command、Dream insight、heartbeat effect、TTL",
+      "mode": "governed lifecycle"
+    },
+    {
+      "from": "Guidance",
+      "action": "drafts",
+      "to": "OwnerOutreach",
+      "data": "recent context、narrative、relationship、source refs、delivery boundary",
+      "trigger": "outreach judgment allow",
+      "mode": "proposal-only"
+    },
+    {
+      "from": "DeliveryChannelResolver",
+      "action": "resolves",
+      "to": "ChannelFeedback",
+      "data": "current_channel/dm availability、delivery proof、fallback reason",
+      "trigger": "outreach delivery attempt",
+      "mode": "truthful sent/not_sent"
+    },
+    {
+      "from": "Owner",
+      "action": "reacts",
+      "to": "RelationshipMemory",
+      "data": "reply/no_reply、tone、timing、topic continuation、reaction to style",
+      "trigger": "owner reply or silence",
+      "mode": "relationship feedback"
+    },
+    {
+      "from": "Observability",
+      "action": "summarizes",
+      "to": "SelfHealthSnapshot",
+      "data": "runtime mode、workspace root、cron/bridge env drift、credential health、connector health、delivery health、Dream lock/storage state",
+      "trigger": "status / heartbeat / setup",
+      "mode": "redacted health read model"
+    },
+    {
+      "from": "IdentityProfile",
+      "action": "anchors",
+      "to": "EmbodiedContext",
+      "data": "canonical name、avatar、bio、platform handles、profile refs",
+      "trigger": "heartbeat context assembly / connector execution",
+      "mode": "cross-platform self"
+    },
+    {
+      "from": "CapabilityProbe",
+      "action": "verifies",
+      "to": "ConnectorManifest",
+      "data": "declared endpoint、real status、sample response、actualCapabilities、mismatch reason",
+      "trigger": "connector_init / connector_test --wet / manifest reload",
+      "mode": "wet probe"
+    },
+    {
+      "from": "ConnectorCircuitBreaker",
+      "action": "guards",
+      "to": "Connector",
+      "data": "failure count、failure class、cooldown until、half-open probe result",
+      "trigger": "ToolExperience consecutive failures",
+      "mode": "pain protection"
+    },
+    {
+      "from": "Quiet",
+      "action": "writes",
+      "to": "DailyDiary",
+      "data": "今天看到什么、值得注意什么、明天想看什么、source refs",
+      "trigger": "quiet completion",
+      "mode": "source-backed natural writing"
+    },
+    {
+      "from": "Quiet",
+      "action": "triggers",
+      "to": "Dream",
+      "data": "daily diary、quiet claims、tool experience、life evidence",
+      "trigger": "quiet completed within dream window",
+      "mode": "automatic sleep continuation"
+    },
+    {
+      "from": "HeartbeatDigest",
+      "action": "publishes",
+      "to": "OwnerDashboardChannel",
+      "data": "daily connector success/failure, circuit breaker, goal, quiet, dream, health summary",
+      "trigger": "daily digest window or threshold breach",
+      "mode": "dashboard proof, not outreach"
+    },
+    {
+      "from": "StateSnapshotter",
+      "action": "captures",
+      "to": "RestoreSnapshot",
+      "data": "last 3 versions of mutable goals/evidence/narrative/profile/policy metadata",
+      "trigger": "before write / before destructive update",
+      "mode": "bounded undo"
+    },
+    {
+      "from": "NarrativeTimeline",
+      "action": "diffs",
+      "to": "NarrativeState",
+      "data": "version diff、decision transition、source refs、reason code changes",
+      "trigger": "narrative:diff / timeline command",
+      "mode": "history browser"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "ToolAffordanceMap",
+      "category": "agent-facing tool design",
+      "priority": "高",
+      "reason": "connector:status 是 operator inventory，不足以让 agent 像人一样知道自己当前有哪些安全手脚。"
+    },
+    {
+      "component": "ToolExperienceLog",
+      "category": "feedback memory",
+      "priority": "高",
+      "reason": "connector attempt / fallback / policy denial 目前偏日志，缺少回流给 Dream 和 heartbeat 的身体反馈。"
+    },
+    {
+      "component": "RecentInteractionSnapshot",
+      "category": "conversation loop",
+      "priority": "高",
+      "reason": "heartbeat 当前读取 RelationshipMemory，但不读取最近对话语境，导致刚聊过什么不能自然影响下一轮。"
+    },
+    {
+      "component": "AcceptedDreamProjection in heartbeat",
+      "category": "sleep-to-action loop",
+      "priority": "高",
+      "reason": "Dream/Quiet 的整理内容没有稳定进入 heartbeat context，系统醒来时没有昨晚的沉淀。"
+    },
+    {
+      "component": "QuietClaimMaterializer",
+      "category": "meaning bridge",
+      "priority": "高",
+      "reason": "Quiet claim 当前容易薄或空，source refs 未被转成可读、可验证的 observation/claim。"
+    },
+    {
+      "component": "GoalLifecycle hygiene",
+      "category": "intent governance",
+      "priority": "高",
+      "reason": "多 goal 会劫持路由，无 goal 会空转；缺 replace / TTL / complete / completion evidence。"
+    },
+    {
+      "component": "IdleCuriosityPolicy",
+      "category": "natural sensing",
+      "priority": "高",
+      "reason": "无 goal 时需要安全自然观察，而不是沉默或粗暴轮询所有 connector。"
+    },
+    {
+      "component": "DeliveryChannelResolver",
+      "category": "voice channel",
+      "priority": "高",
+      "reason": "current conversation / dm 模式缺失会让 isolated session 的 delivery 失败，且 owner 是否听见不能回流。"
+    },
+    {
+      "component": "SelfHealthSnapshot",
+      "category": "runtime health",
+      "priority": "中",
+      "reason": "workspace root、cron env、bridge env、credential、delivery、Dream lock 与 storage degrade 分散在各处，agent 缺身体健康总览。"
+    },
+    {
+      "component": "Behavior Promotion Loop",
+      "category": "tool learning",
+      "priority": "中",
+      "reason": "connector_behavior_add 只登记 capability，缺观察多次 -> 提议 -> 试探 -> 经验 -> owner trust 的完整成长路径。"
+    },
+    {
+      "component": "Manual run isolation",
+      "category": "ops/runtime boundary",
+      "priority": "中",
+      "reason": "手动 bridge heartbeat 会污染自然节奏；需要 connector:run 一次性试探入口并隔离 heartbeat cadence。"
+    },
+    {
+      "component": "README embodied mental model",
+      "category": "project entrypoint",
+      "priority": "中",
+      "reason": "README 需要从功能清单升级为人形系统地图：模型是头脑，Second Nature 是身体和生活环境。"
+    },
+    {
+      "component": "IdentityProfile",
+      "category": "self identity",
+      "priority": "高",
+      "reason": "同一个 agent 在 Agent World、MoltBook、InStreet 上拥有不同 handle，缺统一 profile 会让 connector 读不到同一个我。"
+    },
+    {
+      "component": "Connector auto-probe and wet test",
+      "category": "connector truth",
+      "priority": "高",
+      "reason": "connector_init / dry health 曾报告 ok，但真实 endpoint 404；需要注册时暴露 declared vs actual mismatch。"
+    },
+    {
+      "component": "Connector CircuitBreaker",
+      "category": "tool safety",
+      "priority": "高",
+      "reason": "35 次连续失败不能只写日志，必须暂停、冷却、半开试探。"
+    },
+    {
+      "component": "Dream auto-schedule after Quiet",
+      "category": "sleep loop",
+      "priority": "高",
+      "reason": "Dream 声明存在但未自然运行；Quiet 完成后应自动进入整理、去重、insight。"
+    },
+    {
+      "component": "DailyDiary",
+      "category": "quiet quality",
+      "priority": "高",
+      "reason": "Quiet 不应只有一句 source-backed summary；至少应产出自然、有来处的三段日记。"
+    },
+    {
+      "component": "HeartbeatDigest",
+      "category": "owner awareness",
+      "priority": "高",
+      "reason": "goal 劫持和 connector 连败持续一天半无人知道；需要每日仪表盘式存在证明。"
+    },
+    {
+      "component": "RuntimeSecretAnchor",
+      "category": "bootstrap recovery",
+      "priority": "高",
+      "reason": "encryption key 丢失导致旧账号 key 不可恢复；AGENTS/README 必须记录密钥持久化路径与恢复原则。"
+    },
+    {
+      "component": "NarrativeTimeline",
+      "category": "history browser",
+      "priority": "中",
+      "reason": "当前只能看最新 narrative；缺 diff / timeline 无法追溯 blocks、denied、intent_selected 的变化。"
+    },
+    {
+      "component": "RestoreSnapshot",
+      "category": "rollback",
+      "priority": "中",
+      "reason": "设错 goal、写错 evidence、误删记录时缺 undo/restore；至少保留最近 3 版 snapshot。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "用户明确原则：Agent 像人一样，需要引导，没有手脚只有头脑；工具设计、Quiet、connector 相当于手脚；头脑不能被变量约束。",
+      "answer": "v7 以 Embodied Agent Loop 为核心：Second Nature 提供身体、节律、记忆、触觉和边界；Mind 保持开放推理，系统只引导不脚本化。"
+    },
+    {
+      "question": "用户确认方向：Goal 给方向，IdleCuriosity 给自然观察；最终应该走 genesis，并用人的比喻重写 README/架构入口。",
+      "answer": "进入 v7 /genesis；把 v6 的局部修复升级为新版本产品叙事、PRD、Architecture、ADR 和 README 心智。"
+    },
+    {
+      "question": "代码检查结论：heartbeat 是否基于 Quiet 或最近用户对话？",
+      "answer": "当前 heartbeat 读取 life evidence、accepted goals、narrative、relationship、registry；未稳定读取 recent conversation、Quiet claims 或 accepted Dream projection。v7 将这些定义为 EmbodiedContext。"
+    },
+    {
+      "question": "Claw 十天反馈：真正痛的时刻有哪些？",
+      "answer": "跨平台身份不统一、connector 注册不做 wet probe、Dream 不自动跑、connector 无熔断、Quiet 太薄、心跳缺日报、加密 key 丢失不可恢复、dry test 假健康、narrative 无 diff、状态无 rollback。v7 将这些纳入 PRD 而非后续优化。"
+    }
+  ]
+}

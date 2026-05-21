@@ -1,13 +1,26 @@
 import * as crypto from "crypto";
 
-import type { ConnectorResult, CapabilityIntent } from "../../../connectors/base/contract.js";
+import type {
+  ConnectorResult,
+  CapabilityIntent,
+  ConnectorExecutor,
+} from "../../../connectors/base/contract.js";
+export type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 import { LeaseManager, type EffectClass } from "./lease-manager.js";
 
 export interface AllowedIntent {
   id: string;
-  kind: "work" | "exploration" | "social" | "quiet" | "reflection" | "outreach" | "maintenance";
+  kind:
+    | "work"
+    | "exploration"
+    | "social"
+    | "quiet"
+    | "reflection"
+    | "outreach"
+    | "maintenance";
   summary: string;
   effectClass: EffectClass;
+  capabilityIntent?: string;
   platformId?: string;
   payload?: Record<string, unknown>;
 }
@@ -25,26 +38,30 @@ export interface IntentCommitPort {
     intentId: string;
     decisionId: string;
     checkpointId?: string;
-    state: "planned" | "dispatched" | "externally_acknowledged" | "committed" | "reconcile" | "aborted";
+    state:
+      | "planned"
+      | "dispatched"
+      | "externally_acknowledged"
+      | "committed"
+      | "reconcile"
+      | "aborted";
   }): Promise<{ id: string }>;
   advanceIntentCommitState(
     id: string,
-    state: "planned" | "dispatched" | "externally_acknowledged" | "committed" | "reconcile" | "aborted",
-    metadata?: Record<string, unknown>
+    state:
+      | "planned"
+      | "dispatched"
+      | "externally_acknowledged"
+      | "committed"
+      | "reconcile"
+      | "aborted",
+    metadata?: Record<string, unknown>,
   ): Promise<void>;
-  commitIntentOutcome(id: string, outcome: { traceId: string; outcomeRef: string }): Promise<void>;
+  commitIntentOutcome(
+    id: string,
+    outcome: { traceId: string; outcomeRef: string },
+  ): Promise<void>;
   abortIntentCommit(id: string, reason: string): Promise<void>;
-}
-
-export interface ConnectorExecutor {
-  executeEffect(input: {
-    platformId: string;
-    intent: CapabilityIntent;
-    payload: Record<string, unknown>;
-    decisionId: string;
-    intentId: string;
-    idempotencyKey: string;
-  }): Promise<ConnectorResult<unknown>>;
 }
 
 export interface CheckpointPort {
@@ -75,13 +92,21 @@ export interface ReflectionPort {
 
 export type DispatchResult =
   | { status: "deferred"; reason: string }
-  | { status: "effect_executed"; result: ConnectorResult<unknown>; commitId: string }
+  | {
+      status: "effect_executed";
+      result: ConnectorResult<unknown>;
+      commitId: string;
+    }
   | { status: "curated"; commitId: string }
   | { status: "reflected"; commitId: string }
   | { status: "maintenance_done"; commitId: string };
 
 function needsLease(effectClass: EffectClass): boolean {
-  return effectClass === "external_platform_action" || effectClass === "connector_action" || effectClass === "user_outreach";
+  return (
+    effectClass === "external_platform_action" ||
+    effectClass === "connector_action" ||
+    effectClass === "user_outreach"
+  );
 }
 
 function needsCheckpoint(effectClass: EffectClass): boolean {
@@ -89,10 +114,16 @@ function needsCheckpoint(effectClass: EffectClass): boolean {
 }
 
 function isConnectorEffect(effectClass: EffectClass): boolean {
-  return effectClass === "external_platform_action" || effectClass === "connector_action";
+  return (
+    effectClass === "external_platform_action" ||
+    effectClass === "connector_action"
+  );
 }
 
-function toCapabilityIntent(intent: AllowedIntent): CapabilityIntent {
+export function toCapabilityIntent(
+  intent: Pick<AllowedIntent, "kind" | "capabilityIntent">,
+): CapabilityIntent {
+  if (intent.capabilityIntent?.trim()) return intent.capabilityIntent.trim() as CapabilityIntent;
   if (intent.kind === "work") return "work.discover";
   if (intent.kind === "exploration") return "feed.read";
   if (intent.kind === "social") return "comment.reply";
@@ -108,12 +139,18 @@ export class EffectDispatcher {
     private readonly connectorExecutor: ConnectorExecutor,
     private readonly checkpointPort: CheckpointPort,
     private readonly memoryPort: MemoryPort,
-    private readonly reflectionPort: ReflectionPort
+    private readonly reflectionPort: ReflectionPort,
   ) {}
 
-  async dispatchEffect(intent: AllowedIntent, decision: DecisionContext): Promise<DispatchResult> {
+  async dispatchEffect(
+    intent: AllowedIntent,
+    decision: DecisionContext,
+  ): Promise<DispatchResult> {
     const lease = needsLease(intent.effectClass)
-      ? await this.leaseManager.acquire(intent.effectClass, intent.platformId ?? intent.id)
+      ? await this.leaseManager.acquire(
+          intent.effectClass,
+          intent.platformId ?? intent.id,
+        )
       : await this.leaseManager.acquire("maintenance");
 
     if (!lease.granted) {
@@ -125,7 +162,9 @@ export class EffectDispatcher {
         id: decision.checkpointId,
         tickId: decision.tickId,
         intentId: decision.intentId,
-        phase: isConnectorEffect(intent.effectClass) ? "before_effect" : "before_quiet_write",
+        phase: isConnectorEffect(intent.effectClass)
+          ? "before_effect"
+          : "before_quiet_write",
         snapshotRef: decision.traceId,
       });
     }
@@ -151,20 +190,31 @@ export class EffectDispatcher {
         });
 
         if (result.status === "success") {
-          await this.commitPort.advanceIntentCommitState(commit.id, "externally_acknowledged", {
-            outcomeRef: result.metadata.platformId,
-          });
+          await this.commitPort.advanceIntentCommitState(
+            commit.id,
+            "externally_acknowledged",
+            {
+              outcomeRef: result.metadata.platformId,
+            },
+          );
           await this.commitPort.commitIntentOutcome(commit.id, {
             traceId: decision.traceId,
             outcomeRef: result.metadata.platformId,
           });
         } else {
           if (result.status === "retryable_failure") {
-            await this.commitPort.advanceIntentCommitState(commit.id, "reconcile", {
-              failureClass: result.failureClass,
-            });
+            await this.commitPort.advanceIntentCommitState(
+              commit.id,
+              "reconcile",
+              {
+                failureClass: result.failureClass,
+              },
+            );
           } else {
-            await this.commitPort.abortIntentCommit(commit.id, result.failureClass ?? "external_effect_failed");
+            await this.commitPort.abortIntentCommit(
+              commit.id,
+              result.failureClass ?? "external_effect_failed",
+            );
           }
         }
 
@@ -214,7 +264,11 @@ export class EffectDispatcher {
   }
 }
 
-export function buildDecisionContext(input: { tickId: string; decisionId?: string; intentId: string }): DecisionContext {
+export function buildDecisionContext(input: {
+  tickId: string;
+  decisionId?: string;
+  intentId: string;
+}): DecisionContext {
   const decisionId = input.decisionId ?? crypto.randomUUID();
   return {
     decisionId,

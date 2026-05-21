@@ -3,9 +3,22 @@
  * Does not claim user-visible delivery when wordingMode is not_sent_fallback_candidate (T6.2.1 / ADR-004).
  */
 import { safeParseOutreachDraftRequest } from "./outreach-draft-schema.js";
+function buildContextSummary(r) {
+    const parts = [];
+    if (r.narrativeContext?.focus) {
+        parts.push(`what=${r.narrativeContext.focus}`);
+    }
+    if (r.relationshipContext?.tone) {
+        parts.push(`tone=${r.relationshipContext.tone}`);
+    }
+    if (r.relationshipContext?.topicAffinities && r.relationshipContext.topicAffinities.length > 0) {
+        parts.push(`interests=${r.relationshipContext.topicAffinities.join(",")}`);
+    }
+    return parts.length > 0 ? `;context=${parts.join(";")}` : "";
+}
 function baseDraftText(request) {
     const ids = request.sourceRefs.map((s) => s.id).join(",");
-    return `draft:${request.candidateId}:grounded:${ids}`;
+    return `draft:${request.candidateId}:grounded:${ids}${buildContextSummary(request)}`;
 }
 export async function draftOutreachMessage(request) {
     const parsed = safeParseOutreachDraftRequest(request);

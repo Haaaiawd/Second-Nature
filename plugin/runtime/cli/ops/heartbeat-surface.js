@@ -1,6 +1,8 @@
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
 function mapCycleToSurface(cycle, surfaceMode) {
-    const status = cycle.status === "runtime_carrier_only" ? "runtime_carrier_only" : cycle.status;
+    const status = cycle.status === "runtime_carrier_only"
+        ? "runtime_carrier_only"
+        : cycle.status;
     return {
         ok: true,
         status,
@@ -62,11 +64,16 @@ export async function heartbeatCheck(input) {
         scopeHint: input.scopeHint,
         payload: {
             timestamp,
-            sessionContext: typeof input.sessionContext === "string" ? input.sessionContext : undefined,
+            sessionContext: typeof input.sessionContext === "string"
+                ? input.sessionContext
+                : undefined,
         },
     };
     const run = createWorkspaceHeartbeatRunner(input.readModels, {
         runtimeRecorder: input.runtimeRecorder,
+        state: input.state,
+        workspaceRoot: input.workspaceRoot ?? process.cwd(),
+        connectorExecutor: input.connectorExecutor,
     });
     const cycle = await run(signal);
     return mapCycleToSurface(cycle, "workspace_full_runtime");

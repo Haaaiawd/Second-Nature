@@ -8,6 +8,8 @@ import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
 import type { HeartbeatSignal } from "../../core/second-nature/heartbeat/signal.js";
 import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
+import type { StateDatabase } from "../../storage/db/index.js";
+import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 export type HeartbeatSurfaceStatus = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export interface HeartbeatSurfaceResult {
     ok: boolean;
@@ -31,8 +33,19 @@ export interface HeartbeatCheckInput {
     readModels?: CliReadModels;
     /** When set, full-runtime cycles are persisted so `loadStatus` exits unknown (T1.2.3). */
     runtimeRecorder?: RuntimeDecisionRecorder;
+    /**
+     * T2.2.2: when set together with `workspaceRoot`, life evidence from the state DB is loaded
+     * and merged into SnapshotInputs so planner/guard paths see real source-ref truth.
+     */
+    state?: StateDatabase;
+    workspaceRoot?: string;
     timestamp?: string;
     sessionContext?: string;
     scopeHint?: HeartbeatSignal["scopeHint"];
+    /**
+     * When present, guard-allowed connector_action intents are dispatched through the
+     * connector-system instead of returning connector_dispatch_unwired.
+     */
+    connectorExecutor?: ConnectorExecutor;
 }
 export declare function heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;

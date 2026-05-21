@@ -3,6 +3,8 @@ import { writeOperatorFallback } from "../../../storage/fallback/write-operator-
 import { judgeOutreach } from "./judge-outreach.js";
 import { resolveDeliveryTarget } from "./delivery-target.js";
 import { buildOutreachDraftRequest } from "./build-outreach-draft-request.js";
+import { createNarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
+import { createRelationshipMemoryStore } from "../../../storage/relationship/relationship-memory-store.js";
 function toSourceRefs(refs) {
     return refs.map((r) => ({ ...r }));
 }
@@ -29,8 +31,25 @@ export async function dispatchUserOutreachIntent(input) {
         };
     }
     const deliveryResolution = resolveDeliveryTarget(judgeInput.delivery);
+    // T2.3.1: load narrative/relationship context for source-backed draft
+    let narrativeState;
+    let relationshipMemory;
+    try {
+        const narrativeStore = createNarrativeStateStore(state);
+        narrativeState = (await narrativeStore.loadNarrativeState()) ?? undefined;
+    }
+    catch {
+        // degrade silently; draft proceeds without narrative context
+    }
+    try {
+        const relStore = createRelationshipMemoryStore(state);
+        relationshipMemory = (await relStore.loadRelationshipMemory()) ?? undefined;
+    }
+    catch {
+        // degrade silently; draft proceeds without relationship context
+    }
     if (deliveryResolution.verdict !== "target_available") {
-        const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution);
+        const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution, narrativeState, relationshipMemory);
         const draft = await guidance.draftOutreachMessage(req);
         const fb = await writeOperatorFallback(state, {
             reason: operatorReasonForUnavailable(deliveryResolution.verdict),
@@ -48,7 +67,7 @@ export async function dispatchUserOutreachIntent(input) {
             fallbackRef: fb.fallbackRef,
         };
     }
-    const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution);
+    const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution, narrativeState, relationshipMemory);
     const draft = await guidance.draftOutreachMessage(req);
     if (draft.status !== "ready") {
         return {

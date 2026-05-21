@@ -37,5 +37,8 @@ export function resolveExplainSubject(raw) {
     if (prefix === "source" || prefix === "source_ref") {
         return { kind: "source_ref", id };
     }
+    if (prefix === "relationship") {
+        return { kind: "relationship", id };
+    }
     throw new Error("explain_subject_unsupported");
 }

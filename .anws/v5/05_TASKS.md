@@ -11,7 +11,7 @@
 
 | 公共契约 | 类型 | 契约层级 | 实现承接 | 验证承接 |
 | --- | --- | --- | --- | --- |
-| `second_nature_ops("heartbeat_check")` / `HeartbeatSurfaceResult` | CLI / 操作契约 | 关键用户路径契约 | T1.1.3, T1.1.4, T2.1.1, T2.2.1 | T1.3.1, INT-S1, INT-S2, INT-S4 |
+| `second_nature_ops("heartbeat_check")` / `HeartbeatSurfaceResult` | CLI / 操作契约 | 关键用户路径契约 | T1.1.3, T1.1.4, T2.1.1, T2.2.1, **T2.2.2**, **T2.2.3**, **T1.2.4** | T1.3.1, INT-S1, INT-S2, INT-S4 |
 | OpenClaw capability probe / `HostCapabilityReport` | 宿主能力契约 | 跨系统契约 | T1.1.2 | T1.1.2, INT-S1 |
 | `heartbeat_tool_not_invoked` | 宿主默认态契约 | 关键用户路径契约 | T1.1.2 | T1.3.1 |
 | Runtime artifact boundary | Packaging / 文件结构 | 基础规则层契约 | T1.1.1 | T1.1.1, INT-S4 |
@@ -31,7 +31,15 @@
 | side-effect idempotency / effect commit ledger | 外部副作用恢复 | 关键用户路径契约 | T3.2.1, T4.1.1 | T3.2.1, INT-S2 |
 | native SQLite vs sql.js storage mode | 存储运行模式 | 基础设施契约 | T4.1.4 | T4.1.4, INT-S1 |
 | README current / target / validation-needed | 文档边界 | 关键用户路径契约 | T1.4.1 | T7.1.1 |
-| `loadStatus` 聚合（`rhythm` / `runtime` / `quiet` 摘要）与 `data/observability.db` | operator 面板 / 读模型一致 | 基础规则层契约 | T1.2.1, T1.2.3, T2.2.1 | T1.2.3, INT-S4 |
+| `loadStatus` 聚合（`rhythm` / `runtime` / `quiet` 摘要）与 `data/observability.db` | operator 面板 / 读模型一致 | 基础规则层契约 | T1.2.1, T1.2.3, T2.2.1, **T1.2.5** | T1.2.3, INT-S4 |
+| `SnapshotInputs` life evidence（workspace 心跳路径） | 控制面输入 / state 读 | 关键用户路径契约 | **T2.2.2** | T2.2.2, INT-S2, INT-S4 |
+| `connector_action` workspace 效应 / `execution_attempts` 平台行 | 控制面 + 观测 | 关键用户路径契约 | **T2.2.3**, T3.1.1, T5.1.2 | T2.2.3, INT-S2 |
+| Quiet artifact ↔ operator `report`/`quiet` 读面 | 读模型 / FS canonical | 关键用户路径契约 | **T1.2.4**, T4.4.1 | T1.2.4, INT-S3, INT-S4 |
+| operator `explain` 默认审计投影（非 carrier-only） | CLI / 插件默认 deps | 基础规则层契约 | **T1.2.5**, T5.3.1 | T1.2.5, INT-S4 |
+| `policy show` / `audit` CLI（非占位） | ops command | 基础规则层契约 | **T1.2.6**, **T1.2.7** | T1.2.6, T1.2.7, INT-S4 |
+| `capability_probe` / ops-router probe 分支 | CLI / 宿主能力对照 | 跨系统契约 | **T1.2.8**, T1.1.2 | T1.2.8, INT-S4 |
+| `loadStatus.runtime.serviceStatus` vs `decision_denied` | operator 读模型语义 | 基础规则层契约 | **T1.2.9**, T1.2.3 | T1.2.9, INT-S4 |
+| `near_real_smoke` 显式连接器哨兵入口 | CLI / bridge command | 关键用户路径契约 | **T3.3.2**, T3.3.1 | T3.3.2, INT-S4 |
 
 ---
 
@@ -71,6 +79,16 @@ graph TD
     T1_2_1[T1.2.1 ops read models] --> T1_2_2[T1.2.2 fallback view]
     T1_2_1 --> T1_2_3[T1.2.3 status aggregate observability writeback]
     T2_2_1 --> T1_2_3
+    T2_2_1 --> T2_2_2[T2.2.2 workspace snapshot life evidence]
+    T4_2_1 --> T2_2_2
+    T1_1_4 --> T2_2_2
+    T2_2_2 --> T2_2_3[T2.2.3 connector_action effector]
+    T3_1_1 --> T2_2_3
+    T2_2_3 --> T1_2_4[T1.2.4 Quiet report read canonical]
+    T4_4_1 --> T1_2_4
+    T1_2_1 --> T1_2_5[T1.2.5 status delivery + audit store]
+    T1_1_2 --> T1_2_5
+    T5_3_1[T5.3.1 explain query] --> T1_2_5
     T4_2_2[T4.2.2 UserInterest insufficient downgrade] --> T2_3_1[T2.3.1 OutreachJudgment and delivery policy]
     T4_2_2 --> T6_1_2[T6.1.2 interest and Quiet downgrade]
     T6_1_1[T6.1.1 guidance interfaces] --> T6_2_1[T6.2.1 OutreachDraftRequest contract test]
@@ -78,6 +96,7 @@ graph TD
     T6_2_1 --> T2_3_2[T2.3.2 delivery failed fallback test]
     T4_3_1[T4.3.1 DeliveryAttemptRecord write/read] --> T2_3_2
     T5_2_1[T5.2.1 delivery audit explain] --> T2_3_2
+    T5_2_1 --> T5_3_1[T5.3.1 explain query]
     T5_2_2[T5.2.2 verifyAuditHashChain(range)] --> INT_S3[INT-S3]
     T4_2_1 --> T4_4_1[T4.4.1 Quiet artifact writer]
     T4_4_1 --> T6_1_2
@@ -85,6 +104,10 @@ graph TD
     T1_3_1 --> INT_S4[INT-S4]
     T1_3_1 --> T1_4_1[T1.4.1 README truth boundary]
     T1_4_1 --> T7_1_1[T7.1.1 documentation review]
+    T1_1_2 --> T1_2_8[T1.2.8 capability_probe ops]
+    T1_2_3 --> T1_2_9[T1.2.9 decision_denied vs degraded]
+    T3_1_2 --> T3_3_1[T3.3.1 near-real connector smoke]
+    T3_3_1 --> T3_3_2[T3.3.2 near_real_smoke ops entry]
 ```
 
 ---
@@ -144,7 +167,7 @@ graph TD
 - [x] **T1.1.4** [REQ-019]: OpenClaw 插件 — workspace 根已知时的 **full ops / Quiet 读路径桥接**（受控）
   - **用户原话承接**: 「不允许」插件面仅 carrier 拒绝 Quiet；须在 **可解析 workspace** 条件下提供 **真实 Quiet / heartbeat 读结果或诚实失败**，不得回退假读模型。
   - **描述**: 在 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot` 解析为 `env`/`tool_args` 时，经 **惰性动态加载**（保持 `register()` 同步）装配与 CLI 等价的 `CliReadModels` + `createOpsRouter`，使 `second_nature_ops` 的 `heartbeat_check` 与 **同一读桥** 下的只读命令可走与 CLI 一致的 read model 路径（含 `heartbeatCheck(..., readModels)` → `runHeartbeatCycle`）；`workspaceRootResolution === "unknown"` 时 **维持** 当前 `ok: false` / `evaluated: false` 诚实语义（含 CH-11-02：`explain` 不得维持 carrier 上 `ok: true` 半成功形状）。备选实现：受控 **子进程** 调用 workspace CLI（Plan B），须在任务验收中二选其一或并列说明宿主约束。
-  - **输入**: `plugin/index.ts`；`src/cli/index.ts`；`src/cli/ops/heartbeat-surface.ts`；`src/cli/ops/workspace-heartbeat-runner.ts`；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`；`explore/reports/2026-05-03_t1-1-4-bridge-prd-feasibility.md`；`.anws/v5/07_CHALLENGE_REPORT.md`（Round 11 CH-11-01/02）；`docs/validation/int-s4-human-operator-testing-guide.md`
+  - **输入**: `plugin/index.ts`；`src/cli/index.ts`；`src/cli/ops/heartbeat-surface.ts`；`src/cli/ops/workspace-heartbeat-runner.ts`；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`；`explore/reports/2026-05-03_t1-1-4-bridge-prd-feasibility.md`；`.anws/v5/07_CHALLENGE_REPORT.md`（Round 11 CH-11-01/02）；`reports/int-s4-release-readiness.md`；`docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`
   - **输出**: 插件内 bridge 模块（或等价内联段）+ 集成测；README / host 指南中 **「根已知 = 可跑 full 读路径」** 的运维句；INT-S4 验证说明补丁
   - **契约承接**: ADR-006 包边界；ADR-005 runtime 分层；US-001 / US-006 在 **OpenClaw 插件 + 已知 workspace** 组合下的可观测性
   - **验收标准**:
@@ -163,12 +186,12 @@ graph TD
   - **优先级**: P0
 
 - [x] **T1.1.5** [REQ-019]: OpenClaw 宿主 — **agent workspace** 与 SN 根对齐的运维文档回流 + semver 对齐
-  - **描述**: 将 T1.1.4「运维约定 (OpenClaw 宿主)」显式写入 README / README.zh-CN / `HEARTBEAT.md` / `docs/validation/int-s4-human-operator-testing-guide.md`（E2E Plan、§D4/D8、对话模板）与 `plugin/index.ts` 头注释；强调 sandbox / 多 agent 下以**实际落库路径**为准；声明 **宿主验收以 `second_nature_ops` JSON 为真源**，助手自然语言漂移记 Finding。根 `package.json` **version** 与 `plugin/package.json` / `openclaw.plugin.json` 对齐（当前 **0.1.13**）。
+  - **描述**: 将 T1.1.4「运维约定 (OpenClaw 宿主)」显式写入 README / README.zh-CN / `HEARTBEAT.md` / `plugin/index.ts` 头注释；宿主操作与 J-HOST 步骤以 `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md` 为准；INT-S4 人类记录与阻塞表写入 `reports/int-s4-release-readiness.md`。强调 sandbox / 多 agent 下以**实际落库路径**为准；声明 **宿主验收以 `second_nature_ops` JSON 为真源**（或 cron+bridge 路径见 INT-S4 验证说明）。根 `package.json` **version** 与 `plugin/package.json` / `openclaw.plugin.json` 对齐（当前 **0.1.13**）。
   - **输入**: T1.1.4 运维约定段；`explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`
   - **输出**: 上述文档与 manifest 描述补丁；无行为变更时以静态审阅 + 既有测试绿为证
-  - **契约承接**: 与 T1.1.4 同一运维边界；支撑 INT-S4 人类指南与 CH-11 证据口径
+  - **契约承接**: 与 T1.1.4 同一运维边界；支撑 INT-S4（`e2e-t1-1-4` + `int-s4-release-readiness`）与 CH-11 证据口径
   - **验收标准**:
-    - Given 操作者阅读 README / HEARTBEAT / INT-S4 指南
+    - Given 操作者阅读 README / HEARTBEAT / `e2e-t1-1-4-workspace-bridge-and-host-verification.md` / `int-s4-release-readiness.md`
     - When 配置 `SECOND_NATURE_WORKSPACE_ROOT` 或工具 `workspaceRoot`
     - Then 能识别应设为 OpenClaw **agent workspace** 同路径，且不以插件安装目录推断；并知悉 JSON-first 验收规则
   - **验证类型**: 文档审阅 + `pnpm test`（仓库门禁）
@@ -228,6 +251,106 @@ graph TD
   - **依赖**: T1.2.1, T2.2.1, T5.1.1
   - **优先级**: P0
 
+- [x] **T1.2.4** [REQ-024][REQ-019]: Ops 读面 — **Quiet JSON 工件与 `report`/`quiet` canonical 对齐 + workspace `quietWorkflow` 接线**（CH-14-07 / 场测 report 空）
+  - **用户原话承接**（`/change` 已批准 + Claw）：Nyx 场测「daily report 空」「quiet 无体感」；**Claw D7**：磁盘 **无** `.second-nature/quiet/` → **未触发写路径**，与「JSON 已写但 Markdown 读不到」**当前现场不适用**；后者仍为 **CH-14-07** 在 **Quiet 一旦运行后** 的回归风险，须保留在验收 B 路径。
+  - **描述**: (1) **`loadDailyReport` / `loadQuiet` / `QuietInputLoader`** 必须消费 **与 `persistQuietArtifactToWorkspace` 写入的 `.second-nature/quiet/{day}/*.json` 一致或可合并的 canonical**（任务验收中 **二选一写死**：扩展 loader 读 JSON **或** 同步生成 Markdown 日报 — 禁止长期双源漂移且无文档）。(2) **`createWorkspaceHeartbeatRunner`** 向 `runHeartbeatCycle` 注入 **`quietWorkflow`（含 workspaceRoot）**，使 quiet/reflection 类 intent 被允许时可调用 **`runSourceBackedQuiet`**（与 T2.3.3 编排一致，宿主安全边界不变）。(3) **`quietEnabledBridge`** 不得长期错误依赖 `status.quiet.mode === "quiet"` 导致 **无 quiet 窗口**；若调整聚合，仅限读模型/快照桥，**不扩展 PRD REQ 集合**。
+  - **输入**: `run-source-backed-quiet.ts`；`persist-quiet-artifact.ts`；`quiet-input-loader.ts`；`read-models/index.ts`；`workspace-heartbeat-runner.ts`；`heartbeat-loop.ts`；state-system Quiet 章节；Round 14 **CH-14-07**、**CH-14-08**、**CH-14-09**（实现侧在验收中择可测子集）
+  - **输出**: 读路径 + deps 接线 + 集成测 **A**：fixture 触发 Quiet 写盘后 `report`/`quiet` 可读；**B**：若仅存在「已写 JSON」而无 Markdown，读面仍须非空或诚实 `evaluated`+原因（承接 CH-14-07）
+  - **契约承接**: US-006 Quiet 可观测；REQ-024 已有范围内之 operator 读
+  - **验收标准**:
+    - Given fixture 已执行一次 source-backed Quiet 并落盘 JSON
+    - When 调用 `second_nature_ops` / CLI `report` 与 `quiet`（同 workspaceRoot）
+    - Then 读模型 **非零** 展示 JSON 中可公开字段 **或** 显式 `evaluated`+原因（不得静默空对象冒充已读）
+    - Given full-runtime heartbeat 选中 quiet intent（fixture 或 mock）
+    - When `heartbeat_check` 完成
+    - Then 可审计 Quiet 编排路径被触发 **或** 周期结果含「未接线」诚实原因（与实现选项一致）
+  - **验证类型**: 集成测试
+  - **验证说明**: 与 T1.1.4 插件桥同路径回归；不得破坏 carrier-only / probeOnly 语义。
+  - **估时**: 6h
+  - **依赖**: T1.2.1, T4.4.1, T2.2.3
+  - **优先级**: P1
+
+- [x] **T1.2.5** [REQ-022][REQ-019][REQ-026]: Ops 读面 — **`status` 投递姿态 + 默认 `livedExperienceAuditStore` 接线**（CH-14-04/05 / 场测 delivery 黑盒、explain 骨架）
+  - **用户原话承接**（`/change` 已批准 + Claw **E9/E10**）：OpenClaw **cron** 层可配置 **`delivery.mode: none`**（与 SN workspace 快照内 **`deliveryCapability: none`** **并存**）；`workspace-ops-bridge` **当前无** `probeHostCapability` 命令 → **`explain(delivery:…)`** 易 `lived_experience_audit_store_unavailable`。本任务闭合 **SN 侧可解释性**，**不**替代宿主改 cron 为 `announce`（运维决策）。
+  - **描述**: (1) 扩展 **`StatusReadModel`**（及 `loadStatus` 聚合）：增加结构化 **`deliveryPosture`**（至少含 `verdict` / `reasonCode` / `source`，能区分 **`workspace_default_none`**、**`openclaw_cron_delivery_none`（或等价命名，与宿主配置可对照）** 与来自 **T1.1.2** `HostCapabilityReport` 的最新观测；**不得**在无 proof 时暗示已用户可见联系）。(2) **`createCliReadModels` / `createCliRuntimeDeps` / `plugin/workspace-ops-bridge`** 默认注入 **只读** `livedExperienceAuditStore`（或 observability 上等价只读投影），使 `explain` 对 `delivery:`/`fallback:`/`decision:` 等 subject **不因缺少 store 配置而恒为骨架 unavailable**（仍须脱敏与 host-safe）。(3) **可选（验收说明层）**：若产品要求 bridge 暴露 probe，**另开任务** —— 本任务可在 README/INT-S4 中 **引用** `probeHostCapability` 已存在于 runtime 导出、bridge 未接线之事实。
+  - **输入**: `read-models/types.ts`；`read-models/index.ts`；`cli/index.ts`；`plugin/workspace-ops-bridge.ts`；`judge-input-from-snapshot.ts`；`probe-host-capability.ts`；Round 14 **CH-14-04**、**CH-14-05**
+  - **输出**: JSON schema 扩展 + 集成测 + README/INT-S4 一句「`status.deliveryPosture.source` 语义」
+  - **契约承接**: REQ-022 operator 可解释；REQ-019 ops JSON-first；REQ-026 文档可追溯（仅新增字段说明）
+  - **验收标准**:
+    - Given 默认 CLI / 插件桥 runtime deps（无手工注入 store）
+    - When 调用 `explain` 针对已存在的 `decision:` 或 `fallback:` subject（fixture）
+    - Then 不得仅返回 `lived_experience_audit_store_unavailable` 类结论 **若** observability 中已有可联接的审计行（具体断言在实现时写死）
+    - When 调用 `status`
+    - Then JSON 含 **`deliveryPosture`** 且 `source === "workspace_default_none"` 时与 workspace 心跳硬编码 `none` 一致可复核
+  - **验证类型**: 集成测试 + 单元测试
+  - **验证说明**: 与 ADR-007「无 proof 不 sent」单测不冲突；probe 缺失时允许 `unknown` verdict 但须有 `source`。
+  - **估时**: 5h
+  - **依赖**: T1.2.1, T1.1.2, T5.3.1, T5.2.1
+  - **优先级**: P1
+
+- [x] **T1.2.6** [REQ-019]: CLI / `second_nature_ops` — **`policy` 命令 `show` 非空壳**（承接 `.anws/v5/CHANGE_PREP_CODE_SIDE_GAPS.md` SN-CODE-01）
+  - **用户原话承接**: 「policy CLI 空壳」「整理代码侧缺口准备 /change」— 将 `createCliCommands` 中 `policy` 的 `action !== "set"` 路径从占位 `notImplemented` 改为与 **ActionBridge / rhythm policy read model** 对齐的真实 `show`（或等价查询）输出；插件 host-safe 路由下保持与既有「`policy set` 须结构化参数」约束一致。
+  - **描述**: 实现 `policy show`：返回当前可公开的 policy 快照字段（与 `RhythmPolicySnapshot` / actionBridge 一致），不得伪造决策结果；错误路径须 JSON-first。
+  - **输入**: `src/cli/commands/index.ts`；`src/cli/commands/policy.ts`；`04_SYSTEM_DESIGN/cli-system.md`；`04_SYSTEM_DESIGN/state-system.md` §rhythm policy
+  - **输出**: `policy` CLI + tool 路径可观测的 show 结果 + 单测/集成测最小覆盖
+  - **契约承接**: operator JSON-first；与 README「current capability」叙述一致
+  - **验收标准**:
+    - Given workspace deps 可用
+    - When 调用 `policy` 且 `action === "show"`（或默认 show）
+    - Then 返回 `ok: true` + 结构化 `data`，且 **不得**返回「Implementation lands in later Wave tasks」占位文案
+  - **验证类型**: 集成测试 + 单元测试（择一最小）
+  - **验证说明**: 覆盖默认 snapshot 与缺失 policy 的诚实降级。
+  - **估时**: 4h
+  - **依赖**: T1.2.1, T4.1.2
+  - **优先级**: P1
+
+- [x] **T1.2.7** [REQ-019]: CLI / `second_nature_ops` — **`audit` 命令最小闭环**（承接 SN-CODE-02）
+  - **用户原话承接**: 「audit CLI 空壳」「代码侧缺口」— 将 `audit` 从全盘 `notImplemented` 改为委托 **`queryExplain` / observability 读路径** 的最小只读视图（例如最近决策/投递摘要引用 id，或明确 `audit export` 委托 `exportAuditBundle` 之一）；**不**扩展 PRD REQ 集合。
+  - **描述**: 实现 `second_nature_ops({ command: "audit", args })` 与 CLI 同构；默认行为须在验收中写死（list vs export vs subject）。
+  - **输入**: `src/cli/commands/index.ts`；`src/observability/query/explain-query.ts`；`export-audit-bundle.ts`；`04_SYSTEM_DESIGN/observability-system.md`
+  - **输出**: 非占位 `audit` 命令 + 测试
+  - **契约承接**: REQ-019 operator 可观测；与 T1.2.5 默认 audit store 注入语义兼容
+  - **验收标准**:
+    - Given fixture observability DB
+    - When 调用 `audit`（默认动作）
+    - Then 返回可解析 JSON，且 **不得**为占位 notImplemented
+  - **验证类型**: 集成测试
+  - **验证说明**: 与空 DB 诚实路径一并断言。
+  - **估时**: 4h
+  - **依赖**: T1.2.1, T5.3.1, T5.2.1
+  - **优先级**: P1
+
+- [x] **T1.2.8** [REQ-019][REQ-025]: Ops — **`capability_probe`（或等价）接入 `createOpsRouter.dispatch` + workspace bridge**（承接 SN-CODE-03 / T1.2.5「可选 probe」）
+  - **用户原话承接**: 「probeHostCapability 存在于 runtime 但未接入 bridge dispatch」「准备 /change」— 暴露 **只读** capability 探测结果，使 **INT-S4** 可与会话侧工具枚举 **`tools.allow` / `tools.profile` 排除规则**（宿主配置）交叉对照；**不**替代宿主改配置。
+  - **描述**: (1) 在 `createCliCommands` 增加命令（如 `capability_probe`），内部调用 **`probeHostCapability`** + `recordHostCapability` 既有契约；(2) `createOpsRouter.dispatch` 增加同名校验分支；(3) `plugin/index.ts` **`WORKSPACE_BRIDGE_COMMANDS`** 与白名单路由扩展；(4) `parseCommandInput` / tool schema 补齐参数形状。
+  - **输入**: `src/cli/ops/ops-router.ts`；`src/cli/host-capability/probe-host-capability.ts`；`plugin/index.ts`；`plugin/workspace-ops-bridge.ts`
+  - **输出**: 可调用的 probe 命令 + 集成测（fixture adapter）
+  - **契约承接**: `HostCapabilityReport`；T1.1.2 probe 结果可读路径闭合到 ops surface
+  - **验收标准**:
+    - Given fake host adapter
+    - When bridge / CLI 执行 `capability_probe`
+    - Then 返回与 `probeHostCapability` 一致的 JSON 子集，且非 `unknown_ops_command`
+  - **验证类型**: 集成测试
+  - **验证说明**: plugin workspace bridge 与 CLI parity；host-safe 路径保持诚实不可用语义。
+  - **估时**: 5h
+  - **依赖**: T1.1.2, T1.1.4
+  - **优先级**: P1
+
+- [x] **T1.2.9** [REQ-019]: `loadStatus` — **`decision_denied` 不得冒充 runtime `degraded`（语义修正）**（承接 SN-CODE-04）
+  - **用户原话承接**: 「degraded 语义过激」「decision_denied 作为 failureClass 触发 degraded」— 调整 **`runtime-decision-recorder`** 与/或 **`mapRuntimeStatus`**：控制面 **`denied`（无可执行候选/门禁）** 与 **真正故障类 failureClass** 区分展示；目标状态须在验收中写死（例如 `serviceStatus: running` + `lastCycleHint` **或** 新枚举 **`awaiting_sources`** —— **不改** `[REQ-*]` 编号，仅实现层字段扩展）。
+  - **输入**: `src/observability/services/runtime-decision-recorder.ts`；`src/cli/read-models/index.ts`；`07_CHALLENGE_REPORT.md` Round 14 场测「degraded」误读条
+  - **输出**: 语义修正 + 单测更新 + 集成测回归（`loadStatus` fixture）
+  - **契约承接**: Contract Mapping「`loadStatus` 聚合」；ADR-005 观测诚实
+  - **验收标准**:
+    - Given 最近一次 `second-nature-runtime` attempt 的 `failureClass === "decision_denied"`（fixture 写入）
+    - When `loadStatus`
+    - Then **`runtime.serviceStatus` 不得仅因此字段等同于 delivery/runtime 故障 degraded**（具体断言实现时写死）；**真正** `delivery_unavailable` 等仍可为 degraded
+  - **验证类型**: 单元测试 + 集成测试
+  - **验证说明**: 回归 T1.2.3 写入路径；更新文档化 INT-S2/S3 报告表述若引用旧语义。
+  - **估时**: 4h
+  - **依赖**: T1.2.3
+  - **优先级**: P0
+
 ### Phase 3: Host Smoke
 
 - [x] **T1.3.1** [REQ-025]: `heartbeat_tool_not_invoked` host smoke
@@ -241,7 +364,7 @@ graph TD
     - When 模型/host 未调用 tool
     - Then smoke report 标记 `heartbeat_tool_not_invoked`，不得当作 `HEARTBEAT_OK`；如官方文档与实测冲突，报告必须记录 doc link、doc checked date、host version 与 observed behavior
   - **验证类型**: 冒烟测试
-  - **验证说明**: 使用可复现 host smoke fixture；若真实 host 不可用，near-real adapter 必须输出 fail/unknown，而不是 pass；覆盖 docs-vs-observed conflict fixture。**新增（承接 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md`）**：真实宿主上若当前 agent 会话的工具枚举**不包含** `second_nature_ops`，则不得将失败仅解释为「模型未调用 tool」并记入 `heartbeat_tool_not_invoked`；须先排除插件加载链、宿主 profile / tool allowlist、网关实例与插件版本对齐等问题（背景见 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`）。
+  - **验证说明**: 使用可复现 host smoke fixture；若真实 host 不可用，near-real adapter 必须输出 fail/unknown，而不是 pass；覆盖 docs-vs-observed conflict fixture。**新增（承接 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md`）**：真实宿主上若当前 agent 会话的工具枚举**不包含** `second_nature_ops`，则不得将失败仅解释为「模型未调用 tool」并记入 `heartbeat_tool_not_invoked`；须先排除插件加载链、宿主 profile / tool allowlist、网关实例与插件版本对齐等问题（背景见 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`）。**承接 OpenClaw 2026.5.7**：即使 daemon 成功加载插件（`registerTool` 已执行），**`tools.profile: coding`** 仍可能在**会话注入阶段**过滤掉 `second_nature_ops` —— 验收前须核对 **`tools.allow`** / **`tools.profile`**（见 INT-S4 验证说明「宿主回填」段）。
   - **估时**: 6h
   - **依赖**: T1.1.2, T1.1.3
   - **优先级**: P0
@@ -347,9 +470,44 @@ graph TD
     - When heartbeat 运行
     - Then 至少能产出 `heartbeat_ok`、`intent_selected`、`denied` 或 `deferred` 中一种结构化状态，并写 decision trace
   - **验证类型**: 集成测试
-  - **验证说明**: 使用 fake state/connector/observability 端口验证 snapshot -> intent -> record 顺序。
+  - **验证说明**: 使用 fake state/connector/observability 端口验证 snapshot -> intent -> record 顺序。**workspace 全运行时路径**与 state-backed life evidence 的 parity 由 **T2.2.2** 闭合（参见 `.anws/v5/07_CHALLENGE_REPORT.md` Round 14 / CH-14-01）。
   - **估时**: 7h
   - **依赖**: T2.1.1, T2.1.3, T3.1.2, T5.1.1
+  - **优先级**: P0
+
+- [x] **T2.2.2** [REQ-019]: Workspace 心跳 — **SnapshotInputs 并入 bounded life evidence**（场测空快照 / CH-14-01）
+  - **用户原话承接**（`/change` 已批准，2026-05-10）：「任务重大，先修改文档」+ Nyx v0.1.18 初报；**Claw 回填勘误**：全量心跳实测多为 **`intent_selected` + `reasons: []` + `surfaceMode: workspace_full_runtime`**（**非** `silent_no_candidates`）—— **maintenance** 类意图可走 guard 且无外部 source refs；**observability.db 持续增长** 表明决策在写。初报「空转」应修正为 **「maintenance 回路对 operator 无可见外效应 + 需 source refs 的候选仍缺输入」** 的组合。本任务仍负责 **life evidence 并入 SnapshotInputs**，使需 refs 的 planner/guard 路径与 DB 真值一致。
+  - **描述**: 在 `loadSnapshotInputsForWorkspaceHeartbeat`（或经 `createWorkspaceHeartbeatRunner` 注入的等价 `loadSnapshotInputs`）中，当 **`state` API + 已解析 workspaceRoot** 可用时，调用既有 **`loadLifeEvidenceSnapshot`**（或与 `loadContinuitySnapshot` 一致的 bounded 查询），填充 `SnapshotInputs` 的 `lifeEvidenceRefs`、`platformEventCount`、`workEventCount`、`lifeEvidenceEmptyReason`；**禁止**仅靠 `readModels.loadStatus()` 推断而留空上述字段。插件 bridge 与 CLI 须同构。**不**把「曾误报的 `silent_no_candidates`」写进硬验收；以 **fixture + 可选真实 transcript** 的 JSON 真源为准。
+  - **输入**: `src/cli/ops/workspace-heartbeat-runner.ts`；`src/storage/snapshots/life-evidence-snapshot.ts`；`control-plane-system.md` §4.2–4.3；`.anws/v5/07_CHALLENGE_REPORT.md` Round 14 **CH-14-01**
+  - **输出**: 接线后的 `loadSnapshotInputs` + 集成测（fixture：DB 有 index 行则快照非空）
+  - **契约承接**: US-001 可读快照输入；ADR-007 source-backed 前提在 **workspace 路径**上的输入层
+  - **验收标准**:
+    - Given fixture workspace 的 `state` 中已有可读的 life evidence index 行
+    - When 执行 **full-runtime** `heartbeat_check`（非 `probeOnly`）
+    - Then `SnapshotInputs`（或决策 trace 暴露的等价切片）中 **life evidence 计数或 refs 至少一项**反映 DB 真值，且不得在无数据时伪造 refs
+  - **验证类型**: 集成测试
+  - **验证说明**: 覆盖「有证据非空」「无证据显式 emptyReason」；与 T1.1.4 根已知路径兼容。
+  - **估时**: 8h
+  - **依赖**: T2.2.1, T4.2.1, T1.1.4
+  - **优先级**: P0
+
+- [x] **T2.2.3** [REQ-019]: Workspace 心跳 — **`connector_action` / 无外部效应 `intent_selected` 诚实闭合**（CH-14-02 / 场测 `connectors: []` + maintenance 无可见效果）
+  - **用户原话承接**（同上 + Claw）：场测「connector 未通电」= **无 connector execution attempt**（与 `connectors: []` **telemetry 语义一致**）；**maintenance** 选中后 **无 outreach/quiet dispatch** → 对外无可见效果，须在 JSON 上可区分于「已执行平台侧效应」。
+  - **描述**: 对 `resolveAllowedIntentResult`：**若**允许 `connector_action`，则必须 **(A)** 调用 connector-system 侧已存在的执行入口并经 **`ExecutionTelemetry` / `recordConnectorAttempt` 等价路径**写入 **真实 `platformId`** 的 attempt，**或 (B)** 返回带 **显式 `reasons` / reasonCodes** 的周期结果，禁止长期「`intent_selected` + 空 reasons」冒充已执行。**若**选中 **`maintenance`**（或同类 **无 outreach/quiet/connector 分支** 的 intent），**(C)** 周期 JSON 须含可机读的 **「无外部效应 / internal_tick」** 类原因（具体键名在实现时写死于验收），避免 operator 将 `reasons: []` 误读为「成功无输出」。`createWorkspaceHeartbeatRunner` 视需要扩展 `HeartbeatDeps`。**不改变** ADR-007「无 proof 不 sent」底线。
+  - **输入**: `heartbeat-loop.ts`；`connector-system.md` §4；`read-models/index.ts`（`connectors` 语义）；Round 14 **CH-14-02**、**CH-14-03**
+  - **输出**: 效应或诚实降级 + 单测/集成测；**文档或 JSON 注释**澄清 `status.connectors` = 最近 **非 runtime** execution attempt 摘要，**非** manifest 全量
+  - **契约承接**: US-002 证据入库路径在 heartbeat 下的可观测性；ADR-002 执行边界
+  - **验收标准**:
+    - Given 允许的探索/社交类 `connector_action` intent（fixture）
+    - When workspace 心跳解析该 intent
+    - Then observability 中出现对应 **`platformId` ≠ `second-nature-runtime`** 的 attempt **或** 周期 JSON 含 **非空**「未接线/未执行」诚实原因（二者择一写死于验收）
+    - Given fixture 仅产生 **maintenance** 类允许 intent（与 Claw 场测形态一致）
+    - When workspace 心跳完成
+    - Then 周期 JSON **不得**仅为 `intent_selected` 且 `reasons` 空数组而无 **(C)** 所述可机读原因（或等价的 `surface`/`operatorHint` 字段——实现与验收绑定一处即可）
+  - **验证类型**: 集成测试 + 单元测试
+  - **验证说明**: 断言 `recordConnectorAttempt` 或替代写入点在主路径被调用（若选 A）；选 B 时断言稳定 reason 键供 INT-S4 收集。
+  - **估时**: 10h
+  - **依赖**: T2.2.2, T3.1.1, T3.2.1
   - **优先级**: P0
 
 ### Phase 3: Outreach / Delivery / Quiet
@@ -474,6 +632,22 @@ graph TD
   - **验证说明**: 首版允许 dry-run/sentinel；真实副作用必须显式确认并带 idempotency key。
   - **估时**: 6h
   - **依赖**: T3.1.2, T3.2.1, T5.1.2
+  - **优先级**: P1
+
+- [x] **T3.3.2** [REQ-020]: Ops 表面 — **`near_real_smoke`（或等价）CLI / bridge 命令包装 `runNearRealConnectorSmoke`**（承接 SN-CODE-05）
+  - **用户原话承接**: 「connector 从未触发」「bridge 无 near_real」「准备 /change」— 在 **不修改 ADR-002 连接器执行边界前提** 下，提供 **显式运维/验收入口**：调用既有 **`runNearRealConnectorSmoke`**，写入 life evidence / execution telemetry（与 T3.3.1 哨兵一致）；**不得**声称 heartbeat 已自动通电所有连接器。
+  - **描述**: 新增 `createCliCommands` 命令 + `WORKSPACE_BRIDGE_COMMANDS` + 插件 router 路由；参数：`workspaceRoot?`、`platformId?`（验收写死最小集）；失败返回诚实错误码。
+  - **输入**: `src/connectors/near-real/near-real-connector-smoke.ts`；`plugin/index.ts`；`src/cli/commands/index.ts`
+  - **输出**: 可复现的 operator 入口 + 集成测（fixture near-real）
+  - **契约承接**: connector smoke harness；与 **T2.2.3** `connector_dispatch_unwired` 文档区分（heartbeat vs 显式 smoke）
+  - **验收标准**:
+    - Given fixture workspace + observability/state DB
+    - When CLI / `second_nature_ops` 调用 `near_real_smoke`（具体命令名以实现为准并在验收写死）
+    - Then observability 出现 **非 `second-nature-runtime`** 的 connector attempt **或** 诚实 `unsupported`/凭证缺失错误（与 near-real 适配器一致）
+  - **验证类型**: 集成测试
+  - **验证说明**: 与现有 `tests/integration/connectors/near-real-connector-smoke.test.ts` 共享 harness；插件 bridge `chdir` 语义不变。
+  - **估时**: 5h
+  - **依赖**: T3.3.1, T1.1.4
   - **优先级**: P1
 
 ---
@@ -834,8 +1008,8 @@ graph TD
   - **依赖**: T6.1.1, T6.1.2, T6.2.1, T2.3.1, T2.3.2, T2.3.3, T4.3.1, T4.4.1, T5.2.1, T5.2.2
 
 - [ ] **INT-S4** [MILESTONE]: S4 集成验证 — Packaging / Host Smoke / Docs
-  - **描述**: 验证 S4 退出标准，确认 packaged plugin、host smoke、ops explain、platform near-real path、README 边界和 release gate 可复现；**若 T1.1.4 已交付**：在真实宿主上增加 **workspace 根已知** 场景下 `heartbeat_check` / `quiet` 与 CLI 语义对齐或诚实失败的证据（见 `docs/validation/int-s4-human-operator-testing-guide.md`）。
-  - **输入**: S4 所有任务产出：T1.2.1, T1.2.2, **T1.2.3**（`loadStatus` 观测写回，与根已知宿主 `status` 证据强相关）, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1；**T1.1.4**（插件 workspace 桥接，可选纳入同一宿主波次）
+  - **描述**: 验证 S4 退出标准，确认 packaged plugin、host smoke、ops explain、platform near-real path、README 边界和 release gate 可复现；**若 T1.1.4 已交付**：在真实宿主上增加 **workspace 根已知** 场景下 `heartbeat_check` / `quiet` 与 CLI 语义对齐或诚实失败的证据（见 `reports/int-s4-release-readiness.md` 与本节「验证说明」；步骤表见 `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`）。**若 `/change` Round 14 回流任务已 `/forge` 交付**：场测类 Finding 须在 transcript 中 **显式采样** `status` / `heartbeat_check` / `report` / `explain` JSON；**Claw 勘误**：初报「`silent_no_candidates` 空转」应以实测 JSON 为准——**`intent_selected` + maintenance + `reasons: []`** 与 **observability 增长** 为合法形态，与「空快照 / 无 connector attempt」**并存**时须在 readiness 中分条叙述（对照 Nyx / Claw 2026-05-10 回填）。
+  - **输入**: S4 所有任务产出：T1.2.1, T1.2.2, **T1.2.3**（`loadStatus` 观测写回，与根已知宿主 `status` 证据强相关）, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1；**T1.1.4**（插件 workspace 桥接，可选纳入同一宿主波次）；**可选前置闭环**：**T2.2.2, T2.2.3, T1.2.4, T1.2.5**（`07_CHALLENGE_REPORT.md` Round 14 / CH-14 与 Nyx v0.1.18 场测同源；未交付则记入 `int-s4-release-readiness` Finding 而非强行勾选里程碑）
   - **输出**: `reports/int-s4-release-readiness.md`
   - **契约承接**: host smoke report、fallback visibility、README truth boundary、release gate
   - **📎 参考**: `cli-system.md` §12.2；`01_PRD.md` US-008；`explore/reports/2026-05-03_openclaw-plugin-quiet-workspace-bridge.md`
@@ -844,7 +1018,7 @@ graph TD
     - When 执行 release readiness 验证
     - Then package load、heartbeat_check、target none、ack drop、heartbeat_tool_not_invoked、fallback visibility、README boundary 均有 pass/fail/unknown 证据
   - **验证类型**: 冒烟测试 / 手动验证
-  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.2.3 完成后**（或在 INT 证据中单列为 Finding）：根已知场景下在至少一次 **full-bridge `heartbeat_check`** 后，`second_nature_ops status` 的 **`rhythm.mode` / `runtime.serviceStatus` 不得仅因 observability 表空而全系 `unknown`**（与空 workspace 对照区分）。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/int-s4-human-operator-testing-guide.md` §D7 与对话模板。**根已知** 证据中**必须**注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。**新增（承接 2026-05-05 survey + subagent 48/100 审查）**：真实宿主 transcript 须同时覆盖 carrier-only 与 full-bridge 两种路径；bridge 成功案例须附 root 红acted 截图 + chdir 影响声明；若 sandbox 下 dynamic import + sql.js 失败，须记录 `WORKSPACE_FULL_OPS_BRIDGE_FAILED` 详情并触发 Plan B 讨论。参考 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` §8。**新增（承接 2026-05-06 干系人报告）**：在验收以 `second_nature_ops` 为真源前，须确认**当前 agent 会话**（或宿主等价 API）工具枚举**包含** `second_nature_ops`；若仅见内置工具而第三方插件工具缺失，**不得**将 E2E / INT-S4 标为通过，须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 与 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 排查工具注册与合并链路（与「心跳/HEARTBEAT 正常但工具表无 SN」现象区分）。
+  - **验证说明**: 只在本 INT 执行真实宿主冒烟；失败进入 bug/fix 波次，不把 Sprint 标记完成。**T1.2.3 完成后**（或在 INT 证据中单列为 Finding）：根已知场景下在至少一次 **full-bridge `heartbeat_check`** 后，`second_nature_ops status` 的 **`rhythm.mode` / `runtime.serviceStatus` 不得仅因 observability 表空而全系 `unknown`**（与空 workspace 对照区分）。**T1.1.4 完成后**：宿主须覆盖 `SECOND_NATURE_WORKSPACE_ROOT`（或工具 `workspaceRoot`）与 **未设置** 对照，记录 Quiet/heartbeat/**explain**（CH-11-02）是否从「仅 carrier 拒绝 / 半成功 `ok:true`」升级为「真读或诚实错误」；步骤见 `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`；人类记录写入 `reports/int-s4-release-readiness.md`。**根已知** 证据中**必须**注明所设路径是否与宿主 **OpenClaw agent workspace**（`agents.defaults.workspace`，或沙箱内实际生效 workspace）一致，避免与默认路径口头对齐而实际漂移（见 T1.1.4 **运维约定 (OpenClaw 宿主)**）。**新增（承接 2026-05-05 survey + subagent 48/100 审查）**：真实宿主 transcript 须同时覆盖 carrier-only 与 full-bridge 两种路径；bridge 成功案例须附 root 红acted 截图 + chdir 影响声明；若 sandbox 下 dynamic import + sql.js 失败，须记录 `WORKSPACE_FULL_OPS_BRIDGE_FAILED` 详情并触发 Plan B 讨论。参考 `explore/reports/2026-05-05_openclaw-plugin-support-survey.md` §8。**新增（承接 2026-05-06 干系人报告）**：若以 **agent 会话工具调用**为验收主路径，须确认工具枚举**包含** `second_nature_ops`；若缺失，**不得**将 E2E / INT-S4 标为通过，须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 与 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 排查（与「心跳正常但工具表无 SN」区分）。**新增（OpenClaw 2026.5.7 宿主回填）**：若 `openclaw plugins info` 显示插件 **loaded**、网关 stderr **无**加载失败，但会话 `tools` 仍无 `second_nature_ops`，须核对宿主 **`tools.profile`**（例如 **`coding`** 仅包含内置组）是否过滤扩展工具；可按宿主配置追加 **`tools.allow: ["second_nature_ops"]`** 或调整 **`tools.profile`** —— **归因属宿主配置，非 SN 仓库缺陷**，须在 `int-s4-release-readiness` 记录后再验会话 JSON。**场测勘误（2026-05-10 Claw）**：若组织**声明**生产主入口为 **cron + `openWorkspaceBridge(resolvedRoot)`**（与 agent 工具表解耦），则须另附 **cron 片段**（含 `export SECOND_NATURE_WORKSPACE_ROOT`、`cd`、`openWorkspaceBridge`）、**同路径 `heartbeat_check` JSON 两条**（`probeOnly: true` 与 `false`，`surfaceMode` 可区分）、以及 **state.db / SOUL.md / HEARTBEAT.md** 三锚点路径一致性；此时 agent 侧 **`second_nature_ops` 不可见** 记 **Finding: tool_visibility_gap**，**不得**记入 `heartbeat_tool_not_invoked`。里程碑勾选须在 `reports/int-s4-release-readiness.md` **人工裁量**并引用本段。
   - **估时**: 4h
   - **依赖**: T1.2.1, T1.2.2, T1.2.3, T1.3.1, T3.3.1, T5.3.1, T1.4.1, T1.4.2, T7.1.1
 
@@ -853,10 +1027,10 @@ graph TD
 ## 🎯 User Story Overlay
 
 ### US-001: 让 heartbeat_check 进入真实生活决策链 (P0)
-**涉及任务**: T1.1.1 → T1.1.3 → T5.1.1 → T4.2.1 → T2.1.1 → T2.2.1 → INT-S2  
-**关键路径**: T1.1.3 → T4.2.1 → T2.1.1 → T2.2.1  
-**独立可测**: ✅ S2 结束可用 near-real workspace 状态验证  
-**覆盖状态**: ✅ 完整
+**涉及任务**: T1.1.1 → T1.1.3 → T5.1.1 → T4.2.1 → T2.1.1 → T2.2.1 → **T2.2.2** → **T2.2.3** → INT-S2  
+**关键路径**: T1.1.3 → T4.2.1 → T2.1.1 → T2.2.1 → **T2.2.2**（workspace 快照并入 life evidence）  
+**独立可测**: ✅ S2 结束可用 near-real workspace 状态验证；**OpenClaw workspace 全运行时** 与 Nyx 场测 parity 由 **T2.2.2–T2.2.3** + INT-S4 追加验证  
+**覆盖状态**: ✅ 完整；**T2.2.2**（workspace 快照并入 life evidence）+ **T2.2.3**（connector_dispatch_unwired / internal_tick 诚实 reasons）已由 Wave 19 闭合；宿主 INT-S4 端到端验证 ⏳
 
 ### US-002: 建立 life evidence 入库与查询契约 (P0)
 **涉及任务**: T3.1.2 → T4.1.1 → T4.2.1 → T5.1.2 → T3.3.1  
@@ -883,10 +1057,10 @@ graph TD
 **覆盖状态**: ✅ 完整
 
 ### US-006: 闭合 Quiet 对生活证据的夜间收纳 (P1)
-**涉及任务**: T4.2.1 → T4.4.1 → T6.1.2 → T2.3.3 → T5.2.1 → INT-S3  
-**关键路径**: T4.4.1 → T6.1.2 → T2.3.3  
+**涉及任务**: T4.2.1 → T4.4.1 → T6.1.2 → T2.3.3 → T5.2.1 → INT-S3 → **T1.2.4**  
+**关键路径**: T4.4.1 → T6.1.2 → T2.3.3 → **T1.2.4**（operator 读面与 workspace `quietWorkflow`）  
 **独立可测**: ✅ S3 可验证空/非空 evidence 两条路径  
-**覆盖状态**: ✅ 完整
+**覆盖状态**: ✅ 完整；**T1.2.4**（loadQuiet + loadDailyReport FS 合并）已由 Wave 19 闭合；宿主 INT-S4 端到端验证 ⏳
 
 ### US-007: 验证 OpenClaw 主动联系能力与兜底路径 (P0)
 **涉及任务**: T1.1.2 → T1.3.1 → T2.3.2 → T1.2.2 → **T1.2.3** → INT-S1 → INT-S4  
@@ -923,7 +1097,15 @@ graph TD
 | `OperatorFallbackArtifact.status = not_sent` | fallback 文件格式 | T4.3.1, T1.2.2 | T1.2.2, T4.3.1 | ✅ |
 | Quiet empty evidence | 关键用户路径 | T4.4.1, T6.1.2, T2.3.3 | T4.4.1, T6.1.2, T2.3.3, INT-S3 | ✅ |
 | README truth boundary | 文档契约 | T1.4.1, T1.4.2, T7.1.1 | T7.1.1, INT-S4（宿主 ⏳） | ✅ |
-| `loadStatus` 聚合与 `observability.db` 写入一致 | operator 面板 | T1.2.1, T1.2.3, T2.2.1 | T1.2.3, INT-S4（宿主 ⏳） | ✅（单测/集成）｜⏳（宿主 INT-S4） |
+| `loadStatus` 聚合与 `observability.db` 写入一致 | operator 面板 | T1.2.1, T1.2.3, T2.2.1, **T1.2.5** | T1.2.3, INT-S4（宿主 ⏳） | ✅（单测/集成）｜⏳（宿主 INT-S4） |
+| workspace `SnapshotInputs` life evidence | 控制面输入 | **T2.2.2** | T2.2.2, INT-S4 | ✅（集成）｜⏳（宿主 INT-S4） |
+| workspace `connector_action` 效应/telemetry | 控制面 + 观测 | **T2.2.3** | T2.2.3, INT-S4 | ✅（connector_dispatch_unwired + internal_tick；集成）｜⏳（宿主 INT-S4） |
+| Quiet JSON ↔ operator report/quiet | 读模型 | **T1.2.4** | T1.2.4, INT-S4 | ✅（loadQuiet + loadDailyReport FS 合并；集成）｜⏳（宿主 INT-S4） |
+| `deliveryPosture` + 默认 audit explain deps | operator JSON | **T1.2.5** | T1.2.5, INT-S4 | ✅（deliveryPosture + default store；集成）｜⏳（宿主 INT-S4） |
+| `policy show` / `audit` CLI | ops command | **T1.2.6**, **T1.2.7** | T1.2.6, T1.2.7, INT-S4 | ✅（集成）｜⏳（宿主 INT-S4） |
+| `capability_probe` ops surface | 宿主能力对照 | **T1.2.8** | T1.2.8, INT-S4 | ✅（集成）｜⏳（宿主 INT-S4） |
+| `decision_denied` vs runtime degraded | operator `loadStatus` | **T1.2.9** | T1.2.9, INT-S4 | ✅（集成）｜⏳（宿主 INT-S4） |
+| `near_real_smoke` ops 入口 | connector 显式通电 | **T3.3.2** | T3.3.2, INT-S4 | ✅（集成）｜⏳（宿主 INT-S4） |
 
 ---
 
@@ -937,15 +1119,17 @@ graph TD
 - ✅ 冒烟测试主要收敛在 T1.3.1、T4.1.4 与 INT-S1 / INT-S4。
 - ✅ User Story Overlay 覆盖 US-001 ~ US-008。
 - ✅ `07_CHALLENGE_REPORT.md` 中 `/blueprint 必须承接` 事项均已落任务。
+- ✅ **Round 14（CH-14 / Nyx v0.1.18 场测）** 已回流为 **T2.2.2、T2.2.3、T1.2.4、T1.2.5**（`/change` 2026-05-10）。
+- ✅ **代码侧缺口（CHANGE_PREP）** 已回流为 **T1.2.6～T1.2.9、T3.3.2**（`/change` 2026-05-11；见 `.anws/v5/CHANGE_PREP_CODE_SIDE_GAPS.md`）。
 
 ## 📊 任务统计
 
-- Level 3 任务数: 38
+- Level 3 任务数: 47
 - INT 任务数: 4
-- 总任务数: 42
-- P0 任务: 28
-- P1 任务: 10
+- 总任务数: 51
+- P0 任务: 31
+- P1 任务: 16
 - P2 任务: 0
 - Milestone 任务: 4
-- 总预估工时: 212h
+- 总预估工时: 263h
 

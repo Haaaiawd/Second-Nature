@@ -42,7 +42,7 @@ export class ConnectorPolicyError extends Error {
   constructor(
     public readonly failureClass: FailureClass,
     message: string,
-    public readonly retryAfterMs?: number
+    public readonly retryAfterMs?: number,
   ) {
     super(message);
     this.name = "ConnectorPolicyError";
@@ -51,12 +51,20 @@ export class ConnectorPolicyError extends Error {
 
 function readRetryAfterMs(input: Record<string, unknown>): number | undefined {
   const retryAfterMs = input.retryAfterMs;
-  if (typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs) && retryAfterMs > 0) {
+  if (
+    typeof retryAfterMs === "number" &&
+    Number.isFinite(retryAfterMs) &&
+    retryAfterMs > 0
+  ) {
     return retryAfterMs;
   }
 
   const retryAfterSeconds = input.retryAfterSeconds;
-  if (typeof retryAfterSeconds === "number" && Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+  if (
+    typeof retryAfterSeconds === "number" &&
+    Number.isFinite(retryAfterSeconds) &&
+    retryAfterSeconds > 0
+  ) {
     return retryAfterSeconds * 1000;
   }
 
@@ -81,15 +89,61 @@ export function classifyFailure(error: unknown): FailureClassification {
 
     const code = record.code;
     if (typeof code === "string") {
-      if (code === "verification_required") return { class: "verification_required", retryable: RETRYABLE_BY_CLASS.verification_required };
-      if (code === "credential_expired") return { class: "credential_expired", retryable: RETRYABLE_BY_CLASS.credential_expired };
-      if (code === "cooldown_blocked") return { class: "cooldown_blocked", retryable: RETRYABLE_BY_CLASS.cooldown_blocked };
-      if (code === "idempotency_conflict") return { class: "idempotency_conflict", retryable: RETRYABLE_BY_CLASS.idempotency_conflict };
-      if (code === "concurrency_conflict") return { class: "concurrency_conflict", retryable: RETRYABLE_BY_CLASS.concurrency_conflict };
-      if (code === "protocol_mismatch") return { class: "protocol_mismatch", retryable: RETRYABLE_BY_CLASS.protocol_mismatch };
-      if (code === "semantic_rejection") return { class: "semantic_rejection", retryable: RETRYABLE_BY_CLASS.semantic_rejection };
-      if (code === "transport_failure") return { class: "transport_failure", retryable: RETRYABLE_BY_CLASS.transport_failure };
-      if (code === "permanent_input_error") return { class: "permanent_input_error", retryable: RETRYABLE_BY_CLASS.permanent_input_error };
+      if (code === "auth_failure")
+        return {
+          class: "auth_failure",
+          retryable: RETRYABLE_BY_CLASS.auth_failure,
+        };
+      if (code === "verification_required")
+        return {
+          class: "verification_required",
+          retryable: RETRYABLE_BY_CLASS.verification_required,
+        };
+      if (code === "credential_expired")
+        return {
+          class: "credential_expired",
+          retryable: RETRYABLE_BY_CLASS.credential_expired,
+        };
+      if (code === "cooldown_blocked")
+        return {
+          class: "cooldown_blocked",
+          retryable: RETRYABLE_BY_CLASS.cooldown_blocked,
+        };
+      if (code === "idempotency_conflict")
+        return {
+          class: "idempotency_conflict",
+          retryable: RETRYABLE_BY_CLASS.idempotency_conflict,
+        };
+      if (code === "concurrency_conflict")
+        return {
+          class: "concurrency_conflict",
+          retryable: RETRYABLE_BY_CLASS.concurrency_conflict,
+        };
+      if (code === "protocol_mismatch")
+        return {
+          class: "protocol_mismatch",
+          retryable: RETRYABLE_BY_CLASS.protocol_mismatch,
+        };
+      if (code === "semantic_rejection")
+        return {
+          class: "semantic_rejection",
+          retryable: RETRYABLE_BY_CLASS.semantic_rejection,
+        };
+      if (code === "transport_failure")
+        return {
+          class: "transport_failure",
+          retryable: RETRYABLE_BY_CLASS.transport_failure,
+        };
+      if (code === "permanent_input_error")
+        return {
+          class: "permanent_input_error",
+          retryable: RETRYABLE_BY_CLASS.permanent_input_error,
+        };
+      if (code === "unknown_platform" || code === "unknown_platform_change")
+        return {
+          class: "unknown_platform_change",
+          retryable: RETRYABLE_BY_CLASS.unknown_platform_change,
+        };
     }
 
     const status = record.status;
@@ -101,15 +155,27 @@ export function classifyFailure(error: unknown): FailureClassification {
       };
     }
     if (status === 401 || status === 403) {
-      return { class: "auth_failure", retryable: RETRYABLE_BY_CLASS.auth_failure };
+      return {
+        class: "auth_failure",
+        retryable: RETRYABLE_BY_CLASS.auth_failure,
+      };
     }
     if (status === 400 || status === 404 || status === 422) {
-      return { class: "permanent_input_error", retryable: RETRYABLE_BY_CLASS.permanent_input_error };
+      return {
+        class: "permanent_input_error",
+        retryable: RETRYABLE_BY_CLASS.permanent_input_error,
+      };
     }
     if (status === 500 || status === 502 || status === 503 || status === 504) {
-      return { class: "transport_failure", retryable: RETRYABLE_BY_CLASS.transport_failure };
+      return {
+        class: "transport_failure",
+        retryable: RETRYABLE_BY_CLASS.transport_failure,
+      };
     }
   }
 
-  return { class: "unknown_platform_change", retryable: RETRYABLE_BY_CLASS.unknown_platform_change };
+  return {
+    class: "unknown_platform_change",
+    retryable: RETRYABLE_BY_CLASS.unknown_platform_change,
+  };
 }

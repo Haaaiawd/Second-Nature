@@ -14,6 +14,8 @@ import type { OperatorFallbackReason } from "../../../storage/fallback/operator-
 import { judgeOutreach, type JudgeOutreachInput } from "./judge-outreach.js";
 import { resolveDeliveryTarget, type DeliveryTargetResolution } from "./delivery-target.js";
 import { buildOutreachDraftRequest } from "./build-outreach-draft-request.js";
+import { createNarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
+import { createRelationshipMemoryStore } from "../../../storage/relationship/relationship-memory-store.js";
 
 export interface OpenClawDeliverySendResult {
   id: string;
@@ -72,8 +74,24 @@ export async function dispatchUserOutreachIntent(input: {
 
   const deliveryResolution = resolveDeliveryTarget(judgeInput.delivery);
 
+  // T2.3.1: load narrative/relationship context for source-backed draft
+  let narrativeState: import("../../../storage/narrative/narrative-state-store.js").NarrativeState | undefined;
+  let relationshipMemory: import("../../../storage/relationship/relationship-memory-store.js").RelationshipMemory | undefined;
+  try {
+    const narrativeStore = createNarrativeStateStore(state);
+    narrativeState = (await narrativeStore.loadNarrativeState()) ?? undefined;
+  } catch {
+    // degrade silently; draft proceeds without narrative context
+  }
+  try {
+    const relStore = createRelationshipMemoryStore(state);
+    relationshipMemory = (await relStore.loadRelationshipMemory()) ?? undefined;
+  } catch {
+    // degrade silently; draft proceeds without relationship context
+  }
+
   if (deliveryResolution.verdict !== "target_available") {
-    const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution);
+    const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution, narrativeState, relationshipMemory);
     const draft = await guidance.draftOutreachMessage(req);
     const fb = await writeOperatorFallback(state, {
       reason: operatorReasonForUnavailable(deliveryResolution.verdict),
@@ -92,7 +110,7 @@ export async function dispatchUserOutreachIntent(input: {
     };
   }
 
-  const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution);
+  const req = buildOutreachDraftRequest(candidate, judgment, snapshot, deliveryResolution, narrativeState, relationshipMemory);
   const draft = await guidance.draftOutreachMessage(req);
   if (draft.status !== "ready") {
     return {

@@ -53,10 +53,10 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
     rhythmWindowKind: z.ZodOptional<z.ZodEnum<{
         quiet: "quiet";
         social: "social";
+        maintenance: "maintenance";
         work: "work";
         exploration: "exploration";
         reflection: "reflection";
-        maintenance: "maintenance";
     }>>;
     riskLevel: z.ZodEnum<{
         medium: "medium";
@@ -97,6 +97,46 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
         "zh-CN": "zh-CN";
     }>>;
 }, z.core.$strip>;
+export declare const outreachNarrativeContextSchema: z.ZodObject<{
+    focus: z.ZodOptional<z.ZodString>;
+    progress: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    nextIntent: z.ZodOptional<z.ZodString>;
+    sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        kind: z.ZodEnum<{
+            platform_item: "platform_item";
+            workspace_artifact: "workspace_artifact";
+            decision_record: "decision_record";
+            user_anchor: "user_anchor";
+            connector_result: "connector_result";
+            host_report: "host_report";
+            fallback_artifact: "fallback_artifact";
+        }>;
+        uri: z.ZodString;
+        excerptHash: z.ZodOptional<z.ZodString>;
+        observedAt: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>>>;
+}, z.core.$strip>;
+export declare const outreachRelationshipContextSchema: z.ZodObject<{
+    tone: z.ZodOptional<z.ZodString>;
+    topicAffinities: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    avgAffinity: z.ZodOptional<z.ZodNumber>;
+    sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        kind: z.ZodEnum<{
+            platform_item: "platform_item";
+            workspace_artifact: "workspace_artifact";
+            decision_record: "decision_record";
+            user_anchor: "user_anchor";
+            connector_result: "connector_result";
+            host_report: "host_report";
+            fallback_artifact: "fallback_artifact";
+        }>;
+        uri: z.ZodString;
+        excerptHash: z.ZodOptional<z.ZodString>;
+        observedAt: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>>>;
+}, z.core.$strip>;
 export declare const outreachDraftRequestSchema: z.ZodObject<{
     requestId: z.ZodString;
     runtimeScope: z.ZodEnum<{
@@ -107,10 +147,10 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
     rhythmWindowKind: z.ZodOptional<z.ZodEnum<{
         quiet: "quiet";
         social: "social";
+        maintenance: "maintenance";
         work: "work";
         exploration: "exploration";
         reflection: "reflection";
-        maintenance: "maintenance";
     }>>;
     riskLevel: z.ZodEnum<{
         medium: "medium";
@@ -177,6 +217,46 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
         excerptHash: z.ZodOptional<z.ZodString>;
         observedAt: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>;
+    narrativeContext: z.ZodOptional<z.ZodObject<{
+        focus: z.ZodOptional<z.ZodString>;
+        progress: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        nextIntent: z.ZodOptional<z.ZodString>;
+        sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            kind: z.ZodEnum<{
+                platform_item: "platform_item";
+                workspace_artifact: "workspace_artifact";
+                decision_record: "decision_record";
+                user_anchor: "user_anchor";
+                connector_result: "connector_result";
+                host_report: "host_report";
+                fallback_artifact: "fallback_artifact";
+            }>;
+            uri: z.ZodString;
+            excerptHash: z.ZodOptional<z.ZodString>;
+            observedAt: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+    }, z.core.$strip>>;
+    relationshipContext: z.ZodOptional<z.ZodObject<{
+        tone: z.ZodOptional<z.ZodString>;
+        topicAffinities: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        avgAffinity: z.ZodOptional<z.ZodNumber>;
+        sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            id: z.ZodString;
+            kind: z.ZodEnum<{
+                platform_item: "platform_item";
+                workspace_artifact: "workspace_artifact";
+                decision_record: "decision_record";
+                user_anchor: "user_anchor";
+                connector_result: "connector_result";
+                host_report: "host_report";
+                fallback_artifact: "fallback_artifact";
+            }>;
+            uri: z.ZodString;
+            excerptHash: z.ZodOptional<z.ZodString>;
+            observedAt: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>>>;
+    }, z.core.$strip>>;
 }, z.core.$strip>;
 export type SceneGuidanceRequest = z.infer<typeof sceneGuidanceRequestSchema>;
 export type OutreachDraftRequest = z.infer<typeof outreachDraftRequestSchema>;
@@ -205,13 +285,37 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
         excerptHash?: string | undefined;
         observedAt?: string | undefined;
     }[];
-    rhythmWindowKind?: "quiet" | "social" | "work" | "exploration" | "reflection" | "maintenance" | undefined;
+    rhythmWindowKind?: "quiet" | "social" | "maintenance" | "work" | "exploration" | "reflection" | undefined;
     deliveryContext?: {
         deliveryVerdict: "target_none" | "channel_missing" | "host_unsupported" | "delivery_failed" | "target_available";
         wordingMode: "sendable" | "not_sent_fallback_candidate";
         fallbackRef?: string | undefined;
     } | undefined;
     language?: "en-US" | "zh-CN" | undefined;
+    narrativeContext?: {
+        focus?: string | undefined;
+        progress?: string[] | undefined;
+        nextIntent?: string | undefined;
+        sourceRefs?: {
+            id: string;
+            kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
+            uri: string;
+            excerptHash?: string | undefined;
+            observedAt?: string | undefined;
+        }[] | undefined;
+    } | undefined;
+    relationshipContext?: {
+        tone?: string | undefined;
+        topicAffinities?: string[] | undefined;
+        avgAffinity?: number | undefined;
+        sourceRefs?: {
+            id: string;
+            kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
+            uri: string;
+            excerptHash?: string | undefined;
+            observedAt?: string | undefined;
+        }[] | undefined;
+    } | undefined;
 }>;
 /** Async seam for generative outreach copy (implementation lives outside control-plane). */
 export interface GuidanceDraftPort {

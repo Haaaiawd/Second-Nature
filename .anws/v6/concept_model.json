@@ -1,0 +1,54 @@
+{
+  "glossary": {
+    "Dream": "Second Nature 的异步记忆整理引擎（原 Quiet）。在 heartbeat 间隙运行，读取 life evidence、session transcripts 和现有 memory store，产出去重/重构后的记忆、模式洞察和叙事更新。类比 Claude dreaming。",
+    "Agent Self Layer": "跨系统的 concerns 层，赋予 SN 叙事连贯性、经验提炼、关系记忆和目标追求能力。不是新系统，是现有系统的新职责。",
+    "Narrative State": "Agent 对'我在做什么、为什么'的 running self-description。每次 heartbeat 更新，影响 outreach 语气和内容选择。",
+    "Relationship Memory": "Agent 对 owner 关系的理解：互动历史、语气偏好、回复时机、话题敏感度。影响 outreach 策略。",
+    "Insight Extraction": "从 life evidence 和 session transcripts 中提炼'学到了什么''值得记住什么'的轻量级 pipeline。",
+    "Goal-Directed Intent": "超越 rhythm window 的意图规划。Agent 基于短期追求和长期方向选择动作优先级。",
+    "Connector Ecosystem": "支持动态 manifest 注册、SDK/CLI 生成、约定目录自动扫描的连接器扩展体系。",
+    "Dynamic Manifest Registration": "新增的 connector 文件放在约定目录（如 .second-nature/connectors/），SN 启动时自动扫描并注册，无需修改核心代码。",
+    "Outreach Tier": "三层投递策略：heartbeat（静默）、outreach（发现推送）、alert（紧急告警）。",
+    "CapabilityContractRegistry": "开放注册或命名空间前缀的能力契约注册表，支持新增平台能力（如 agent-world:feed.read）的动态注册。",
+    "ConnectorTrustPolicy": "动态 connector 的信任治理：declarative manifest 可自动注册；custom adapter / skill / browser runner 默认 pending trust，必须 owner allowlist、签名或显式确认后才能执行。",
+    "DreamOutputLifecycle": "Dream 输出的接纳生命周期：candidate、accepted、archived、partial。output store 只有通过 schema/source/sensitivity validation 后才可进入 active memory。"
+  },
+  "entities": [
+    { "name": "Dream", "type": "聚合根", "necessity": "必须", "description": "异步记忆整理引擎，读取 evidence + transcripts + memory store，产出 reorganized memory + insights + narrative updates" },
+    { "name": "DreamInput", "type": "值对象", "necessity": "必须", "description": "Dream 的输入：life evidence 索引、session transcripts（heartbeat 决策记录、outreach 历史、owner 回复）、现有 memory store" },
+    { "name": "DreamOutput", "type": "值对象", "necessity": "必须", "description": "Dream 的输出：去重后的 memory store、新洞察、叙事更新、关系记忆更新、目标状态调整建议" },
+    { "name": "NarrativeState", "type": "实体", "necessity": "必须", "description": "Agent 的 running self-description：当前在做什么、为什么、下一步想做什么" },
+    { "name": "RelationshipMemory", "type": "实体", "necessity": "必须", "description": "Agent 对 owner 关系的理解：互动历史、语气偏好、回复模式、话题兴趣" },
+    { "name": "Insight", "type": "值对象", "necessity": "必须", "description": "从 experience 中提炼的洞察：'今天学到了 X'、'Y 模式在 Z 平台重复出现'" },
+    { "name": "AgentGoal", "type": "实体", "necessity": "必须", "description": "Agent 的短期追求和长期方向，影响 intent planning 优先级" },
+    { "name": "ConnectorManifest", "type": "实体", "necessity": "必须", "description": "平台连接器声明：platformId、baseUrl、authHeader、capabilities 映射；默认只声明受控 runner，不自动执行任意本地代码" },
+    { "name": "ConnectorTrustPolicy", "type": "值对象", "necessity": "必须", "description": "connector 执行信任状态：declarative、custom_adapter_pending_trust、trusted_custom_adapter" },
+    { "name": "DynamicConnectorRegistry", "type": "聚合根", "necessity": "必须", "description": "运行时动态扫描和注册 connector 的注册表" },
+    { "name": "DreamOutputLifecycle", "type": "枚举", "necessity": "必须", "description": "Dream output store 的 candidate / accepted / archived / partial 生命周期" },
+    { "name": "OutreachTier", "type": "枚举", "necessity": "必须", "description": "heartbeat / outreach / alert 三层投递层级" }
+  ],
+  "flows": [
+    { "from": "HeartbeatCycle", "action": "produce", "to": "LifeEvidence", "data": "platform events, work events, outreach attempts, owner replies", "trigger": "每次 heartbeat 执行", "mode": "同步写入" },
+    { "from": "DreamScheduler", "action": "trigger", "to": "Dream", "data": "DreamInput（evidence + transcripts + memory store）", "trigger": "定时（如夜间）或 evidence 积累阈值", "mode": "异步" },
+    { "from": "Dream", "action": "rewrite", "to": "MemoryStore", "data": "去重/重构后的记忆、洞察、叙事更新", "mode": "输出 candidate store，保留旧 store；验证通过后才能 accepted" },
+    { "from": "Dream", "action": "update", "to": "NarrativeState", "data": "running narrative 更新", "mode": "异步" },
+    { "from": "Dream", "action": "update", "to": "RelationshipMemory", "data": "owner 互动模式更新", "mode": "异步" },
+    { "from": "ControlPlane", "action": "plan", "to": "Intent", "data": "candidate intents，含 goal-directed 优先级", "trigger": "heartbeat 或 user task", "mode": "同步" },
+    { "from": "Owner", "action": "reply", "to": "RelationshipMemory", "data": "回复内容、语气、时机", "trigger": "outreach 后 owner 回复", "mode": "事件驱动" },
+    { "from": "ConnectorDiscovery", "action": "scan", "to": "DynamicConnectorRegistry", "data": "约定目录中的 manifest.yaml", "trigger": "SN 启动或热重载", "mode": "异步扫描" },
+    { "from": "CapabilityContractRegistry", "action": "register", "to": "RoutePlanner", "data": "platformId:capability 命名空间前缀", "mode": "动态" }
+  ],
+  "missing_components": [
+    { "component": "Session Chronicle 持久化", "category": "数据流", "priority": "高", "reason": "Dream 需要读取 past session chronicles（heartbeat 决策记录、outreach 历史、owner 回复），但 v5 只有 observability 中的 decision trace 和 audit record。需要新增轻量 chronicle 层（who/what/when/result/owner_reply）。用户已确认选择此方案。" },
+    { "component": "Dream 调度器", "category": "运行时", "priority": "高", "reason": "Dream 是异步任务，需要定时触发或 evidence 积累阈值触发机制" },
+    { "component": "LLM Insight Extraction Pipeline", "category": "AI", "priority": "高", "reason": "Insight extraction 需要 LLM 调用，需要 prompt 工程、成本控制和幻觉防护" },
+    { "component": "Connector SDK / CLI 生成器", "category": "开发者体验", "priority": "中", "reason": "用户建议的 CLI 一行命令生成 connector 骨架" },
+    { "component": "Outreach 飞书通道", "category": "外部集成", "priority": "中", "reason": "用户建议的三层投递中的 outreach/alert 通道" },
+    { "component": "Web Dashboard / 定期摘要", "category": "可观测性", "priority": "中", "reason": "observability.db 有数据但人类看不到，需要消费层" },
+    { "component": "Event-Driven Connector 模型", "category": "架构", "priority": "低", "reason": "当前 connector 是 polling 模型，平台有新内容时 SN 不知道" }
+  ],
+  "clarifications": [
+    { "question": "用户原话：'我们的 quiet 其实和 claude 的 dream 是一样的，可以改名叫 dream，参考 claude 的 dream 形式也来做'", "answer": "Quiet 更名为 Dream，采用 Claude dreaming 的异步记忆整理机制：读取 evidence + session transcripts + memory store，产出去重/重构后的记忆、模式洞察和叙事更新。输入输出 store 分离。" },
+    { "question": "用户原话：'连接器加油我相信你能找到和做好...来吧开始吧...其他的也是为了这个愿景我们需要做大幅度改变了'", "answer": "v6 需要大幅度架构改变：Agent Self Layer（叙事、关系、洞察、目标）+ Connector Ecosystem（动态注册、SDK、为后续 15+ 站点接入提供机制）+ 三层 Outreach + 可观测性消费" }
+  ]
+}

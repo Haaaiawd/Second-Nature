@@ -25,6 +25,9 @@ export type ExplainQuery = {
 } | {
     kind: "source_ref";
     sourceRefId: string;
+} | {
+    kind: "relationship";
+    relationshipId: string;
 };
 export interface RedactedExplainEvent {
     eventId: string;

@@ -1,14 +1,63 @@
 {
   "name": "second-nature",
-  "version": "0.1.18",
-  "private": true,
+  "version": "0.1.28",
+  "description": "Agent Self Layer with Dream memory, heartbeat decision loop, dynamic connector ecosystem, and source-backed outreach — an OpenClaw-native runtime.",
+  "keywords": [
+    "openclaw",
+    "agent",
+    "continuity",
+    "quiet",
+    "memory",
+    "observability",
+    "connector",
+    "dream",
+    "narrative",
+    "relationship"
+  ],
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.0.0",
-  "openclaw": {
-    "extensions": [
-      "./plugin/index.ts"
-    ]
+  "main": "./dist/src/core/second-nature/index.js",
+  "types": "./dist/src/core/second-nature/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/src/core/second-nature/index.js",
+      "types": "./dist/src/core/second-nature/index.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/src/cli/index.js",
+      "types": "./dist/src/cli/index.d.ts"
+    },
+    "./connectors": {
+      "import": "./dist/src/connectors/index.js",
+      "types": "./dist/src/connectors/index.d.ts"
+    },
+    "./storage": {
+      "import": "./dist/src/storage/index.js",
+      "types": "./dist/src/storage/index.d.ts"
+    },
+    "./observability": {
+      "import": "./dist/src/observability/index.js",
+      "types": "./dist/src/observability/index.d.ts"
+    },
+    "./dream": {
+      "import": "./dist/src/dream/index.js",
+      "types": "./dist/src/dream/index.d.ts"
+    },
+    "./guidance": {
+      "import": "./dist/src/guidance/index.js",
+      "types": "./dist/src/guidance/index.d.ts"
+    }
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "README.zh-CN.md",
+    "HEARTBEAT.md",
+    "SKILL.md",
+    "docs/claw-second-nature-inner-guide.md",
+    "LICENSE"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
@@ -16,17 +65,19 @@
     "test": "pnpm build && pnpm build:plugin && node --test dist/tests/**/*.test.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.10.0",
-    "drizzle-orm": "^0.44.4",
+    "better-sqlite3": "^12.10.0",
+    "drizzle-orm": "^0.45.2",
+    "js-yaml": "^4.1.1",
     "sql.js": "^1.14.1",
-    "zod": "^4.1.5"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^24.5.2",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.8.0",
     "@types/sql.js": "^1.4.11",
-    "jiti": "^2.6.1",
-    "openclaw": "^2026.5.4",
-    "typescript": "^5.9.2"
+    "jiti": "^2.7.0",
+    "openclaw": "^2026.5.12",
+    "typescript": "^6.0.3"
   }
 }

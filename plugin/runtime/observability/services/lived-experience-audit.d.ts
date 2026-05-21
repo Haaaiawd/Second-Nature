@@ -1,5 +1,6 @@
 import { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
 import type { SourceRef } from "../../storage/life-evidence/types.js";
+import type { DreamTrace } from "../../dream/types.js";
 export type RuntimeScope = "rhythm" | "user_task" | "user_reply";
 export type HeartbeatOutcome = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export type DeliveryAuditStatus = "not_requested" | "target_available" | "target_none" | "channel_missing" | "host_unsupported" | "ack_dropped" | "sent" | "failed" | "not_sent_fallback";
@@ -66,6 +67,21 @@ export interface GuidanceGroundingAuditPayload {
     deliveryWording?: "sendable" | "not_sent_fallback_candidate";
     createdAt: string;
 }
+export interface NarrativeTracePayload {
+    traceId: string;
+    narrativeId: string;
+    revision: number;
+    updateSource: "heartbeat" | "dream" | "owner" | "maintenance";
+    sourceRefs: Array<{
+        id: string;
+        kind: string;
+        uri?: string;
+    }>;
+    unsupportedClaims: string[];
+    groundingStatus: GroundingStatus;
+    goalInfluenceRefs: string[];
+    createdAt: string;
+}
 export interface ExplainLinkageSummary {
     decisionId: string;
     summary: string;
@@ -90,6 +106,12 @@ export declare class LivedExperienceAuditRecorder {
         eventId: string;
     };
     recordGuidanceGrounding(payload: GuidanceGroundingAuditPayload): {
+        eventId: string;
+    };
+    recordNarrativeTrace(payload: NarrativeTracePayload): {
+        eventId: string;
+    };
+    recordDreamTrace(payload: DreamTrace): {
         eventId: string;
     };
     explainLinkageForDecision(decisionId: string): ExplainLinkageSummary;

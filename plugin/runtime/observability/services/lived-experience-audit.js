@@ -133,6 +133,36 @@ export class LivedExperienceAuditRecorder {
         }
         return { eventId: envelope.eventId };
     }
+    recordNarrativeTrace(payload) {
+        const seq = this.bumpSequence();
+        const envelope = buildAuditEnvelope({
+            family: "narrative.trace",
+            plane: "source_coverage",
+            traceId: payload.traceId,
+            sequence: seq,
+            payload,
+            previousHash: this.store.lastRecordHash(),
+            eventId: crypto.randomUUID(),
+            createdAt: payload.createdAt,
+        });
+        this.store.append(envelope);
+        return { eventId: envelope.eventId };
+    }
+    recordDreamTrace(payload) {
+        const seq = this.bumpSequence();
+        const envelope = buildAuditEnvelope({
+            family: "dream.trace",
+            plane: "telemetry",
+            traceId: payload.traceId,
+            sequence: seq,
+            payload,
+            previousHash: this.store.lastRecordHash(),
+            eventId: crypto.randomUUID(),
+            createdAt: payload.finishedAt,
+        });
+        this.store.append(envelope);
+        return { eventId: envelope.eventId };
+    }
     explainLinkageForDecision(decisionId) {
         const entry = this.explainIndex.get(decisionId);
         const warnings = [];

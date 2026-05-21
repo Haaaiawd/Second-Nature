@@ -60,6 +60,15 @@ function eventMatchesQuery(envelope, query) {
                 return false;
             }
         }
+        case "relationship": {
+            const needle = query.relationshipId;
+            try {
+                return JSON.stringify(payload).includes(needle);
+            }
+            catch {
+                return false;
+            }
+        }
     }
 }
 function summarizeEnvelope(e) {

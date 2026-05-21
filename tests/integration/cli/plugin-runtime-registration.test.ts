@@ -274,6 +274,131 @@ test("T1.2.3 carrier heartbeat_check honors probeOnly via tool (capability_probe
   assert.equal(payload.data?.bridge?.serviceEntryMode, "capability_probe");
 });
 
+test("T1.4.3 setup_hint returns packaged SKILL and inner guide", async () => {
+  delete process.env.SECOND_NATURE_WORKSPACE_ROOT;
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: {
+            command: string;
+            args?: Record<string, unknown>;
+            workspaceRoot?: string;
+          },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const result = await tool.execute("1", {
+    command: "setup_hint",
+    args: { format: "full" },
+  });
+  const payload = JSON.parse(result.content[0]?.text ?? "{}") as {
+    ok: boolean;
+    command: string;
+    data?: {
+      status?: string;
+      skill?: { path?: string; content?: string };
+      guide?: { path?: string; content?: string };
+    };
+  };
+
+  assert.equal(payload.ok, true);
+  assert.equal(payload.command, "setup_hint");
+  assert.equal(payload.data?.status, "workspace_root_unknown");
+  assert.equal(payload.data?.skill?.path, "SKILL.md");
+  assert.equal(payload.data?.guide?.path, "agent-inner-guide.md");
+  assert.equal(payload.data?.skill?.content?.includes("Second Nature"), true);
+  assert.equal(
+    payload.data?.guide?.content?.includes("这是一封给 Claw 的便条"),
+    true,
+  );
+});
+
+test("T1.4.3 setup nudge is one-shot and setup_ack persists marker", async () => {
+  delete process.env.SECOND_NATURE_WORKSPACE_ROOT;
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: {
+            command: string;
+            args?: Record<string, unknown>;
+            workspaceRoot?: string;
+          },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const workspaceRoot = fs.mkdtempSync(
+    path.join(process.cwd(), "tmp-setup-nudge-"),
+  );
+
+  try {
+    const before = JSON.parse(
+      (
+        await tool.execute("1", {
+          command: "credential",
+          args: { action: "verify" },
+          workspaceRoot,
+        })
+      ).content[0]?.text ?? "{}",
+    ) as { setupNudge?: { status?: string; command?: string } };
+    assert.equal(before.setupNudge?.status, "pending");
+    assert.equal(before.setupNudge?.command, "setup_hint");
+
+    const ack = JSON.parse(
+      (
+        await tool.execute("1", {
+          command: "setup_ack",
+          args: {
+            acceptedBy: "agent",
+            placedIn: "workspace/IDENTITY.md",
+          },
+          workspaceRoot,
+        })
+      ).content[0]?.text ?? "{}",
+    ) as { ok: boolean; data?: { markerPath?: string; placedIn?: string } };
+    assert.equal(ack.ok, true);
+    assert.equal(ack.data?.placedIn, "workspace/IDENTITY.md");
+    assert.equal(fs.existsSync(ack.data?.markerPath ?? ""), true);
+
+    const after = JSON.parse(
+      (
+        await tool.execute("1", {
+          command: "credential",
+          args: { action: "verify" },
+          workspaceRoot,
+        })
+      ).content[0]?.text ?? "{}",
+    ) as { setupNudge?: unknown };
+    assert.equal(after.setupNudge, undefined);
+  } finally {
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("T4.1.4 second_nature_ops storage_smoke uses packaged runtime path", async () => {
   const plugin = await loadPlugin();
   let tool:

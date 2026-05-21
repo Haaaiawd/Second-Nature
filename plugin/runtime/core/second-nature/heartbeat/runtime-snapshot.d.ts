@@ -21,6 +21,8 @@ export interface HeartbeatRuntimeSnapshot {
     lifeEvidence: PlannerLifeEvidenceSlice;
     rhythmWindow: PlannerRhythmWindowSlice;
     hardGuards: HardGuardDeps;
+    narrativeState?: import("../../../storage/narrative/narrative-state-store.js").NarrativeState;
+    relationshipMemory?: import("../../../storage/relationship/relationship-memory-store.js").RelationshipMemory;
 }
 export declare function buildLifeEvidenceSliceFromInputs(inputs: SnapshotInputs): PlannerLifeEvidenceSlice;
 export declare function buildHardGuardDeps(continuity: ContinuitySnapshot, inputs: SnapshotInputs): HardGuardDeps;

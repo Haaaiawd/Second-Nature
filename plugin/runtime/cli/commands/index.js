@@ -1,7 +1,8 @@
 import { credentialVerify } from "./credential.js";
+import { connectorInit } from "./connector-init.js";
 import { formatExplanation } from "../explain/format-explanation.js";
 import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
-import { showOperatorFallback, OperatorFallbackNotFoundError } from "../ops/show-operator-fallback.js";
+import { showOperatorFallback, OperatorFallbackNotFoundError, } from "../ops/show-operator-fallback.js";
 import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.js";
 import { policySet } from "./policy.js";
 const notImplemented = async (command) => ({
@@ -25,10 +26,10 @@ export function createCliCommands(deps) {
     return [
         {
             name: "status",
-            description: "Show aggregated Second Nature status",
+            description: "T1.2.6 — Show v6 aggregated Second Nature status (narrative + dream + cycles + runtime)",
             execute: async (input) => {
                 const scope = typeof input?.scope === "string" ? input.scope : undefined;
-                const data = await readModels.loadStatus(scope);
+                const data = await readModels.loadV6Status(scope);
                 return { ok: true, data };
             },
         },
@@ -40,7 +41,10 @@ export function createCliCommands(deps) {
                 if (action === "set") {
                     return policySet(actionBridge, input);
                 }
-                return notImplemented("policy");
+                // T1.2.6 (SN-CODE-01): `policy show` (default) returns the current rhythm policy
+                // snapshot. Returns workspace defaults when no policy row has been persisted yet.
+                const data = await readModels.loadPolicy();
+                return { ok: true, data };
             },
         },
         {
@@ -69,7 +73,9 @@ export function createCliCommands(deps) {
             name: "report",
             description: "Show daily report artifacts",
             execute: async (input) => {
-                const day = typeof input?.day === "string" ? input.day : new Date().toISOString().slice(0, 10);
+                const day = typeof input?.day === "string"
+                    ? input.day
+                    : new Date().toISOString().slice(0, 10);
                 const data = await readModels.loadDailyReport(day);
                 return { ok: true, data };
             },
@@ -97,7 +103,12 @@ export function createCliCommands(deps) {
         {
             name: "audit",
             description: "Inspect audit and evidence views",
-            execute: () => notImplemented("audit"),
+            execute: async () => {
+                // T1.2.7 (SN-CODE-02): minimal read-side view — list all in-memory audit events.
+                // Empty store returns { totalEvents: 0, events: [] } (honest empty, not an error).
+                const data = await readModels.loadAuditSummary();
+                return { ok: true, data };
+            },
         },
         {
             name: "explain",
@@ -125,7 +136,7 @@ export function createCliCommands(deps) {
                         return explainSubjectError("EXPLAIN_SUBJECT_REQUIRES_ID", "subject must include identifier");
                     }
                     if (code === "explain_subject_unsupported") {
-                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:");
+                        return explainSubjectError("EXPLAIN_SUBJECT_UNSUPPORTED", "supported subjects include decision:, platform:, outreach:, soul:, fallback:, delivery:, probe:, report:, source:, relationship:");
                     }
                     return explainSubjectError("EXPLAIN_SUBJECT_INVALID", "invalid explain subject");
                 }
@@ -148,8 +159,13 @@ export function createCliCommands(deps) {
             description: "T4.1.4 — report sql.js vs native SQLite probe and optional artifact→index repair fixture",
             execute: async (input) => {
                 const runRepairFixture = Boolean(input?.runRepairFixture);
-                const workspaceRoot = typeof input?.workspaceRoot === "string" ? input.workspaceRoot : undefined;
-                const data = await runStorageModeSmoke({ runRepairFixture, workspaceRoot });
+                const workspaceRoot = typeof input?.workspaceRoot === "string"
+                    ? input.workspaceRoot
+                    : undefined;
+                const data = await runStorageModeSmoke({
+                    runRepairFixture,
+                    workspaceRoot,
+                });
                 return { ok: true, data };
             },
         },
@@ -187,6 +203,104 @@ export function createCliCommands(deps) {
                     }
                     throw error;
                 }
+            },
+        },
+        {
+            name: "capability_probe",
+            description: "T1.2.8 — probe host capabilities and persist report (static unknown adapter in CLI context)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("capability_probe", input));
+                return surface;
+            },
+        },
+        {
+            name: "near_real_smoke",
+            description: "T3.3.2 — run near-real connector smoke (sentinel Moltbook + EvoMap, no live HTTP)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("near_real_smoke", input));
+                return surface;
+            },
+        },
+        {
+            name: "connector_init",
+            description: "T1.3.1 — generate connector manifest stub under .second-nature/connectors/{platformId}/",
+            execute: async (input) => {
+                const result = await connectorInit({
+                    platformId: typeof input?.platformId === "string" ? input.platformId : "",
+                    family: typeof input?.family === "string"
+                        ? input.family
+                        : undefined,
+                    displayName: typeof input?.displayName === "string"
+                        ? input.displayName
+                        : undefined,
+                    runnerKind: typeof input?.runnerKind === "string"
+                        ? input.runnerKind
+                        : undefined,
+                    force: Boolean(input?.force),
+                    workspaceRoot: typeof input?.workspaceRoot === "string"
+                        ? input.workspaceRoot
+                        : undefined,
+                });
+                return result;
+            },
+        },
+        {
+            name: "connector_behavior_add",
+            description: "Add a workspace-defined connector behavior to an existing manifest without executing custom code",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("connector_behavior_add", input));
+                return surface;
+            },
+        },
+        {
+            name: "connector_status",
+            description: "T1.2.3 — show connector inventory, trust/executable/conflict summary",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("connector_status", input));
+                return surface;
+            },
+        },
+        {
+            name: "connector_test",
+            description: "T1.2.3 — dry-run test a connector by platformId (default dry-run)",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("connector_test", input));
+                return surface;
+            },
+        },
+        {
+            name: "goal",
+            description: "T1.2.4 — owner-governed goal operations: set, list, accept, reject",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("goal", input));
+                return surface;
+            },
+        },
+        {
+            name: "narrative",
+            description: "T1.2.1 — show current NarrativeState: focus, progress, next intent, source refs, grounding status",
+            execute: async (input) => {
+                const narrativeId = typeof input?.narrativeId === "string" ? input.narrativeId : undefined;
+                const data = await readModels.loadNarrative(narrativeId);
+                return { ok: true, data };
+            },
+        },
+        {
+            name: "dream:recent",
+            description: "T1.2.2 — show recent Dream run results, candidate/accepted status, fallback/partial summary",
+            execute: async (input) => {
+                const limit = typeof input?.limit === "number" ? input.limit : 5;
+                const data = await readModels.loadDreamRecent(limit);
+                return { ok: true, data };
+            },
+        },
+        {
+            name: "cycle:recent",
+            description: "T1.2.5 — aggregate recent heartbeat, narrative, Dream, delivery, connector cycle summary",
+            execute: async (input) => {
+                const limit = typeof input?.limit === "number" ? input.limit : 5;
+                const data = await readModels.loadCycleRecent(limit);
+                return { ok: true, data };
             },
         },
     ];

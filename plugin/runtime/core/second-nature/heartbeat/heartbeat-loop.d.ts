@@ -19,6 +19,10 @@ import { type HeartbeatRuntimeSnapshot } from "./runtime-snapshot.js";
 import type { GuidanceDraftPort } from "../../../guidance/outreach-draft-schema.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
 import { type OpenClawDeliveryPort } from "../outreach/dispatch-user-outreach.js";
+import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
+import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
+import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
+import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 export interface HeartbeatDecisionTracePayload {
     scope: RuntimeScope;
     status: HeartbeatCycleStatus;
@@ -44,7 +48,7 @@ export interface HeartbeatQuietWorkflowDeps {
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
  */
-export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow">): Promise<HeartbeatCycleResult>;
+export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot">): Promise<HeartbeatCycleResult>;
 export interface HeartbeatDeps {
     /** Load snapshot inputs from state-system */
     loadSnapshotInputs: () => Promise<SnapshotInputs>;
@@ -52,6 +56,21 @@ export interface HeartbeatDeps {
     recordDecisionTrace?: (payload: HeartbeatDecisionTracePayload) => Promise<void>;
     outreachDispatch?: HeartbeatOutreachDispatchDeps;
     quietWorkflow?: HeartbeatQuietWorkflowDeps;
+    /**
+     * When present, guard-allowed connector_action intents are dispatched
+     * through the connector-system instead of returning connector_dispatch_unwired.
+     */
+    connectorExecutor?: ConnectorExecutor;
+    /** T2.1.5: when present, heartbeat writes a source-backed NarrativeState revision after each cycle. */
+    narrativeStateStore?: NarrativeStateStore;
+    /** T5.1.2: when present, heartbeat records a NarrativeTrace after successful narrative state update. */
+    recordNarrativeTrace?: (payload: NarrativeTracePayload) => Promise<void>;
+    /** T3.3.1: when present, successful connector effects write LifeEvidence artifacts. */
+    state?: StateDatabase;
+    /** T3.3.1: workspace root for evidence artifact paths. */
+    workspaceRoot?: string;
+    /** T2.4.1: when present, planner resolves platform-specific intents. */
+    connectorRegistry?: CapabilityContractRegistry;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

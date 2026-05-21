@@ -1,0 +1,37 @@
+schemaVersion: sn.connector.v1
+platformId: instreet
+displayName: InStreet
+family: social_community
+capabilities:
+  - id: notification.list
+    channel: api_rest
+    description: List notifications
+  - id: message.send
+    channel: api_rest
+    description: Send a direct message
+  - id: comment.reply
+    channel: api_rest
+    description: Reply to a comment
+  - id: agent.heartbeat
+    channel: api_rest
+    description: Agent heartbeat ping
+runner:
+  kind: declarative_http
+  entrypoint: ""
+config:
+  degradedChannels:
+    - skill
+    - browser
+credentials:
+  - type: api_key
+    required: true
+    description: API key for InStreet REST endpoints
+  - type: verification_code
+    required: true
+    description: SMS verification code for skill channel recovery
+sourceRefPolicy:
+  minSourceRefs: 1
+  rejectInlineSensitivePayload: true
+trust:
+  status: declarative_trusted
+  reason: v5_parity_fixture

@@ -9,6 +9,37 @@
 
 ---
 
+## 2026-05-11 - /change: 代码侧缺口落任务（CHANGE_PREP → T1.2.6～T1.2.9、T3.3.2）+ 宿主 tools.profile 验证回流
+
+- [CHANGE] `05_TASKS.md`：依据 `.anws/v5/CHANGE_PREP_CODE_SIDE_GAPS.md` 新增 **未勾选** Level-3 任务 **T1.2.6**（`policy show`）、**T1.2.7**（`audit` 最小闭环）、**T1.2.8**（`capability_probe` + ops-router + bridge）、**T1.2.9**（`decision_denied` vs `degraded` 语义）、**T3.3.2**（`near_real_smoke` ops 入口）；更新 **Contract Mapping**、**依赖图**、**任务统计**（+5 任务，+22h）；**INT-S4** / **T1.3.1** 验证说明增补 OpenClaw **`tools.profile` / `tools.allow`** 会话过滤归因（2026.5.7 宿主回填，非 SN 代码缺陷）
+  - 用户原话: 「来修改吧」（执行 `/change` 工作流：整理代码侧问题并回流任务）
+  - 修改内容: SN-CODE-01～05 → 可 `/forge` 任务 ID；宿主侧「插件已加载但会话无工具」与 **`tools.profile: coding`** 对齐的可记录口径
+  - 影响范围: `.anws/v5/05_TASKS.md`；`.anws/v5/CHANGE_PREP_CODE_SIDE_GAPS.md`（§4 勾选）；`AGENTS.md`（当前任务状态摘要）
+  - PRD 追溯: [REQ-019], [REQ-020], [REQ-025]（任务承接描述层；**未修改** PRD 正文 REQ 文本）
+
+## 2026-05-10 - /change: 删除冗余验证稿与草稿报告（INT-S4 SoT 收敛）
+
+- [REMOVE] 删除 `docs/validation/int-s4-human-operator-testing-guide.md`（内容并入 SoT：`e2e-t1-1-4-workspace-bridge-and-host-verification.md` + `reports/int-s4-release-readiness.md` + `05_TASKS` INT-S4 验证说明）
+- [REMOVE] 删除 `reports/int-s4-e2e-prd-confirmation.md`、`reports/openclaw-pr-description-embedded-toolsallow.md`、`reports/openclaw-issue-embedded-tools-allow-2026-5-6.md`（仓库内无其它依赖；PRD/E2E 矩阵以 `docs/validation/e2e-v5-prd-full-lived-experience.md` 为准）
+  - 用户原话: 「testing-guide 属于无用文件，清理一下我们的 reports」
+  - 影响范围: `docs/validation/*`、`reports/*`、`.anws/v5/05_TASKS.md`、`07_CHALLENGE_REPORT.md`（CH-12-04 位置列）、`explore/reports/2026-05-05_openclaw-plugin-support-survey.md`、`openclaw-carrier-host-brief.md`、`e2e-v5-prd-full-lived-experience.md`、`prompt-browser-e2e-agent.md`、`claw-remote-test-assistant-prompt.md`、`int-s4-host-smoke-testing-guide.md`
+
+## 2026-05-10 - /change 已批准: Claw 场测勘误回流（Round 14 + T2.2.2–T1.2.5 + INT-S4）
+
+- [CHANGE] `05_TASKS.md` / `07_CHALLENGE_REPORT.md`：**Claw 回填**（2026-05-10）— 全量心跳为 **`intent_selected`+maintenance**（**非** `silent_no_candidates`）；**无** `.second-nature/quiet/` 故 **CH-14-07「写了读不到」暂不适用当前现场**；**OpenClaw cron `delivery.mode:none`** 与 SN **`deliveryCapability:none`** 并存；**INT-S4** 增 **cron+`openWorkspaceBridge`** 证据路径与 **`tool_visibility_gap` Finding** 规则；**T2.2.2～T1.2.5** 描述/验收对齐勘误
+  - 用户原话: 「批准了，是这样子的，来吧」
+  - 修改内容: 场测初报与实测 JSON 对齐；`INT-S4` 验证说明区分 agent 工具路径 vs cron 主路径；`T2.2.3` 标题与验收增 **maintenance 无外部效应** 诚实 JSON；`T1.2.5` 增 cron 与 bridge 无 probe 说明；Round 14 质疑表增 **勘误** 小节并修订 CH-14-01/07 表述
+  - 影响范围: `.anws/v5/05_TASKS.md`；`.anws/v5/07_CHALLENGE_REPORT.md`；`AGENTS.md`（日期/摘要）；本 CHANGELOG
+  - PRD 追溯: [REQ-019], [REQ-022], [REQ-024], [REQ-026]（无 REQ 编号文本变更）
+
+## 2026-05-10 - /change AUTO: Round 14 / Nyx v0.1.18 场测任务回流（T2.2.2–T1.2.5）
+
+- [CHANGE] `05_TASKS.md`: 新增 **T2.2.2**（P0）、**T2.2.3**（P0）、**T1.2.4**（P1）、**T1.2.5**（P1）；更新 **Contract Mapping**、**依赖图**、**T2.2.1** 验证说明、**INT-S4** 描述/输入、**US-001** / **US-006**、**Contract Coverage Overlay**、**Blueprint 检查清单**、**任务统计**（+4 Level-3，+29h）
+  - 用户原话: 「的确，我们的任务还是很重大的，先修改文档吧 **AUTO**」（承接 Nyx 场测报告 + Round 14 `07_CHALLENGE_REPORT` CH-14 子代理审查结论）
+  - 修改内容: 将 workspace 心跳 **life evidence 未并入 SnapshotInputs**、`connector_action` **无效应/无 telemetry**、**Quiet JSON 与 report 读面断裂**、**`status` 缺投递姿态 + 默认 explain 缺 audit store** 落实为可 `/forge` 的四个任务；不改变 PRD 需求边界或 ADR 核心前提；**未**修改任何 `- [x]` / `- [ ]` 任务勾选状态（含 INT-S4）
+  - 影响范围: `.anws/v5/05_TASKS.md`；`AGENTS.md` 保留区（统计与 Wave 19 提示）
+  - PRD 追溯: [REQ-019], [REQ-022], [REQ-024], [REQ-026]（仅任务承接与验证说明，不修改 REQ 文本）
+
 ## 2026-05-09 - /change: `loadStatus` 聚合观测写回任务（T1.2.3）
 
 - [CHANGE] `05_TASKS.md`: 新增 **T1.2.3**（P0）：workspace `heartbeat_check` 路径写入 `decision_ledger`（`sn-runtime-*`）与 `execution_attempts`（`second-nature-runtime`），与 `loadStatus` 读模型融洽；**Contract Mapping** 与 **Contract Coverage Overlay** 增补；**依赖图** 接入 T2.2.1 → T1.2.3；**T1.2.1** 验证说明注明空表回落由 T1.2.3 闭合；**INT-S4** 输入/依赖/验证说明纳入 T1.2.3；任务统计 +1 Level-3、+1 P0、+4h
