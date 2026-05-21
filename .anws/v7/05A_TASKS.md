@@ -102,7 +102,7 @@
 
 ---
 
-- [ ] **T-SMS.F.3** [REQ-001, REQ-003]: 实现 Write Queue 与并发保护（DR-019）
+- [x] **T-SMS.F.3** [REQ-001, REQ-003]: 实现 Write Queue 与并发保护（DR-019）
   - **描述**: 在 `src/storage/db/` 下实现串行 write queue 单例；所有写入路径通过 `BEGIN EXCLUSIVE` transaction；50ms 退避重试最多 3 次；flush 失败写 stderr 而非阻塞读路径；支持 `triggerSource` 字段区分 `heartbeat`/`manual_run`/`probe`
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §12.Y`（Write Queue 并发保护）、T-SMS.F.2 产出
   - **输出**: `src/storage/db/write-queue.ts`、`src/storage/db/transaction-utils.ts`
