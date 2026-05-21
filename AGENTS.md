@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-21` (`/challenge`: Task Final Recheck PASS)
+- **最近一次更新**: `2026-05-21` (`/forge` Wave 47 settled)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -198,8 +198,14 @@ src/
 - 系统数: 8
 - **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；设计 `/challenge` PASS；`/blueprint` 完成；任务最终复审 `/challenge` **PASS**（0 Critical / 0 High / 1 Medium note，2026-05-21）
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Task Final Recheck PASS；TRR-001 已闭合，TRR-002 为设计清理 note）
-- **下一步**: 进入 `/forge`，按 `05A_TASKS.md` + `05B_VERIFICATION_PLAN.md` 执行 v7 实现
-- **最近更新**: `2026-05-21` (`/forge` Wave 46 settled + merged to main)
+- **下一步**: `/forge` Wave 48 — T-SMS.F.3 (Write Queue)
+- **最近更新**: `2026-05-21` (`/forge` Wave 47 settled)
+
+### 🌊 Wave 47 ✅ — v7 S1 Foundation: Schema Migration + Audit Family Registry
+T-SMS.F.2, T-OBS.F.1
+**签入**: AUTO  
+**code-reviewer**: `wave-reviews/wave-47-review.md`（最高严重度：无）  
+**风险备注**: 同 Wave 46——`04_SYSTEM_DESIGN/` 物理缺失，以 05A + ADR 为编码权威。
 
 ### 🌊 Wave 46 ✅ — v7 S1 Foundation: Shared Types
 T-SMS.F.1
