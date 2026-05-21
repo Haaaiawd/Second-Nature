@@ -214,11 +214,18 @@ sequenceDiagram
     CS-->>BTS: CapabilityProbeResult
     alt probe success
         BTS->>SMS: writeBreakerState(Closed)
+        BTS->>BTS: invalidateAffordanceCache(connectorId)
+        Note over BTS: probe 写入后立即失效对应 connectorId 的 affordance 缓存；下次 assembleAffordanceMap 强制读最新 breaker state
         BTS->>OBS: writeAuditEvent(breaker_closed)
     else probe failure
         BTS->>SMS: writeBreakerState(Open, extendedCooldown)
         BTS->>OBS: writeAuditEvent(breaker_reopened)
     end
+
+    Note over CS,SMS: connector 注册时 auto-probe 完成后
+    CS->>SMS: persist CapabilityProbeResult(platformId, capabilityId, httpStatus)
+    BTS->>SMS: readCapabilityProbeResult(platformId, capabilityId)
+    Note over BTS: assembleAffordanceMap 时读取最新 probe result\n初始化后的 capability 状态可被 affordance 组装使用
 ```
 
 **关键数据流说明**:
@@ -243,6 +250,23 @@ stateDiagram-v2
 
 > **职责边界**（DR-002）：`CircuitBreakerManager`（body-tool）负责状态机转换决策与 probe 发起时机；`WetProbeRunner`（connector-system）负责执行真实 HTTP 探测。HalfOpen → probe 的完整调用路径：`CircuitBreakerManager` 检测到 cooldown 到期 → 调用 `connector-system.runWetProbe(platformId, capabilityId, probeConfig)` → 收到 `CapabilityProbeResult` → 依结果转换为 Closed 或 Open。body-tool 不直接发 HTTP，connector-system 不感知 breaker state。
 
+### 4.5 BehaviorPromotion 状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> candidate
+
+    candidate --> approved : operator 显式 approve\n(幂等：重复 approve 返回已有 approved)
+    candidate --> rejected : operator 拒绝（附 reason）
+    candidate --> expired : 7 天内无操作自动过期
+
+    approved --> [*]
+    rejected --> candidate : 可重新 submitBehaviorPromotion（创建新记录）
+    expired --> candidate : 可重新 submitBehaviorPromotion（创建新记录）
+```
+
+> **职责边界**（DR-005）：`approveBehaviorPromotion` 幂等——promotionId 已为 `approved` 时重复调用直接返回现有记录，不重复写 audit。`rejected` 和 `expired` 记录只读，不可直接修改；operator 需重新提交新 candidate。
+
 ---
 
 ## 5. 接口设计 (Interface Design)
@@ -252,11 +276,19 @@ stateDiagram-v2
 | 操作                                                      | REQ        | 前置条件                                     | 消耗/输入                                                  | 产出/副作用                                                              | 实现细节                                                                           |
 | --------------------------------------------------------- | :--------: | -------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------ | :--------------------------------------------------------------------------------: |
 | `assembleAffordanceMap(contextScope)`                     | [REQ-002]  | connector inventory 可读；breaker state 可读 | contextScope（platformIds、goalKind、allowedStatuses）     | 返回 `ToolAffordanceMap`（status-filtered）；不含 credential / raw content | [§3.2](./body-tool-system.detail.md#32-assembleaffordancemap)                     |
-| `recordExperience(attempt)`                               | [REQ-003]  | attempt 含 connectorId、capabilityId、outcome | `AttemptRecord`（connectorId、capabilityId、outcome、latency、ownerReaction、sourceRef） | 写入 `ToolExperienceRow` 至 state-memory；触发 CircuitBreaker 评估；raw payload 被拒绝或 redacted | [§3.3](./body-tool-system.detail.md#33-recordexperience)                          |
+| `recordExperience(attempt)`                               | [REQ-003]  | attempt 含 connectorId、capabilityId、outcome | `AttemptRecord`（connectorId、capabilityId、outcome、latency、ownerReaction、sourceRef、**triggerSource**） | 写入 `ToolExperienceRow` 至 state-memory；触发 CircuitBreaker 评估；raw payload 被拒绝或 redacted | [§3.3](./body-tool-system.detail.md#33-recordexperience)                          |
 | `getCircuitBreakerPosture(connectorId, capabilityId?)`    | [REQ-009]  | breaker state 存在于 state-memory 或初始化为 Closed | connectorId、可选 capabilityId                             | 返回 `CircuitBreakerPosture`（state、cooldownUntil、consecutiveFailures、recommendedProbe） | [§3.4](./body-tool-system.detail.md#34-getcircuitbreakerposture)                  |
 | `submitBehaviorPromotion(observedCapability)`             | [REQ-004]  | observationCount >= promotionThreshold；capabilityId 未在 approved 列表 | `ObservedCapabilityInput`（connectorId、capabilityId、observationCount、evidenceRefs） | 创建或更新 `BehaviorPromotionEntry(candidate)`；不授予执行权；写入 audit | [§3.5](./body-tool-system.detail.md#35-submitbehaviorpromotion)                   |
 | `approveBehaviorPromotion(promotionId)`                   | [REQ-004]  | operator 身份已验证；promotionId 存在且状态为 submitted | promotionId、operatorId                                    | 更新 `BehaviorPromotionEntry` 状态为 `approved`；写入 audit；不自动执行 | [§3.6](./body-tool-system.detail.md#36-approvebehaviorpromotion)                  |
 | `getPainSignal(connectorId, capabilityId?)`               | [REQ-003]  | experience rows 可读                         | connectorId、可选 capabilityId                             | 返回 `PainSignal`（painLevel、recentOutcomes、cooldownRecommended）；聚合近期失败模式 | [§3.7](./body-tool-system.detail.md#37-getpainsignal)                             |
+
+> **AffordanceContextScope 语义说明**（DR-004）：
+> - `platformIds`：过滤白名单，空数组表示"全部平台"；非空时只返回指定 platformId 的 entries。
+> - `goalKind`：若传入，过滤 trust tier 与 goalKind 匹配的 capability（e.g. `task_completion` → 优先暴露 write/claim 类；`passive_sensing` → 只暴露 read 类）。默认不过滤。
+> - `allowedStatuses`：默认值为 `['available', 'degraded', 'half_open']`；不传则使用默认值；`blocked` 和 `pending_trust` 始终从 affordance 视图中排除。
+
+> **说明**（DR-006）：
+> - `CircuitBreakerManager` 在触发 `runWetProbe` 前，通过 `resolveCapability(platformId, capabilityId)` 验证 `safe_for_probe: true`；若 `safe_for_probe: false` 或 `idempotencyClass: "strict"`，则不触发 probe，将 breaker 保持在 HalfOpen 并等待下一次 heartbeat 自然调用结果。
 
 ### 5.2 跨系统接口协议 (Cross-System Interface)
 
@@ -267,6 +299,7 @@ interface IBodyToolSystem {
   assembleAffordanceMap(scope: AffordanceContextScope): Promise<ToolAffordanceMap>;
 
   // 记录 connector attempt 经验（connector-system / runtime-ops 写入）
+  // triggerSource 由调用方显式传入：control-plane 传 'heartbeat'，runtime-ops manual run 传 'manual_run'，probe adapter 传 'probe'
   recordExperience(attempt: AttemptRecord): Promise<void>;
 
   // 获取特定 connector capability 的断路器姿态（control-plane 消费）
@@ -337,7 +370,7 @@ interface ToolExperienceRow {
   capabilityId: string;
   attemptType: 'execution' | 'delivery' | 'probe';
   outcome: 'success' | 'failure' | 'policy_denied' | 'timeout';
-  failureClass: string | null;            // 如 'endpoint_404' / 'auth_401' / 'rate_limited'
+  failureClass: string | null;            // 直接从 ConnectorResult.failureClass 转写，body-tool 不自行推导；ConnectorResult 无 failureClass 时为 null
   latencyMs: number | null;
   ownerReaction: 'positive' | 'neutral' | 'negative' | 'ignored' | null;
   evidenceQuality: 'high' | 'medium' | 'low';
@@ -583,6 +616,7 @@ classDiagram
 3. **Breaker State 缓存**: heartbeat 周期内 breaker state 读取结果可缓存，避免同一 heartbeat 多次读取同一 connectorId 的 state。
 4. **Context-aware 过滤**: 根据 `contextScope`（platformIds、goalKind）提前过滤不相关 connector，减少 assembly 规模。
 5. **Redaction 轻量化**: `ExperienceWriter` 中 redaction 调用应是同步规则匹配，不走 LLM；失败快速返回 `redaction_failed` 而不是阻塞。
+6. **AffordanceAssembler 缓存策略**（DR-008）：`ToolAffordanceMap` 在同一 heartbeat cycle 内缓存（in-memory，TTL = heartbeat interval）；以下事件触发强制失效：(1) `CircuitBreakerState` 状态转换写入；(2) 新 `CapabilityProbeResult` 写入；(3) connector registry 更新（registerConnector / unregisterConnector）。缓存 key 为 `contextScope` 的规范化 hash，确保不同 scope 的 affordance 独立缓存。详细算法见 [L1 §3.2](./body-tool-system.detail.md#32-assembleaffordancemap)。
 
 ### 10.3 Performance Monitoring (性能监控)
 

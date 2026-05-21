@@ -76,7 +76,7 @@
 
 ### 2.1 Goals
 
-- **[G1]**: Quiet 生成非空 observation/fact claims，且每条 claim 有 source_refs。[REQ-005]
+- **[G1]**: Quiet 生成非空 observation/fact claims，且每条 claim 有 source_refs。[REQ-005]；TypeScript 类型层强制：fact 类型 QuietClaim 的 sourceRefs 声明为 `[string, ...string[]]`（non-empty tuple），编译时禁止空数组；单元测试接缝：ClaimSynthesizer 拒绝接受 sourceRefs 为空的 fact claim，返回 `claim_source_missing` 错误（详见 [L1 §3.1](./dream-quiet-system.detail.md#31-runquiet)）。
 - **[G2]**: Quiet 生成 DailyDiary artifact，包含"今天看到了什么 / 值得注意什么 / 明天想看什么"三段自然文本。[REQ-005]
 - **[G3]**: Dream 在 Quiet 完成后的允许窗口自动调度，生成 trace 或 explicit skip reason。[REQ-005]
 - **[G4]**: Dream output 始终为 `candidate`，只有通过 validation (schema + source grounding + sensitivity) 后才可进入 accepted 状态。[REQ-005]
@@ -307,6 +307,8 @@ sequenceDiagram
 | `loadAcceptedProjection(query)` | [REQ-001] | query within time window | time window | AcceptedProjection[] (only status=accepted) | [L1 §3.6](./dream-quiet-system.detail.md#36-loadacceptedprojection) |
 | `writeDailyDiary(day, claims, style)` | [REQ-005] | claims 非空; all fact claims source-backed | QuietClaim[] + inner guide style params | DailyDiary artifact (saw/noticed/tomorrow) | [L1 §3.7](./dream-quiet-system.detail.md#37-writedailydiary) |
 | `shouldTriggerDream(policy)` | [REQ-005] | policy 有效 | TriggerPolicy (cron/evidence/manual/quiet_completion) | { shouldRun, reason } | [L1 §3.8](./dream-quiet-system.detail.md#38-shouldtriggerdream) |
+
+> **loadAcceptedProjection 降级语义**（DR-024）：若 query 范围内无 accepted projection，返回 `[]`（空数组），不报错；`control-plane` 收到空数组时将 `acceptedDream` slice 标记为 `context_degraded:dream_projection_unavailable`，并在 `DecisionTracePayload` 中记录该 reason code，不阻断 heartbeat 继续运行。`candidate` 和 `archived` 状态的 DreamOutput 始终不进入此结果。
 
 ### 5.2 跨系统接口协议 (Cross-System Interface)
 
@@ -670,6 +672,8 @@ AcceptedProjection --> state-memory-system --> control-plane-system (EmbodiedCon
 | PII 进入 DailyDiary | 中 | source refs 只包含 id/kind/uri，不含 raw content |
 | Stale lock 阻止 Dream | 低 | Lock TTL (35min) auto-expire |
 
+> **ModelAssistPort 调用强制**（DR-027）：`ModelAssistPort` 的输入类型使用 `RedactedEvidenceBundle`（品牌类型，`{ _brand: "redacted"; contents: string[] }`）；`DreamEngine` 在调用 ModelAssistPort 前，必须先将 evidence bundle 传入 `RedactionGate.redactBundle()`，返回 `RedactedEvidenceBundle` 后才能调用 model；直接传入未经 redaction 的字符串在 TypeScript 类型层被拒绝。详见 [L1 §3.3](./dream-quiet-system.detail.md#33-rundream)。
+
 ---
 
 ## 10. 性能考虑 (Performance Considerations)
@@ -689,6 +693,8 @@ AcceptedProjection --> state-memory-system --> control-plane-system (EmbodiedCon
 3. **Fire-and-forget**: `scheduleDream` 不 await `runDream`；lock 确保单实例。
 4. **Lock TTL**: 35min (覆盖 30min operator timeout + buffer)，防止 stale lock。
 5. **Lazy model**: ModelAssistPort 只在 `budgetPort.checkBudget` 通过时调用。
+
+> **Dream lock 下的 Quiet claims 处理**（DR-026）：`loadDreamInputs` 查询条件为"所有未被任何 accepted projection 的 sourceRefs 引用的 QuietClaims"；因此被 lock 阻塞跳过的 Quiet claims 会在下次 Dream 执行时自动被加载——无需额外跟踪"被跳过"状态。Dream 完成后，新 accepted projection 的 sourceRefs 中包含本次消费的 claim ids，下次 Dream 将自动排除已处理条目，实现幂等去重。
 
 ### 10.3 Performance Monitoring
 
@@ -744,6 +750,12 @@ AcceptedProjection --> state-memory-system --> control-plane-system (EmbodiedCon
 | Dream budget gate | 基础规则 | int: budget OK -> hybrid_llm | int: budget exceeded -> rules_only + reason | Cost control |
 | Unsupported claims detection | 核心契约 | unit: 有 source 的 insight -> no unsupported | unit: 无 source insight -> unsupported | Dream quality |
 | Projection lifecycle: rejected 归档不销毁 | 核心契约 | int: archived output 仍可 query (审计) | int: archived 不可被 loadAccepted 返回 | Audit trail |
+
+> **Language Quality Checklist**（DR-031）：DailyDiary 和 DraftMessage 的语言风格通过以下 rule-based lint 验证（detail.md §5 边缘情况）：
+> (1) **无干燥白话**：输出文本不能仅包含"已完成 X"、"执行了 Y"等无情感锚点的操作性描述；至少包含一个 evidence-anchored 观察或感受（e.g. "看到了..."、"注意到..."）。
+> (2) **有具体锚点**：每段落至少一个 source ref 引用（fact claim）或具名 entity（人名/平台名/事件名）；禁止纯泛化陈述。
+> (3) **无过度阐释**：单句不超过 50 字，避免多层嵌套从句。
+> 以上规则通过单元测试（输入：diary text + source refs；断言：lint 通过）验证；不通过则 DailyDiary 标记为 `style_lint_failed`，但不阻断写入（降级标记）。
 
 ---
 

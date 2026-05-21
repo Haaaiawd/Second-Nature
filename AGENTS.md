@@ -361,6 +361,19 @@ S5 Waves 36-39 测试增量明细：
 
 ---
 
+## Bootstrap Recovery
+
+当 `sn runtime_secret_bootstrap` 返回 `missing_key` 或 `wrong_key` 时，按以下步骤排查：
+
+1. **检查环境变量**：确认 `SECOND_NATURE_ENCRYPTION_KEY` 已在当前 shell 或 `.env` 文件中设置。
+2. **验证 anchor 位置**：检查 workspace root 下是否存在 `data/runtime-secret-anchor.json`（或配置中定义的路径）。
+3. **重新验证**：运行 `sn runtime_secret_bootstrap`，status 应变为 `ok`。
+4. **密钥轮换（wrong_key）**：若密钥已更换，旧密文无法解密——需要执行 credential re-encryption 流程（见 runtime-ops-system.md §12）。
+
+注：恢复操作**不**输出密钥明文；所有状态通过 `RuntimeSecretAnchorView` 的 `status` 字段机器可读。
+
+---
+
 ## Manual Handoff — v6 Design System
 
 - `dream-system`: v6 异步记忆整理引擎设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/dream-system-research.md`。

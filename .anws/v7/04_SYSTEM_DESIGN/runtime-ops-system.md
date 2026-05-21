@@ -163,6 +163,9 @@ graph TD
 | `RuntimeSurfaceRouter` | 标准化 command、args、runtime mode 和 envelope | TypeScript | CLI/tool 同构 |
 | `WorkspaceOpsBridge` | lazy full-runtime bridge；解析 workspace root；动态装配 DB/read models/router | Node dynamic import | 继承 v6 bridge |
 | `ManualRunDispatcher` | `connector:run`、`connector_test --wet`、manual heartbeat probe 的隔离入口 | typed ports | 必须标记 `triggerSource` |
+
+> **Manual run 并发控制**（DR-038）：`ManualRunDispatcher` 在调用 state write 前通过 `ManualTriggerContext.affectsHeartbeatCadence: false` 标记隔离 trigger source；state-memory 的 write queue（参见 state-memory §12.Y）保证串行写入，`triggerSource` 字段由调用方在构建 `AttemptRecord`/`ToolExperienceRow` 时写入，不依赖写入顺序推断。在 `connector:run` 执行期间，系统不阻止 cron heartbeat 并发运行——两者通过 write queue 自然串行化，各自的 `triggerSource` 独立且准确。测试补充："并发 manual + cron"场景见 [L1 detail.md §11](./runtime-ops-system.detail.md)。
+
 | `HealthAndRecoverySurface` | `self_health`、`runtime_secret_bootstrap`、credential key health 读面 | read ports | 不拥有诊断算法 |
 | `DigestTimelineRestoreSurface` | `heartbeat_digest`、`narrative:diff`、`timeline`、`restore` 入口 | read/action ports | restore 写 audit 由下游负责 |
 | `OpsEnvelopeBuilder` | 统一 `RuntimeOpsEnvelope` 与 error shape | TypeScript schema | 防止 command-specific error 漂移 |
@@ -291,9 +294,27 @@ export interface RuntimeSecretBootstrapView {
   recoveryPrincipleRef: string;
   plaintextKeyExposed: false;
 }
+
+// SelfHealthView — runtime-ops self_health 命令的 data 字段（DR-042）
+// canonical 字段由 observability-health-system.SelfHealthSnapshot 定义
+export interface SelfHealthView {
+  overall: "healthy" | "degraded" | "unknown";
+  generatedAt: string;                     // ISO8601
+  degraded_dimensions: string[];           // 降级维度名称列表
+  dimensions: {
+    [dimension: string]: {
+      status: "healthy" | "degraded" | "unknown";
+      reason?: string;                     // diagnostic reason code
+      lastProbeAt?: string;                // ISO8601
+    };
+  };
+  lastKnownAt?: string;                    // 全部探针超时时返回最后已知快照时间
+}
 ```
 
-字段声明只描述公共契约；`SelfHealthView`、`ToolAffordanceView`、`HeartbeatDigestView`、`RestoreResult` 的 canonical 字段由对应系统设计持有。
+> `SelfHealthView` 是 `observability-health-system.SelfHealthSnapshot` 的 runtime-ops surface 投影，字段 1:1 对应；runtime-ops 不实现诊断算法，只做 envelope 包装（DR-042）。
+
+字段声明只描述公共契约；`ToolAffordanceView`、`HeartbeatDigestView`、`RestoreResult` 的 canonical 字段由对应系统设计持有。
 
 ### 6.2 实体关系 (Entity Relationship)
 

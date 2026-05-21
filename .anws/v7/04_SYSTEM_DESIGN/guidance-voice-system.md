@@ -209,6 +209,8 @@ sequenceDiagram
 | `selectOutreachStrategy(context)` | [REQ-006] | RelationshipMemory 存在；channel history 可用 | RelationshipContext + channel history | OutreachStrategy（频率、风格、fallback） | [§3.3](./guidance-voice-system.detail.md) |
 | `validateSourceClaims(draft)` | [REQ-001] | DraftMessage 包含 source_refs | DraftMessage + EvidencePack | ValidationResult；缺失 source 的 claim 列表 | [§3.4](./guidance-voice-system.detail.md) |
 
+> **Draft 生命周期与 source evidence 关联**（DR-028）：DraftMessage 在 delivery 前需经过 source_refs 有效性重验证（`validateDraftSources(draftId)`）：若任一 source_ref 对应的 evidence 已被 redact 或删除，draft 状态标记为 `invalid`，不允许 delivery；`runtime-ops-system` 在 `connector:run` delivery 前必须调用此验证；validation 失败时返回 `draft_source_invalidated` error code，operator 需重新生成 draft。
+
 ### 5.2 跨系统接口协议 (Cross-System Interface)
 
 ```typescript
@@ -231,6 +233,21 @@ interface IModelAssistPort {
   assistDrafting(summary: RedactedEvidenceSummary, context: DraftContext): Promise<DraftAssistance>;
 }
 ```
+
+```typescript
+// GuidanceDraftRequest — control-plane 发出，guidance-voice 消费
+interface GuidanceDraftRequest {
+  requestId: string;              // 幂等 key，control-plane 生成
+  sceneKind: "outreach" | "follow_up" | "reconnect";  // 场景类型
+  evidencePackRef: string;        // EvidencePack 在 state-memory 中的 ref id
+  relationshipContextRef: string; // RelationshipMemory ref，由 state-memory 提供
+  channelHint?: string;           // 目标 channel（可选，guidance 可自行选择）
+  ownerPreferenceRef?: string;    // OwnerPreference ref（可选）
+  requestedAt: string;            // ISO8601
+}
+```
+
+> 字段以上为 control-plane 与 guidance-voice 的对齐契约（DR-030）；`evidencePackRef` 和 `relationshipContextRef` 由 control-plane 在 `EmbodiedContext` 组装完成后填入，guidance-voice 读取后不修改原始 evidence。
 
 ### 5.3 HTTP API 端点摘要 (不适用)
 
@@ -422,6 +439,8 @@ classDiagram
 - **关键指标**: Draft generation latency、source validation rate、feedback ingestion latency
 - **监控工具**: 继承现有 `observability-health-system` 的 trace 和 metrics
 - **告警阈值**: Draft generation > 2s、source validation failure > 5%
+
+> **ChannelFeedbackIngestionService 写入失败处理**（DR-029）：写入 RelationshipMemory 失败时执行本地内存 queue + 指数退避重试（最多 3 次，间隔 500ms / 1000ms / 2000ms）；3 次失败后写入 observability audit event（family: `guidance.feedback_ingestion_failed`，含 feedback summary hash 不含原文）；不静默丢失 feedback，失败记录保留以供 operator 诊断。详见 [L1 detail.md §3.2](./guidance-voice-system.detail.md)。
 
 ## 11. 测试策略 (Testing Strategy)
 

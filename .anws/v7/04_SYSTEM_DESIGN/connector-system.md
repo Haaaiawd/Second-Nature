@@ -255,6 +255,7 @@ sequenceDiagram
 > - `connector_test --wet` 是 operator / runtime-ops-system 触发的顶层操作，内部委托 `runWetProbe`
 > - `executeCapability` 中 credential 验证失败直接返回 `StructuredUnavailableReason{credentials_missing}`，不进入 HTTP 执行
 > - `runWetProbe` 不使用 credential，只验证 endpoint 可达性和 response schema 合规性
+> - `WetProbeRunner` 在执行前强制验证 manifest 中对应 capabilityId 的 `safe_for_probe: true` 且 `idempotencyClass != "strict"`；不满足则返回 `StructuredUnavailableReason{reason: "probe_policy_denied", details: "capability is not safe for probe"}`，不执行 HTTP 请求
 
 ### 5.2 跨系统接口协议 (Cross-System Interface)
 

@@ -147,6 +147,15 @@ graph TD
 | `ScopeRouter` | Classifies `rhythm`, `user_task`, `user_reply` and applies runtime availability gate. | Does not load state on carrier-only path. |
 | `EmbodiedContextAssembler` | Loads bounded context slices and emits per-slice status/reasons. | Reads via ports; does not write state. |
 | `GoalLifecyclePolicy` | Evaluates active goals, detects replace/expire/complete conditions, and emits typed `GoalTransitionRequest`. Does NOT write goal state directly. | Durable goal mutation belongs to state-memory（`transitionGoalLifecycle`）；control-plane 评估 + 发出请求，state-memory 执行状态转换，两者职责不重叠（DR-012）。 |
+
+> **EmbodiedContextAssembler 边界约束**（DR-016）：Assembler 的职责严格限定为"读取并组装"——每个 slice 只做一次 bounded read port 调用，不含业务逻辑、不含写入操作、不含决策判断。组装逻辑超出"读取 → 标记 loaded/degraded/blocked → 组合成 context"三步的任何扩展，均应提取到独立组件而非膨胀 Assembler。输入上限：最多 7 个 read port 调用，P95 < 400ms（超时则对应 slice 标记 degraded）。
+> 
+> **EmbodiedContext 各 slice trim 策略**（DR-020）：
+> - `recentInteractions`：按时间倒序，取最新 10 条（LIFO trim）。
+> - `toolExperienceSummaries`：按 `timestamp` 倒序，取最新 10 条。
+> - `sourceRefs`：跨 slice 去重后取最多 20 条，优先保留 acceptedDream 和 identityProfile 的 refs。
+> - trim 在 `state-memory-system` read port 中执行（`readRecentInteractions(limit: 10)`），不在 assembler 里再次裁切。
+
 | `IdleCuriosityPolicy` | Selects at most one healthy read-only sensing intent. | Does not execute connector. |
 | `CandidateIntentPlanner` | Produces ordered candidates from context, goals, rhythm, and idle policy. | Candidate is not authorization. |
 | `HardGuardEvaluator` | Applies source, affordance, breaker, budget, cooldown, quiet, risk, and privacy guards. | Guard result is final for control-plane. |

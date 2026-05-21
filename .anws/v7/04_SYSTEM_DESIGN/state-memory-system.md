@@ -154,7 +154,7 @@ graph TD
 | Component | Responsibility | Notes |
 | --- | --- | --- |
 | `StateMemoryPort` | Typed cross-system entry; no arbitrary table writes | Public contract for runtime, control, dream, body, connector |
-| `WriteValidationGate` | Schema, source refs, sensitivity, lifecycle, size limits | Calls observability redaction policy where needed |
+| `WriteValidationGate` | Schema, source refs, sensitivity, lifecycle, size limits | **WriteValidationGate 强制范围**（DR-022）：所有写入路径（含 `GoalLifecycleStore`、`ToolExperienceStore`、`DiaryDreamStore`、`InteractionSnapshotProjector`、`RestoreSnapshotStore`）**必须**经过 `WriteValidationGate`；无论调用来源（control-plane / dream-quiet / body-tool / runtime-ops），gate 不可绕过。拒绝条件：(1) 含 credential/token/raw private content/raw prompt 字段；(2) source refs 为空（fact claim 类型）；(3) sensitivity scan 命中。错误类型：`write_validation_failed: {reason: "credential_detected" | "source_refs_missing" | "sensitivity_hit" | "schema_invalid"}`。 |
 | `IdentityProfileStore` | Canonical self and per-platform handles | Identity is not credential |
 | `GoalLifecycleStore` | Goal write, replace, expire, complete, pause | Active uniqueness by `kind+scope` |
 | `InteractionSnapshotProjector` | Redacted recent conversation / reply / commitment summary | Derived from chronicle/channel feedback |
@@ -196,6 +196,9 @@ stateDiagram-v2
     Accepted --> Paused: owner or policy pause
     Accepted --> Replaced: same kind+scope new accepted goal
     Paused --> Accepted: resume
+    Paused --> Completed: operator 手动完成
+    Paused --> Expired: 超过 expiresAt 时间
+    Paused --> Replaced: 同 kind+scope 新 goal 设置
     Proposal --> Rejected: owner or policy reject
     Completed --> [*]
     Expired --> [*]
@@ -239,6 +242,8 @@ stateDiagram-v2
 | `captureRestoreSnapshot(scope)` | [REQ-011] | before mutable write; exclusions known | state refs; mutation id | bounded snapshot | L0 |
 | `restoreFromSnapshot(request)` | [REQ-011] | preflight pass; audit sink available | snapshot id; scope | restored state subset + audit ref | L0 |
 | `upsertRuntimeSecretAnchor(anchor)` | [REQ-012] | no key material in payload | locationRef; health; recovery refs | anchor metadata row | L0 |
+
+> **upsertAgentGoal 事务语义**（DR-021）：写入使用 `BEGIN EXCLUSIVE` transaction；同 `kind+scope` 并发写入时，先到达 transaction 的请求胜出，后到达的请求读取到已更新的 goal 并执行 replace 语义（将自身设为 active，旧 goal 转为 replaced）。不使用乐观锁，以简单串行化保证原子性。
 
 ### 5.2 Cross-System Interface
 
@@ -292,6 +297,11 @@ stateDiagram-v2
 | `IdentityProfile` | `identityId`, `canonicalName`, `bioSummary`, `avatarRef?`, `platformProfiles[]`, `sourceRefs[]`, `status`, `updatedAt` |
 | `PlatformProfile` | `platformId`, `handle`, `displayName?`, `profileRef`, `avatarUrl?`, `lastVerifiedAt?`, `degradedReason?` |
 | `AgentGoal` | `goalId`, `kind`, `scope`, `status`, `origin`, `description`, `completionCriteria`, `priorityHint`, `expiresAt?`, `completedAt?`, `completionEvidenceRefs[]`, `replacedByGoalId?`, `sourceRefs[]`, `updatedAt` |
+
+> **AgentGoal.kind / scope 格式约束**（DR-014）：
+> - `kind`：枚举值，snake_case，不区分大小写（存储时统一转 lowercase）。已知值：`task_completion` / `passive_sensing` / `relationship_maintenance` / `content_creation` / `custom`。
+> - `scope`：可选字符串（`string | null`），null 表示"全局目标，无特定平台约束"；非 null 时为 platformId（e.g. `"moltbook"`），大小写敏感，与 connector registry 中的 platformId 一致。
+> - **Replace 等值判断**：`kind` lowercase 比较 + `scope` 精确比较（null == null, "moltbook" != "MOLTBOOK"）；仅当两者均相等时触发 replace 语义。
 | `RecentInteractionSnapshot` | `snapshotId`, `generatedAt`, `channelRef?`, `interactionSummaries[]`, `toneSignals[]`, `topics[]`, `pendingCommitments[]`, `contentRefs[]`, `sourceRefs[]` |
 | `ToolExperience` | `experienceId`, `platformId`, `capabilityId`, `triggerSource`, `outcome`, `failureClass?`, `latencyMs?`, `evidenceQuality`, `painScore`, `sourceRefs[]`, `redactionStatus`, `createdAt` |
 | `DailyDiary` | `diaryId`, `day`, `observedToday`, `notableSignals`, `tomorrowDirection`, `claimRefs[]`, `sourceRefs[]`, `artifactRef`, `sensitivityStatus`, `createdAt` |
@@ -300,6 +310,12 @@ stateDiagram-v2
 | `HeartbeatDigest` | `digestId`, `day`, `connectorCounts`, `breakerSummary`, `goalSummary`, `quietDreamSummary`, `healthSummaryRef?`, `deliveryStatus`, `proofRef?`, `sourceRefs[]` |
 | `CapabilityProbeResult` | `probeId`, `platformId`, `capabilityId`, `probeKind`, `endpointRef`, `httpStatus?`, `declaredStatus`, `actualStatus`, `sampleResponseRef?`, `mismatchReason?`, `redactionStatus`, `observedAt` |
 | `RestoreSnapshot` | `snapshotId`, `scope`, `version`, `capturedBeforeMutationId`, `stateRefs[]`, `excludedSensitiveKinds[]`, `contentHash`, `retentionExpiresAt`, `createdAt` |
+
+> **RestoreSnapshot 支持的 entity 白名单**（DR-017）：
+> - **可快照**：`IdentityProfile`、`AgentGoal`（active + paused）、`RecentInteractionSnapshot`、`NarrativeState`、`RelationshipMemory`、`ToolExperience`（最近 N 条）。
+> - **排除（excludedSensitiveKinds 默认值）**：`credential`、`raw_private_message`、`raw_prompt`、`encryption_key`、`session_token`。
+> - `DreamOutput`、`DailyDiary`、`NarrativeTimeline`：只存 ref（artifact id），不存完整内容。
+> - `CapabilityProbeResult`、`HeartbeatDigest`：排除（可重新生成，不需要 restore）。
 | `RuntimeSecretAnchor` | `anchorId`, `locationRef`, `keyHealth`, `rotationPolicyRef`, `recoveryDocRef`, `lastVerifiedAt`, `updatedAt` |
 
 ### 6.3 Entity Relationship
@@ -512,6 +528,21 @@ Bounded read models must return explicit degraded reasons instead of silently sc
 -  模式（无 native sqlite3）：每次写入后必须 flush（），flush 失败视为写入失败。
 - RestoreSnapshot 默认保留最近 3 版；超过后清理最旧的 snapshot（不删除 artifact，只移除 index row 和 retention pointer）。
 -  变更后，旧密文不可自动解密； 标记 ，self health 展示恢复原则。
+
+### 12.X Schema Migration 策略
+
+- **版本号存储**：在 SQLite DB 的 `_meta` 表中存储 `schema_version`（整数递增）；DB 首次初始化时写入版本 1。
+- **迁移顺序**：启动时检查 `schema_version`，按顺序执行所有 pending migration（v1 → v2 → ...）；迁移在 transaction 内执行，失败则 rollback 并标记 DB `degraded`。
+- **新增字段默认值**：所有新增列使用 `DEFAULT NULL` 或显式默认值；不允许在已有表上添加 NOT NULL 无默认值列。
+- **失败处理**：迁移失败后 DB 标记为 `schema_migration_failed`，`WriteValidationGate` 拒绝所有写入；`RepairMigrationService` 可尝试从 artifact 重建索引。
+- **回滚策略**：迁移不支持自动 down-migration；回滚通过恢复 DB 文件备份（在 RestoreSnapshot 的范围内）。
+
+### 12.Y Write Queue 与并发保护
+
+- **Write Queue**：所有写入操作（`WriteValidationGate` 处理后）进入单实例串行 write queue；queue 保证顺序性，防止 sql.js 并发写入冲突。
+- **Transaction 隔离**：写入使用 SQLite exclusive transaction（`BEGIN EXCLUSIVE`）；读取使用 deferred transaction（默认）。
+- **Flush 失败重试**：write queue 单次 flush 失败时等待 50ms 重试，最多 3 次；3 次失败后记录 `write_queue_flush_failed` 到 stderr，不阻塞读路径。
+- **Manual run vs heartbeat**：`triggerSource: "manual_run"` 的写入与 `triggerSource: "heartbeat"` 的写入共享同一 write queue，不设优先级；两者均需通过 `WriteValidationGate`。
 
 ---
 
