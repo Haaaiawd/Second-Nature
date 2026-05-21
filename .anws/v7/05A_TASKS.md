@@ -62,7 +62,7 @@
 
 ---
 
-- [ ] **T-SMS.F.1** [REQ-001, REQ-004, REQ-008]: 定义 v7 TypeScript 共享类型（SourceRef、AgentGoal、IdentityProfile、ToolExperience、DreamOutput、EmbodiedContext 等）
+- [x] **T-SMS.F.1** [REQ-001, REQ-004, REQ-008]: 定义 v7 TypeScript 共享类型（SourceRef、AgentGoal、IdentityProfile、ToolExperience、DreamOutput、EmbodiedContext 等）
   - **描述**: 在 `src/shared/` 或 `src/storage/types/` 下声明 v7 全量实体类型，保证跨系统类型一致性；包括 `AgentGoal.kind`/`scope` 格式约束（DR-014）、`RestoreSnapshot` entity 白名单（DR-017）、`SourceRef` non-empty tuple
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §6.2`（字段声明表）、`04_SYSTEM_DESIGN/control-plane-system.md §6.1`（EmbodiedContext）、`04_SYSTEM_DESIGN/body-tool-system.md §6`（ToolAffordanceMap 等）
   - **输出**: `src/shared/types/v7-entities.ts`、`src/shared/types/source-ref.ts`、`src/shared/types/goal.ts`（含 kind enum）
