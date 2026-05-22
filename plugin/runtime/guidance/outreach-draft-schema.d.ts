@@ -52,15 +52,15 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
     }>;
     rhythmWindowKind: z.ZodOptional<z.ZodEnum<{
         quiet: "quiet";
-        social: "social";
         maintenance: "maintenance";
-        work: "work";
         exploration: "exploration";
+        social: "social";
+        work: "work";
         reflection: "reflection";
     }>>;
     riskLevel: z.ZodEnum<{
-        medium: "medium";
         low: "low";
+        medium: "medium";
         high: "high";
     }>;
     sourceRefs: z.ZodArray<z.ZodObject<{
@@ -146,15 +146,15 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
     }>;
     rhythmWindowKind: z.ZodOptional<z.ZodEnum<{
         quiet: "quiet";
-        social: "social";
         maintenance: "maintenance";
-        work: "work";
         exploration: "exploration";
+        social: "social";
+        work: "work";
         reflection: "reflection";
     }>>;
     riskLevel: z.ZodEnum<{
-        medium: "medium";
         low: "low";
+        medium: "medium";
         high: "high";
     }>;
     sourceRefs: z.ZodArray<z.ZodObject<{
@@ -265,7 +265,7 @@ export declare function parseOutreachDraftRequest(input: unknown): OutreachDraft
 export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafeParseResult<{
     requestId: string;
     runtimeScope: "rhythm" | "user_reply" | "user_task";
-    riskLevel: "medium" | "low" | "high";
+    riskLevel: "low" | "medium" | "high";
     sourceRefs: {
         id: string;
         kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
@@ -285,7 +285,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
         excerptHash?: string | undefined;
         observedAt?: string | undefined;
     }[];
-    rhythmWindowKind?: "quiet" | "social" | "maintenance" | "work" | "exploration" | "reflection" | undefined;
+    rhythmWindowKind?: "quiet" | "maintenance" | "exploration" | "social" | "work" | "reflection" | undefined;
     deliveryContext?: {
         deliveryVerdict: "target_none" | "channel_missing" | "host_unsupported" | "delivery_failed" | "target_available";
         wordingMode: "sendable" | "not_sent_fallback_candidate";

@@ -4,6 +4,8 @@ import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import * as schema from "./schema/index.js";
+import { runMigrations } from "./migration-runner.js";
+import { ALL_MIGRATIONS } from "./migrations/index.js";
 // Pre-initialize sql.js WASM at module load time
 const SQL = await initSqlJs();
 const STATE_SCHEMA_SQL = `
@@ -190,6 +192,7 @@ function resolveDbPath(filename) {
 function bootstrapStateSchema(sqlite) {
     sqlite.exec(STATE_SCHEMA_SQL);
     applyStateSchemaMigrations(sqlite);
+    runMigrations(sqlite, ALL_MIGRATIONS);
 }
 function applyStateSchemaMigrations(sqlite) {
     const migrations = [

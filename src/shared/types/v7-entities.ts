@@ -186,6 +186,7 @@ export interface DreamOutput {
     errors: string[];
     checkedAt: string;
   };
+  createdAt?: string;
 }
 
 // ───────────────────────────────────────────────────────────────

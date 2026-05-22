@@ -30,6 +30,7 @@ export interface ConnectorResult<T> {
     data?: T;
     failureClass?: FailureClass;
     retryAfterMs?: number;
+    executionId?: string;
     metadata: {
         platformId: string;
         channel: ChannelType;

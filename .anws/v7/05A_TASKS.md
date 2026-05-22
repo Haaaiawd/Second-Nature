@@ -259,7 +259,7 @@
 
 ---
 
-- [ ] **T-SMS.C.6** [REQ-011, REQ-012]: 实现 RestoreSnapshotStore 与 RuntimeSecretAnchorStore
+- [x] **T-SMS.C.6** [REQ-011, REQ-012]: 实现 RestoreSnapshotStore 与 RuntimeSecretAnchorStore
   - **描述**: 实现 `RestoreSnapshotStore`（支持 6 类 entity 白名单快照，排除 credential/raw_private_message/raw_prompt/encryption_key/session_token，默认保留最近 3 版，DR-017）；实现 `RuntimeSecretAnchorStore`（只存 locationRef/health/rotationPolicyRef，禁止 key 明文）
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §6.2`（RestoreSnapshot、RuntimeSecretAnchor）、DR-017、T-SMS.C.1
   - **输出**: `src/storage/services/restore-snapshot-store.ts`、`src/storage/services/runtime-secret-anchor-store.ts`
@@ -299,7 +299,7 @@
 
 ---
 
-- [ ] **T-CS.C.2** [REQ-009]: 实现 WetProbeRunner 与 EffectCommitLedger SQLite 持久化
+- [x] **T-CS.C.2** [REQ-009]: 实现 WetProbeRunner 与 EffectCommitLedger SQLite 持久化
   - **描述**: 实现 `WetProbeRunner`（真实 HTTP GET safe endpoint，返回 CapabilityProbeResult 含 capabilityId）；`safe_for_probe` 双重验证（DR-006）：body-tool 调用前验证 + connector 强制校验 idempotencyClass，strict side-effect 拒绝 probe；`EffectCommitLedger` 持久化至 SQLite（v7 target）
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md §4.3`（数据流）、`§5.1`（WetProbeRunner 契约）、DR-001、DR-006
   - **输出**: `src/connectors/base/wet-probe-runner.ts`、`src/connectors/base/effect-commit-ledger-sqlite.ts`
@@ -319,7 +319,7 @@
 
 ---
 
-- [ ] **T-CS.C.3** [REQ-003, REQ-009]: 实现 StructuredUnavailableReason 与 connector execution 完整路径
+- [x] **T-CS.C.3** [REQ-003, REQ-009]: 实现 StructuredUnavailableReason 与 connector execution 完整路径
   - **描述**: 实现 `StructuredUnavailableReason Builder`（覆盖 credentials_missing / not_registered / trust_denied / circuit_open / platform_error / probe_failed / probe_policy_denied）；`ConnectorResult` 新增 `executionId` 和 `failureClass`（直接来自 FailureTaxonomy）；禁止静默失败
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md §4.2`（StructuredUnavailableReason Builder）、T-CS.C.2
   - **输出**: `src/connectors/base/structured-unavailable-reason.ts`、更新 `src/connectors/services/connector-executor-adapter.ts`
@@ -339,7 +339,7 @@
 
 ---
 
-- [ ] **T-SMS.C.7** [REQ-005, REQ-010, REQ-011]: 实现 DiaryDreamStore、HistoryDigestStore
+- [x] **T-SMS.C.7** [REQ-005, REQ-010, REQ-011]: 实现 DiaryDreamStore、HistoryDigestStore
   - **描述**: 实现 `DiaryDreamStore`（DailyDiary artifact ref + index、DreamOutput lifecycle 含 candidate/accepted/archived/partial 状态机、`transitionDreamOutputLifecycle`）；实现 `HistoryDigestStore`（NarrativeTimeline append-only rows、HeartbeatDigest daily summary rows）；accepted projection 读路径只暴露 accepted 状态
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §4.4`（DreamOutput lifecycle）、`§5.1`（WriteDailyDiary、WriteDreamOutput）、T-SMS.C.1
   - **输出**: `src/storage/services/diary-dream-store.ts`、`src/storage/services/history-digest-store.ts`

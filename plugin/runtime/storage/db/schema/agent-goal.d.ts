@@ -190,6 +190,44 @@ export declare const agentGoal: import("drizzle-orm/sqlite-core").SQLiteTableWit
         }, {}, {
             length: number | undefined;
         }>;
+        scope: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "scope";
+            tableName: "agent_goal";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        expiresAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "expires_at";
+            tableName: "agent_goal";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         createdAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "created_at";
             tableName: "agent_goal";

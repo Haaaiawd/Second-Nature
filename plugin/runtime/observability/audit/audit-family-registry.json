@@ -1,0 +1,66 @@
+{
+    "$schema": "audit-family-registry/v1",
+    "description": "Registered audit families for all 8 v7 systems. Unknown families are rejected at write time.",
+    "families": [
+        {
+            "family": "heartbeat.decision",
+            "plane": "decision",
+            "systemId": "control-plane-system",
+            "description": "Heartbeat decision cycle trace"
+        },
+        {
+            "family": "delivery",
+            "plane": "delivery",
+            "systemId": "guidance-voice-system",
+            "description": "Guidance delivery attempt and outcome"
+        },
+        {
+            "family": "source_coverage",
+            "plane": "source_coverage",
+            "systemId": "observability-health-system",
+            "description": "Source grounding and coverage assertions"
+        },
+        {
+            "family": "guidance.grounding",
+            "plane": "governance",
+            "systemId": "guidance-voice-system",
+            "description": "Guidance draft grounding and voice audit"
+        },
+        {
+            "family": "host_capability",
+            "plane": "telemetry",
+            "systemId": "runtime-ops-system",
+            "description": "Host capability probe and environment telemetry"
+        },
+        {
+            "family": "connector.attempt",
+            "plane": "telemetry",
+            "systemId": "connector-system",
+            "description": "Connector execution attempt and circuit breaker events"
+        },
+        {
+            "family": "state.governance",
+            "plane": "governance",
+            "systemId": "state-memory-system",
+            "description": "State mutation governance and write validation"
+        },
+        {
+            "family": "narrative.trace",
+            "plane": "telemetry",
+            "systemId": "observability-health-system",
+            "description": "Narrative timeline change trace"
+        },
+        {
+            "family": "dream.trace",
+            "plane": "telemetry",
+            "systemId": "dream-quiet-system",
+            "description": "Dream and quiet pipeline execution trace"
+        },
+        {
+            "family": "body.tool_experience",
+            "plane": "telemetry",
+            "systemId": "body-tool-system",
+            "description": "Tool experience logging and affordance map events"
+        }
+    ]
+}
