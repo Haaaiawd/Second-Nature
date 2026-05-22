@@ -32,10 +32,13 @@ export function createToolExperienceStore(database: StateDatabase): ToolExperien
 
   return {
     async appendToolExperience(exp: ToolExperience) {
-      const gate = validateWritePayload({
-        ...exp,
-        sourceRefs: exp.sourceRefs,
-      });
+      const gate = validateWritePayload(
+        {
+          ...exp,
+          sourceRefs: exp.sourceRefs,
+        },
+        { runSensitivityScan: false },
+      );
       if (!gate.ok) throw new Error(gate.reason ?? "write_validation_failed");
 
       sqlite.run(

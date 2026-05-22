@@ -201,6 +201,15 @@ src/
 - **下一步**: `/forge` Wave 52 — S2 Core State + Connector (T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3)
 - **最近更新**: `2026-05-21` (`/forge` Wave 51 settled)
 
+### 🌊 Wave 54 ✅ — v7 S3 Body Tool + Heartbeat: ExperienceWriter/Probe/PainSignal + CircuitBreaker
+T-BTS.C.4, T-BTS.C.5
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-21）
+- **产出**: 4 新模块 + 1 迁移 + 1 更新 + 13 单元测试（0 失败）
+- **最高严重度**: none
+- **下一步**: Wave 55 — T-BTS.C.3 (BehaviorPromotion) 或 INT-S2 / T-CP.C.1
+
 ### 🌊 Wave 53 ✅ — v7 S3 Body Tool + Heartbeat: AffordanceAssembler + ContextScope
 T-BTS.C.1, T-BTS.C.2
 **签入**: AUTO
@@ -208,7 +217,7 @@ T-BTS.C.1, T-BTS.C.2
 - **状态**: 完成（2026-05-21）
 - **产出**: 2 新模块 + 1 类型更新 + 17 单元测试（0 失败）
 - **最高严重度**: none
-- **下一步**: Wave 54 — T-BTS.C.4 (ExperienceWriter/ProbeSignalAdapter/PainSignal) + T-BTS.C.5 (CircuitBreakerManager)
+- **下一步**: Wave 55 — T-BTS.C.3 (BehaviorPromotion) 或 INT-S2 / T-CP.C.1
 
 ### 🌊 Wave 52 ✅ — v7 S2 Core State + Connector: Snapshot/Dream/WetProbe/UnavailableReason
 T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3

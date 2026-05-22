@@ -437,7 +437,7 @@
 
 ---
 
-- [ ] **T-BTS.C.4** [REQ-003]: 实现 ExperienceWriter、ProbeSignalAdapter 与 getPainSignal（DR-010）
+- [x] **T-BTS.C.4** [REQ-003]: 实现 ExperienceWriter、ProbeSignalAdapter 与 getPainSignal（DR-010）
   - **描述**: 实现 `ExperienceWriter.recordExperience(attempt)`（含 `triggerSource` 必填参数，DR-010）；写入前调用 redaction policy；failureClass 直接从 ConnectorResult 转写（DR-007）；实现 `ProbeSignalAdapter`（将 WetProbeRunner 结果转为 pain signal 和 experience row）；实现 `getPainSignal(connectorId, capabilityId?)` 供 affordance map 与 heartbeat guard 读取最近痛感
   - **输入**: `04_SYSTEM_DESIGN/body-tool-system.md §5.1`（recordExperience 契约）、T-BTS.C.1、T-CS.C.2
   - **输出**: `src/core/second-nature/body/tool-experience/experience-writer.ts`、`src/core/second-nature/body/probe-signal-adapter.ts`、`src/core/second-nature/body/tool-experience/pain-signal-query.ts`
@@ -458,7 +458,7 @@
 
 ---
 
-- [ ] **T-BTS.C.5** [REQ-003, REQ-009]: 实现 CircuitBreakerManager（DR-002, DR-006）
+- [x] **T-BTS.C.5** [REQ-003, REQ-009]: 实现 CircuitBreakerManager（DR-002, DR-006）
   - **描述**: 实现 `CircuitBreakerManager` 状态机（Closed → Open → HalfOpen → Closed/Open）；HalfOpen 时主动发起 `connector-system.runWetProbe(platformId, capabilityId, probeConfig)`（DR-002）；probe 前验证 `safe_for_probe: true`，strict side-effect 返回 `probe_policy_denied` 而非执行 probe（DR-006）；breaker state 持久化至 state-memory；状态转换写 observability audit
   - **输入**: `04_SYSTEM_DESIGN/body-tool-system.md §4.3~4.4`（CircuitBreaker 状态机、HalfOpen probe 发起职责）、T-CS.C.2、T-SMS.C.5
   - **输出**: `src/core/second-nature/body/circuit-breaker/circuit-breaker-manager.ts`
