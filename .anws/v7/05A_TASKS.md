@@ -499,7 +499,7 @@
 
 ---
 
-- [ ] **T-CP.C.2** [REQ-001]: 实现 heartbeat 主循环（ScopeRouter + HardGuardEvaluator + DownstreamIntentOrchestrator）
+- [x] **T-CP.C.2** [REQ-001]: 实现 heartbeat 主循环（ScopeRouter + HardGuardEvaluator + DownstreamIntentOrchestrator）
   - **描述**: 实现 `ScopeRouter`（rhythm/user_task/user_reply 分类）；`HardGuardEvaluator`（source refs、affordance、breaker、budget、cooldown、quiet、risk、privacy 守卫）；`DownstreamIntentOrchestrator`（允许 intent → ConnectorIntentRequest/QuietRunRequest/DreamScheduleRequest/GuidanceDraftRequest）；`DecisionTraceEmitter`（发出 trace payload 至 observability）
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md §4.2`（核心组件表）、`§5.1`（操作契约）、T-CP.C.1
   - **输出**: `src/core/second-nature/heartbeat/run-heartbeat-cycle-v7.ts`（或更新现有文件）、`src/core/second-nature/orchestrator/hard-guard-evaluator.ts`
@@ -520,7 +520,7 @@
 
 ---
 
-- [ ] **T-CP.C.3** [REQ-004]: 实现 GoalLifecyclePolicy 与 IdleCuriosityPolicy（DR-012）
+- [x] **T-CP.C.3** [REQ-004]: 实现 GoalLifecyclePolicy 与 IdleCuriosityPolicy（DR-012）
   - **描述**: 实现 `GoalLifecyclePolicy`（评估 active/expired/completed/replaced goal，发出 `GoalTransitionRequest` 给 state-memory 执行，DR-012 职责分离：control-plane 评估不直接写 goal state）；实现 `IdleCuriosityPolicy`（无 active goal 时选择最多一个 healthy allowlisted read-only sensing intent；无 eligible connector 时返回 `idle_policy_no_eligible_connector`；每小时最多 1 次，每轮最多 1 个 connector）
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md §4.4`（Goal and Idle Decision Model）、`§4.2`（GoalLifecyclePolicy 注释）、T-SMS.C.3
   - **输出**: `src/core/second-nature/heartbeat/goal-lifecycle-policy.ts`、`src/core/second-nature/heartbeat/idle-curiosity-policy.ts`

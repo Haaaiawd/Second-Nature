@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-21` (`/forge` Wave 47 settled)
+- **最近一次更新**: `2026-05-22` (`/forge` Wave 57 settled)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -210,6 +210,16 @@ INT-S2, T-CP.C.1
 - **INT-S2**: 135/135 单元测试通过，S2 退出标准全部满足
 - **最高严重度**: none
 - **下一步**: Wave 57 — T-CP.C.2 (heartbeat 主循环)
+
+### 🌊 Wave 57 ✅ — v7 S3 Control Plane: Heartbeat Main Loop + Goal/Idle Policy
+T-CP.C.2, T-CP.C.3
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-22）
+- **产出**: 6 新模块 + 4 测试文件 + 29 单元/集成测试（0 失败）
+- **最高严重度**: none
+- **预先存在失败**: `T2.2.3 bridge full-runtime heartbeat wires connectorExecutor`（main 分支同样失败，非 Wave 57 引入）
+- **下一步**: Wave 58 — INT-S3 或 T-DQS.C.1 (Quiet Pipeline)
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
