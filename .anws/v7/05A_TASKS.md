@@ -377,7 +377,7 @@
 
 ---
 
-- [ ] **T-BTS.C.1** [REQ-002, REQ-003]: 实现 AffordanceAssembler 含缓存失效策略（DR-003, DR-004, DR-008）
+- [x] **T-BTS.C.1** [REQ-002, REQ-003]: 实现 AffordanceAssembler 含缓存失效策略（DR-003, DR-004, DR-008）
   - **描述**: 实现 `AffordanceAssembler.assembleAffordanceMap(contextScope)`；`contextScope`（AffordanceContextScope）完整语义：platformIds 白名单、goalKind 影响过滤、allowedStatuses 默认值（DR-004）；heartbeat-cycle TTL 缓存 + breaker/probe/registry 变更时失效（DR-003、DR-008）；P95 < 1s for 50 manifests
   - **输入**: `04_SYSTEM_DESIGN/body-tool-system.md §4.3`（数据流）、`§5.1`（AffordanceContextScope 语义，DR-004 注释）、T-CS.C.1、T-SMS.C.5
   - **输出**: `src/core/second-nature/body/tool-affordance/affordance-assembler.ts`
@@ -397,7 +397,7 @@
 
 ---
 
-- [ ] **T-BTS.C.2** [REQ-002, REQ-004]: 实现 AffordanceContextScope 过滤逻辑（DR-004）
+- [x] **T-BTS.C.2** [REQ-002, REQ-004]: 实现 AffordanceContextScope 过滤逻辑（DR-004）
   - **描述**: 单独实现 AffordanceContextScope 的过滤语义作为独立模块：`platformIds` 白名单（空数组 = 全部）、`goalKind` 过滤规则（task_completion 优先 write/claim；passive_sensing 只暴露 read）、`allowedStatuses` 默认值 `['available','degraded','half_open']`、`blocked`/`pending_trust` 始终排除
   - **输入**: `04_SYSTEM_DESIGN/body-tool-system.md §5.1`（AffordanceContextScope 语义说明，DR-004）、T-BTS.C.1
   - **输出**: `src/core/second-nature/body/tool-affordance/affordance-context-scope.ts`
