@@ -141,7 +141,7 @@
 
 ---
 
-- [ ] **INT-S1** [MILESTONE]: S1 Foundation 集成验证
+- [x] **INT-S1** [MILESTONE]: S1 Foundation 集成验证
   - **描述**: 验证 S1 退出标准：TypeScript 类型编译通过、DB 初始化正常、write queue 并发安全、audit family registry 可加载
   - **输入**: T-SMS.F.1、T-SMS.F.2、T-SMS.F.3、T-OBS.F.1 全部产出
   - **输出**: `reports/int-s1-foundation-v7.md` 集成验证报告
