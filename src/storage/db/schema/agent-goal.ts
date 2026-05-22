@@ -13,6 +13,8 @@ export const agentGoal = sqliteTable(
     priorityHint: integer("priority_hint").notNull().default(0),
     sourceRefsJson: text("source_refs_json").notNull(),
     acceptedBy: text("accepted_by"),
+    scope: text("scope"),
+    expiresAt: text("expires_at"),
     createdAt: text("created_at").notNull(),
     updatedAt: text("updated_at").notNull(),
   },

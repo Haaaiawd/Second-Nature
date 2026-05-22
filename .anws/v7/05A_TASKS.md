@@ -179,7 +179,7 @@
 
 ---
 
-- [ ] **T-SMS.C.2** [REQ-001, REQ-006]: 实现 EmbodiedContextStatePort（DR-011, DR-013）
+- [x] **T-SMS.C.2** [REQ-001, REQ-006]: 实现 EmbodiedContextStatePort（DR-011, DR-013）
   - **描述**: 实现 `EmbodiedContextStatePort` 的全部方法：`loadIdentityProfile`、`listActiveGoals`、`loadRecentInteractionSnapshot`、`loadToolExperienceSlice`、`loadAcceptedDreamProjection`；每个方法支持 bounded query（limit/window）；affordance 和 self-health 切片注明来自 body-tool / observability，非 state-memory 直接读取
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §5.2`（EmbodiedContextStatePort）、T-SMS.C.1 WriteValidationGate
   - **输出**: `src/storage/services/embodied-context-state-port.ts`
@@ -199,7 +199,7 @@
 
 ---
 
-- [ ] **T-SMS.C.3** [REQ-004]: 实现 GoalLifecycleStore（DR-014, DR-015）
+- [x] **T-SMS.C.3** [REQ-004]: 实现 GoalLifecycleStore（DR-014, DR-015）
   - **描述**: 实现 `GoalLifecycleStore`：`upsertAgentGoal`（BEGIN EXCLUSIVE 事务，先到胜出，后到执行 replace 语义）、`transitionGoalLifecycle`（支持 accepted/completed/expired/paused/replaced 转换）、`listActiveGoals`；补充 paused 状态完整出边（DR-015）：paused → completed/expired/replaced/accepted；kind snake_case lowercase 强制（DR-014）
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §4.4`（Goal lifecycle 状态机）、`§5.1`（upsertAgentGoal 事务语义）、T-SMS.C.1
   - **输出**: `src/storage/services/goal-lifecycle-store.ts`
@@ -219,7 +219,7 @@
 
 ---
 
-- [ ] **T-SMS.C.4** [REQ-004, REQ-008]: 实现 IdentityProfileStore 与 InteractionSnapshotProjector
+- [x] **T-SMS.C.4** [REQ-004, REQ-008]: 实现 IdentityProfileStore 与 InteractionSnapshotProjector
   - **描述**: 实现 `IdentityProfileStore`（canonical identity + per-platform handles，不存 credential）、`InteractionSnapshotProjector`（redacted recent conversation / reply / commitment summary，不含私信全文）；`loadIdentityProfile` 缺少某平台时返回 `identity_profile_degraded:{platformId}` reason
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §6.2`（IdentityProfile、RecentInteractionSnapshot 字段）、T-SMS.C.1
   - **输出**: `src/storage/services/identity-profile-store.ts`、`src/storage/services/interaction-snapshot-projector.ts`
@@ -239,7 +239,7 @@
 
 ---
 
-- [ ] **T-SMS.C.5** [REQ-003, REQ-009]: 实现 ToolExperienceStore 与 CapabilityProbeResultStore
+- [x] **T-SMS.C.5** [REQ-003, REQ-009]: 实现 ToolExperienceStore 与 CapabilityProbeResultStore
   - **描述**: 实现 append-only `ToolExperienceStore`（outcome/failureClass/latencyMs/evidenceQuality/sourceRefs，raw payload 被 gate 拒绝）；`failureClass` 直接从 ConnectorResult 转写（DR-007）；`triggerSource` 字段必填（DR-010）；实现 `CapabilityProbeResultStore`（含 capabilityId、actualStatus、httpStatus、sampleResponseRef）
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §6.2`（ToolExperience、CapabilityProbeResult 字段）、T-SMS.C.1
   - **输出**: `src/storage/services/tool-experience-store.ts`、`src/storage/services/capability-probe-result-store.ts`

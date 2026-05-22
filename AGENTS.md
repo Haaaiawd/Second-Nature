@@ -198,8 +198,13 @@ src/
 - 系统数: 8
 - **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；设计 `/challenge` PASS；`/blueprint` 完成；任务最终复审 `/challenge` **PASS**（0 Critical / 0 High / 1 Medium note，2026-05-21）
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Task Final Recheck PASS；TRR-001 已闭合，TRR-002 为设计清理 note）
-- **下一步**: `/forge` Wave 51 — S2 Core State + Connector (T-SMS.C.2~C.7, T-CS.C.2~C.3)
-- **最近更新**: `2026-05-21` (`/forge` Wave 50 settled)
+- **下一步**: `/forge` Wave 52 — S2 Core State + Connector (T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3)
+- **最近更新**: `2026-05-21` (`/forge` Wave 51 settled)
+
+### 🌊 Wave 51 — v7 S2 Core State: State-Memory Stores + Port (IN PROGRESS)
+T-SMS.C.2, T-SMS.C.3, T-SMS.C.4, T-SMS.C.5
+**签入**: AUTO  
+**code-reviewer**: 默认执行
 
 ### 🌊 Wave 50 ✅ — v7 S2 Core State + Connector: WriteValidationGate + Registry
 T-SMS.C.1, T-CS.C.1
