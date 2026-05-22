@@ -417,7 +417,7 @@
 
 ---
 
-- [ ] **T-BTS.C.3** [REQ-004]: 实现 BehaviorPromotion 状态机（DR-005）
+- [x] **T-BTS.C.3** [REQ-004]: 实现 BehaviorPromotion 状态机（DR-005）
   - **描述**: 实现 `BehaviorPromotionLoop` 状态机：candidate → approved（幂等，重复 approve 返回现有记录）/ rejected（附 reason）/ expired（7 天内无操作自动过期）；rejected/expired 只读，可重新 submitBehaviorPromotion 创建新 candidate
   - **输入**: `04_SYSTEM_DESIGN/body-tool-system.md §4.5`（BehaviorPromotion 状态机）、T-SMS.C.3、T-SMS.C.4
   - **输出**: `src/core/second-nature/body/behavior-promotion/behavior-promotion-loop.ts`
