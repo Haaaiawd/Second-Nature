@@ -198,8 +198,18 @@ src/
 - 系统数: 8
 - **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；设计 `/challenge` PASS；`/blueprint` 完成；任务最终复审 `/challenge` **PASS**（0 Critical / 0 High / 1 Medium note，2026-05-21）
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Task Final Recheck PASS；TRR-001 已闭合，TRR-002 为设计清理 note）
-- **下一步**: `/forge` Wave 49 — INT-S1 (S1 Foundation 集成验证)
-- **最近更新**: `2026-05-21` (`/forge` Wave 48 settled)
+- **下一步**: `/forge` Wave 51 — S2 Core State + Connector (T-SMS.C.2~C.7, T-CS.C.2~C.3)
+- **最近更新**: `2026-05-21` (`/forge` Wave 50 settled)
+
+### 🌊 Wave 50 ✅ — v7 S2 Core State + Connector: WriteValidationGate + Registry
+T-SMS.C.1, T-CS.C.1
+**签入**: AUTO  
+**code-reviewer**: `wave-reviews/wave-50-review.md`（最高严重度：Low — `resolveCapability` unqualified intent fallback 设计 accepted）  
+
+### 🌊 Wave 49 ✅ — v7 S1 Foundation: INT-S1 Integration Verification
+INT-S1
+**签入**: AUTO  
+**code-reviewer**: `wave-reviews/wave-49-review.md`（最高严重度：无）  
 
 ### 🌊 Wave 48 ✅ — v7 S1 Foundation: Write Queue
 T-SMS.F.3

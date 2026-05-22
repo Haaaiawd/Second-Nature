@@ -159,7 +159,7 @@
 
 ---
 
-- [ ] **T-SMS.C.1** [REQ-001, REQ-008]: 实现 WriteValidationGate（DR-022）
+- [x] **T-SMS.C.1** [REQ-001, REQ-008]: 实现 WriteValidationGate（DR-022）
   - **描述**: 在 `src/storage/services/` 下实现强制所有写入路径必须通过的 `WriteValidationGate`；验证敏感字段（credential/token/raw private content/raw prompt）、source refs 非空约束（fact claim 类型）、sensitivity scan、schema 校验；拒绝时返回 `write_validation_failed:{reason}`
   - **输入**: `04_SYSTEM_DESIGN/state-memory-system.md §4.2`（WriteValidationGate 强制范围）、T-SMS.F.1 类型定义
   - **输出**: `src/storage/services/write-validation-gate.ts`
@@ -279,7 +279,7 @@
 
 ---
 
-- [ ] **T-CS.C.1** [REQ-009]: 实现 CapabilityContractRegistry v7 扩展（manifest v7 schema）
+- [x] **T-CS.C.1** [REQ-009]: 实现 CapabilityContractRegistry v7 扩展（manifest v7 schema）
   - **描述**: 扩展 `CapabilityContractRegistry` 支持 v7 manifest 新增字段：`probeConfig`（safeEndpoint、idempotencyClass）、`endpointMappings`（profilePath/claimPath/heartbeatPath）、`capabilityId`（DR-001 修复）；Zod 严格校验；注册失败返回具体校验错误
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md §4.2`（CapabilityContractRegistry）、T-SMS.F.1 类型
   - **输出**: `src/connectors/base/manifest-v7.ts`（扩展 schema）、更新 `src/connectors/registry/`
