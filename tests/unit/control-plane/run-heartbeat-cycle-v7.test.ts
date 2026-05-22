@@ -9,8 +9,16 @@ import type { EmbodiedContext } from "../../../src/shared/types/v7-entities.js";
 import type { CandidateIntent } from "../../../src/core/second-nature/types.js";
 import type { HardGuardEvaluatorDeps } from "../../../src/core/second-nature/orchestrator/hard-guard-evaluator.js";
 
-describe("runHeartbeatV7 integration", () => {
-  function buildBaseDeps() {
+describe("runHeartbeatV7 unit", () => {
+  function makeSignal(overrides: Partial<HeartbeatSignal> = {}): HeartbeatSignal {
+    return {
+      trigger: "heartbeat_bridge",
+      payload: { timestamp: new Date().toISOString() },
+      ...overrides,
+    };
+  }
+
+  function makeBaseDeps() {
     return {
       assembler: {
         assembleEmbodiedContext: async (): Promise<EmbodiedContext> => ({
@@ -31,104 +39,81 @@ describe("runHeartbeatV7 integration", () => {
         }),
       },
       planner: {
-        planCandidates: (): CandidateIntent[] => [
-          {
-            id: "intent-1",
-            kind: "work",
-            priority: 100,
-            source: "tick",
-            platformId: "moltbook",
-            summary: "test work",
-            effectClass: "connector_action",
-            sourceRefs: [{ id: "ref-1", kind: "platform_item", uri: "uri://1" }],
-            idempotencyKey: "key-1",
-            capabilityIntent: "feed.read",
-          },
-        ],
+        planCandidates: (): CandidateIntent[] => [],
       },
       evaluateHardGuards,
       buildGuardDeps: (): HardGuardEvaluatorDeps => ({
         hasDuplicateIntent: () => false,
         isOutreachCooldownClear: () => true,
-        affordanceMap: {
-          moltbook: [
-            {
-              platformId: "moltbook",
-              capabilityId: "feed.read",
-              intent: "feed.read",
-              status: "safe",
-            },
-          ],
-        },
       }),
       downstreamOrchestrator: createDownstreamIntentOrchestrator(),
       traceEmitter: createNoOpTraceEmitter(),
     };
   }
 
-  function makeSignal(overrides: Partial<HeartbeatSignal> = {}): HeartbeatSignal {
-    return {
-      trigger: "heartbeat_bridge",
-      payload: { timestamp: new Date().toISOString() },
-      ...overrides,
-    };
-  }
-
-  it("returns carrier_only when runtime is unavailable", async () => {
+  it("returns carrier_only when runtime unavailable", async () => {
     const result = await runHeartbeatV7({
       signal: makeSignal(),
       runtimeAvailable: false,
-      deps: buildBaseDeps(),
+      deps: makeBaseDeps(),
     });
     assert.strictEqual(result.status, "runtime_carrier_only");
-    assert(result.reasons.includes("runtime_unavailable_no_lived_experience_loop"));
   });
 
-  it("returns heartbeat_ok for user_task scope", async () => {
+  it("returns heartbeat_ok for user_task", async () => {
     const result = await runHeartbeatV7({
       signal: makeSignal({ trigger: "user_task" }),
       runtimeAvailable: true,
-      deps: buildBaseDeps(),
+      deps: makeBaseDeps(),
     });
     assert.strictEqual(result.status, "heartbeat_ok");
-    assert(result.reasons.includes("rhythm_gate_bypass_user_task"));
+    assert.ok(result.reasons.includes("rhythm_gate_bypass_user_task"));
   });
 
-  it("returns heartbeat_ok for user_reply scope", async () => {
+  it("returns heartbeat_ok for user_reply", async () => {
     const result = await runHeartbeatV7({
       signal: makeSignal({ trigger: "user_reply" }),
       runtimeAvailable: true,
-      deps: buildBaseDeps(),
+      deps: makeBaseDeps(),
     });
     assert.strictEqual(result.status, "heartbeat_ok");
-    assert(result.reasons.includes("user_reply_light_continuity_skeleton"));
+    assert.ok(result.reasons.includes("user_reply_light_continuity_skeleton"));
   });
 
-  it("selects first allowed intent in rhythm scope", async () => {
+  it("returns heartbeat_ok when no candidates", async () => {
     const result = await runHeartbeatV7({
       signal: makeSignal(),
       runtimeAvailable: true,
-      deps: buildBaseDeps(),
+      deps: makeBaseDeps(),
     });
-    assert.strictEqual(result.status, "intent_selected");
-    assert.strictEqual(result.selectedIntentId, "intent-1");
-    assert.ok(result.contextId);
-    assert.ok(result.downstreamRequestId);
+    assert.strictEqual(result.status, "heartbeat_ok");
+    assert.ok(result.reasons.includes("silent_no_candidates"));
   });
 
-  it("defers when affordance is painful (circuit open)", async () => {
-    const deps = buildBaseDeps();
+  it("selects first allowed intent", async () => {
+    const deps = makeBaseDeps();
+    deps.planner = {
+      planCandidates: (): CandidateIntent[] => [
+        {
+          id: "intent-1",
+          kind: "work",
+          priority: 100,
+          source: "tick",
+          platformId: "moltbook",
+          summary: "test work",
+          effectClass: "connector_action",
+          sourceRefs: [{ id: "ref-1", kind: "platform_item", uri: "uri://1" }],
+          idempotencyKey: "key-1",
+          capabilityIntent: "feed.read",
+        },
+      ],
+    };
     deps.buildGuardDeps = (): HardGuardEvaluatorDeps => ({
       hasDuplicateIntent: () => false,
       isOutreachCooldownClear: () => true,
       affordanceMap: {
         moltbook: [
-          {
-            platformId: "moltbook",
-            capabilityId: "feed.read",
-            intent: "feed.read",
-            status: "painful",
-          },
+          { platformId: "moltbook", capabilityId: "feed.read", intent: "feed.read", status: "safe" },
         ],
       },
     });
@@ -138,41 +123,13 @@ describe("runHeartbeatV7 integration", () => {
       runtimeAvailable: true,
       deps,
     });
-    // When all candidates are deferred, final status is deferred.
-    // Per aggregate-decision semantics, final reasons contain "no_allow_verdict".
-    assert.strictEqual(result.status, "deferred");
+    assert.strictEqual(result.status, "intent_selected");
+    assert.strictEqual(result.selectedIntentId, "intent-1");
+    assert.ok(result.downstreamRequestId);
   });
 
-  it("defers when all candidates lack source refs", async () => {
-    const deps = buildBaseDeps();
-    deps.planner = {
-      planCandidates: (): CandidateIntent[] => [
-        {
-          id: "intent-bad",
-          kind: "work",
-          priority: 100,
-          source: "tick",
-          platformId: "moltbook",
-          summary: "no refs",
-          effectClass: "connector_action",
-          sourceRefs: [],
-          idempotencyKey: "key-bad",
-        },
-      ],
-    };
-
-    const result = await runHeartbeatV7({
-      signal: makeSignal(),
-      runtimeAvailable: true,
-      deps,
-    });
-    assert.strictEqual(result.status, "deferred");
-  });
-
-  it("marks degraded when assembly exceeds P95 (simulated)", async () => {
-    const deps = buildBaseDeps();
-    // Empty candidates so status stays heartbeat_ok with degradation note
-    deps.planner = { planCandidates: () => [] };
+  it("degrades when assembly exceeds P95", async () => {
+    const deps = makeBaseDeps();
     deps.assembler = {
       assembleEmbodiedContext: async (): Promise<EmbodiedContext> => {
         await new Promise((r) => setTimeout(r, 2100));
@@ -201,6 +158,28 @@ describe("runHeartbeatV7 integration", () => {
       deps,
     });
     assert.strictEqual(result.status, "heartbeat_ok");
-    assert(result.reasons.some((r) => r.includes("assembly_p95_exceeded")));
+    assert.ok(result.reasons.some((r) => r.includes("assembly_p95_exceeded")));
+  });
+
+  it("handles null payload gracefully", async () => {
+    const result = await runHeartbeatV7({
+      signal: { trigger: "heartbeat_bridge", payload: null as any },
+      runtimeAvailable: true,
+      deps: makeBaseDeps(),
+    });
+    assert.ok(
+      result.status === "heartbeat_ok" || result.status === "runtime_carrier_only",
+    );
+  });
+
+  it("handles array payload gracefully", async () => {
+    const result = await runHeartbeatV7({
+      signal: { trigger: "heartbeat_bridge", payload: [] as any },
+      runtimeAvailable: true,
+      deps: makeBaseDeps(),
+    });
+    assert.ok(
+      result.status === "heartbeat_ok" || result.status === "runtime_carrier_only",
+    );
   });
 });

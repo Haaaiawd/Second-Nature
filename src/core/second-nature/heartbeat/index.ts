@@ -53,3 +53,32 @@ export {
   type GuidanceBridgeResult,
   type HeartbeatExecutionResult,
 } from "./heartbeat-executor.js";
+
+/* Wave 57 — v7 heartbeat main loop + goal/idle policy */
+export {
+  runHeartbeatV7,
+  type HeartbeatDecision,
+  type HeartbeatV7Deps,
+  type RunHeartbeatV7Input,
+} from "./run-heartbeat-cycle-v7.js";
+
+export {
+  createDecisionTraceEmitter,
+  createNoOpTraceEmitter,
+  type DecisionTracePayload,
+  type DecisionTraceEmitter,
+} from "./decision-trace-emitter.js";
+
+export {
+  createGoalLifecyclePolicy,
+  type GoalLifecyclePolicy,
+  type GoalTransitionRequest,
+  type GoalLifecyclePolicyResult,
+} from "./goal-lifecycle-policy.js";
+
+export {
+  createIdleCuriosityPolicy,
+  type IdleCuriosityPolicy,
+  type IdleCuriosityCandidate,
+  type IdleCuriosityPolicyResult,
+} from "./idle-curiosity-policy.js";

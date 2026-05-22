@@ -71,14 +71,18 @@ export function createIdleCuriosityPolicy(): IdleCuriosityPolicy {
           // Check cooldown
           const lastIdle = recentIdleHistory
             .filter((h) => h.platformId === platformId)
-            .sort(
-              (a, b) =>
-                new Date(b.at).getTime() - new Date(a.at).getTime(),
-            )[0];
+            .sort((a, b) => {
+              const aTime = new Date(a.at).getTime();
+              const bTime = new Date(b.at).getTime();
+              if (isNaN(aTime) || isNaN(bTime)) return 0;
+              return bTime - aTime;
+            })[0];
           if (lastIdle) {
-            const elapsed =
-              now - new Date(lastIdle.at).getTime();
-            if (elapsed < IDLE_COOLDOWN_MS) continue;
+            const lastTime = new Date(lastIdle.at).getTime();
+            if (!isNaN(lastTime)) {
+              const elapsed = now - lastTime;
+              if (elapsed < IDLE_COOLDOWN_MS) continue;
+            }
           }
 
           eligible.push(item);

@@ -1,7 +1,7 @@
 /**
  * GoalLifecyclePolicy — T-CP.C.3
  *
- * Core logic: Evaluates active goals, detects replace/expire/complete
+ * Core logic: Evaluates active goals, detects replace/expire
  * conditions, and emits typed GoalTransitionRequest.
  *
  * Responsibility separation (DR-012):
@@ -57,11 +57,12 @@ export function createGoalLifecyclePolicy(): GoalLifecyclePolicy {
 
       for (const [key, list] of groups) {
         // Sort by updatedAt desc, keep newest as active
-        const sorted = [...list].sort(
-          (a, b) =>
-            new Date(b.updatedAt).getTime() -
-            new Date(a.updatedAt).getTime(),
-        );
+        const sorted = [...list].sort((a, b) => {
+          const aTime = new Date(a.updatedAt).getTime();
+          const bTime = new Date(b.updatedAt).getTime();
+          if (isNaN(aTime) || isNaN(bTime)) return 0;
+          return bTime - aTime;
+        });
         const [newest, ...older] = sorted;
 
         if (newest) {
@@ -81,13 +82,16 @@ export function createGoalLifecyclePolicy(): GoalLifecyclePolicy {
 
       // Detect expired goals among active
       for (const goal of activeGoals) {
-        if (goal.expiresAt && new Date(goal.expiresAt) < new Date(now)) {
-          transitionRequests.push({
-            goalId: goal.goalId,
-            newStatus: "expired",
-            reason: "expires_at_reached",
-            updatedAt: now,
-          });
+        if (goal.expiresAt) {
+          const expiresTime = new Date(goal.expiresAt).getTime();
+          if (!isNaN(expiresTime) && expiresTime < new Date(now).getTime()) {
+            transitionRequests.push({
+              goalId: goal.goalId,
+              newStatus: "expired",
+              reason: "expires_at_reached",
+              updatedAt: now,
+            });
+          }
         }
       }
 

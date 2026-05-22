@@ -36,6 +36,7 @@ import type {
   DecisionTraceEmitter,
   DecisionTracePayload,
 } from "./decision-trace-emitter.js";
+import type { EmbodiedContext } from "../../../shared/types/v7-entities.js";
 import { routeScopedInput } from "./scope-router.js";
 
 export type HeartbeatDecisionStatus =
@@ -57,9 +58,7 @@ export interface HeartbeatDecision {
 }
 
 export interface CandidateIntentPlanner {
-  planCandidates(
-    context: import("../../../shared/types/v7-entities.js").EmbodiedContext,
-  ): CandidateIntent[];
+  planCandidates(context: EmbodiedContext): CandidateIntent[];
 }
 
 export interface HeartbeatV7Deps {
@@ -69,9 +68,7 @@ export interface HeartbeatV7Deps {
     intent: CandidateIntent,
     deps: HardGuardEvaluatorDeps,
   ) => GuardEvaluation;
-  buildGuardDeps: (
-    context: import("../../../shared/types/v7-entities.js").EmbodiedContext,
-  ) => HardGuardEvaluatorDeps;
+  buildGuardDeps: (context: EmbodiedContext) => HardGuardEvaluatorDeps;
   downstreamOrchestrator: DownstreamIntentOrchestrator;
   traceEmitter: DecisionTraceEmitter;
 }
@@ -90,10 +87,16 @@ export async function runHeartbeatV7(
   const { signal, runtimeAvailable, deps } = input;
 
   // ── Scope routing ─────────────────────────────────────────────
+  const payload: Record<string, unknown> =
+    typeof signal.payload === "object" &&
+    signal.payload !== null &&
+    !Array.isArray(signal.payload)
+      ? (signal.payload as Record<string, unknown>)
+      : {};
   const scoped = {
     trigger: signal.trigger,
     scopeHint: signal.scopeHint,
-    payload: signal.payload as Record<string, unknown>,
+    payload,
   };
   const route = routeScopedInput(scoped);
 
