@@ -359,7 +359,7 @@
 
 ---
 
-- [ ] **INT-S2** [MILESTONE]: S2 Core State + Connector 集成验证
+- [x] **INT-S2** [MILESTONE]: S2 Core State + Connector 集成验证
   - **描述**: 验证 S2 退出标准：所有 state-memory 端口集成测试通过；connector wet probe 返回真实 status；goal lifecycle replace/expire/complete 可验证；WriteValidationGate 拒绝敏感字段
   - **输入**: T-SMS.C.1~C.7、T-CS.C.1~C.3 全部产出
   - **输出**: `reports/int-s2-core-state-connector-v7.md`
@@ -479,7 +479,7 @@
 
 ---
 
-- [ ] **T-CP.C.1** [REQ-001, REQ-008]: 实现 EmbodiedContextAssembler（DR-013, DR-016, DR-020）
+- [x] **T-CP.C.1** [REQ-001, REQ-008]: 实现 EmbodiedContextAssembler（DR-013, DR-016, DR-020）
   - **描述**: 实现 `EmbodiedContextAssembler`，通过 `EmbodiedContextStatePort` 读取 5 类 state slice（identity/goals/recent/toolExperience/acceptedDream）；affordance slice 来自 body-tool；self-health slice 来自 observability；最多 7 个 read port 调用，P95 < 400ms（DR-016）；trim 策略：recentInteractions LIFO 10 条，experiences 10 条，sourceRefs 20 条去重（DR-020）；每个 slice 标记 loaded/degraded/blocked
   - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md §4.2`（EmbodiedContextAssembler 边界约束）、T-SMS.C.2、T-BTS.C.1
   - **输出**: `src/core/second-nature/heartbeat/embodied-context-assembler.ts`

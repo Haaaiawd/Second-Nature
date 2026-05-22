@@ -201,14 +201,17 @@ src/
 - **下一步**: `/forge` Wave 52 — S2 Core State + Connector (T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3)
 - **最近更新**: `2026-05-21` (`/forge` Wave 51 settled)
 
-### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
-T-BTS.C.3
+### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
+INT-S2, T-CP.C.1
 **签入**: AUTO
 **code-reviewer**: 默认执行
 - **状态**: 完成（2026-05-21）
-- **产出**: 1 新模块 + 1 迁移 + 9 单元测试（0 失败）
+- **产出**: 1 新模块 + 1 报告 + 5 单元测试（0 失败）
+- **INT-S2**: 135/135 单元测试通过，S2 退出标准全部满足
 - **最高严重度**: none
-- **下一步**: INT-S2 或 T-CP.C.1 (EmbodiedContextAssembler)
+- **下一步**: Wave 57 — T-CP.C.2 (heartbeat 主循环)
+
+### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
 ### 🌊 Wave 54 ✅ — v7 S3 Body Tool + Heartbeat: ExperienceWriter/Probe/PainSignal + CircuitBreaker
 T-BTS.C.4, T-BTS.C.5
