@@ -7,6 +7,8 @@
  * Test coverage: tests/integration/dream/t7-1-1-dream-pipeline.test.ts
  */
 
+import type { RedactedEvidenceBundle } from "./types.js";
+
 const CREDENTIAL_PATTERNS = [
   /password\s*[:=]\s*\S+/gi,
   /token\s*[:=]\s*\S+/gi,
@@ -37,6 +39,32 @@ export interface RedactionResult {
   blockedReason?: string;
   credentialHits: number;
   piiHits: number;
+}
+
+/**
+ * Produce a RedactedEvidenceBundle brand type (DR-027).
+ * Must be called before passing evidence to ModelAssistPort.
+ * Returns null if redaction gate blocks the bundle.
+ */
+export function redactBundle(
+  evidence: string[],
+  chronicle: string[],
+  memory?: string[],
+): RedactedEvidenceBundle | null {
+  const result = redactDreamInput({
+    evidenceSummaries: evidence,
+    chronicleSummaries: chronicle,
+    activeMemorySummaries: memory ?? [],
+  });
+  if (!result.allowed) return null;
+  return {
+    _brand: "redacted",
+    evidence: Object.freeze(result.redactedEvidence) as readonly string[],
+    chronicle: Object.freeze(result.redactedChronicle) as readonly string[],
+    memory: result.redactedMemory.length > 0
+      ? (Object.freeze(result.redactedMemory) as readonly string[])
+      : undefined,
+  };
 }
 
 function redactText(text: string): {

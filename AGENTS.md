@@ -259,6 +259,21 @@ T-DQS.C.2
 - **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 60 引入）
 - **下一步**: T-DQS.C.3 (Dream Engine v7 适配) 或 T-GVS.C.1 (GuidanceDraftService)
 
+### 🌊 Wave 61 ✅ — v7 S4 Dream/Quiet: T-DQS.C.3 Dream Pipeline + ModelAssistPort RedactedEvidenceBundle
+T-DQS.C.3
+**签入**: AUTO
+**code-reviewer**: 子代理审查 → Partial Pass → 修复后 Pass
+- **状态**: 完成（2026-05-22）
+- **产出**: RedactedEvidenceBundle 品牌类型 + ModelAssistPort + Dream Engine v7 适配 + 10 单元测试
+- **审查报告**: `.anws/v7/wave-reviews/wave-61-review.md`
+- **最高严重度**: none (修复后)
+- **修复摘要**:
+  - Critical: 避免双重 redaction；redaction 失败调用 archived lifecycle；Object.freeze 品牌类型
+  - High: ToolExperience source grounding 验证；lifecycle transition 异常处理
+  - Low: modelAssistPort 优先级文档
+- **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 61 引入）
+- **下一步**: T-DQS.C.4 (Dream Scheduler Quiet-completion 触发) 或 T-OBS.C.1 (RedactionPolicy)
+
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
 ### 🌊 Wave 54 ✅ — v7 S3 Body Tool + Heartbeat: ExperienceWriter/Probe/PainSignal + CircuitBreaker

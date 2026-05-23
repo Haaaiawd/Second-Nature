@@ -21,7 +21,7 @@ import type {
 } from "./types.js";
 import { consolidateMemory } from "./memory-consolidator.js";
 import { sampleDreamInput } from "./sampler.js";
-import { redactDreamInput } from "./redaction-gate.js";
+import { redactDreamInput, redactBundle } from "./redaction-gate.js";
 import { validateDreamOutput } from "./output-validator.js";
 
 const DEFAULT_TIMEOUT_MS = 30 * 60 * 1000; // 30min
@@ -81,9 +81,19 @@ export async function runDream(
     createdAt: new Date().toISOString(),
   }));
 
+  const toolExperienceSummaries = (inputBundle.toolExperienceSummaries ?? []).map(
+    (te) => ({
+      id: `${te.connectorId}:${te.capabilityId}:${te.outcome}`,
+      summary: `tool_experience:${te.connectorId}:${te.capabilityId}:${te.outcome}:count=${te.count}`,
+      sourceRefs: [{ sourceId: `tool_exp:${te.connectorId}:${te.capabilityId}`, kind: "tool_experience" as const, url: undefined }],
+      createdAt: te.lastRecordedAt,
+    }),
+  );
+
   const consolidation = consolidateMemory({
     evidenceSummaries,
     chronicleSummaries,
+    toolExperienceSummaries,
     existingEntries: [], // In real use, load from activeMemoryStoreId
   });
 
@@ -130,7 +140,15 @@ export async function runDream(
         checkedAt: new Date().toISOString(),
       },
     });
+    output.status = "archived";
     await input.statePort.writeDreamOutput(output);
+    // DR-023: redaction failure is a validation failure → archived lifecycle.
+    await input.statePort.markDreamOutputLifecycle({
+      outputId: output.outputId,
+      newStatus: "archived",
+      validation: output.validation,
+      updatedAt: new Date().toISOString(),
+    });
     const trace = buildTrace({
       traceId,
       runId,
@@ -163,27 +181,51 @@ export async function runDream(
   let fallbackReason: string | undefined;
   let llmCostUsd: number | undefined;
 
-  if (input.modelPort && input.budgetPort) {
+  if ((input.modelAssistPort || input.modelPort) && input.budgetPort) {
     const budgetCheck = await input.budgetPort.checkBudget(0.5);
     if (budgetCheck.allowed) {
       // ─── 6. Model insights ─────────────────────────────────────────────────
       try {
-        const modelPromise = input.modelPort.extractInsights({
-          sampledEvidence: redaction.redactedEvidence,
-          chronicleSummary: redaction.redactedChronicle.join("\n"),
-          redacted: true,
-        });
+        let modelPromise: Promise<{
+          insights: import("./types.js").DreamInsight[];
+          narrativeUpdate?: import("./types.js").DreamNarrativeUpdate;
+          relationshipUpdate?: import("./types.js").DreamRelationshipUpdate;
+          unsupportedClaims: string[];
+          costUsd?: number;
+        }>;
 
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(
-            () => reject(new Error("model_timeout")),
-            operatorTimeoutMs,
-          );
-        });
+        if (input.modelAssistPort) {
+          // DR-027: ModelAssistPort requires RedactedEvidenceBundle brand type.
+          // Evidence already redacted by redactDreamInput above; construct brand
+          // bundle directly to avoid double-redaction.
+          const redactedBundle: import("./types.js").RedactedEvidenceBundle = {
+            _brand: "redacted",
+            evidence: redaction.redactedEvidence,
+            chronicle: redaction.redactedChronicle,
+            memory: redaction.redactedMemory,
+          };
+          modelPromise = input.modelAssistPort.extractInsights(redactedBundle);
+        } else if (input.modelPort) {
+          // Deprecated path: DreamModelPort accepts plain object (backward compat).
+          modelPromise = input.modelPort.extractInsights({
+            sampledEvidence: redaction.redactedEvidence,
+            chronicleSummary: redaction.redactedChronicle.join("\n"),
+            redacted: true,
+          });
+        }
 
-        modelResult = await Promise.race([modelPromise, timeoutPromise]);
-        mode = "hybrid_llm";
-        llmCostUsd = modelResult.costUsd;
+        if (!fallbackReason) {
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(
+              () => reject(new Error("model_timeout")),
+              operatorTimeoutMs,
+            );
+          });
+
+          modelResult = await Promise.race([modelPromise!, timeoutPromise]);
+          mode = "hybrid_llm";
+          llmCostUsd = modelResult.costUsd;
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("timeout")) {
@@ -229,10 +271,12 @@ export async function runDream(
   });
 
   // ─── 8. Validate ───────────────────────────────────────────────────────────
+  const toolExperienceIds = toolExperienceSummaries.map((t) => t.sourceRefs[0]!.sourceId);
   const validation = validateDreamOutput({
     output,
     inputEvidenceIds: inputBundle.evidenceRefs,
     inputChronicleIds: inputBundle.chronicleEntryIds,
+    inputToolExperienceIds: toolExperienceIds,
   });
 
   // Update output with validation result
@@ -248,8 +292,25 @@ export async function runDream(
   }
   output.status = outputStatus;
 
-  // ─── 9. Write output + trace ───────────────────────────────────────────────
+  // ─── 9. Write output + lifecycle transition ──────────────────────────────────
   await input.statePort.writeDreamOutput(output);
+
+  // DR-023: validation pass triggers accepted transition.
+  if (validation.eligible) {
+    try {
+      await input.statePort.markDreamOutputLifecycle({
+        outputId: output.outputId,
+        newStatus: "accepted",
+        validation: validation.validation,
+        updatedAt: new Date().toISOString(),
+      });
+      output.status = "accepted";
+    } catch {
+      // Transition failed (e.g., concurrent modification); keep candidate in memory
+      // but DB remains candidate since transition was rolled back.
+      output.status = "candidate";
+    }
+  }
 
   const finishedAt = new Date().toISOString();
   const durationMs =

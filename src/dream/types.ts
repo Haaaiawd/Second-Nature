@@ -153,6 +153,31 @@ export interface DreamStatePort {
   }): Promise<{ outputId: string; status: "acknowledged" | "degraded" }>;
 }
 
+// ─── RedactedEvidenceBundle brand type (DR-027) ───────────────────────────────
+
+/**
+ * Brand type: evidence bundle that has passed through RedactionGate.
+ * TypeScript prevents passing un-redacted data to ModelAssistPort.
+ */
+export interface RedactedEvidenceBundle {
+  readonly _brand: "redacted";
+  readonly evidence: readonly string[];
+  readonly chronicle: readonly string[];
+  readonly memory?: readonly string[];
+}
+
+export interface ModelAssistPort {
+  /** Only accepts RedactedEvidenceBundle — TypeScript enforces prior redaction (DR-027). */
+  extractInsights(input: RedactedEvidenceBundle): Promise<{
+    insights: DreamInsight[];
+    narrativeUpdate?: DreamNarrativeUpdate;
+    relationshipUpdate?: DreamRelationshipUpdate;
+    unsupportedClaims: string[];
+    costUsd?: number;
+  }>;
+}
+
+/** @deprecated Use ModelAssistPort with RedactedEvidenceBundle (DR-027). */
 export interface DreamModelPort {
   extractInsights(input: {
     sampledEvidence: string[];
@@ -186,7 +211,13 @@ export interface DreamEngineInput {
   traceId: string;
   triggerKind: DreamTriggerKind;
   statePort: DreamStatePort;
+  /** @deprecated Use modelAssistPort with RedactedEvidenceBundle (DR-027). */
   modelPort?: DreamModelPort;
+  /**
+   * v7 ModelAssistPort — requires RedactedEvidenceBundle (DR-027).
+   * If both modelAssistPort and modelPort are provided, modelAssistPort takes precedence.
+   */
+  modelAssistPort?: ModelAssistPort;
   tracePort?: DreamTracePort;
   budgetPort?: DreamBudgetPort;
   options?: {

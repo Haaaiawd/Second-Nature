@@ -15,6 +15,7 @@ export interface ValidationInput {
   output: DreamOutput;
   inputEvidenceIds: string[];
   inputChronicleIds: string[];
+  inputToolExperienceIds?: string[];
 }
 
 export interface ValidationResult {
@@ -53,8 +54,13 @@ function isSourceGrounded(
   output: DreamOutput,
   inputEvidenceIds: string[],
   inputChronicleIds: string[],
+  inputToolExperienceIds?: string[],
 ): boolean {
-  const validSourceIds = new Set([...inputEvidenceIds, ...inputChronicleIds]);
+  const validSourceIds = new Set([
+    ...inputEvidenceIds,
+    ...inputChronicleIds,
+    ...(inputToolExperienceIds ?? []),
+  ]);
   for (const entry of output.canonicalEntries) {
     for (const ref of entry.sourceRefs) {
       if (!validSourceIds.has(ref.sourceId)) {
@@ -105,6 +111,7 @@ export function validateDreamOutput(input: ValidationInput): ValidationResult {
     input.output,
     input.inputEvidenceIds,
     input.inputChronicleIds,
+    input.inputToolExperienceIds,
   );
   if (!sourceGrounded) {
     errors.push("source_not_grounded");

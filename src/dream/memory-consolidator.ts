@@ -30,6 +30,12 @@ export interface ConsolidationInput {
     sourceRefs: SourceRef[];
     createdAt: string;
   }>;
+  toolExperienceSummaries?: Array<{
+    id: string;
+    summary: string;
+    sourceRefs: SourceRef[];
+    createdAt: string;
+  }>;
   existingEntries: CanonicalMemoryEntry[];
 }
 
@@ -78,6 +84,10 @@ export function consolidateMemory(
     ...input.chronicleSummaries.map((c) => ({
       ...c,
       origin: "chronicle" as const,
+    })),
+    ...(input.toolExperienceSummaries ?? []).map((t) => ({
+      ...t,
+      origin: "tool_experience" as const,
     })),
     ...input.existingEntries.map((e) => ({
       id: e.entryId,

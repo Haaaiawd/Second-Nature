@@ -598,7 +598,7 @@
 
 ---
 
-- [ ] **T-DQS.C.3** [REQ-005]: 实现 Dream Pipeline + ModelAssistPort RedactedEvidenceBundle（DR-027）
+- [x] **T-DQS.C.3** [REQ-005]: 实现 Dream Pipeline + ModelAssistPort RedactedEvidenceBundle（DR-027）
   - **描述**: 实现完整 Dream pipeline（MemoryConsolidator → EvidenceSampler → RedactionGate → optional ModelAssistPort → InsightExtractor → OutputMerger → OutputValidator → OutputWriter）；`ModelAssistPort` 输入类型使用 `RedactedEvidenceBundle` 品牌类型（DR-027）；调用前 `RedactionGate.redactBundle()` 为必要前置；validation pass 后由 dream-quiet 调用 `transitionDreamOutputLifecycle(outputId, "accepted")`（DR-023 修复）
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-system.md §4.1`（Dream Pipeline）、`§9.4`（DR-027 ModelAssistPort 注释）、T-DQS.C.2、T-SMS.C.7
   - **输出**: `src/dream/dream-engine-v7.ts`（更新现有）、`src/dream/model-assist-port.ts`

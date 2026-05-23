@@ -55,7 +55,8 @@ test("T7.1.1 rules-only path produces candidate with canonical entries", async (
 
   assert.equal(result.status, "completed");
   assert.ok(result.output);
-  assert.equal(result.output!.status, "candidate");
+  // DR-023: validation pass triggers accepted transition.
+  assert.equal(result.output!.status, "accepted");
   assert.ok(result.output!.canonicalEntries.length > 0);
   assert.equal(result.trace.fallbackReason, "model_port_unavailable");
   assert.equal(traces.length, 1);
