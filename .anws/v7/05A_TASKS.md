@@ -721,7 +721,7 @@
 
 ---
 
-- [ ] **INT-S4** [MILESTONE]: S4 Dream/Quiet + Guidance 集成验证
+- [x] **INT-S4** [MILESTONE]: S4 Dream/Quiet + Guidance 集成验证
   - **描述**: 验证 S4 退出标准：DailyDiary 含 3 段；Dream 在 Quiet 完成后自动触发或写 skip reason；accepted projection 被 heartbeat 读取；channel feedback 写入 RelationshipMemory；delivery proof missing 时 not_sent
   - **输入**: T-DQS.C.1~C.5、T-GVS.C.1~C.3 全部产出
   - **输出**: `reports/int-s4-dream-quiet-guidance-v7.md`
@@ -818,7 +818,7 @@
 
 ---
 
-- [ ] **T-OBS.C.5** [REQ-011]: 实现 NarrativeTimeline cursor 分页（DR-037）
+- [x] **T-OBS.C.5** [REQ-011]: 实现 NarrativeTimeline cursor 分页（DR-037）
   - **描述**: 实现 `NarrativeTimelineQueryService`：cursor-based pagination（不是 offset）；最大查询范围 90 天（DR-037）；超出范围时返回 error（不 truncate，不静默截断）；diff query 支持任意两版本字段差异对比；state-memory 不可用时降级返回（DR-032）
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §5.1`（DR-037 注释）、T-SMS.C.7、T-OBS.C.1
   - **输出**: `src/observability/services/narrative-timeline-query-service.ts`
@@ -858,7 +858,7 @@
 
 ---
 
-- [ ] **T-OBS.C.7** [REQ-012]: 实现 RuntimeSecretAnchorView（DR-034）
+- [x] **T-OBS.C.7** [REQ-012]: 实现 RuntimeSecretAnchorView（DR-034）
   - **描述**: 实现 `RuntimeSecretAnchorView`：包含 `recoverySteps: RecoveryStep[]` 内联恢复步骤（DR-034）；检测 missing key / wrong key / rotated key 三类场景，返回 `runtime_secret_unavailable` / `credential_recovery_required` / `runtime_secret_anchor_missing`；不记录 key 明文
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §6.1`（DR-034 内容）、T-OBS.C.2
   - **输出**: `src/observability/services/runtime-secret-anchor-view.ts`

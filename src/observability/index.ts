@@ -143,3 +143,32 @@ export {
   type HealthDaySummary,
   type DeliveryProofRef,
 } from "./services/heartbeat-digest-assembler.js";
+
+export {
+  queryNarrativeTimeline,
+  queryNarrativeDiff,
+  encodeCursor,
+  decodeCursor,
+  NarrativeQueryRangeError,
+  NarrativeVersionNotFoundError,
+  type NarrativeTimelineEntry,
+  type NarrativeTimelinePage,
+  type NarrativeFieldChange,
+  type NarrativeDiff,
+  type NarrativeTimelineRow,
+  type NarrativeSnapshotRow,
+  type NarrativeTimelinePort,
+  type NarrativeTimelineDeps,
+} from "./services/narrative-timeline-query-service.js";
+
+export {
+  viewSecretAnchor,
+  type RuntimeSecretAnchorView,
+  type SecretAnchorStatus,
+  type HealthProbeReasonCode,
+  type RecoveryStep,
+  type SampleDecryptResult,
+  type SecretAnchorRuntimeOpsPort,
+  type SecretAnchorCredentialPort,
+  type SecretAnchorDeps,
+} from "./services/runtime-secret-anchor-view.js";
