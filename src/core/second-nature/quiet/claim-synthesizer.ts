@@ -109,9 +109,6 @@ function determineKind(
   items: LifeEvidenceCandidate[],
   avgConfidence: number,
 ): QuietClaimKind {
-  if (items.length === 1 && (items[0]!.confidence ?? 0) < 0.5) {
-    return "observation";
-  }
   if (items.length >= 3 && avgConfidence >= 0.7) {
     return "pattern";
   }
@@ -132,10 +129,10 @@ function buildText(kind: QuietClaimKind, summary: string, count: number): string
 function toSourceRefTuple(
   refs: { id: string; uri: string }[],
 ): [string, ...string[]] {
-  const ids = refs.map((r) => r.id);
+  const ids = refs.map((r) => r.id).filter((id) => id && id.trim().length > 0);
   if (ids.length === 0) {
     // This should not happen if validation is correct, but type-safety requires it
-    return ["synthetic:missing"];
+    return ["synthetic://missing"];
   }
   return ids as [string, ...string[]];
 }
@@ -163,13 +160,16 @@ export function createClaimSynthesizer(): ClaimSynthesizer {
         const avgConfidence =
           items.reduce((sum, i) => sum + (i.confidence ?? 0), 0) /
           items.length;
-        const kind = determineKind(items, avgConfidence);
+        let kind = determineKind(items, avgConfidence);
 
         // Single weak evidence → observation only (no fact/pattern)
-        if (items.length === 1 && (items[0]!.confidence ?? 0) < 0.5 && kind !== "observation") {
-          errors.push(
-            `weak_evidence_downgrade:${evidenceType}:single_weak_forced_to_observation`,
-          );
+        if (items.length === 1 && (items[0]!.confidence ?? 0) < 0.5) {
+          if (kind !== "observation") {
+            errors.push(
+              `weak_evidence_downgrade:${evidenceType}:${kind}_to_observation`,
+            );
+          }
+          kind = "observation";
         }
 
         const summary = items.map((i) => i.summary).join("; ");
@@ -198,20 +198,18 @@ export function createClaimSynthesizer(): ClaimSynthesizer {
 export function createSourceValidator(): SourceValidator {
   return {
     validate(claim) {
-      if (claim.kind === "fact" || claim.kind === "pattern") {
-        if (claim.sourceRefs.length === 0) {
-          return { ok: false, reason: "claim_source_missing" };
-        }
-        // Also validate that all refs are non-empty strings
-        for (const ref of claim.sourceRefs) {
-          if (!ref || ref.trim().length === 0) {
-            return { ok: false, reason: "claim_source_missing" };
-          }
-        }
-      }
-      // observation claims are also required to have sourceRefs per DR-025
+      // All claim kinds require non-empty sourceRefs (DR-025)
       if (claim.sourceRefs.length === 0) {
         return { ok: false, reason: "claim_source_missing" };
+      }
+      for (const ref of claim.sourceRefs) {
+        if (!ref || ref.trim().length === 0) {
+          return { ok: false, reason: "claim_source_missing" };
+        }
+        // Reject synthetic fallback refs (defensive: should not reach here)
+        if (ref.startsWith("synthetic://")) {
+          return { ok: false, reason: "claim_source_missing" };
+        }
       }
       return { ok: true };
     },

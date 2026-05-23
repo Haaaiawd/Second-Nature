@@ -195,6 +195,60 @@ describe("ClaimSynthesizer", () => {
     assert.ok(result.claims[0]!.sourceRefs.length > 0);
     assert.ok(typeof result.claims[0]!.sourceRefs[0] === "string");
   });
+
+  it("weak evidence at confidence 0.5 produces fact (boundary >= 0.5)", () => {
+    const synth = createClaimSynthesizer();
+    const result = synth.synthesize({
+      items: [buildCandidate({ confidence: 0.5 })],
+      summary: "test",
+    });
+    assert.strictEqual(result.claims.length, 1);
+    assert.strictEqual(result.claims[0]!.kind, "fact");
+    assert.strictEqual(result.errors.length, 0);
+  });
+
+  it("3 items at avgConfidence 0.69 produces fact (boundary < 0.7)", () => {
+    const synth = createClaimSynthesizer();
+    const result = synth.synthesize({
+      items: [
+        buildCandidate({ evidenceType: "work_progress", confidence: 0.7 }),
+        buildCandidate({ evidenceType: "work_progress", confidence: 0.69 }),
+        buildCandidate({ evidenceType: "work_progress", confidence: 0.68 }),
+      ],
+      summary: "test",
+    });
+    assert.strictEqual(result.claims.length, 1);
+    assert.strictEqual(result.claims[0]!.kind, "fact");
+  });
+
+  it("3 items at avgConfidence 0.75 produces pattern", () => {
+    const synth = createClaimSynthesizer();
+    const result = synth.synthesize({
+      items: [
+        buildCandidate({ evidenceType: "work_progress", confidence: 0.75 }),
+        buildCandidate({ evidenceType: "work_progress", confidence: 0.75 }),
+        buildCandidate({ evidenceType: "work_progress", confidence: 0.75 }),
+      ],
+      summary: "test",
+    });
+    assert.strictEqual(result.claims.length, 1);
+    assert.strictEqual(result.claims[0]!.kind, "pattern");
+  });
+
+  it("records weak_evidence_downgrade error for single weak evidence", () => {
+    // Single evidence with confidence < 0.5: determineKind returns "fact",
+    // then downgrade logic forces "observation" and records the error.
+    const synth = createClaimSynthesizer();
+    const result = synth.synthesize({
+      items: [buildCandidate({ confidence: 0.3 })],
+      summary: "test",
+    });
+    assert.strictEqual(result.claims[0]!.kind, "observation");
+    assert.ok(
+      result.errors.some((e) => e.includes("weak_evidence_downgrade")),
+      "expected weak_evidence_downgrade error",
+    );
+  });
 });
 
 describe("SourceValidator", () => {
@@ -246,6 +300,20 @@ describe("SourceValidator", () => {
       kind: "fact",
       text: "test",
       sourceRefs: ["  "] as [string, ...string[]],
+      confidence: 0.9,
+      createdAt: "2025-01-01T00:00:00Z",
+    });
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual((result as { ok: false; reason: string }).reason, "claim_source_missing");
+  });
+
+  it("rejects synthetic fallback ref", () => {
+    const validator = createSourceValidator();
+    const result = validator.validate({
+      claimId: "c1",
+      kind: "fact",
+      text: "test",
+      sourceRefs: ["synthetic://missing"] as [string, ...string[]],
       confidence: 0.9,
       createdAt: "2025-01-01T00:00:00Z",
     });

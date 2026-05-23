@@ -75,12 +75,14 @@ function aggregateSourceRefs(claims: QuietClaim[]): [string, ...string[]] {
   const seen = new Set<string>();
   for (const claim of claims) {
     for (const ref of claim.sourceRefs) {
-      seen.add(ref);
+      if (!ref.startsWith("synthetic://")) {
+        seen.add(ref);
+      }
     }
   }
   const arr = [...seen];
   if (arr.length === 0) {
-    return ["synthetic:empty"];
+    return ["synthetic://empty"];
   }
   return arr as [string, ...string[]];
 }
