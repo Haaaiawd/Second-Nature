@@ -540,7 +540,7 @@
 
 ---
 
-- [ ] **INT-S3** [MILESTONE]: S3 Body Tool + Heartbeat 集成验证
+- [x] **INT-S3** [MILESTONE]: S3 Body Tool + Heartbeat 集成验证
   - **描述**: 验证 S3 退出标准：affordance map 正确过滤5类状态；heartbeat 组装含 5 类 slice EmbodiedContext；CircuitBreaker cooldown/halfopen/closed 可验证；idle curiosity 无 side-effect 执行
   - **输入**: T-BTS.C.1~C.5、T-CP.C.1~C.3 全部产出
   - **输出**: `reports/int-s3-body-heartbeat-v7.md`

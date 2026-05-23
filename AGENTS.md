@@ -214,12 +214,24 @@ INT-S2, T-CP.C.1
 ### 🌊 Wave 57 ✅ — v7 S3 Control Plane: Heartbeat Main Loop + Goal/Idle Policy
 T-CP.C.2, T-CP.C.3
 **签入**: AUTO
-**code-reviewer**: 默认执行
+**code-reviewer**: 3 子代理并行审查（code-reviewer + regression-tester + contract-checker）
 - **状态**: 完成（2026-05-22）
-- **产出**: 6 新模块 + 4 测试文件 + 29 单元/集成测试（0 失败）
+- **产出**: 6 新模块 + 7 测试文件 + 37 单元/集成测试（0 失败）
+- **审查报告**: `.anws/v7/wave-reviews/wave-57-review.md`（Partial Pass → 修复后全量通过）
 - **最高严重度**: none
 - **预先存在失败**: `T2.2.3 bridge full-runtime heartbeat wires connectorExecutor`（main 分支同样失败，非 Wave 57 引入）
 - **下一步**: Wave 58 — INT-S3 或 T-DQS.C.1 (Quiet Pipeline)
+
+### 🌊 Wave 58 ✅ — v7 S3 Body Tool + Heartbeat: INT-S3 集成验证
+INT-S3
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-23）
+- **产出**: `reports/int-s3-body-heartbeat-v7.md` + `tests/integration/s3-exit/int-s3-body-heartbeat.test.ts`
+- **测试**: 70 项（10 集成 + 60 单元），0 失败
+- **最高严重度**: none
+- **预先存在失败**: `T2.2.3 bridge full-runtime heartbeat wires connectorExecutor`（Wave 56 引入，非 Wave 58）
+- **下一步**: T-DQS.C.1 (Quiet Pipeline) 或 T-OBS.C.1 (RedactionPolicy)
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
