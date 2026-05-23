@@ -618,7 +618,7 @@
 
 ---
 
-- [ ] **T-DQS.C.4** [REQ-005]: 实现 Dream Scheduler（Quiet-completion 触发）
+- [x] **T-DQS.C.4** [REQ-005]: 实现 Dream Scheduler（Quiet-completion 触发）
   - **描述**: 实现 Dream Scheduler 的 Quiet-completion 触发策略（Quiet 完成后在允许窗口自动触发 Dream，生成 trace 或 explicit skip reason）；lock 机制（TTL 35min）；budget gate；cron/evidence_threshold/manual 触发复用现有
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-system.md §1.3`（负责: Dream scheduler）、T-DQS.C.3
   - **输出**: 更新 `src/dream/dream-scheduler.ts`
