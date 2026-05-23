@@ -799,7 +799,7 @@
 
 ---
 
-- [ ] **T-OBS.C.4** [REQ-010]: 实现 HeartbeatDigest delivery 推送服务
+- [x] **T-OBS.C.4** [REQ-010]: 实现 HeartbeatDigest delivery 推送服务
   - **描述**: 实现 digest delivery：推送到 Feishu/dm/dashboard mock；记录 delivery proof 或 fallback；digest delivery 使用 runtime-ops 推送机制，不使用 guidance-voice 语气；delivery 失败时记录 fallback reason，不声称已发送
   - **输入**: T-OBS.C.3、T-GVS.C.2（参考 delivery proof 模式）
   - **输出**: 更新 `src/observability/services/heartbeat-digest-assembler.ts` 添加 delivery hook

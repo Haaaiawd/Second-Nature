@@ -1,10 +1,17 @@
 /**
- * HeartbeatDigestAssembler — T-OBS.C.3
+ * HeartbeatDigestAssembler — T-OBS.C.3 / T-OBS.C.4
  *
  * Core logic: aggregate one day's audit events from AppendOnlyAuditStore
  * into a dashboard-style HeartbeatDigest (connector counts / goal changes /
  * quiet-dream status / health summary). No outreach phrasing. No raw payload.
  * No credential content. If no significant events, isNothingSignificant = true.
+ *
+ * T-OBS.C.4 delivery hook:
+ *   An optional DigestDeliveryAdapter can be injected via deps.deliveryAdapter.
+ *   After digest assembly, generateHeartbeatDigest calls adapter.deliver(digest).
+ *   On success: digest.deliveredAt and digest.deliveryProof are populated.
+ *   On failure: digest.deliveryFallbackReason is set; deliveredAt is NOT set.
+ *   Honesty constraint: not_sent is never reported as sent (ADR-007).
  *
  * DR-032 degradation:
  *   If state-memory port is unavailable, goalSummary + quietDreamSummary
@@ -16,8 +23,12 @@
  * - Reads optional StateMemoryDigestPort for goal transitions + quiet/dream scheduling state.
  * - Does NOT write to state-memory (persistence is runtime-ops' responsibility).
  * - Does NOT use outreach language (NG2 from PRD: not a "reach out to you" message).
+ * - Does NOT push digest itself; delivery is triggered by runtime-ops (NG5 from L0).
+ *   The adapter here is an injected hook used during assembly, not an autonomous push.
  *
- * Test coverage: tests/unit/observability/heartbeat-digest-assembler.test.ts
+ * Test coverage:
+ *   tests/unit/observability/heartbeat-digest-assembler.test.ts (T-OBS.C.3)
+ *   tests/integration/observability/digest-delivery.test.ts (T-OBS.C.4)
  */
 
 import type { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
@@ -75,8 +86,36 @@ export interface HeartbeatDigest {
   goalSummary: GoalDaySummary;
   quietDreamSummary: QuietDreamDaySummary;
   healthSummary: HealthDaySummary;
+  /** Set when delivery succeeded */
   deliveredAt?: string;
+  /** Proof of successful delivery (channel + message hash, no raw content) */
   deliveryProof?: DeliveryProofRef;
+  /** Set when delivery failed; status is always "not_sent" in this case */
+  deliveryFallbackReason?: string;
+}
+
+// ─── Delivery adapter (T-OBS.C.4) ────────────────────────────────────────────
+
+/** Result from a delivery attempt */
+export interface DigestDeliveryResult {
+  /**
+   * "sent"     — delivery succeeded; proof is populated.
+   * "not_sent" — delivery failed or was skipped; fallbackReason is populated.
+   */
+  status: "sent" | "not_sent";
+  proof?: DeliveryProofRef;
+  /** Human-readable reason why delivery was not sent */
+  fallbackReason?: string;
+  deliveredAt?: string;
+}
+
+/**
+ * Adapter injected by runtime-ops to perform channel-specific delivery.
+ * The adapter is responsible for the actual push (Feishu DM / dashboard / etc.).
+ * It must never declare "sent" without a verifiable proof.
+ */
+export interface DigestDeliveryAdapter {
+  deliver(digest: HeartbeatDigest): Promise<DigestDeliveryResult>;
 }
 
 // ─── Ports ───────────────────────────────────────────────────────────────────
@@ -292,6 +331,16 @@ function isNothingSignificant(
 export interface HeartbeatDigestAssemblerDeps {
   auditStore: AppendOnlyAuditStore;
   stateMemoryPort?: StateMemoryDigestPort;
+  /**
+   * Optional delivery adapter (T-OBS.C.4).
+   * When provided, the assembled digest is passed to adapter.deliver() after assembly.
+   * Delivery result (proof / fallback) is merged back into the returned digest.
+   * Delivery failure does NOT throw — the assembled digest is still returned,
+   * with deliveryFallbackReason set.
+   */
+  deliveryAdapter?: DigestDeliveryAdapter;
+  /** Override for testability */
+  now?: () => string;
 }
 
 /**
@@ -302,14 +351,18 @@ export interface HeartbeatDigestAssemblerDeps {
  * scheduling state are loaded from state-memory via the optional port (DR-032
  * degradation applied if unavailable).
  *
+ * If deps.deliveryAdapter is provided (T-OBS.C.4), the assembled digest is
+ * passed to the adapter after assembly. Delivery proof or fallback reason is
+ * merged into the returned digest. Delivery failure never causes a throw.
+ *
  * Does NOT contain outreach language, raw payloads, credentials, or private content.
  */
 export async function generateHeartbeatDigest(
   date: string,
   deps: HeartbeatDigestAssemblerDeps,
 ): Promise<HeartbeatDigest> {
-  const generatedAt = new Date().toISOString();
-  const { auditStore, stateMemoryPort } = deps;
+  const generatedAt = (deps.now ?? (() => new Date().toISOString()))();
+  const { auditStore, stateMemoryPort, deliveryAdapter } = deps;
   const events = auditStore.list();
 
   // Aggregate connector and health from audit
@@ -369,7 +422,7 @@ export async function generateHeartbeatDigest(
     healthSummary,
   );
 
-  return {
+  const digest: HeartbeatDigest = {
     date,
     generatedAt,
     isNothingSignificant: nothingSignificant,
@@ -378,4 +431,30 @@ export async function generateHeartbeatDigest(
     quietDreamSummary,
     healthSummary,
   };
+
+  // T-OBS.C.4: delivery hook — attempt delivery if adapter is provided
+  if (deliveryAdapter) {
+    try {
+      const result = await deliveryAdapter.deliver(digest);
+      if (result.status === "sent") {
+        // Proof must be present when claiming "sent"
+        if (result.proof) {
+          digest.deliveredAt = result.deliveredAt ?? generatedAt;
+          digest.deliveryProof = result.proof;
+        } else {
+          // Adapter declared "sent" without proof — treat as not_sent (honesty constraint)
+          digest.deliveryFallbackReason = "delivery_proof_missing";
+        }
+      } else {
+        // status === "not_sent": record fallback reason, never claim sent
+        digest.deliveryFallbackReason = result.fallbackReason ?? "delivery_failed";
+      }
+    } catch (err) {
+      // Delivery threw — absorb error, record fallback, do not rethrow
+      const message = err instanceof Error ? err.message : String(err);
+      digest.deliveryFallbackReason = `delivery_error: ${message}`;
+    }
+  }
+
+  return digest;
 }

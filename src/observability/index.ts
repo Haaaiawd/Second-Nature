@@ -142,6 +142,8 @@ export {
   type QuietDreamDaySummary,
   type HealthDaySummary,
   type DeliveryProofRef,
+  type DigestDeliveryAdapter,
+  type DigestDeliveryResult,
 } from "./services/heartbeat-digest-assembler.js";
 
 export {
