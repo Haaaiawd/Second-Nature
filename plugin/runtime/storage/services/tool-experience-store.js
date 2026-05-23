@@ -23,7 +23,7 @@ export function createToolExperienceStore(database) {
             const gate = validateWritePayload({
                 ...exp,
                 sourceRefs: exp.sourceRefs,
-            });
+            }, { runSensitivityScan: false });
             if (!gate.ok)
                 throw new Error(gate.reason ?? "write_validation_failed");
             sqlite.run(`INSERT INTO tool_experience

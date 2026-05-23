@@ -168,6 +168,23 @@ export interface NarrativeTimelineEntry {
     currentHash: string;
     createdAt: string;
 }
+export type AffordanceStatus = "safe" | "exploratory" | "needs_auth" | "painful" | "unavailable";
+export interface AffordanceItem {
+    platformId: string;
+    capabilityId: string;
+    intent: string;
+    status: AffordanceStatus;
+    reason?: string;
+    lastProbedAt?: string;
+}
+export interface AffordanceMap {
+    [platformId: string]: AffordanceItem[];
+}
+export interface AffordanceContextScope {
+    platformIds?: string[];
+    goalKind?: string;
+    allowedStatuses?: AffordanceStatus[];
+}
 export type EmbodiedContextSliceStatus = "loaded" | "degraded" | "blocked";
 export interface EmbodiedContextSlice<T> {
     status: EmbodiedContextSliceStatus;
@@ -180,11 +197,7 @@ export interface EmbodiedContext {
     recentInteractions: EmbodiedContextSlice<RecentInteractionSnapshot[]>;
     toolExperience: EmbodiedContextSlice<ToolExperience[]>;
     acceptedDream: EmbodiedContextSlice<DreamOutput[]>;
-    /**
-     * affordanceMap is populated by body-tool-system; detailed type lives
-     * in body-tool domain to avoid premature cross-system coupling.
-     */
-    affordanceMap?: EmbodiedContextSlice<Record<string, unknown>>;
+    affordanceMap?: EmbodiedContextSlice<AffordanceMap>;
     /**
      * selfHealth is populated by observability-health-system.
      */

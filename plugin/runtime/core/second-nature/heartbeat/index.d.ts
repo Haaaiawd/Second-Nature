@@ -6,3 +6,7 @@ export { buildPlannerRhythmWindow, type PlannerRhythmWindowSlice } from "../rhyt
 export { runHeartbeatCycle, type RunHeartbeatCycleInput } from "./run-heartbeat-cycle.js";
 export { routeScopedInput, type ScopeRouterDeps, } from "./scope-router.js";
 export { requestGuidanceForIntent, dispatchAllowedEffect, executeHeartbeatCycle, type GuidanceBridgeDeps, type EffectDispatchDeps, type HeartbeatExecutorDeps, type GuidanceBridgeResult, type HeartbeatExecutionResult, } from "./heartbeat-executor.js";
+export { runHeartbeatV7, type HeartbeatDecision, type HeartbeatV7Deps, type RunHeartbeatV7Input, } from "./run-heartbeat-cycle-v7.js";
+export { createDecisionTraceEmitter, createNoOpTraceEmitter, type DecisionTracePayload, type DecisionTraceEmitter, } from "./decision-trace-emitter.js";
+export { createGoalLifecyclePolicy, type GoalLifecyclePolicy, type GoalTransitionRequest, type GoalLifecyclePolicyResult, } from "./goal-lifecycle-policy.js";
+export { createIdleCuriosityPolicy, type IdleCuriosityPolicy, type IdleCuriosityCandidate, type IdleCuriosityPolicyResult, } from "./idle-curiosity-policy.js";

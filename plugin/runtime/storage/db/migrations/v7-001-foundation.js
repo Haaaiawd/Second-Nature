@@ -46,7 +46,7 @@ export const V7_001_FOUNDATION = {
     -- daily_diary_index (ADR-005)
     CREATE TABLE IF NOT EXISTS daily_diary_index (
       diary_id TEXT PRIMARY KEY,
-      day TEXT NOT NULL,
+      day TEXT NOT NULL UNIQUE,
       observed_today_json TEXT NOT NULL DEFAULT '[]',
       notable_signals_json TEXT NOT NULL DEFAULT '[]',
       tomorrow_direction TEXT NOT NULL DEFAULT '',
@@ -110,7 +110,7 @@ export const V7_001_FOUNDATION = {
     -- heartbeat_digest (ADR-006)
     CREATE TABLE IF NOT EXISTS heartbeat_digest (
       digest_id TEXT PRIMARY KEY,
-      day TEXT NOT NULL,
+      day TEXT NOT NULL UNIQUE,
       connector_summary_json TEXT NOT NULL DEFAULT '[]',
       goal_summary_json TEXT NOT NULL DEFAULT '[]',
       quiet_count INTEGER NOT NULL DEFAULT 0,
