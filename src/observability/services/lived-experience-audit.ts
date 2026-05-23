@@ -180,7 +180,7 @@ export class LivedExperienceAuditRecorder {
       traceId: payload.traceId,
       sequence: seq,
       payload,
-      previousHash: this.store.lastRecordHash(),
+      previousHash: this.store.lastRecordHash("heartbeat.decision"),
       eventId: crypto.randomUUID(),
       createdAt: payload.createdAt,
     });
@@ -204,7 +204,7 @@ export class LivedExperienceAuditRecorder {
       traceId: payload.traceId,
       sequence: seq,
       payload,
-      previousHash: this.store.lastRecordHash(),
+      previousHash: this.store.lastRecordHash("delivery"),
       eventId: payload.auditId,
       createdAt: payload.createdAt,
     });
@@ -233,7 +233,7 @@ export class LivedExperienceAuditRecorder {
       traceId: payload.traceId,
       sequence: seq,
       payload,
-      previousHash: this.store.lastRecordHash(),
+      previousHash: this.store.lastRecordHash("source_coverage"),
       eventId: payload.auditId,
       createdAt: payload.createdAt,
     });
@@ -252,7 +252,7 @@ export class LivedExperienceAuditRecorder {
       traceId: payload.traceId,
       sequence: seq,
       payload,
-      previousHash: this.store.lastRecordHash(),
+      previousHash: this.store.lastRecordHash("guidance.grounding"),
       eventId: payload.auditId,
       createdAt: payload.createdAt,
     });
@@ -271,7 +271,7 @@ export class LivedExperienceAuditRecorder {
       traceId: payload.traceId,
       sequence: seq,
       payload,
-      previousHash: this.store.lastRecordHash(),
+      previousHash: this.store.lastRecordHash("narrative.trace"),
       eventId: crypto.randomUUID(),
       createdAt: payload.createdAt,
     });
@@ -287,7 +287,7 @@ export class LivedExperienceAuditRecorder {
       traceId: payload.traceId,
       sequence: seq,
       payload,
-      previousHash: this.store.lastRecordHash(),
+      previousHash: this.store.lastRecordHash("dream.trace"),
       eventId: crypto.randomUUID(),
       createdAt: payload.finishedAt,
     });

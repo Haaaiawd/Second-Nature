@@ -29,9 +29,12 @@ export {
   REDACTION_CONFIG,
   DEFAULT_REDACTION_POLICY,
   getFieldRedactionRule,
+  redactPayload,
   type RedactionPolicy,
   type RedactionRule,
   type SensitivityLevel,
+  type RedactPayloadManifest,
+  type RedactPayloadResult,
 } from "./redaction/policy.js";
 
 export {

@@ -22,8 +22,8 @@ test("T5.2.2 verifyAuditHashChain — pass on valid chain", async () => {
   });
   store.append(first);
   const second = buildAuditEnvelope({
-    family: "delivery",
-    plane: "delivery",
+    family: "heartbeat.decision",
+    plane: "decision",
     traceId: "tr",
     sequence: 2,
     payload: { b: 2 },
