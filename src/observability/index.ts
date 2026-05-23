@@ -174,3 +174,11 @@ export {
   type SecretAnchorCredentialPort,
   type SecretAnchorDeps,
 } from "./services/runtime-secret-anchor-view.js";
+
+export {
+  writeRestoreAudit,
+  type RestoreAuditEvent,
+  type RestoreTarget,
+  type RestoreTrigger,
+  type WriteRestoreAuditResult,
+} from "./services/restore-audit-service.js";

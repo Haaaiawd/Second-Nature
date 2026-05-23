@@ -18,6 +18,7 @@ import { redactPayload, type SensitivityLevel } from "../redaction/policy.js";
 export type AuditPlane = "decision" | "delivery" | "source_coverage" | "governance" | "telemetry";
 
 export type AuditEventFamily =
+  // v6 families
   | "heartbeat.decision"
   | "delivery"
   | "source_coverage"
@@ -26,7 +27,12 @@ export type AuditEventFamily =
   | "connector.attempt"
   | "state.governance"
   | "narrative.trace"
-  | "dream.trace";
+  | "dream.trace"
+  // v7 new families (AUDIT_EVENT_FAMILIES_V7 — observability-health-system.detail.md §1)
+  | "restore.audit"
+  | "health.probe"
+  | "narrative.snapshot"
+  | "secret.anchor";
 
 export type AuditEnvelopeSensitivity = "public" | "internal" | "private" | "credential" | "sensitive";
 

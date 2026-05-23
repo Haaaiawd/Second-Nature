@@ -838,7 +838,7 @@
 
 ---
 
-- [ ] **T-OBS.C.6** [REQ-011]: 实现 RestoreAudit（DR-041）
+- [x] **T-OBS.C.6** [REQ-011]: 实现 RestoreAudit（DR-041）
   - **描述**: 实现 `RestoreAuditService`：每次 restore 操作必须写 audit log（from_version/to_version/reason/completed_entities/failed_entities）；restore 原子性策略（DR-041）：audit 写失败采用 fire-and-forget，partial_restore_error 记录已完成/未完成 entity 清单；不恢复 credential 明文；不绕过 trust policy
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §2.1 G6`（RestoreAudit）、T-SMS.C.6、T-OBS.C.1
   - **输出**: `src/observability/services/restore-audit-service.ts`
