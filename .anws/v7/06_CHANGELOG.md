@@ -66,3 +66,35 @@
 - Commit: `7194a3c`
 
 ### §3.6 Code Review Gate: PASS (0 Critical / 0 High / 1 Low)
+
+---
+
+## Wave 67 — 2026-05-23 (commit 555260f)
+
+### INT-S5 — S5 Observability 集成里程碑
+- [VERIFY] 22/22 集成测试通过，覆盖 T-OBS.C.1~C.7 全部退出标准
+- [VERIFY] audit chain 完整性（per-family hash chain + mismatch 检测 + seedFamilyHash 回填）
+- [VERIFY] SelfHealthSnapshot 最小维度集完整 + 探针超时隔离（100ms timeout → unknown，不阻塞）
+- [VERIFY] HeartbeatDigest per-platform 计数正确；空日 isNothingSignificant=true
+- [VERIFY] NarrativeTimeline cursor 分页无重叠；90 日范围限制抛 NarrativeQueryRangeError
+- [VERIFY] RestoreAudit 写入 + partial_restore_error entity 列表 + fire-and-forget 失败处理
+- [VERIFY] RuntimeSecretAnchorView 三种 reasonCode 均含 recoverySteps；plaintext 零泄漏
+- Evidence: `reports/int-s5-observability-v7.md`
+- Test file: `tests/integration/s5-exit/int-s5-observability.test.ts`
+
+### T-ROS.C.1 — RuntimeSurfaceRouter v7 命令集扩展
+- [ADD] `RuntimeOpsEnvelope<T>` 统一 response 外壳（ok/command/runtimeMode/surfaceMode/generatedAt/warnings/sourceRefs）
+- [ADD] `self_health` 命令：透传 SelfHealthSnapshot，section 超时局部 unknown，不整体失败（DR-042）
+- [ADD] `tool_affordance` 命令：port 未连线时降级 TOOL_AFFORDANCE_PORT_UNWIRED（待 T-BTS.C.1 连线）
+- [CHANGE] `connector_test` 命令：`wet=true` → `dryRun=false` + `triggerSource:"manual"` + `affectsHeartbeatCadence:false`（DR-038）
+- [ADD] `heartbeat_digest` 命令：透传 generateHeartbeatDigest，无 auditStore 时降级
+- [ADD] `narrative:diff` 命令：透传 queryNarrativeDiff，缺 deps 或参数时降级
+- [ADD] `timeline` 命令：透传 queryNarrativeTimeline，90 日 range 超限返回 NARRATIVE_RANGE_EXCEEDED
+- [ADD] `restore` 命令：写 RestoreAuditEvent，永不恢复 credential，excludedFields 默认含 "credential"/"encryptionKey"
+- [ADD] `runtime_secret_bootstrap` 命令：透传 viewSecretAnchor → RuntimeSecretBootstrapView，plaintextKeyExposed 硬编码 false（ADR-007）
+- [CHANGE] `OpsRouterDeps` 扩展：auditStore / heartbeatDigestDeps / narrativeTimelineDeps / secretAnchorDeps
+- [ADD] 23/23 集成测试通过
+- Test file: `tests/integration/runtime-ops/commands.test.ts`
+- Commit: `555260f`
+
+### §3.6 Code Review Gate: PASS (0 Critical / 0 High / 0 Low)

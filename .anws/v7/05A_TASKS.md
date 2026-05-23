@@ -878,7 +878,7 @@
 
 ---
 
-- [ ] **INT-S5** [MILESTONE]: S5 Observability 集成验证
+- [x] **INT-S5** [MILESTONE]: S5 Observability 集成验证
   - **描述**: 验证 S5 退出标准：audit chain 完整性可验证；self_health 覆盖动态维度且最小维度集完整，任意探针超时不影响整体；digest 按平台分类计数正确；timeline cursor 分页正常；restore audit 写入；RuntimeSecretAnchorView 输出 recoverySteps
   - **输入**: T-OBS.C.1~C.7 全部产出
   - **输出**: `reports/int-s5-observability-v7.md`
@@ -896,7 +896,7 @@
 
 ---
 
-- [ ] **T-ROS.C.1** [REQ-007, REQ-009, REQ-010, REQ-011, REQ-012]: 实现 RuntimeSurfaceRouter v7 命令集扩展
+- [x] **T-ROS.C.1** [REQ-007, REQ-009, REQ-010, REQ-011, REQ-012]: 实现 RuntimeSurfaceRouter v7 命令集扩展
   - **描述**: 实现/更新 `RuntimeSurfaceRouter` v7 新增命令：`self_health`（透传 observability SelfHealthSnapshot）、`tool_affordance`（透传 body-tool AffordanceMap）、`connector_test --wet`（标记 triggerSource:"manual"）、`heartbeat_digest`（透传 digest）、`narrative:diff`（透传 NarrativeTimeline diff）、`timeline`（透传 NarrativeTimeline）、`restore`（触发 RestoreSnapshot + RestoreAudit）、`runtime_secret_bootstrap`（透传 RuntimeSecretAnchorView）；所有命令返回统一 `RuntimeOpsEnvelope`
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.md §5`（命令集）、`§6.1`（SelfHealthView schema，DR-042）、T-OBS.C.1~C.7、T-BTS.C.1、T-BTS.C.5、T-CS.C.2、T-SMS.C.6
   - **输出**: 更新 `src/cli/commands/`、`plugin/index.ts`
