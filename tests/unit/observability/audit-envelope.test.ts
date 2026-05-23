@@ -12,7 +12,7 @@ test("redactAuditEvent masks token-like fields and records manifest paths", () =
   });
   assert.equal((payload as { token: string }).token, "[MASKED]");
   assert.ok(redaction.maskedPaths.some((p) => p.includes("token")));
-  assert.equal(redaction.sensitivity, "internal");
+  assert.equal(redaction.sensitivity, "private");
 });
 
 test("buildAuditEnvelope produces stable recordHash and append-only store chains hashes per family", () => {
@@ -144,8 +144,8 @@ test("T-OBS.C.1 redactPayload masks v7 fields encryption_key and key_material", 
     key_material: "abc123",
     publicField: "visible",
   });
-  assert.equal((payload as Record<string, unknown>).encryption_key, "***");
-  assert.equal((payload as Record<string, unknown>).key_material, "***");
+  assert.equal((payload as Record<string, unknown>).encryption_key, "[MASKED]");
+  assert.equal((payload as Record<string, unknown>).key_material, "[MASKED]");
   assert.equal((payload as Record<string, unknown>).publicField, "visible");
   assert.ok(manifest.maskedPaths.includes("encryption_key"));
   assert.ok(manifest.maskedPaths.includes("key_material"));
@@ -177,7 +177,7 @@ test("T-OBS.C.1 redactPayload hashes message_hash and preserves nested objects",
   assert.notEqual(hashed, "hello");
   assert.ok(manifest.hashedPaths.includes("message_hash"));
   // nested token should also be masked
-  assert.equal((payload as { nested: { token: string } }).nested.token, "***");
+  assert.equal((payload as { nested: { token: string } }).nested.token, "[MASKED]");
 });
 
 test("T-OBS.C.1 redactPayload inferSensitivity restricted when erased present", () => {

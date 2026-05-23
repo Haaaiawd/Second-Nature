@@ -1,3 +1,5 @@
+import * as crypto from "node:crypto";
+
 /**
  * ChannelFeedbackIngestionService — T-GVS.C.2
  *
@@ -77,6 +79,7 @@ export interface StrategyAdjustment {
 
 export interface FeedbackIngestionResult {
   status: "ingested" | "rejected" | "failed_after_retries";
+  errors?: string[];
   relationshipUpdate?: RelationshipUpdate;
   strategyAdjustments?: StrategyAdjustment[];
   updatedTrust?: number;
@@ -130,9 +133,14 @@ function validateFeedback(feedback: ChannelFeedback): { valid: boolean; errors: 
   if (!feedback.timestamp) {
     errors.push("missing_timestamp");
   } else {
-    const ageDays = (Date.now() - new Date(feedback.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-    if (ageDays > 30) {
-      errors.push("feedback_too_old");
+    const feedbackTime = new Date(feedback.timestamp);
+    if (Number.isNaN(feedbackTime.getTime())) {
+      errors.push("invalid_timestamp");
+    } else {
+      const ageDays = (Date.now() - feedbackTime.getTime()) / (1000 * 60 * 60 * 24);
+      if (ageDays > 30) {
+        errors.push("feedback_too_old");
+      }
     }
   }
   return { valid: errors.length === 0, errors };
@@ -295,13 +303,7 @@ async function persistWithRetry(
 
 function hashSummary(feedback: ChannelFeedback): string {
   const data = `${feedback.channelId}:${feedback.deliveryResult}:${feedback.ownerReaction}:${feedback.timestamp}`;
-  // Simple hash for test determinism; production uses crypto
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash + char) | 0;
-  }
-  return Math.abs(hash).toString(16).padStart(8, "0");
+  return crypto.createHash("sha256").update(data).digest("hex");
 }
 
 // ─── Service ────────────────────────────────────────────────────────────────
@@ -316,7 +318,7 @@ export async function ingestChannelFeedback(
   // Step 1: Validate
   const validation = validateFeedback(feedback);
   if (!validation.valid) {
-    return { status: "rejected" };
+    return { status: "rejected", errors: validation.errors };
   }
 
   // Step 2: Build relationship update (with redaction + delivery-truth coercion)

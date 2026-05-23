@@ -46,7 +46,15 @@ export class AppendOnlyAuditStore {
     return this.events[this.events.length - 1]?.integrity.recordHash;
   }
 
-  /** Seed cache after process restart from DB latest record (DR-033 backfill). */
+  /**
+   * Seed cache after process restart from DB latest record (DR-033 backfill).
+   *
+   * TODO(T-OBS.C.1): wire a startup bootstrap routine that queries the DB audit_log
+   * table for the latest recordHash per family and calls seedFamilyHash().
+   * Blocked: the observability DB schema does not yet have an audit_log table
+   * with previousHash/recordHash columns; once added, backfill should be
+   * invoked in the store constructor or at app bootstrap time.
+   */
   seedFamilyHash(family: string, hash: string): void {
     this.lastHashCache.set(family, hash);
   }

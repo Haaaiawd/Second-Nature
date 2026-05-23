@@ -141,7 +141,7 @@ export function redactPayload<T extends object>(
       const rule = getFieldRedactionRule(key, policy);
 
       if (rule.action === "mask") {
-        result[key] = "***";
+        result[key] = "[MASKED]";
         maskedPaths.push(fullPath);
       } else if (rule.action === "erase") {
         result[key] = null;

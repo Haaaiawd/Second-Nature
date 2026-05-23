@@ -133,7 +133,7 @@ test("T-GVS.C.2 reactionContent with email gets redacted", async () => {
 
 // ─── Rejection paths ────────────────────────────────────────────────────────
 
-test("T-GVS.C.2 feedback older than 30 days is rejected", async () => {
+test("T-GVS.C.2 feedback older than 30 days is rejected with errors", async () => {
   const port = makeRelationshipPort();
   const audit = makeAuditPort();
   const oldDate = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
@@ -144,7 +144,21 @@ test("T-GVS.C.2 feedback older than 30 days is rejected", async () => {
   );
 
   assert.equal(result.status, "rejected");
+  assert.ok(result.errors?.includes("feedback_too_old"));
   assert.equal(result.relationshipUpdate, undefined);
+});
+
+test("T-GVS.C.2 invalid timestamp is rejected", async () => {
+  const port = makeRelationshipPort();
+  const audit = makeAuditPort();
+
+  const result = await ingestChannelFeedback(
+    makeFeedback({ timestamp: "not-a-date" }),
+    { relationshipPort: port, auditPort: audit },
+  );
+
+  assert.equal(result.status, "rejected");
+  assert.ok(result.errors?.includes("invalid_timestamp"));
 });
 
 // ─── Retry / failure paths ──────────────────────────────────────────────────
