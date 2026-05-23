@@ -21,7 +21,8 @@ export type DreamTriggerKind =
   | "scheduled"
   | "evidence_threshold"
   | "manual"
-  | "maintenance";
+  | "maintenance"
+  | "quiet_completion";
 
 export type DreamRunStatus =
   | "queued"

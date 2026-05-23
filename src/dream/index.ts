@@ -8,7 +8,7 @@ export { redactDreamInput, redactBundle } from "./redaction-gate.js";
 export { validateDreamOutput } from "./output-validator.js";
 export { runDream } from "./dream-engine.js";
 export { scheduleDream, shouldTrigger, memoryLockPort } from "./dream-scheduler.js";
-export type { SchedulerInput, DreamRunLockPort, ScheduleResult, CronPolicy, EvidenceThresholdPolicy, ManualPolicy, TriggerPolicy } from "./dream-scheduler.js";
+export type { SchedulerInput, DreamRunLockPort, ScheduleResult, CronPolicy, EvidenceThresholdPolicy, ManualPolicy, QuietCompletionPolicy, TriggerPolicy } from "./dream-scheduler.js";
 export { extractInsights } from "./insight-extractor.js";
 export { draftNarrativeFromDream } from "./narrative-update-proposal.js";
 export { draftRelationshipFromDream } from "./relationship-update-proposal.js";

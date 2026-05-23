@@ -93,10 +93,14 @@ export async function scheduleDream(
   });
 
   if (!lockResult.acquired) {
+    const reason =
+      input.triggerKind === "quiet_completion"
+        ? "skip:lock_held"
+        : `lock_held_by:${lockResult.existingRunId ?? "unknown"}`;
     return {
       runId: input.runId,
       status: "skipped",
-      reason: `lock_held_by:${lockResult.existingRunId ?? "unknown"}`,
+      reason,
     };
   }
 
@@ -145,7 +149,21 @@ export interface ManualPolicy {
   type: "manual";
 }
 
-export type TriggerPolicy = CronPolicy | EvidenceThresholdPolicy | ManualPolicy;
+export interface QuietCompletionPolicy {
+  type: "quiet_completion";
+  quietCompletedAt: string;
+  windowStartHour: number;
+  windowEndHour: number;
+}
+
+export type TriggerPolicy = CronPolicy | EvidenceThresholdPolicy | ManualPolicy | QuietCompletionPolicy;
+
+function isHourInWindow(hour: number, start: number, end: number): boolean {
+  if (start < end) {
+    return hour >= start && hour < end;
+  }
+  return hour >= start || hour < end;
+}
 
 export function shouldTrigger(policy: TriggerPolicy): {
   shouldRun: boolean;
@@ -181,6 +199,13 @@ export function shouldTrigger(policy: TriggerPolicy): {
     }
     case "manual": {
       return { shouldRun: true, reason: "manual_trigger" };
+    }
+    case "quiet_completion": {
+      const hour = new Date(policy.quietCompletedAt).getUTCHours();
+      if (isHourInWindow(hour, policy.windowStartHour, policy.windowEndHour)) {
+        return { shouldRun: true, reason: "quiet_completion_in_window" };
+      }
+      return { shouldRun: false, reason: "skip:out_of_window" };
     }
   }
 }

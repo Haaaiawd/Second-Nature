@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-22` (`/forge` Wave 57 settled)
+- **最近一次更新**: `2026-05-23` (`/forge` Wave 61 settled, Wave 62 AUTO)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -198,8 +198,8 @@ src/
 - 系统数: 8
 - **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；设计 `/challenge` PASS；`/blueprint` 完成；任务最终复审 `/challenge` **PASS**（0 Critical / 0 High / 1 Medium note，2026-05-21）
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Task Final Recheck PASS；TRR-001 已闭合，TRR-002 为设计清理 note）
-- **下一步**: `/forge` Wave 52 — S2 Core State + Connector (T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3)
-- **最近更新**: `2026-05-21` (`/forge` Wave 51 settled)
+- **下一步**: `/forge` Wave 62 — S4 Dream/Quiet + Guidance: Dream Scheduler + Projection Reflow + GuidanceDraftService
+- **最近更新**: `2026-05-23` (`/forge` Wave 61 settled)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -273,6 +273,12 @@ T-DQS.C.3
   - Low: modelAssistPort 优先级文档
 - **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 61 引入）
 - **下一步**: T-DQS.C.4 (Dream Scheduler Quiet-completion 触发) 或 T-OBS.C.1 (RedactionPolicy)
+
+### 🌊 Wave 62 — v7 S4 Dream/Quiet + Guidance: Dream Scheduler + Projection Reflow + GuidanceDraftService
+T-DQS.C.4, T-DQS.C.5, T-GVS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+**状态**: 进行中
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
