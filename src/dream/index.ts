@@ -12,3 +12,5 @@ export type { SchedulerInput, DreamRunLockPort, ScheduleResult, CronPolicy, Evid
 export { extractInsights } from "./insight-extractor.js";
 export { draftNarrativeFromDream } from "./narrative-update-proposal.js";
 export { draftRelationshipFromDream } from "./relationship-update-proposal.js";
+export { createDreamInputLoader } from "./dream-input-loader.js";
+export type { DreamInputLoaderOptions } from "./dream-input-loader.js";

@@ -51,6 +51,14 @@ export interface DreamRun {
   fallbackReason?: string;
 }
 
+export interface ToolExperienceSummary {
+  connectorId: string;
+  capabilityId: string;
+  outcome: string;
+  count: number;
+  lastRecordedAt: string;
+}
+
 export interface DreamInputBundle {
   evidenceRefs: string[];
   chronicleEntryIds: string[];
@@ -58,6 +66,7 @@ export interface DreamInputBundle {
   narrativeSnapshotId?: string;
   relationshipSnapshotId?: string;
   goalSnapshotIds: string[];
+  toolExperienceSummaries?: ToolExperienceSummary[];
   inputCounts: {
     evidence: number;
     chronicle: number;

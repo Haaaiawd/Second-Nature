@@ -578,7 +578,7 @@
 
 ---
 
-- [ ] **T-DQS.C.2** [REQ-005]: 实现 Dream InputLoader 幂等加载（DR-026）
+- [x] **T-DQS.C.2** [REQ-005]: 实现 Dream InputLoader 幂等加载（DR-026）
   - **描述**: 实现 `DreamInputLoader.loadDreamInputs`：加载"所有未被 accepted projection 引用的 claims"，保证 Dream lock 被持有时新 Quiet 完成的 claims 不丢失，在下次 Dream 中自动包含（DR-026，幂等去重）；lock TTL 35min；加载 ToolExperience 摘要作为 Dream 输入
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-system.md §2.1 G3`（DR-026 注释）、T-DQS.C.1、T-SMS.C.7
   - **输出**: `src/dream/dream-input-loader.ts`（更新现有）

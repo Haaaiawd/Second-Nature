@@ -244,6 +244,21 @@ T-DQS.C.1
 - **预先存在失败**: `T2.2.3 bridge full-runtime heartbeat wires connectorExecutor`（Wave 56 引入，非 Wave 59）
 - **下一步**: T-DQS.C.2 (Dream InputLoader) 或 T-GVS.C.1 (GuidanceDraftService)
 
+### 🌊 Wave 60 ✅ — v7 S4 Dream/Quiet: T-DQS.C.2 Dream InputLoader
+T-DQS.C.2
+**签入**: AUTO
+**code-reviewer**: 子代理审查 → Partial Pass → 修复后 Pass
+- **状态**: 完成（2026-05-22）
+- **产出**: dream-input-loader.ts + types.ts 扩展 (ToolExperienceSummary) + 16 单元测试
+- **审查报告**: `.anws/v7/wave-reviews/wave-60-review.md`
+- **最高严重度**: none (修复后)
+- **修复摘要**: 
+  - Critical: ToolExperience GROUP BY 聚合替代硬编码 count=1
+  - High: 补充聚合测试 + 混合格式测试 + 边界测试
+  - Medium: safeParseJson 防御 null 返回值 + ORDER BY 一致性 + 注释完善
+- **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 60 引入）
+- **下一步**: T-DQS.C.3 (Dream Engine v7 适配) 或 T-GVS.C.1 (GuidanceDraftService)
+
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
 ### 🌊 Wave 54 ✅ — v7 S3 Body Tool + Heartbeat: ExperienceWriter/Probe/PainSignal + CircuitBreaker
