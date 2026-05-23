@@ -287,7 +287,7 @@ T-DQS.C.4, T-DQS.C.5, T-GVS.C.1
   - High: `scheduleDream` catch 块新增 `console.error`；`generateGuidanceDraft` 新增 `sceneKind` 运行时校验 + inner-guide 风格模板 + 消费 `relationshipContextRef`/`channelHint`/`ownerPreferenceRef`；`validateDraftSources` 返回 `invalidated` 标志 + `Promise.all` 并行校验
   - Medium: 测试 SQL 参数化；`memoryLockPort` 改为独立 Map 工厂；`windowKey` 可配置
 - **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 62 引入）
-- **下一步**: T-DQS.C.4 wiring（Quiet completion → scheduleDream 调用链）或 T-GVS.C.2（ChannelFeedbackIngestionService）或 INT-S4
+- **下一步**: `/forge` Wave 63 — S4 Guidance + S5 Observability: ChannelFeedbackIngestionService + RedactionPolicy
 
 | 项 | 值 |
 | -- | -- |
@@ -299,6 +299,12 @@ T-DQS.C.4, T-DQS.C.5, T-GVS.C.1
 | 残留待跟进 | 无 |
 | §3.7 E2E | N/A |
 | 本波可进 Step 4 | 是 |
+
+### 🌊 Wave 63 — v7 S4 Guidance + S5 Observability: ChannelFeedbackIngestionService + RedactionPolicy
+T-GVS.C.2, T-OBS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+**状态**: 进行中
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
