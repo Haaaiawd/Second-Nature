@@ -678,7 +678,7 @@
 
 ---
 
-- [ ] **T-GVS.C.2** [REQ-006]: 实现 ChannelFeedbackIngestionService（DR-029）
+- [x] **T-GVS.C.2** [REQ-006]: 实现 ChannelFeedbackIngestionService（DR-029）
   - **描述**: 实现 `ChannelFeedbackIngestionService`：将 delivery result、owner reaction（tone/timing/no-reply signal）写入 RelationshipMemory；写入失败时指数退避重试 3 次（500/1000/2000ms），失败后写 audit event，禁止静默丢失（DR-029）；缺少 delivery proof 时状态标记 `not_sent`
   - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md §4.1`（ChannelFeedbackIngestionService）、DR-029
   - **输出**: `src/guidance/channel-feedback-ingestion-service.ts`（更新现有）
@@ -739,7 +739,7 @@
 
 ---
 
-- [ ] **T-OBS.C.1** [REQ-001, REQ-003, REQ-007]: 实现 RedactionPolicy 统一强制化与 AppendOnlyAuditStore in-memory lastHashCache（DR-033）
+- [x] **T-OBS.C.1** [REQ-001, REQ-003, REQ-007]: 实现 RedactionPolicy 统一强制化与 AppendOnlyAuditStore in-memory lastHashCache（DR-033）
   - **描述**: 强化 `RedactionPolicy` 为所有系统写入 audit 前的统一 gate（统一 mask/erase/hash 三类规则）；`AppendOnlyAuditStore` 实现 in-memory `lastHashCache`（per-family，O(1) hash chain 写入，DR-033）；进程重启后从 DB 最新记录回填 lastHash；hash chain integrity 可按需验证；DR-039：chain 损坏 5 步处理（隔离/标记 degraded/alert/downstream warnings/不自动修复）
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §1.3`（AppendOnlyAuditStore）、`§3.3`（RedactionPolicy）、DR-033、DR-039
   - **输出**: `src/observability/audit/append-only-audit-store-v7.ts`（更新现有）
