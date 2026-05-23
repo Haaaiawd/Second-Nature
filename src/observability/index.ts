@@ -115,3 +115,19 @@ export {
   type GuidanceParticipationAudit,
   type GuidanceParticipationProjection,
 } from "./projections/guidance-audit.js";
+
+export {
+  getSelfHealthSnapshot,
+  registerHealthProbe,
+  unregisterHealthProbe,
+  clearHealthProbeRegistry,
+  ensureMinimumProbes,
+  getRegisteredProbes,
+  MINIMUM_REQUIRED_DIMENSIONS,
+  type HealthStatus,
+  type DimensionHealth,
+  type SelfHealthSnapshot,
+  type HealthProbeFunction,
+  type RegisteredProbe,
+  type HealthProbeScope,
+} from "./services/self-health-snapshot.js";
