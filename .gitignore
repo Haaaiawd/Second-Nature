@@ -21,3 +21,4 @@ data/
 !.anws/
 !.anws/**
 workspace/
+test-results.txt

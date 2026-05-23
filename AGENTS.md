@@ -274,11 +274,31 @@ T-DQS.C.3
 - **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 61 引入）
 - **下一步**: T-DQS.C.4 (Dream Scheduler Quiet-completion 触发) 或 T-OBS.C.1 (RedactionPolicy)
 
-### 🌊 Wave 62 — v7 S4 Dream/Quiet + Guidance: Dream Scheduler + Projection Reflow + GuidanceDraftService
+### 🌊 Wave 62 ✅ — v7 S4 Dream/Quiet + Guidance: Dream Scheduler + Projection Reflow + GuidanceDraftService
 T-DQS.C.4, T-DQS.C.5, T-GVS.C.1
 **签入**: AUTO
-**code-reviewer**: 默认执行
-**状态**: 进行中
+**code-reviewer**: 子代理审查 → Partial Pass → 修复后 Pass
+- **状态**: 完成（2026-05-23）
+- **产出**: 2 更新模块 + 1 新模块 + 4 测试文件 + 21 单元/集成测试（0 失败）
+- **审查报告**: `.anws/v7/wave-reviews/wave-62-review.md`
+- **最高严重度**: none（修复后；原 Critical+High 已闭环）
+- **修复摘要**:
+  - Critical: `SchedulerInput` 新增 `modelAssistPort` 透传 `runDream`（DR-027）
+  - High: `scheduleDream` catch 块新增 `console.error`；`generateGuidanceDraft` 新增 `sceneKind` 运行时校验 + inner-guide 风格模板 + 消费 `relationshipContextRef`/`channelHint`/`ownerPreferenceRef`；`validateDraftSources` 返回 `invalidated` 标志 + `Promise.all` 并行校验
+  - Medium: 测试 SQL 参数化；`memoryLockPort` 改为独立 Map 工厂；`windowKey` 可配置
+- **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为，非 Wave 62 引入）
+- **下一步**: T-DQS.C.4 wiring（Quiet completion → scheduleDream 调用链）或 T-GVS.C.2（ChannelFeedbackIngestionService）或 INT-S4
+
+| 项 | 值 |
+| -- | -- |
+| Wave | 62 |
+| 任务 ID | T-DQS.C.4, T-DQS.C.5, T-GVS.C.1 |
+| 分支 @ HEAD | `feature/v7-wave61-dqs-c3` @ `b452499` |
+| code-reviewer 文件 | `.anws/v7/wave-reviews/wave-62-review.md` |
+| 最高严重度 | none（修复后） |
+| 残留待跟进 | 无 |
+| §3.7 E2E | N/A |
+| 本波可进 Step 4 | 是 |
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
