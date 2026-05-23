@@ -638,7 +638,7 @@
 
 ---
 
-- [ ] **T-DQS.C.5** [REQ-001, REQ-005]: 实现 accepted projection 回流至 heartbeat 验证
+- [x] **T-DQS.C.5** [REQ-001, REQ-005]: 实现 accepted projection 回流至 heartbeat 验证
   - **描述**: 端到端验证：accepted Dream projection 在 state-memory 后可被 `EmbodiedContextAssembler.loadAcceptedDreamProjection` 读取；candidate projection 不进入 heartbeat context；`loadAcceptedProjection` 降级 reason code `context_degraded:dream_projection_unavailable`（DR-024）
   - **输入**: T-DQS.C.3、T-CP.C.1、T-SMS.C.2（loadAcceptedDreamProjection）
   - **输出**: `tests/integration/control-plane/dream-projection-heartbeat.test.ts`
