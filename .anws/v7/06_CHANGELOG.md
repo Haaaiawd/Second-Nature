@@ -47,3 +47,22 @@
 - [CHANGE] 修复 TRR-001：将 `05A_TASKS.md` / `05B_VERIFICATION_PLAN.md` 中 `getPainSignal` 的任务签名从 `platformId, capabilityId` 对齐为设计契约 `connectorId, capabilityId?`。
 - [CHANGE] 修复 TRR-001：将 pain signal 验收字段对齐为 `PainSignal`（connectorId、capabilityId、painLevel、recentFailureRate、consecutiveFailures、cooldownRecommended、lastOutcomes），不再使用 `failureClass/lastFailedAt/recentFailureCount`。
 - [CHANGE] `/challenge TASKS` 最终复审通过：0 Critical / 0 High / 1 Medium note，`05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md` 可进入 `/forge`。
+
+## Wave 66 — 2026-05-23 (commits 85285f5 + 7194a3c)
+
+### T-OBS.C.4 — HeartbeatDigest Delivery Hook
+- [ADD] `DigestDeliveryAdapter` 接口注入到 `heartbeat-digest-assembler.ts` — `generateHeartbeatDigest` 在 Feishu target 时调用 adapter
+- [ADD] `deliveredAt` + `deliveryProof` (channelId + messageHash) 仅在成功时写入；失败写 `deliveryFallbackReason`，绝不声称已发送
+- [ADD] `tests/integration/observability/digest-delivery.test.ts` 8/8 PASS
+- Commit: `85285f5`
+
+### T-OBS.C.6 — RestoreAuditService
+- [ADD] `src/observability/services/restore-audit-service.ts` — `writeRestoreAudit` 写入 restore 审计链
+- [ADD] payload: from/to version, reason, completedEntities, failedEntities, excludedFields (字段名, 非值), isPartialRestore
+- [ADD] DR-041 fire-and-forget：audit 写入失败不抛出，返回 ok:true + warnings
+- [ADD] `partial_restore_error` 含 entity 清单
+- [CHANGE] `src/observability/audit/audit-envelope.ts` — `AuditEventFamily` 扩展 v7 families: `restore.audit`, `health.probe`, `narrative.snapshot`, `secret.anchor`
+- [ADD] `tests/unit/observability/restore-audit-service.test.ts` 12/12 PASS
+- Commit: `7194a3c`
+
+### §3.6 Code Review Gate: PASS (0 Critical / 0 High / 1 Low)
