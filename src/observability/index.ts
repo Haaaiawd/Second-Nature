@@ -131,3 +131,15 @@ export {
   type RegisteredProbe,
   type HealthProbeScope,
 } from "./services/self-health-snapshot.js";
+
+export {
+  generateHeartbeatDigest,
+  type HeartbeatDigest,
+  type HeartbeatDigestAssemblerDeps,
+  type StateMemoryDigestPort,
+  type ConnectorDaySummary,
+  type GoalDaySummary,
+  type QuietDreamDaySummary,
+  type HealthDaySummary,
+  type DeliveryProofRef,
+} from "./services/heartbeat-digest-assembler.js";
