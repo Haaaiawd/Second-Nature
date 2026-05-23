@@ -319,6 +319,21 @@ T-GVS.C.2, T-OBS.C.1
 - verifyAuditHashChain 跨 family false positive（已知，DR-033 设计外）
 **下一步**: INT-S4 集成验证 或 T-OBS.C.2 (SelfHealthSnapshot per-probe timeout)
 
+### 🌊 Wave 64 ✅ — v7 S4 Guidance + S5 Observability: OutreachStrategySelector + SelfHealthSnapshot + HeartbeatDigestAssembler
+T-GVS.C.3, T-OBS.C.2, T-OBS.C.3
+**签入**: AUTO
+**code-reviewer**: `.anws/v7/wave-reviews/wave-64-review.md` — PASS
+- **状态**: 完成（2026-05-23）
+- **commits**: f33a77e (T-GVS.C.3), 0f52b80 (T-OBS.C.2), 4f8a2e0 (T-OBS.C.3), 0934cb8 (settlement)
+- **产出**: 3 新模块 + 2 测试文件扩展 + 68 单元测试（0 失败）
+- **最高严重度**: none；RISK-W64-01 quiet.trace family 缺失（T-OBS.C.4~C.5 范围，可接受）
+- **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为）
+**下一步**: Wave 65 — INT-S4 集成验证 + T-OBS.C.5 NarrativeTimeline + T-OBS.C.7 RuntimeSecretAnchorView
+
+### 🌊 Wave 65 🔄 — v7 S4 集成验证 + S5 Observability: INT-S4 + NarrativeTimeline + RuntimeSecretAnchorView
+INT-S4, T-OBS.C.5, T-OBS.C.7
+**签入**: AUTO
+
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
 ### 🌊 Wave 54 ✅ — v7 S3 Body Tool + Heartbeat: ExperienceWriter/Probe/PainSignal + CircuitBreaker

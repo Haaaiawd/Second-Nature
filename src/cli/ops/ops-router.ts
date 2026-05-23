@@ -1,5 +1,9 @@
 /**
  * Shared ops command dispatch for CLI + tool surfaces (T1.1.3, T1.2.2).
+ *
+ * v7 additions (T-ROS.C.1): self_health, tool_affordance, connector_test --wet,
+ * heartbeat_digest, narrative:diff, timeline, restore, runtime_secret_bootstrap.
+ * All commands return RuntimeOpsEnvelope.
  */
 import {
   heartbeatCheck,
@@ -27,6 +31,44 @@ import { connectorBehaviorAdd } from "../commands/connector-behavior.js";
 import { connectorStatus, connectorTest } from "../commands/connector-status.js";
 import { goalCommand } from "../commands/goal.js";
 import type { DynamicConnectorRegistry } from "../../connectors/registry/index.js";
+// v7 observability services (T-ROS.C.1)
+import {
+  getSelfHealthSnapshot,
+  ensureMinimumProbes,
+} from "../../observability/services/self-health-snapshot.js";
+import {
+  generateHeartbeatDigest,
+  type HeartbeatDigestAssemblerDeps,
+} from "../../observability/services/heartbeat-digest-assembler.js";
+import {
+  queryNarrativeTimeline,
+  queryNarrativeDiff,
+  type NarrativeTimelineDeps,
+} from "../../observability/services/narrative-timeline-query-service.js";
+import {
+  viewSecretAnchor,
+  type SecretAnchorDeps,
+} from "../../observability/services/runtime-secret-anchor-view.js";
+import {
+  writeRestoreAudit,
+  type RestoreAuditEvent,
+} from "../../observability/services/restore-audit-service.js";
+import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+
+// ─── RuntimeOpsEnvelope (T-ROS.C.1 / [G1]) ───────────────────────────────────
+
+/** Unified response envelope for all v7 runtime-ops commands. */
+export interface RuntimeOpsEnvelope<T = unknown> {
+  ok: boolean;
+  command: string;
+  runtimeMode: "host_safe_carrier" | "workspace_full_runtime" | "unavailable";
+  surfaceMode: "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
+  generatedAt: string;
+  data?: T;
+  error?: { code: string; message: string; nextStep?: string };
+  warnings: string[];
+  sourceRefs: string[];
+}
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
@@ -60,6 +102,25 @@ export interface OpsRouterDeps {
    * T1.2.3: DynamicConnectorRegistry for connector:status and connector:test commands.
    */
   registry?: DynamicConnectorRegistry;
+  // ─── v7 observability ports (T-ROS.C.1) ──────────────────────────────────
+  /**
+   * In-memory audit store for heartbeat_digest, restore, and audit commands.
+   * When absent, commands degrade gracefully.
+   */
+  auditStore?: AppendOnlyAuditStore;
+  /**
+   * Deps for heartbeat_digest — includes optional stateMemoryPort and deliveryAdapter.
+   * When absent, only auditStore is used (no state-memory enrichment).
+   */
+  heartbeatDigestDeps?: Omit<HeartbeatDigestAssemblerDeps, "auditStore">;
+  /**
+   * Deps for narrative timeline (narrative:diff, timeline commands).
+   */
+  narrativeTimelineDeps?: NarrativeTimelineDeps;
+  /**
+   * Deps for runtime_secret_bootstrap (key anchor health check).
+   */
+  secretAnchorDeps?: SecretAnchorDeps;
 }
 
 /**
@@ -91,7 +152,7 @@ export interface OpsRouter {
   dispatch(
     command: string,
     input?: Record<string, unknown>,
-  ): Promise<HeartbeatSurfaceResult | Record<string, unknown>>;
+  ): Promise<HeartbeatSurfaceResult | Record<string, unknown> | RuntimeOpsEnvelope>;
 }
 
 export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
@@ -309,12 +370,19 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         });
       }
       if (command === "connector_test") {
-        return connectorTest(deps.registry, {
+        // v7 T-ROS.C.1: --wet flag (wet=true) sets dryRun=false + marks triggerSource:"manual"
+        const isWet = input?.wet === true || input?.wet === "true";
+        const result = await connectorTest(deps.registry, {
           platformId:
             typeof input?.platformId === "string" ? input.platformId : "",
-          dryRun:
-            input?.dryRun === false ? false : true, // default dry-run
+          dryRun: isWet ? false : (input?.dryRun === false ? false : true),
         });
+        if (isWet && result.ok) {
+          // Annotate result with manual trigger context (DR-038)
+          (result as Record<string, unknown>).triggerSource = "manual";
+          (result as Record<string, unknown>).affectsHeartbeatCadence = false;
+        }
+        return result;
       }
       if (command === "goal") {
         const rawAction = typeof input?.action === "string" ? input.action : "list";
@@ -379,6 +447,433 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         const data = await deps.readModels.loadCycleRecent(limit);
         return { ok: true, data };
       }
+
+      // ─── v7 commands (T-ROS.C.1) ─────────────────────────────────────────
+
+      /** [G2] self_health — transparent pass-through from SelfHealthSnapshot (DR-042). */
+      if (command === "self_health") {
+        const generatedAt = new Date().toISOString();
+        try {
+          ensureMinimumProbes();
+          const snap = await getSelfHealthSnapshot();
+          const degraded_dimensions = Object.entries(snap.dimensions)
+            .filter(([, d]) => d.status === "degraded")
+            .map(([k]) => k);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "self_health",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data: {
+              overall: snap.overall,
+              generatedAt: snap.generatedAt,
+              degraded_dimensions,
+              dimensions: snap.dimensions,
+            },
+            warnings: [],
+            sourceRefs: ["observability/services/self-health-snapshot.ts"],
+          };
+          return envelope;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "self_health",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: { code: "SELF_HEALTH_PROBE_FAILED", message: msg },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+      }
+
+      /**
+       * [G3] tool_affordance — body-tool AffordanceMap pass-through.
+       * Port not yet wired in this wave; returns degraded view with clear next-step.
+       */
+      if (command === "tool_affordance") {
+        const generatedAt = new Date().toISOString();
+        const envelope: RuntimeOpsEnvelope = {
+          ok: false,
+          command: "tool_affordance",
+          runtimeMode: "unavailable",
+          surfaceMode: "cli",
+          generatedAt,
+          error: {
+            code: "TOOL_AFFORDANCE_PORT_UNWIRED",
+            message: "tool_affordance requires body-tool AffordanceMap port (T-BTS.C.1) to be wired into OpsRouterDeps",
+            nextStep: "wire_body_tool_port_into_ops_router_deps",
+          },
+          warnings: [],
+          sourceRefs: [],
+        };
+        return envelope;
+      }
+
+      /**
+       * [G6] heartbeat_digest — wraps generateHeartbeatDigest.
+       * Requires auditStore in deps; degrades if unavailable.
+       */
+      if (command === "heartbeat_digest") {
+        const generatedAt = new Date().toISOString();
+        if (!deps.auditStore) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "heartbeat_digest",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "AUDIT_STORE_UNAVAILABLE",
+              message: "heartbeat_digest requires auditStore in OpsRouterDeps",
+              nextStep: "wire_audit_store_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        const date =
+          typeof input?.date === "string" && input.date
+            ? input.date
+            : new Date().toISOString().slice(0, 10);
+        try {
+          const digestDeps = {
+            auditStore: deps.auditStore,
+            ...deps.heartbeatDigestDeps,
+          };
+          const digest = await generateHeartbeatDigest(date, digestDeps);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "heartbeat_digest",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data: digest,
+            warnings: [],
+            sourceRefs: ["observability/services/heartbeat-digest-assembler.ts"],
+          };
+          return envelope;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "heartbeat_digest",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: { code: "DIGEST_GENERATION_FAILED", message: msg },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+      }
+
+      /**
+       * [G6] narrative:diff — queryNarrativeDiff between two versions.
+       * Requires narrativeTimelineDeps in OpsRouterDeps.
+       */
+      if (command === "narrative:diff") {
+        const generatedAt = new Date().toISOString();
+        if (!deps.narrativeTimelineDeps) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "narrative:diff",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "NARRATIVE_TIMELINE_PORT_UNAVAILABLE",
+              message: "narrative:diff requires narrativeTimelineDeps in OpsRouterDeps",
+              nextStep: "wire_narrative_timeline_deps_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        const fromVersion = typeof input?.from === "string" ? input.from : "";
+        const toVersion = typeof input?.to === "string" ? input.to : "";
+        if (!fromVersion || !toVersion) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "narrative:diff",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "MISSING_VERSIONS",
+              message: "narrative:diff requires 'from' and 'to' version arguments",
+              nextStep: "reinvoke_with_from_and_to",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        try {
+          const diff = await queryNarrativeDiff(fromVersion, toVersion, deps.narrativeTimelineDeps);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "narrative:diff",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data: diff,
+            warnings: [],
+            sourceRefs: ["observability/services/narrative-timeline-query-service.ts"],
+          };
+          return envelope;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "narrative:diff",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: { code: "NARRATIVE_DIFF_FAILED", message: msg },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+      }
+
+      /**
+       * [G6] timeline — queryNarrativeTimeline with cursor pagination.
+       * Requires narrativeTimelineDeps in OpsRouterDeps.
+       */
+      if (command === "timeline") {
+        const generatedAt = new Date().toISOString();
+        if (!deps.narrativeTimelineDeps) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "timeline",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "NARRATIVE_TIMELINE_PORT_UNAVAILABLE",
+              message: "timeline requires narrativeTimelineDeps in OpsRouterDeps",
+              nextStep: "wire_narrative_timeline_deps_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        const now = new Date();
+        const to = typeof input?.to === "string" ? input.to : now.toISOString();
+        const from =
+          typeof input?.from === "string"
+            ? input.from
+            : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const limit = typeof input?.limit === "number" ? input.limit : 20;
+        const cursor = typeof input?.cursor === "string" ? input.cursor : undefined;
+        try {
+          const page = await queryNarrativeTimeline(from, to, { limit, cursor }, deps.narrativeTimelineDeps);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "timeline",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data: page,
+            warnings: [],
+            sourceRefs: ["observability/services/narrative-timeline-query-service.ts"],
+          };
+          return envelope;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const code = (err as { name?: string }).name === "NarrativeQueryRangeError"
+            ? "NARRATIVE_RANGE_EXCEEDED"
+            : "TIMELINE_QUERY_FAILED";
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "timeline",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: { code, message: msg },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+      }
+
+      /**
+       * [G6] restore — triggers RestoreAudit write (T-OBS.C.6).
+       * The restore state operation is assumed to have been attempted by the caller;
+       * this command records the audit trail. Never restores credential fields.
+       */
+      if (command === "restore") {
+        const generatedAt = new Date().toISOString();
+        if (!deps.auditStore) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "restore",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "AUDIT_STORE_UNAVAILABLE",
+              message: "restore requires auditStore in OpsRouterDeps",
+              nextStep: "wire_audit_store_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        const missingFields: string[] = [];
+        if (typeof input?.restoreTarget !== "string") missingFields.push("restoreTarget");
+        if (typeof input?.fromVersion !== "string") missingFields.push("fromVersion");
+        if (typeof input?.toVersion !== "string") missingFields.push("toVersion");
+        if (missingFields.length > 0) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "restore",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "MISSING_RESTORE_FIELDS",
+              message: `restore requires: ${missingFields.join(", ")}`,
+              nextStep: "reinvoke_with_required_fields",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        const event: RestoreAuditEvent = {
+          id: `restore-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          restoreTarget: input!.restoreTarget as RestoreAuditEvent["restoreTarget"],
+          fromVersion: input!.fromVersion as string,
+          toVersion: input!.toVersion as string,
+          triggeredBy: (input?.triggeredBy as RestoreAuditEvent["triggeredBy"]) ?? "operator",
+          reason: typeof input?.reason === "string" ? input.reason : "manual_restore",
+          completedEntities: Array.isArray(input?.completedEntities)
+            ? (input!.completedEntities as string[])
+            : [],
+          failedEntities: Array.isArray(input?.failedEntities)
+            ? (input!.failedEntities as string[])
+            : [],
+          // credentials are always excluded from restore audit
+          excludedFields: Array.isArray(input?.excludedFields)
+            ? (input!.excludedFields as string[]).filter((f) => typeof f === "string")
+            : ["credential", "encryptionKey"],
+          restoredFieldCount:
+            typeof input?.restoredFieldCount === "number" ? input.restoredFieldCount : 0,
+          createdAt: generatedAt,
+          traceId: typeof input?.traceId === "string" ? input.traceId : `trace-restore-${Date.now()}`,
+        };
+        const result = await writeRestoreAudit(event, deps.auditStore);
+        const envelope: RuntimeOpsEnvelope = {
+          ok: result.ok,
+          command: "restore",
+          runtimeMode: "workspace_full_runtime",
+          surfaceMode: "cli",
+          generatedAt,
+          data: {
+            auditWritten: result.warnings.length === 0,
+            fromVersion: event.fromVersion,
+            toVersion: event.toVersion,
+            restoreTarget: event.restoreTarget,
+            isPartialRestore: event.failedEntities.length > 0,
+            failedEntities: event.failedEntities,
+          },
+          warnings: result.warnings,
+          sourceRefs: ["observability/services/restore-audit-service.ts"],
+        };
+        return envelope;
+      }
+
+      /**
+       * [G7] runtime_secret_bootstrap — RuntimeSecretAnchorView pass-through.
+       * Requires secretAnchorDeps in OpsRouterDeps; never returns key plaintext.
+       */
+      if (command === "runtime_secret_bootstrap") {
+        const generatedAt = new Date().toISOString();
+        if (!deps.secretAnchorDeps) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "runtime_secret_bootstrap",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "SECRET_ANCHOR_DEPS_UNAVAILABLE",
+              message: "runtime_secret_bootstrap requires secretAnchorDeps in OpsRouterDeps",
+              nextStep: "wire_secret_anchor_deps_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        try {
+          const view = await viewSecretAnchor(deps.secretAnchorDeps);
+          // Map to RuntimeSecretBootstrapView (design model §6.1)
+          const data = {
+            status:
+              view.status === "verified" || view.status === "ok"
+                ? ("ok" as const)
+                : view.status === "missing"
+                  ? ("runtime_secret_anchor_missing" as const)
+                  : view.status === "wrong_key"
+                    ? ("credential_recovery_required" as const)
+                    : view.status === "decryption_failed"
+                      ? ("runtime_secret_unavailable" as const)
+                      : ("unknown" as const),
+            keyHealth:
+              view.status === "verified" || view.status === "ok"
+                ? ("ok" as const)
+                : view.status === "missing"
+                  ? ("missing_key" as const)
+                  : view.status === "wrong_key"
+                    ? ("wrong_key" as const)
+                    : ("unknown" as const),
+            anchorLocation: view.keyPath,
+            recoveryPrincipleRef: view.recoveryDocRef,
+            plaintextKeyExposed: false as const,
+            reasonCode: view.reasonCode,
+            recoverySteps: view.recoverySteps,
+          };
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "runtime_secret_bootstrap",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data,
+            warnings: [],
+            sourceRefs: ["observability/services/runtime-secret-anchor-view.ts"],
+          };
+          return envelope;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "runtime_secret_bootstrap",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: { code: "SECRET_ANCHOR_PROBE_FAILED", message: msg },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+      }
+
       return {
         ok: false,
         error: {
