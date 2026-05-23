@@ -6,6 +6,7 @@ import {
   memoryLockPort,
   type SchedulerInput,
   type DreamStatePort,
+  type ModelAssistPort,
 } from "../../../src/dream/index.js";
 
 const makeStatePort = (): DreamStatePort => ({
@@ -59,6 +60,24 @@ test("T-DQS.C.4 quiet_completion with held lock returns skip:lock_held", async (
   });
   assert.equal(second.status, "skipped");
   assert.equal(second.reason, "skip:lock_held");
+});
+
+test("T-DQS.C.4 modelAssistPort is passed through to runDream without error", async () => {
+  const modelAssistPort: ModelAssistPort = {
+    async extractInsights() {
+      return { insights: [], unsupportedClaims: [] };
+    },
+  };
+
+  const result = await scheduleDream({
+    runId: "run-model-001",
+    traceId: "trace-model-001",
+    triggerKind: "quiet_completion",
+    statePort: makeStatePort(),
+    modelAssistPort,
+  });
+
+  assert.equal(result.status, "started");
 });
 
 test("T-DQS.C.4 non-quiet trigger with held lock returns legacy lock_held_by reason", async () => {

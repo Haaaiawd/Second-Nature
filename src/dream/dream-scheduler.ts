@@ -21,6 +21,7 @@ import type {
   DreamStatePort,
   DreamModelPort,
   DreamBudgetPort,
+  ModelAssistPort,
 } from "./types.js";
 
 export interface SchedulerInput {
@@ -28,11 +29,14 @@ export interface SchedulerInput {
   runId: string;
   traceId: string;
   statePort: DreamStatePort;
+  /** @deprecated Use modelAssistPort (DR-027). */
   modelPort?: DreamModelPort;
+  modelAssistPort?: ModelAssistPort;
   tracePort?: DreamTracePort;
   budgetPort?: DreamBudgetPort;
   options?: DreamEngineInput["options"];
   lockPort?: DreamRunLockPort;
+  windowKey?: string;
 }
 
 export interface DreamRunLockPort {
@@ -53,17 +57,16 @@ export interface ScheduleResult {
 const DEFAULT_LOCK_TTL_MS = 35 * 60 * 1000; // 35 min (covers 30 min operator timeout + buffer)
 
 // In-memory lock fallback when no lockPort is provided
-const memoryLocks = new Map<string, { runId: string; expiresAt: number }>();
-
 export function memoryLockPort(): DreamRunLockPort {
+  const locks = new Map<string, { runId: string; expiresAt: number }>();
   return {
     async acquireLock(input) {
       const key = input.windowKey;
-      const existing = memoryLocks.get(key);
+      const existing = locks.get(key);
       if (existing && existing.expiresAt > Date.now()) {
         return { acquired: false, existingRunId: existing.runId };
       }
-      memoryLocks.set(key, {
+      locks.set(key, {
         runId: input.runId,
         expiresAt: Date.now() + input.ttlMs,
       });
@@ -71,9 +74,9 @@ export function memoryLockPort(): DreamRunLockPort {
     },
     async releaseLock(input) {
       const key = input.windowKey;
-      const existing = memoryLocks.get(key);
+      const existing = locks.get(key);
       if (existing && existing.runId === input.runId) {
-        memoryLocks.delete(key);
+        locks.delete(key);
       }
     },
   };
@@ -83,7 +86,7 @@ export async function scheduleDream(
   input: SchedulerInput,
 ): Promise<ScheduleResult> {
   const lock = input.lockPort ?? memoryLockPort();
-  const windowKey = "dream_lock:default";
+  const windowKey = input.windowKey ?? "dream_lock:default";
 
   // Acquire lock
   const lockResult = await lock.acquireLock({
@@ -111,6 +114,7 @@ export async function scheduleDream(
     triggerKind: input.triggerKind,
     statePort: input.statePort,
     modelPort: input.modelPort,
+    modelAssistPort: input.modelAssistPort,
     tracePort: input.tracePort,
     budgetPort: input.budgetPort,
     options: input.options,
@@ -119,8 +123,8 @@ export async function scheduleDream(
       await lock.releaseLock({ runId: input.runId, windowKey });
       return result;
     })
-    .catch(async () => {
-      // Ensure lock is released even on unexpected failure
+    .catch(async (err: unknown) => {
+      console.error("[dream-scheduler] runDream failed:", err);
       await lock.releaseLock({ runId: input.runId, windowKey });
     });
 

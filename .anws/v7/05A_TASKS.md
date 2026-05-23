@@ -658,7 +658,7 @@
 
 ---
 
-- [ ] **T-GVS.C.1** [REQ-006]: 实现 GuidanceDraftService（DR-028，delivery 前 validateDraftSources）
+- [x] **T-GVS.C.1** [REQ-006]: 实现 GuidanceDraftService（DR-028，delivery 前 validateDraftSources）
   - **描述**: 实现 `GuidanceDraftService`；`GuidanceDraftRequest` TypeScript 接口定义（7 字段：requestId/sceneKind/evidencePackRef/relationshipContextRef 等，DR-030）；delivery 前重验证 `validateDraftSources`（DR-028）：evidence 在 delivery 前被 redact/删除则 draft 标记 `invalid`，返回 `draft_source_invalidated`；inner guide 语言风格（自然、感性、source-backed）
   - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md §4`、`§5.1`（GuidanceDraftService 操作契约）、DR-028、DR-030
   - **输出**: `src/guidance/guidance-draft-service.ts`（更新现有 draft-outreach-message.ts）

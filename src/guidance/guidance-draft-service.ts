@@ -66,10 +66,37 @@ export interface SourceValidatorPort {
 
 // ─── Service ────────────────────────────────────────────────────────────────
 
+const SCENE_KINDS: ReadonlyArray<GuidanceDraftRequest["sceneKind"]> = [
+  "outreach",
+  "follow_up",
+  "reconnect",
+];
+
+function buildDraftText(
+  request: GuidanceDraftRequest,
+  claims: DraftEvidencePackClaim[],
+): string {
+  const anchor = claims.map((c) => c.text).join("; ");
+  switch (request.sceneKind) {
+    case "outreach":
+      return `Hi there — wanted to share something that came up: ${anchor}`;
+    case "follow_up":
+      return `Following up on what we talked about: ${anchor}`;
+    case "reconnect":
+      return `It's been a while — here's what caught my attention: ${anchor}`;
+    default:
+      return `Draft for ${request.sceneKind}: ${anchor}`;
+  }
+}
+
 export async function generateGuidanceDraft(
   request: GuidanceDraftRequest,
   deps: { evidencePort: DraftEvidencePackPort },
 ): Promise<DraftServiceResult> {
+  if (!SCENE_KINDS.includes(request.sceneKind)) {
+    return { error: "unsupported_scene_kind" };
+  }
+
   const pack = await deps.evidencePort.loadEvidencePack(request.evidencePackRef);
   if (!pack) {
     return { error: "evidence_pack_unavailable" };
@@ -80,29 +107,52 @@ export async function generateGuidanceDraft(
     return { error: "draft_source_invalidated" };
   }
 
-  const text = `Draft for ${request.sceneKind} (${request.requestId}): ${pack.claims
-    .map((c) => c.text)
-    .join("; ")}`;
+  const text = buildDraftText(request, pack.claims);
+
+  const parts: string[] = [
+    `evidencePack=${request.evidencePackRef}`,
+    `relationshipContext=${request.relationshipContextRef}`,
+  ];
+  if (request.channelHint) {
+    parts.push(`channel=${request.channelHint}`);
+  }
+  if (request.ownerPreferenceRef) {
+    parts.push(`ownerPreference=${request.ownerPreferenceRef}`);
+  }
 
   return {
     draft: {
       text,
       deliveryWording: "sendable",
       sourceRefs: allSourceRefs,
-      explanation: `Generated from evidence pack ${request.evidencePackRef}`,
+      explanation: parts.join("; "),
     },
   };
+}
+
+export interface DraftValidationResult {
+  valid: boolean;
+  invalidated?: boolean;
+  reason?: DraftServiceError;
 }
 
 export async function validateDraftSources(
   draft: DraftMessage,
   deps: { validatorPort: SourceValidatorPort },
-): Promise<{ valid: boolean; reason?: DraftServiceError }> {
-  for (const ref of draft.sourceRefs) {
-    const available = await deps.validatorPort.checkSourceAvailable(ref);
-    if (!available) {
-      return { valid: false, reason: "draft_source_invalidated" };
-    }
+): Promise<DraftValidationResult> {
+  const results = await Promise.all(
+    draft.sourceRefs.map(async (ref) => ({
+      ref,
+      available: await deps.validatorPort.checkSourceAvailable(ref),
+    })),
+  );
+  const firstInvalid = results.find((r) => !r.available);
+  if (firstInvalid) {
+    return {
+      valid: false,
+      invalidated: true,
+      reason: "draft_source_invalidated",
+    };
   }
   return { valid: true };
 }

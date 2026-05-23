@@ -61,11 +61,13 @@ function insertDreamOutput(
   runId: string,
   status: string,
 ) {
-  db.sqlite.exec(
+  const stmt = db.sqlite.prepare(
     `INSERT INTO dream_output_index
      (output_id, run_id, status, canonical_entries_json, insights_json, validation_json, created_at)
-     VALUES ('${outputId}', '${runId}', '${status}', '[]', '[]', '{}', datetime('now'))`,
+     VALUES (?, ?, ?, '[]', '[]', '{}', datetime('now'))`,
   );
+  stmt.run([outputId, runId, status]);
+  stmt.free();
 }
 
 test("T-DQS.C.5 accepted projection is loaded by EmbodiedContextAssembler", async () => {
