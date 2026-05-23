@@ -558,7 +558,7 @@
 
 ---
 
-- [ ] **T-DQS.C.1** [REQ-005]: 实现 Quiet Pipeline（ClaimSynthesizer non-empty sourceRefs，DR-025）
+- [x] **T-DQS.C.1** [REQ-005]: 实现 Quiet Pipeline（ClaimSynthesizer non-empty sourceRefs，DR-025）
   - **描述**: 实现 `EvidenceAggregator`、`ClaimDeduplicator`、`ClaimSynthesizer`；fact claim 的 `sourceRefs` TypeScript 类型强制为 `[string, ...string[]]` non-empty tuple（DR-025）；单条弱 evidence 只能生成 observation 不能生成 pattern；`SourceValidator` 拒绝 sourceRefs 为空的 fact claim，返回 `claim_source_missing`；`DailyDiaryWriter` 输出三段（observedToday/notableSignals/tomorrowDirection）
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-system.md §4.1`（Quiet Pipeline 架构图）、`§2.1 G1`（sourceRefs non-empty tuple，DR-025）、T-SMS.C.7
   - **输出**: `src/core/second-nature/quiet/claim-synthesizer.ts`、`src/core/second-nature/quiet/daily-diary-writer.ts`
