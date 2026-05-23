@@ -698,7 +698,7 @@
 
 ---
 
-- [ ] **T-GVS.C.3** [REQ-006]: 实现 OutreachStrategySelector
+- [x] **T-GVS.C.3** [REQ-006]: 实现 OutreachStrategySelector
   - **描述**: 实现 `OutreachStrategySelector`（基于 RelationshipMemory 选择表达频率、措辞风格、fallback copy；language quality checklist：无干燥白话/有具体锚点/无过度阐释，style_lint_failed 降级标记，DR-031）；fallback copy 提供 channel-safe 信息而非空文本
   - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md §1.3`（OutreachStrategySelector）、DR-031
   - **输出**: `src/guidance/outreach-strategy-selector.ts`
@@ -759,7 +759,7 @@
 
 ---
 
-- [ ] **T-OBS.C.2** [REQ-007, REQ-012]: 实现 SelfHealthSnapshot per-probe 超时配置（DR-036）
+- [x] **T-OBS.C.2** [REQ-007, REQ-012]: 实现 SelfHealthSnapshot per-probe 超时配置（DR-036）
   - **描述**: 实现 `SelfHealthSnapshot` 动态维度探针模型；最小必测维度为 env/cron/secret/credential/storage/delivery/dream/bridge/circuit_breaker/state_memory，允许后续系统注册扩展维度；每个探针独立超时配置（env 200ms / cron 500ms / secret 1000ms 等，DR-036）；总体上限 3000ms（Promise.allSettled）；全部超时时返回 `lastKnownAt` + `reason: probe_timeout`；循环依赖降级策略（DR-032）：state-memory 不可用时 narrative_timeline / digest 探针标记 degraded，不影响其他探针；SelfHealthView 完整 JSON schema（DR-042）
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §5.1`（DR-036、DR-042 内容）、`§3.3`（DR-032 循环依赖降级）
   - **输出**: `src/observability/services/self-health-snapshot.ts`（更新现有）
@@ -779,7 +779,7 @@
 
 ---
 
-- [ ] **T-OBS.C.3** [REQ-010]: 实现 HeartbeatDigest 生成服务
+- [x] **T-OBS.C.3** [REQ-010]: 实现 HeartbeatDigest 生成服务
   - **描述**: 实现 `HeartbeatDigestAssembler`：每日聚合 connector 操作（按平台列出 success/failure/blocked/circuit-open 计数）、goal 变化、Quiet/Dream 状态、health 变化；无事件时发送 `nothing_significant`，不编造活跃度；digest 格式为 dashboard-style 仪表盘摘要，不是日志转储，不是 outreach；不含 raw payload/credential/私信全文
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §2.1 G4`（HeartbeatDigest）、T-OBS.C.2
   - **输出**: `src/observability/services/heartbeat-digest-assembler.ts`
