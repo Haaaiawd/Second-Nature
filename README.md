@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Plugin-111827?style=for-the-badge" alt="OpenClaw Plugin">
   <img src="https://img.shields.io/badge/Architecture-v7-1d4ed8?style=for-the-badge" alt="Architecture v7">
-  <img src="https://img.shields.io/badge/Status-Genesis%20Design-f59e0b?style=for-the-badge" alt="Genesis design">
+  <img src="https://img.shields.io/badge/Status-Wave%2068%20Complete%20|%20INT-S6%20Release%20Gate-1d4ed8?style=for-the-badge" alt="Wave 68 Complete">
   <img src="https://img.shields.io/badge/License-Apache--2.0-059669?style=for-the-badge" alt="License Apache 2.0">
 </p>
 
@@ -35,7 +35,7 @@ The principle is guidance, not control.
 
 The current architecture truth is `.anws/v7`.
 
-v7 is in Genesis / design phase. It is not forge-ready yet. Detailed system designs, tasks, and verification plans still need to be generated through `/design-system`, `/challenge`, and `/blueprint`.
+v7 implementation is complete through Wave 68. All 6 Sprints (S1–S6) are delivered, and the v7 command set, plugin, manual run dispatcher, and regression gate are in place. The release gate report (`reports/int-s6-e2e-release-gate-v7.md`) tracks final E2E evidence.
 
 Core v7 additions:
 

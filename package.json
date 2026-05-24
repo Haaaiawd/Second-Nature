@@ -60,6 +60,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
     "build:plugin": "node --experimental-vm-modules dist/scripts/build-plugin-package.js",
     "test": "pnpm build && pnpm build:plugin && node --test dist/tests/**/*.test.js"

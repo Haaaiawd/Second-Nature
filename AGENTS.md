@@ -196,10 +196,10 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/genesis` 完成；`/design-system` 全 8 系统完成；设计 `/challenge` PASS；`/blueprint` 完成；任务最终复审 `/challenge` **PASS**（0 Critical / 0 High / 1 Medium note，2026-05-21）
-- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Task Final Recheck PASS；TRR-001 已闭合，TRR-002 为设计清理 note）
-- **下一步**: `/forge` Wave 62 — S4 Dream/Quiet + Guidance: Dream Scheduler + Projection Reflow + GuidanceDraftService
-- **最近更新**: `2026-05-23` (`/forge` Wave 61 settled)
+- **状态**: v7 `/forge` Wave 68 完成；07_CHALLENGE_REPORT CODE review 发现 3 High / 2 Medium，Wave 69 修复中
+- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（CODE review HOLD: restore 缺少状态恢复路径 / v6 regression 9 项未 justified skip / README AGENTS 状态过时 / lint 脚本缺失）
+- **下一步**: `/forge` Wave 69 — 07_CHALLENGE_REPORT 修复：restore 状态恢复 + v6 regression skips + README/AGENTS 更新 + lint 脚本 + INT-S6 报告更新
+- **最近更新**: `2026-05-24` (`/forge` Wave 69 — 修复 07_CHALLENGE_REPORT）
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -366,7 +366,8 @@ T-ROS.C.2, T-ROS.C.3, T-ROS.C.4, T-ROS.C.5
 - **新增测试**: 18/18 PASS（12 集成 + 6 单元）
 - **审查报告**: `.anws/v7/wave-reviews/wave-68-review.md`
 - **最高严重度**: none
-- **下一步**: INT-S6 已完成（S6 里程碑已关门）；v7 全部 6 个 Sprint 里程碑完成
+- **预先存在失败**: 9 项（T2.2.3 bridge wiring / audit hash-chain / schema-migration / resolveCapability），Wave 69 转为 justified skips
+- **下一步**: Wave 69 — 07_CHALLENGE_REPORT 修复
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
