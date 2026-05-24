@@ -366,7 +366,7 @@ T-ROS.C.2, T-ROS.C.3, T-ROS.C.4, T-ROS.C.5
 - **新增测试**: 18/18 PASS（12 集成 + 6 单元）
 - **审查报告**: `.anws/v7/wave-reviews/wave-68-review.md`
 - **最高严重度**: none
-- **下一步**: INT-S6 集成验证（S6 里程碑关门）
+- **下一步**: INT-S6 已完成（S6 里程碑已关门）；v7 全部 6 个 Sprint 里程碑完成
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 

@@ -137,3 +137,16 @@
 - Evidence: `reports/v6-regression-gate-v7.md`
 
 ### §3.6 Code Review Gate: PASS (0 Critical / 0 High / 0 Low)
+
+---
+
+## INT-S6 — 2026-05-23 (S6 Release Gate)
+
+### S6 里程碑最终集成验证
+- [VERIFY] 12/12 验收标准满足（plugin + wet + self_health + heartbeat + regression + docs）
+- [VERIFY] 12/12 REQ 全覆盖
+- [VERIFY] 测试统计：1119/1128 PASS（99.2%），9 失败均为 pre-existing
+- [VERIFY] v6 regression gate 通过：`reports/v6-regression-gate-v7.md`
+- [VERIFY] INT-S1~INT-S5 前序里程碑全部完成
+- [ADD] `reports/int-s6-e2e-release-gate-v7.md` — S6 Release Gate 报告
+- **v7 全部 6 个 Sprint 里程碑完成**

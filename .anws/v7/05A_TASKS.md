@@ -995,7 +995,7 @@
 
 ---
 
-- [ ] **INT-S6** [MILESTONE]: S6 Runtime Ops + E2E 最终集成验证（Release Gate）
+- [x] **INT-S6** [MILESTONE]: S6 Runtime Ops + E2E 最终集成验证（Release Gate）
   - **描述**: 验证 S6 及全项目退出标准：plugin 加载成功；connector_test --wet 返回真实 status；self_health P95 < 1s 且动态最小维度集完整；端到端 heartbeat 读取 5 类 slice EmbodiedContext 且 heartbeat P95 < 2s；v6 regression gate 通过；12 个 REQ 全覆盖；AGENTS.md 更新完成
   - **输入**: T-ROS.C.1~C.5、所有 INT-S1~S5 报告
   - **输出**: `reports/int-s6-e2e-release-gate-v7.md`
