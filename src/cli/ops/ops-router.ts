@@ -55,6 +55,7 @@ import {
   type RestoreAuditEvent,
 } from "../../observability/services/restore-audit-service.js";
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+import type { RestoreSnapshotStore } from "../../storage/services/restore-snapshot-store.js";
 // T-ROS.C.3: ManualRunDispatcher and its deps
 import {
   createManualRunDispatcher,
@@ -131,6 +132,11 @@ export interface OpsRouterDeps {
    * Deps for runtime_secret_bootstrap (key anchor health check).
    */
   secretAnchorDeps?: SecretAnchorDeps;
+  /**
+   * T-ROS.C.1: RestoreSnapshotStore for bounded state restoration.
+   * When absent, restore command degrades to audit-only.
+   */
+  restoreSnapshotStore?: RestoreSnapshotStore;
 }
 
 /**
@@ -783,9 +789,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
       }
 
       /**
-       * [G6] restore — triggers RestoreAudit write (T-OBS.C.6).
-       * The restore state operation is assumed to have been attempted by the caller;
-       * this command records the audit trail. Never restores credential fields.
+       * [G6] restore — bounded state restoration via RestoreSnapshotStore + audit (T-ROS.C.1, T-OBS.C.6).
+       * When restoreSnapshotStore is wired, attempts to apply the snapshot payload back to state.
+       * Always writes RestoreAudit. Never restores credential fields.
        */
       if (command === "restore") {
         const generatedAt = new Date().toISOString();
@@ -827,6 +833,27 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           };
           return envelope;
         }
+
+        // [NEW] Invoke bounded restore via RestoreSnapshotStore when wired
+        let restoreResult: {
+          ok: boolean;
+          completedEntities: string[];
+          failedEntities: string[];
+          warnings: string[];
+        } = {
+          ok: false,
+          completedEntities: [],
+          failedEntities: [],
+          warnings: ["restore_snapshot_store_unavailable"],
+        };
+        if (deps.restoreSnapshotStore) {
+          restoreResult = await deps.restoreSnapshotStore.applyBoundedRestore({
+            restoreTarget: input!.restoreTarget as string,
+            fromVersion: input!.fromVersion as string,
+            toVersion: input!.toVersion as string,
+          });
+        }
+
         const event: RestoreAuditEvent = {
           id: `restore-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           restoreTarget: input!.restoreTarget as RestoreAuditEvent["restoreTarget"],
@@ -834,38 +861,38 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           toVersion: input!.toVersion as string,
           triggeredBy: (input?.triggeredBy as RestoreAuditEvent["triggeredBy"]) ?? "operator",
           reason: typeof input?.reason === "string" ? input.reason : "manual_restore",
-          completedEntities: Array.isArray(input?.completedEntities)
-            ? (input!.completedEntities as string[])
-            : [],
-          failedEntities: Array.isArray(input?.failedEntities)
-            ? (input!.failedEntities as string[])
-            : [],
+          completedEntities: restoreResult.completedEntities,
+          failedEntities: restoreResult.failedEntities,
           // credentials are always excluded from restore audit
           excludedFields: Array.isArray(input?.excludedFields)
             ? (input!.excludedFields as string[]).filter((f) => typeof f === "string")
             : ["credential", "encryptionKey"],
-          restoredFieldCount:
-            typeof input?.restoredFieldCount === "number" ? input.restoredFieldCount : 0,
+          restoredFieldCount: restoreResult.completedEntities.length,
           createdAt: generatedAt,
           traceId: typeof input?.traceId === "string" ? input.traceId : `trace-restore-${Date.now()}`,
         };
-        const result = await writeRestoreAudit(event, deps.auditStore);
+        const auditResult = await writeRestoreAudit(event, deps.auditStore);
         const envelope: RuntimeOpsEnvelope = {
-          ok: result.ok,
+          ok: restoreResult.ok && auditResult.ok,
           command: "restore",
           runtimeMode: "workspace_full_runtime",
           surfaceMode: "cli",
           generatedAt,
           data: {
-            auditWritten: result.warnings.length === 0,
+            auditWritten: auditResult.warnings.length === 0,
             fromVersion: event.fromVersion,
             toVersion: event.toVersion,
             restoreTarget: event.restoreTarget,
             isPartialRestore: event.failedEntities.length > 0,
             failedEntities: event.failedEntities,
+            completedEntities: event.completedEntities,
+            restoreSnapshotStoreAvailable: !!deps.restoreSnapshotStore,
           },
-          warnings: result.warnings,
-          sourceRefs: ["observability/services/restore-audit-service.ts"],
+          warnings: [...restoreResult.warnings, ...auditResult.warnings],
+          sourceRefs: [
+            "observability/services/restore-audit-service.ts",
+            "storage/services/restore-snapshot-store.ts",
+          ],
         };
         return envelope;
       }

@@ -20,6 +20,7 @@
  */
 
 import type { StateDatabase } from "../db/index.js";
+import type { SqlValue } from "sql.js";
 import type {
   RestoreSnapshot,
   RestorableEntityKind,
@@ -54,6 +55,23 @@ export interface RestoreSnapshotStore {
   }): Promise<RestoreSnapshot>;
   loadLatestSnapshot(): Promise<RestoreSnapshot | undefined>;
   listSnapshots(limit?: number): Promise<RestoreSnapshot[]>;
+  /**
+   * Apply a bounded restore from a captured snapshot.
+   * Loads the matching snapshot (by restoreTarget id, or latest fallback),
+   * then attempts to write each whitelisted entity back into its table.
+   * Sensitive kinds are always skipped. Never restores credential fields.
+   */
+  applyBoundedRestore(input: {
+    restoreTarget: string;
+    fromVersion: string;
+    toVersion: string;
+    entityWhitelist?: RestorableEntityKind[];
+  }): Promise<{
+    ok: boolean;
+    completedEntities: string[];
+    failedEntities: string[];
+    warnings: string[];
+  }>;
 }
 
 function safeParseJson<T>(json: string, fallback: T): T {
@@ -62,6 +80,29 @@ function safeParseJson<T>(json: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function parseSnapshotRow(
+  cols: string[],
+  row: unknown[],
+): RestoreSnapshot {
+  const get = (name: string) => row[cols.indexOf(name)] as string | null;
+  return {
+    snapshotId: get("snapshot_id")!,
+    entityWhitelist: safeParseJson<RestorableEntityKind[]>(
+      (get("entity_whitelist_json") as string) ?? "[]",
+      [],
+    ),
+    excludedSensitiveKinds: safeParseJson<SensitiveExcludedKind[]>(
+      (get("excluded_sensitive_kinds_json") as string) ?? "[]",
+      [],
+    ),
+    capturedAt: get("captured_at")!,
+    payload: safeParseJson<Record<string, unknown>>(
+      (get("payload_json") as string) ?? "{}",
+      {},
+    ),
+  };
 }
 
 export function createRestoreSnapshotStore(
@@ -140,28 +181,7 @@ export function createRestoreSnapshotStore(
       if (result.length === 0 || result[0]!.values.length === 0) {
         return undefined;
       }
-
-      const cols = result[0]!.columns;
-      const get = (row: unknown[], name: string) =>
-        row[cols.indexOf(name)] as string | null;
-      const row = result[0]!.values[0]!;
-
-      return {
-        snapshotId: get(row, "snapshot_id")!,
-        entityWhitelist: safeParseJson<RestorableEntityKind[]>(
-          (get(row, "entity_whitelist_json") as string) ?? "[]",
-          [],
-        ),
-        excludedSensitiveKinds: safeParseJson<SensitiveExcludedKind[]>(
-          (get(row, "excluded_sensitive_kinds_json") as string) ?? "[]",
-          [],
-        ),
-        capturedAt: get(row, "captured_at")!,
-        payload: safeParseJson<Record<string, unknown>>(
-          (get(row, "payload_json") as string) ?? "{}",
-          {},
-        ),
-      };
+      return parseSnapshotRow(result[0]!.columns, result[0]!.values[0]!);
     },
 
     async listSnapshots(limit = 10) {
@@ -173,27 +193,116 @@ export function createRestoreSnapshotStore(
       if (result.length === 0 || result[0]!.values.length === 0) {
         return [];
       }
+      return result[0]!.values.map((row) =>
+        parseSnapshotRow(result[0]!.columns, row),
+      );
+    },
 
-      const cols = result[0]!.columns;
-      const get = (row: unknown[], name: string) =>
-        row[cols.indexOf(name)] as string | null;
+    async applyBoundedRestore(input) {
+      const warnings: string[] = [];
+      const completedEntities: string[] = [];
+      const failedEntities: string[] = [];
 
-      return result[0]!.values.map((row) => ({
-        snapshotId: get(row, "snapshot_id")!,
-        entityWhitelist: safeParseJson<RestorableEntityKind[]>(
-          (get(row, "entity_whitelist_json") as string) ?? "[]",
-          [],
-        ),
-        excludedSensitiveKinds: safeParseJson<SensitiveExcludedKind[]>(
-          (get(row, "excluded_sensitive_kinds_json") as string) ?? "[]",
-          [],
-        ),
-        capturedAt: get(row, "captured_at")!,
-        payload: safeParseJson<Record<string, unknown>>(
-          (get(row, "payload_json") as string) ?? "{}",
-          {},
-        ),
-      }));
+      // 1. Find matching snapshot by exact id, then fallback to latest
+      let snapshot: RestoreSnapshot | undefined;
+      const exactMatch = sqlite.exec(
+        `SELECT * FROM restore_snapshot WHERE snapshot_id = ? LIMIT 1`,
+        [input.restoreTarget],
+      );
+      if (
+        exactMatch.length > 0 &&
+        exactMatch[0]!.values.length > 0
+      ) {
+        snapshot = parseSnapshotRow(
+          exactMatch[0]!.columns,
+          exactMatch[0]!.values[0]!,
+        );
+      } else {
+        const latestResult = sqlite.exec(
+          `SELECT * FROM restore_snapshot ORDER BY captured_at DESC LIMIT 1`,
+        );
+        if (
+          latestResult.length > 0 &&
+          latestResult[0]!.values.length > 0
+        ) {
+          snapshot = parseSnapshotRow(
+            latestResult[0]!.columns,
+            latestResult[0]!.values[0]!,
+          );
+        }
+      }
+
+      if (!snapshot) {
+        return {
+          ok: false,
+          completedEntities: [],
+          failedEntities: [input.restoreTarget],
+          warnings: ["snapshot_not_found"],
+        };
+      }
+
+      const whitelist =
+        input.entityWhitelist && input.entityWhitelist.length > 0
+          ? input.entityWhitelist.filter((k) =>
+              ALL_RESTORABLE_KINDS.includes(k),
+            )
+          : [...snapshot.entityWhitelist];
+
+      for (const kind of whitelist) {
+        // Never restore sensitive kinds (DR-017)
+        if (
+          DEFAULT_EXCLUDED_KINDS.includes(
+            kind as unknown as SensitiveExcludedKind,
+          )
+        ) {
+          warnings.push(`skipped_sensitive_kind:${kind}`);
+          continue;
+        }
+
+        const kindData = snapshot.payload[kind];
+        if (!kindData) {
+          // Snapshot whitelist includes this kind but payload has no data for it.
+          // This is not a failure — the entity simply had no state at capture time.
+          warnings.push(`payload_missing:${kind}`);
+          continue;
+        }
+
+        try {
+          const rows = Array.isArray(kindData) ? kindData : [kindData];
+          if (rows.length === 0) {
+            warnings.push(`empty_payload:${kind}`);
+            continue;
+          }
+
+          for (const row of rows) {
+            if (!row || typeof row !== "object") continue;
+            const keys = Object.keys(row as Record<string, unknown>);
+            if (keys.length === 0) continue;
+            const columns = keys.join(", ");
+            const placeholders = keys.map(() => "?").join(", ");
+            const values = keys.map(
+              (k) => (row as Record<string, unknown>)[k],
+            ) as SqlValue[];
+            sqlite.run(
+              `INSERT OR REPLACE INTO ${kind} (${columns}) VALUES (${placeholders})`,
+              values,
+            );
+          }
+
+          completedEntities.push(kind);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          warnings.push(`restore_failed:${kind}:${msg}`);
+          failedEntities.push(kind);
+        }
+      }
+
+      return {
+        ok: failedEntities.length === 0,
+        completedEntities,
+        failedEntities,
+        warnings,
+      };
     },
   };
 }

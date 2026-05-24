@@ -116,4 +116,76 @@ describe("RestoreSnapshotStore", () => {
     assert.strictEqual(limited.length, 2);
     db.close();
   });
+
+  it("applyBoundedRestore returns failure when no snapshot exists", async () => {
+    const db = createStateDatabase(":memory:");
+    const store = createRestoreSnapshotStore(db, { retentionCount: 3 });
+    const result = await store.applyBoundedRestore({
+      restoreTarget: "missing-snap",
+      fromVersion: "v1",
+      toVersion: "v2",
+    });
+    assert.strictEqual(result.ok, false);
+    assert.deepStrictEqual(result.failedEntities, ["missing-snap"]);
+    assert(result.warnings.includes("snapshot_not_found"));
+    db.close();
+  });
+
+  it("applyBoundedRestore restores payload entities and excludes sensitive kinds", async () => {
+    const db = createStateDatabase(":memory:");
+    const store = createRestoreSnapshotStore(db, { retentionCount: 3 });
+
+    // Seed identity_profile table so we can verify restore
+    db.sqlite.run(
+      `INSERT INTO identity_profile (profile_id, canonical_name, platform_handles_json, updated_at)
+       VALUES (?, ?, ?, ?)`,
+      ["p1", "Before", "[]", "2025-01-01T00:00:00Z"],
+    );
+
+    await store.captureSnapshot({
+      snapshotId: "snap-restore-1",
+      payload: {
+        identity_profile: [
+          { profile_id: "p1", canonical_name: "After", platform_handles_json: "[]", updated_at: "2025-06-01T00:00:00Z" },
+        ],
+        credential: [{ id: "c1", secret: "should-not-restore" }],
+      },
+    });
+
+    const result = await store.applyBoundedRestore({
+      restoreTarget: "snap-restore-1",
+      fromVersion: "v1",
+      toVersion: "v2",
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert(result.completedEntities.includes("identity_profile"));
+
+    // Verify DB state was actually restored
+    const check = db.sqlite.exec(
+      `SELECT canonical_name FROM identity_profile WHERE profile_id = 'p1'`,
+    );
+    assert.strictEqual(check[0]!.values[0]![0], "After");
+
+    db.close();
+  });
+
+  it("applyBoundedRestore falls back to latest snapshot when exact id not found", async () => {
+    const db = createStateDatabase(":memory:");
+    const store = createRestoreSnapshotStore(db, { retentionCount: 3 });
+    await store.captureSnapshot({
+      snapshotId: "latest-snap",
+      payload: { identity_profile: [{ profile_id: "p2", canonical_name: "Latest", platform_handles_json: "[]", updated_at: "2025-01-01T00:00:00Z" }] },
+    });
+
+    const result = await store.applyBoundedRestore({
+      restoreTarget: "nonexistent-id",
+      fromVersion: "v1",
+      toVersion: "v2",
+    });
+
+    assert.strictEqual(result.ok, true);
+    assert(result.completedEntities.includes("identity_profile"));
+    db.close();
+  });
 });
