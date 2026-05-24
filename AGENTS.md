@@ -369,6 +369,19 @@ T-ROS.C.2, T-ROS.C.3, T-ROS.C.4, T-ROS.C.5
 - **预先存在失败**: 9 项（T2.2.3 bridge wiring / audit hash-chain / schema-migration / resolveCapability），Wave 69 转为 justified skips
 - **下一步**: Wave 69 — 07_CHALLENGE_REPORT 修复
 
+### 🌊 Wave 69 ✅ — 07_CHALLENGE_REPORT Fix: Restore State Recovery + Regression Skips + Docs + Lint
+CR-CODE-001~005
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-24）
+- **产出**: `RestoreSnapshotStore.applyBoundedRestore` + ops-router wiring + 3 新增单元测试 + 9 个 justified skips + README/AGENTS 更新 + `pnpm lint` + INT-S6 报告重写
+- **审查报告**: `.anws/v7/wave-reviews/wave-69-review.md`
+- **最高严重度**: Low (1)
+- **残留待跟进**: 无
+- **E2E**: N/A
+- **可进 Step 4**: 是
+- **下一步**: v7 全部 Sprint 里程碑关门，可发布
+
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
 ### 🌊 Wave 54 ✅ — v7 S3 Body Tool + Heartbeat: ExperienceWriter/Probe/PainSignal + CircuitBreaker
