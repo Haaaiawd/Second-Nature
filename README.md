@@ -66,6 +66,21 @@ Core v7 additions:
 | Health | SelfHealth + HeartbeatDigest | Shows what is alive, broken, unknown, or drifting |
 | Recovery | Timeline + RestoreSnapshot | Makes change visible and mistakes reversible within a bounded window |
 
+## Mind/Body Alignment (v7)
+
+| Mind (reasoning / intent) | Body (Second Nature system) | Alignment rule |
+|---|---|---|
+| "I want to send a message" | Guidance + delivery | Drafts need source-backed reasons; delivery needs proof |
+| "I should check on the owner" | Heartbeat + IdleCuriosity | Wakes on rhythm, not on script; observes, judges, then acts or stays quiet |
+| "This connector feels risky" | ToolAffordanceMap + CircuitBreaker | Agent-facing posture; repeated pain opens cooldown |
+| "What happened yesterday?" | Quiet DailyDiary + NarrativeTimeline | Grounded diary → history browser → diff |
+| "I had an idea while sleeping" | Dream after Quiet | Accepted projections become narrative/goal inputs |
+| "Is the system healthy?" | SelfHealth + HeartbeatDigest | Per-dimension probe; daily dashboard proof |
+| "Can I fix a mistake?" | RestoreSnapshot + audit hash-chain | Bounded undo with full traceability |
+| "Who am I across platforms?" | IdentityProfile | One self, many connectors |
+| "Is this safe to try?" | Connector auto-probe + wet test | Real endpoint response, not dry-run pretending |
+| "Where is my key?" | RuntimeSecretAnchor | Recovery path documented; key value never exposed |
+
 ## Runtime Secret Anchor
 
 Second Nature credentials are encrypted with `SECOND_NATURE_ENCRYPTION_KEY`.

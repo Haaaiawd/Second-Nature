@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-23` (`/forge` Wave 61 settled, Wave 62 AUTO)
+- **最近一次更新**: `2026-05-23` (`/forge` Wave 68 settled)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -330,9 +330,43 @@ T-GVS.C.3, T-OBS.C.2, T-OBS.C.3
 - **预先存在失败**: `resolveCapability unknown capability throws`（旧 CapabilityContractRegistry 行为）
 **下一步**: Wave 65 — INT-S4 集成验证 + T-OBS.C.5 NarrativeTimeline + T-OBS.C.7 RuntimeSecretAnchorView
 
-### 🌊 Wave 65 🔄 — v7 S4 集成验证 + S5 Observability: INT-S4 + NarrativeTimeline + RuntimeSecretAnchorView
+### 🌊 Wave 65 ✅ — v7 S4 集成验证 + S5 Observability: INT-S4 + NarrativeTimeline + RuntimeSecretAnchorView
 INT-S4, T-OBS.C.5, T-OBS.C.7
 **签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-23）
+- **产出**: INT-S4 报告 + NarrativeTimelineQueryService + RuntimeSecretAnchorView
+- **审查报告**: `.anws/v7/wave-reviews/wave-65-review.md`
+- **最高严重度**: none
+
+### 🌊 Wave 66 ✅ — v7 S5 Observability: HeartbeatDigest Delivery Hook + RestoreAuditService
+T-OBS.C.4, T-OBS.C.6
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-23）
+- **产出**: DigestDeliveryAdapter + RestoreAuditService + audit family 扩展
+- **审查报告**: `.anws/v7/wave-reviews/wave-66-review.md`
+- **最高严重度**: none
+
+### 🌊 Wave 67 ✅ — v7 S5 Observability: INT-S5 + RuntimeSurfaceRouter v7 命令集扩展
+INT-S5, T-ROS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-23）
+- **产出**: INT-S5 集成测试 22/22 PASS + RuntimeOpsEnvelope + 8 个 v7 ops 命令
+- **审查报告**: `.anws/v7/wave-reviews/wave-67-review.md`
+- **最高严重度**: none
+
+### 🌊 Wave 68 ✅ — v7 S6 Runtime-Ops: Plugin Registration + ManualRunDispatcher + Docs + Regression Gate
+T-ROS.C.2, T-ROS.C.3, T-ROS.C.4, T-ROS.C.5
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-23）
+- **产出**: plugin v7 命令注册 + ManualRunDispatcher (DR-038) + README/AGENTS.md Bootstrap Recovery + v6 regression gate 1119/1128 PASS
+- **新增测试**: 18/18 PASS（12 集成 + 6 单元）
+- **审查报告**: `.anws/v7/wave-reviews/wave-68-review.md`
+- **最高严重度**: none
+- **下一步**: INT-S6 集成验证（S6 里程碑关门）
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
@@ -554,16 +588,29 @@ S5 Waves 36-39 测试增量明细：
 
 ---
 
-## Bootstrap Recovery
+## Bootstrap Recovery (DR-034)
+
+> **铁律**：RuntimeSecretAnchor 只记录密钥的**管理位置**与**恢复原则**，绝不输出密钥**明文**。任何请求 key value 的回复都必须拒绝。
 
 当 `sn runtime_secret_bootstrap` 返回 `missing_key` 或 `wrong_key` 时，按以下步骤排查：
 
 1. **检查环境变量**：确认 `SECOND_NATURE_ENCRYPTION_KEY` 已在当前 shell 或 `.env` 文件中设置。
 2. **验证 anchor 位置**：检查 workspace root 下是否存在 `data/runtime-secret-anchor.json`（或配置中定义的路径）。
+   - 默认路径：`{workspaceRoot}/data/runtime-secret-anchor.json`
+   - 自定义路径：通过 `SECOND_NATURE_SECRET_ANCHOR_PATH` 环境变量覆盖。
 3. **重新验证**：运行 `sn runtime_secret_bootstrap`，status 应变为 `ok`。
 4. **密钥轮换（wrong_key）**：若密钥已更换，旧密文无法解密——需要执行 credential re-encryption 流程（见 runtime-ops-system.md §12）。
 
-注：恢复操作**不**输出密钥明文；所有状态通过 `RuntimeSecretAnchorView` 的 `status` 字段机器可读。
+### DR-034 恢复路径摘要
+
+| 场景 | RuntimeSecretAnchorView.status | 操作 |
+|---|---|---|
+| 密钥未设置 | `runtime_secret_anchor_missing` | 设置 `SECOND_NATURE_ENCRYPTION_KEY` 后重试 |
+| 密钥错误 | `runtime_secret_unavailable` | 确认 key 与 anchor 文件匹配；如已轮换，执行 re-encryption |
+| 凭据无法解密 | `credential_recovery_required` | 旧密文不可恢复，需重新初始化凭据；系统必须诚实报告，不得伪装恢复 |
+| 正常 | `ok` | 无需操作 |
+
+注：恢复操作**不**输出密钥明文；所有状态通过 `RuntimeSecretAnchorView` 的 `status` 字段机器可读。AGENTS.md、README.md 与 `self_health` 诊断面仅记录管理位置与恢复原则，不记录 key value。
 
 ---
 

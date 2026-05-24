@@ -232,6 +232,16 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "connector_test",
   "connector_behavior_add",
   "cycle:recent",
+  // v7 ops surface (T-ROS.C.1 / T-ROS.C.2 / T-ROS.C.3): self_health, tool_affordance, heartbeat_digest,
+  // narrative:diff, timeline, restore, runtime_secret_bootstrap, connector:run
+  "self_health",
+  "tool_affordance",
+  "heartbeat_digest",
+  "narrative:diff",
+  "timeline",
+  "restore",
+  "runtime_secret_bootstrap",
+  "connector:run",
 ]);
 
 function isWorkspaceBridgeCommand(
@@ -1460,6 +1470,59 @@ function parseCommandInput(
         ok: true,
         command,
         input: rest[0] ? { limit: Number(rest[0]) } : undefined,
+      };
+    // v7 ops surface (T-ROS.C.2)
+    case "self_health":
+      return { ok: true, command, input: undefined };
+    case "tool_affordance":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { query: rest.join(" ") } : undefined,
+      };
+    case "heartbeat_digest":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { date: rest[0] } : undefined,
+      };
+    case "narrative:diff":
+      return {
+        ok: true,
+        command,
+        input: rest.length >= 2 ? { from: rest[0], to: rest[1] } : undefined,
+      };
+    case "timeline":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { limit: Number(rest[0]) } : undefined,
+      };
+    case "restore":
+      return {
+        ok: true,
+        command,
+        // restore <restoreTarget> <fromVersion> <toVersion>
+        input:
+          rest.length >= 3
+            ? { restoreTarget: rest[0], fromVersion: rest[1], toVersion: rest[2] }
+            : undefined,
+      };
+    case "runtime_secret_bootstrap":
+      return { ok: true, command, input: undefined };
+    case "connector:run":
+      return {
+        ok: true,
+        command,
+        // connector:run <platformId> <capabilityId> [payloadJson]
+        input:
+          rest.length >= 2
+            ? {
+                platformId: rest[0],
+                capabilityId: rest[1],
+                payload: rest[2] ? JSON.parse(rest[2]) : undefined,
+              }
+            : undefined,
       };
     default:
       return {

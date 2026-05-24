@@ -916,7 +916,7 @@
 
 ---
 
-- [ ] **T-ROS.C.2** [REQ-001, REQ-007]: 实现 OpenClaw plugin 注册与 WorkspaceOpsBridge v7
+- [x] **T-ROS.C.2** [REQ-001, REQ-007]: 实现 OpenClaw plugin 注册与 WorkspaceOpsBridge v7
   - **描述**: 更新 `plugin/index.ts` 注册 v7 命令集；`WorkspaceOpsBridge` lazy 装配 v7 db/read models/router；保持 host-safe 注册不在 module scope 加载 DB；plugin JSON 描述更新；手动验证 OpenClaw 会话中 `second_nature_ops` 工具可见
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.md §4.2`（PluginSurfaceRegistrar、WorkspaceOpsBridge）、T-ROS.C.1
   - **输出**: 更新 `plugin/index.ts`、`plugin/workspace-ops-bridge.ts`、`plugin/openclaw.plugin.json`
@@ -936,7 +936,7 @@
 
 ---
 
-- [ ] **T-ROS.C.3** [REQ-002, REQ-003]: 实现 ManualRunDispatcher（DR-038）
+- [x] **T-ROS.C.3** [REQ-002, REQ-003]: 实现 ManualRunDispatcher（DR-038）
   - **描述**: 实现 `ManualRunDispatcher`：`connector:run`、`connector_test --wet`、manual heartbeat probe 的隔离入口；`triggerSource: "manual_run"` 标记传给下游；`ManualTriggerContext.affectsHeartbeatCadence: false`；通过 write queue 串行化，不阻塞 cron heartbeat；manual run 隔离不推进 heartbeat cadence
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.md §4.2`（ManualRunDispatcher，DR-038 注释）、T-SMS.F.3、T-CS.C.2
   - **输出**: `src/cli/ops/manual-run-dispatcher.ts`
@@ -956,7 +956,7 @@
 
 ---
 
-- [ ] **T-ROS.C.4** [REQ-001, REQ-007]: 更新 README/AGENTS.md（Bootstrap Recovery Section，DR-034）
+- [x] **T-ROS.C.4** [REQ-001, REQ-007]: 更新 README/AGENTS.md（Bootstrap Recovery Section，DR-034）
   - **描述**: 更新 README.md 添加 Mind/Body 对照表与"引导而非脚本化"原则；在 AGENTS.md 新增 `## Bootstrap Recovery` 章节（DR-034），包含 RuntimeSecretAnchor 路径与"不记录明文 key"的恢复说明；v7 status 标记为 Genesis / design phase；更新"当前状态"块（05A/05B 已生成）
   - **输入**: `01_PRD.md §5.2`（交互规范，核心隐喻）、`AGENTS.md`（当前状态块）、DR-034
   - **输出**: 更新 `README.md`（Mind/Body map）、更新 `AGENTS.md`（Bootstrap Recovery + 任务状态）
@@ -976,7 +976,7 @@
 
 ---
 
-- [ ] **T-ROS.C.5** [REQ-001~REQ-012]: v6 回归测试门禁
+- [x] **T-ROS.C.5** [REQ-001~REQ-012]: v6 回归测试门禁
   - **描述**: 确保 v7 新增代码不破坏 v6 回归测试套件；运行现有 v6 integration tests；修复因 v7 schema migration / type 变更导致的回归失败；生成 v6 regression gate 报告
   - **输入**: 所有 S1~S5 产出、现有 `tests/integration/` v6 测试套件
   - **输出**: `reports/v6-regression-gate-v7.md`

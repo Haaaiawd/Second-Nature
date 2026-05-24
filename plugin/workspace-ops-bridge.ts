@@ -5,6 +5,11 @@
  * `createCliRuntimeDeps` + `createOpsRouter` + `createCliCommands` path as the workspace CLI.
  * `process.chdir(workspaceRoot)` during dispatch so `memory/workspace` paths match CLI cwd semantics.
  *
+ * v7 additions (T-ROS.C.2): pass auditStore (AppendOnlyAuditStore) to createOpsRouter so that
+ * heartbeat_digest, restore, and other v7 commands work through the bridge. The store is created
+ * fresh per-bridge-open (in-memory; not persisted across restarts). secretAnchorDeps are not wired
+ * here yet — runtime_secret_bootstrap will degrade gracefully until T-ROS.C.4 wires the real port.
+ *
  * Boundaries: no static imports from `./runtime/*` (sql.js top-level await stays out of register() graph).
  * VM safety: do not read `import.meta.url` at module scope — some OpenClaw loaders evaluate this file in contexts
  * where top-level `import.meta` breaks before `register()` runs; compute package root only inside `openWorkspaceOpsBridge`.
@@ -44,6 +49,16 @@ export async function openWorkspaceOpsBridge(
   const resolvedRoot = path.resolve(workspaceRoot);
   try {
     const pluginPackageRoot = path.dirname(fileURLToPath(import.meta.url));
+    interface PackagedAuditStore {
+      append(envelope: unknown): void;
+      list(): readonly unknown[];
+      lastRecordHash(family?: string): string | undefined;
+      seedFamilyHash(family: string, hash: string): void;
+      cachedFamilies(): readonly string[];
+    }
+    interface PackagedAuditModule {
+      AppendOnlyAuditStore: new () => PackagedAuditStore;
+    }
     interface PackagedCliModule {
       createCliRuntimeDeps: (overrides?: Record<string, unknown>) => {
         readModels: unknown;
@@ -70,6 +85,8 @@ export async function openWorkspaceOpsBridge(
         workspaceRoot?: string;
         connectorExecutor?: unknown;
         registry?: unknown;
+        // v7 (T-ROS.C.2): observability ports for v7 commands
+        auditStore?: PackagedAuditStore;
       }) => {
         dispatch: (command: string, input?: Record<string, unknown>) => unknown;
       };
@@ -112,6 +129,12 @@ export async function openWorkspaceOpsBridge(
       (await import("./runtime/cli/runtime/runtime-artifact-boundary.js")) as unknown as {
         resolvePackagedRuntime: (packageRoot: string) => { ok: boolean };
       };
+    // v7 (T-ROS.C.2): in-memory audit store for v7 ops surface (heartbeat_digest, restore, etc.)
+    const auditMod =
+      (await import(
+        "./runtime/observability/audit/append-only-audit-store.js"
+      )) as unknown as PackagedAuditModule;
+    const auditStore = new auditMod.AppendOnlyAuditStore();
 
     const dataDir = path.join(resolvedRoot, "data");
     fs.mkdirSync(dataDir, { recursive: true });
@@ -137,6 +160,8 @@ export async function openWorkspaceOpsBridge(
       workspaceRoot: resolvedRoot,
       connectorExecutor: deps.connectorExecutor,
       registry: deps.registry,
+      // v7 (T-ROS.C.2): in-memory audit store for heartbeat_digest / restore / self_health
+      auditStore,
     });
     const commands = commandsMod.createCliCommands({
       readModels: deps.readModels,

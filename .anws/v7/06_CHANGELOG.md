@@ -98,3 +98,42 @@
 - Commit: `555260f`
 
 ### §3.6 Code Review Gate: PASS (0 Critical / 0 High / 0 Low)
+
+---
+
+## Wave 68 — 2026-05-23
+
+### T-ROS.C.2 — Plugin Registration & WorkspaceOpsBridge v7 Extension
+- [CHANGE] `plugin/index.ts`: `WORKSPACE_BRIDGE_COMMANDS` 新增 v7 命令：`self_health`, `tool_affordance`, `heartbeat_digest`, `narrative:diff`, `timeline`, `restore`, `runtime_secret_bootstrap`
+- [CHANGE] `plugin/index.ts`: `parseCommandInput()` 新增 v7 命令解析分支
+- [CHANGE] `plugin/workspace-ops-bridge.ts`: `PackagedCliModule.createOpsRouter` opts 扩展 `auditStore?: PackagedAuditStore`
+- [ADD] `plugin/workspace-ops-bridge.ts`: 动态导入 `AppendOnlyAuditStore`，创建 per-bridge in-memory audit store 传入 router
+- [CHANGE] `plugin/openclaw.plugin.json`: 描述追加 v7 ops surface 命令列表
+- [ADD] `tests/integration/plugin/plugin-registration.test.ts`: 12/12 PASS（host-safe register、second_nature_ops 可见性、v7 命令桥接、parseCommandInput 形状验证）
+
+### T-ROS.C.3 — ManualRunDispatcher (DR-038)
+- [ADD] `src/cli/ops/manual-run-dispatcher.ts` — `createManualRunDispatcher` 工厂
+- [ADD] `runConnector`: 调用 `ConnectorExecutor.executeEffect` + `ExperienceWriter.recordExperience` 并强制 `triggerSource: "manual_run"`
+- [ADD] `runWetProbe`: 调用 `WetProbeRunner.runWetProbe` 并标注 `triggerSource: "manual_run"` / `affectsHeartbeatCadence: false`
+- [ADD] `runHeartbeatProbe`: 调用 `heartbeatCheck` 并叠加 `ManualTriggerContext`
+- [CHANGE] `src/cli/ops/ops-router.ts`: `connector_test --wet` 的 triggerSource 从 `"manual"` 修正为 `"manual_run"`
+- [ADD] `src/cli/ops/ops-router.ts`: `connector:run` 命令路由，动态装配 `ManualRunDispatcher`（deps 缺失时降级）
+- [CHANGE] `plugin/index.ts`: `WORKSPACE_BRIDGE_COMMANDS` 新增 `"connector:run"`
+- [CHANGE] `plugin/index.ts`: `parseCommandInput` 新增 `connector:run` 解析
+- [ADD] `tests/unit/ops/manual-run-dispatcher.test.ts`: 6/6 PASS（triggerSource 隔离、失败态记录、payload 透传、wet probe 降级、heartbeat 标注）
+
+### T-ROS.C.4 — README/AGENTS.md Bootstrap Recovery (DR-034)
+- [ADD] `README.md`: `## Mind/Body Alignment (v7)` 对照表（10 条 Mind 意图 → Body 系统 → 对齐规则）
+- [CHANGE] `AGENTS.md`: `## Bootstrap Recovery` 重命名为 `## Bootstrap Recovery (DR-034)`，强化铁律：绝不输出密钥明文
+- [ADD] `AGENTS.md`: DR-034 恢复路径摘要表（4 种场景 / status / 操作）
+- [ADD] `AGENTS.md`: RuntimeSecretAnchor 默认路径 `{workspaceRoot}/data/runtime-secret-anchor.json` 与自定义路径环境变量 `SECOND_NATURE_SECRET_ANCHOR_PATH`
+
+### T-ROS.C.5 — v6 Regression Gate
+- [VERIFY] 全量测试 1128 项：1119 pass / 9 fail / 0 skip
+- [VERIFY] 全部 9 项失败均为 **pre-existing**，非 Wave 68 引入
+  - 2 项：connector bridge / registry 旧行为（Wave 46~56 已存在）
+  - 4 项：audit hash-chain 严格化（Wave 63-64 T-OBS.C.1~C.3 引入）
+  - 3 项：schema-migration v7-001（v7 schema 漂移，非 Wave 68）
+- Evidence: `reports/v6-regression-gate-v7.md`
+
+### §3.6 Code Review Gate: PASS (0 Critical / 0 High / 0 Low)

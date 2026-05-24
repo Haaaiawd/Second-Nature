@@ -5,6 +5,7 @@
  * heartbeat_digest, narrative:diff, timeline, restore, runtime_secret_bootstrap.
  * All commands return RuntimeOpsEnvelope.
  */
+import fs from "node:fs";
 import {
   heartbeatCheck,
   type HeartbeatCheckInput,
@@ -54,6 +55,15 @@ import {
   type RestoreAuditEvent,
 } from "../../observability/services/restore-audit-service.js";
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+// T-ROS.C.3: ManualRunDispatcher and its deps
+import {
+  createManualRunDispatcher,
+  type ManualRunDispatcher,
+} from "./manual-run-dispatcher.js";
+import { createExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
+import { createToolExperienceStore } from "../../storage/services/tool-experience-store.js";
+import { createWetProbeRunner } from "../../connectors/base/wet-probe-runner.js";
+import { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.js";
 
 // ─── RuntimeOpsEnvelope (T-ROS.C.1 / [G1]) ───────────────────────────────────
 
@@ -370,7 +380,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         });
       }
       if (command === "connector_test") {
-        // v7 T-ROS.C.1: --wet flag (wet=true) sets dryRun=false + marks triggerSource:"manual"
+        // v7 T-ROS.C.1: --wet flag (wet=true) sets dryRun=false + marks triggerSource:"manual_run"
         const isWet = input?.wet === true || input?.wet === "true";
         const result = await connectorTest(deps.registry, {
           platformId:
@@ -378,11 +388,75 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           dryRun: isWet ? false : (input?.dryRun === false ? false : true),
         });
         if (isWet && result.ok) {
-          // Annotate result with manual trigger context (DR-038)
-          (result as Record<string, unknown>).triggerSource = "manual";
+          // Annotate result with manual trigger context (DR-038 / T-ROS.C.3)
+          (result as Record<string, unknown>).triggerSource = "manual_run";
           (result as Record<string, unknown>).affectsHeartbeatCadence = false;
         }
         return result;
+      }
+      if (command === "connector:run") {
+        // T-ROS.C.3: manual connector execution — isolated from heartbeat cadence
+        const platformId =
+          typeof input?.platformId === "string" ? input.platformId : "";
+        const capabilityId =
+          typeof input?.capabilityId === "string" ? input.capabilityId : "";
+        if (!platformId || !capabilityId) {
+          return {
+            ok: false,
+            command: "connector:run" as const,
+            error: {
+              code: "MISSING_PLATFORM_OR_CAPABILITY_ID",
+              message: "connector:run requires platformId and capabilityId",
+              requiredUserInput: ["platformId", "capabilityId"],
+              nextStep: "reinvoke_with_platform_and_capability_id",
+            },
+          };
+        }
+        if (!deps.connectorExecutor || !deps.state) {
+          return {
+            ok: false,
+            command: "connector:run" as const,
+            error: {
+              code: "MANUAL_RUN_DEPS_UNAVAILABLE",
+              message: "connector:run requires connectorExecutor and state database",
+              nextStep: "wire_connector_executor_and_state_into_ops_router",
+            },
+          };
+        }
+        const toolExperienceStore = createToolExperienceStore(deps.state);
+        const experienceWriter = createExperienceWriter(toolExperienceStore);
+        const wetProbeRunner = createWetProbeRunner();
+        const registryV7 = new CapabilityContractRegistryV7();
+        // Populate V7 registry from dynamic registry if available (best-effort)
+        if (deps.registry) {
+          for (const entry of deps.registry.listConnectors()) {
+            if (entry.manifestPath) {
+              try {
+                const manifestText = fs.readFileSync(entry.manifestPath, "utf-8");
+                const manifest = JSON.parse(manifestText) as Record<string, unknown>;
+                registryV7.register(manifest);
+              } catch {
+                // Skip manifests that can't be read or don't validate as V7
+              }
+            }
+          }
+        }
+        const dispatcher = createManualRunDispatcher({
+          connectorExecutor: deps.connectorExecutor,
+          experienceWriter,
+          wetProbeRunner,
+          registryV7,
+        });
+        return dispatcher.runConnector({
+          platformId,
+          capabilityId,
+          payload:
+            typeof input?.payload === "object" && input?.payload !== null
+              ? (input.payload as Record<string, unknown>)
+              : undefined,
+          caller: typeof input?.caller === "string" ? input.caller : undefined,
+          reason: typeof input?.reason === "string" ? input.reason : undefined,
+        });
       }
       if (command === "goal") {
         const rawAction = typeof input?.action === "string" ? input.action : "list";
