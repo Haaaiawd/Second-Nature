@@ -52,6 +52,7 @@ import type { NarrativeTracePayload } from "../../../observability/services/live
 import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
 import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
+import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -75,6 +76,8 @@ export interface HeartbeatOutreachDispatchDeps {
 /** Optional Quiet orchestration: when set, quiet/reflection allows run source-backed Quiet writer (T2.3.3). */
 export interface HeartbeatQuietWorkflowDeps {
   workspaceRoot: string;
+  /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
+  dreamSchedulePort?: QuietDreamSchedulePort;
 }
 
 /**
@@ -117,6 +120,8 @@ export async function resolveAllowedIntentResult(
       day,
       userInterestSnapshot: inputs.userInterestSnapshot,
       workspaceRoot: deps.quietWorkflow.workspaceRoot,
+      // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
+      dreamSchedulePort: deps.quietWorkflow.dreamSchedulePort,
     });
     return quietRun.result;
   }

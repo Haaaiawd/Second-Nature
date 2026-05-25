@@ -31,6 +31,11 @@ import type { CapabilityContractRegistry } from "../../connectors/base/manifest.
 import type { GoalContext } from "../../core/second-nature/orchestrator/intent-planner.js";
 import type { AffordanceMap } from "../../shared/types/v7-entities.js";
 import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
+import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
+import {
+  generateHeartbeatDigest,
+  type HeartbeatDigestAssemblerDeps,
+} from "../../observability/services/heartbeat-digest-assembler.js";
 
 export interface WorkspaceHeartbeatRunnerOptions {
   /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
@@ -61,6 +66,21 @@ export interface WorkspaceHeartbeatRunnerOptions {
   affordanceMap?: AffordanceMap;
   /** v7 T-V7C.C.2: experience writer for heartbeat connector attempts. */
   experienceWriter?: ExperienceWriter;
+  /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
+  dreamSchedulePort?: QuietDreamSchedulePort;
+  /**
+   * v7 T-V7C.C.3: when present, generates a HeartbeatDigest after each cycle
+   * (inside the digest window hour, if specified) and attempts delivery.
+   * Digest delivery failure is recorded as fallbackReason — never blocks the cycle.
+   */
+  digestOpts?: {
+    assemblerDeps: HeartbeatDigestAssemblerDeps;
+    /**
+     * UTC hour (0–23) at which to attempt digest generation.
+     * If unset, digest is generated on every cycle (for testing / always-on mode).
+     */
+    digestWindowHour?: number;
+  };
 }
 
 export async function loadSnapshotInputsForWorkspaceHeartbeat(
@@ -201,7 +221,11 @@ export function createWorkspaceHeartbeatRunner(
           }),
         // T1.2.4: pass quietWorkflow dep so runSourceBackedQuiet can persist artifacts.
         quietWorkflow: quietEnabled
-          ? { workspaceRoot: options.workspaceRoot! }
+          ? {
+              workspaceRoot: options.workspaceRoot!,
+              // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
+              dreamSchedulePort: options.dreamSchedulePort,
+            }
           : undefined,
         connectorExecutor: options.connectorExecutor,
         narrativeStateStore,
@@ -222,6 +246,26 @@ export function createWorkspaceHeartbeatRunner(
         // T1.2.3: recorder must never break the heartbeat surface response.
         // Failure here means status simply remains at its previous aggregate; the
         // cycle outcome itself is still returned to the caller.
+      }
+    }
+
+    // v7 T-V7C.C.3: After each cycle, attempt HeartbeatDigest generation if configured.
+    // Only runs inside the designated UTC digest window hour, or on every cycle when
+    // digestWindowHour is unset (test / always-on mode).
+    if (options.digestOpts) {
+      const { assemblerDeps, digestWindowHour } = options.digestOpts;
+      const nowHour = new Date().getUTCHours();
+      const inDigestWindow =
+        digestWindowHour === undefined || nowHour === digestWindowHour;
+      if (inDigestWindow) {
+        try {
+          const date = new Date().toISOString().slice(0, 10);
+          await generateHeartbeatDigest(date, assemblerDeps);
+        } catch (err) {
+          // Digest generation must not break the heartbeat cycle response.
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(`[workspace-heartbeat-runner] Digest generation failed: ${msg}`);
+        }
       }
     }
 

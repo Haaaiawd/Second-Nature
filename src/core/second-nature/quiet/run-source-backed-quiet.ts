@@ -1,5 +1,9 @@
 /**
  * Quiet / reflection orchestration: empty evidence → empty_state; otherwise coverage-gated artifact (T2.3.3).
+ *
+ * v7 T-V7C.C.3: After a successful Quiet artifact write, if a DreamSchedulePort is provided,
+ * automatically trigger scheduleDream(quiet_completion). Skip reason is embedded in HeartbeatCycleResult
+ * reasons when the scheduler returns "skipped" (e.g. lock held).
  */
 import type { CandidateIntent } from "../types.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
@@ -12,6 +16,18 @@ import { persistQuietArtifactToWorkspace } from "../../../storage/quiet/persist-
 import type { GuidanceSourceRef } from "../../../guidance/outreach-draft-schema.js";
 import { buildEvidencePack, buildQuietNarrativeGuidance, selectInterestBasis } from "../../../guidance/evidence-guidance.js";
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
+
+/**
+ * Minimal port for triggering Dream after Quiet completion (T-V7C.C.3).
+ * Kept narrow so run-source-backed-quiet does not take a hard dependency on dream-scheduler.
+ */
+export interface QuietDreamSchedulePort {
+  scheduleDream(params: {
+    triggerKind: "quiet_completion";
+    runId: string;
+    traceId: string;
+  }): Promise<{ status: "started" | "skipped" | "queued"; reason?: string }>;
+}
 
 function toGuidanceRef(r: CandidateIntent["sourceRefs"][number]): GuidanceSourceRef {
   return {
@@ -29,6 +45,8 @@ export interface RunSourceBackedQuietParams {
   day: string;
   userInterestSnapshot?: UserInterestSnapshot;
   workspaceRoot?: string;
+  /** v7 T-V7C.C.3: when present, a successful Quiet artifact write auto-triggers Dream scheduling. */
+  dreamSchedulePort?: QuietDreamSchedulePort;
 }
 
 export interface RunSourceBackedQuietResult {
@@ -37,8 +55,35 @@ export interface RunSourceBackedQuietResult {
   persistedRelativePath?: string;
 }
 
+/**
+ * v7 T-V7C.C.3: Fire-and-forget Dream schedule after successful Quiet write.
+ * Returns the schedule status reason string to embed in HeartbeatCycleResult reasons.
+ * Never throws — Dream scheduling failure must not break the Quiet cycle result.
+ */
+async function maybeScheduleDreamAfterQuiet(
+  dreamSchedulePort: QuietDreamSchedulePort | undefined,
+  day: string,
+): Promise<string | undefined> {
+  if (!dreamSchedulePort) return undefined;
+  try {
+    const result = await dreamSchedulePort.scheduleDream({
+      triggerKind: "quiet_completion",
+      runId: `dream:quiet_completion:${day}:${Date.now()}`,
+      traceId: `trace:quiet_completion:${day}:${Date.now()}`,
+    });
+    if (result.status === "skipped") {
+      return `quiet_dream_skip:${result.reason ?? "lock_held"}`;
+    }
+    return "quiet_dream_scheduled";
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[run-source-backed-quiet] Dream schedule failed: ${msg}`);
+    return `quiet_dream_schedule_error:${msg.slice(0, 60)}`;
+  }
+}
+
 export async function runSourceBackedQuiet(params: RunSourceBackedQuietParams): Promise<RunSourceBackedQuietResult> {
-  const { candidate, runtime, day, userInterestSnapshot, workspaceRoot } = params;
+  const { candidate, runtime, day, userInterestSnapshot, workspaceRoot, dreamSchedulePort } = params;
   const empty = isLifeEvidenceSliceEmpty(runtime.lifeEvidence);
 
   if (empty) {
@@ -152,12 +197,17 @@ export async function runSourceBackedQuiet(params: RunSourceBackedQuietParams): 
     persistedRelativePath = p.relativePath;
   }
 
+  // v7 T-V7C.C.3: After a successful source-backed Quiet write, auto-trigger Dream scheduling.
+  const dreamReason = await maybeScheduleDreamAfterQuiet(dreamSchedulePort, day);
+  const reasons: string[] = ["quiet_artifact_written", ...gq.hints.slice(0, 2)];
+  if (dreamReason) reasons.push(dreamReason);
+
   return {
     result: {
       scope: "rhythm",
       status: "intent_selected",
       selectedIntentId: candidate.id,
-      reasons: ["quiet_artifact_written", ...gq.hints.slice(0, 2)],
+      reasons,
     },
     artifactAck: ack,
     persistedRelativePath,
