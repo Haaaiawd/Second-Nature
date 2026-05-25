@@ -1035,22 +1035,44 @@
 
 ---
 
-- [ ] **T-V7C.C.2** [REQ-003, REQ-009]: Evidence + Body Feedback Closure
+- [x] **T-V7C.C.1R** [REQ-009, REQ-011]: Runtime Data Closure Release Hygiene
+  - **描述**: 收口 0.1.34 实机反馈中仍会误判的 release hygiene：`narrative:diff` 对缺失版本返回结构化缺数据错误，而非泛化 `NARRATIVE_DIFF_FAILED`；确认 `connector_test dryRun:false` / wet re-probe 在源码与打包 plugin runtime 中均使用 `capability_probe_result` upsert，不因重复 probe id 崩溃；确认发布包版本与宿主缓存提示一致。
+  - **输入**: `01_PRD.md §3.1 G9/G11`、`05B_VERIFICATION_PLAN.md#t-v7c-c-1r`、T-V7C.C.1、0.1.34 Claw 15/16 PASS 反馈
+  - **输出**: 更新 `src/cli/ops/ops-router.ts` 错误语义、相关 plugin runtime 产物、runtime ops 回归测试；如 package/plugin version 有变更，更新 `package.json` 与 `plugin/package.json`
+  - **契约承接**: `narrative:diff` 缺版本属于缺数据/版本不存在错误；wet re-probe 写入必须幂等；发布包版本必须能被宿主侧明确识别
+  - **参考**: ADR-008、REQ-009、REQ-011
+  - **验收标准**:
+    - Given `narrative:diff` 的 `from` 或 `to` 版本不在 timeline，When 调用命令，Then 返回 `NARRATIVE_VERSION_NOT_FOUND` 或等价 structured reason，且 message 指明缺失 version
+    - Given 同一 connector/capability 重复执行 `connector_test dryRun:false`，When probeResultId 重复，Then `capability_probe_result` upsert 更新旧行且命令不抛 UNIQUE constraint
+    - Given 插件包被重新构建，When 检查 package/plugin manifest/runtime，Then version 与修复说明一致，Claw 不应继续加载旧 runtime 而无提示
+  - **验证类型**: API接口功能测试 | 集成测试 | 回归测试
+  - **验证摘要**: narrative 缺版本错误语义；wet re-probe 幂等；package/runtime 版本一致
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-1r`
+  - **证据产出**: `tests/integration/runtime-ops/v7c-data-connector-truth.test.ts` 或 `tests/integration/runtime-ops/commands.test.ts`
+  - **估时**: 2h
+  - **依赖**: T-V7C.C.1
+  - **优先级**: P0
+
+---
+
+- [x] **T-V7C.C.2** [REQ-003, REQ-009]: Evidence + Body Feedback Closure
   - **描述**: 将 heartbeat connector、manual connector run 与 wet probe 的结果统一写入 life evidence / ToolExperience / pain signal 输入；连续失败进入 CircuitBreaker，affordance 与 heartbeat 尊重 breaker posture。
-  - **输入**: `01_PRD.md §3.1 G3/G9`、`04_SYSTEM_DESIGN/body-tool-system.md §4.3~4.4`、`04_SYSTEM_DESIGN/connector-system.md §5.1`、T-BTS.C.4、T-BTS.C.5、T-CS.C.3、T-V7C.C.1
+  - **输入**: `01_PRD.md §3.1 G3/G9`、`04_SYSTEM_DESIGN/body-tool-system.md §4.3~4.4`、`04_SYSTEM_DESIGN/connector-system.md §5.1`、T-BTS.C.4、T-BTS.C.5、T-CS.C.3、T-V7C.C.1、T-V7C.C.1R
   - **输出**: 更新 connector execution 写入适配、heartbeat connector path、manual run dispatcher、body feedback 集成测试
-  - **契约承接**: connector attempt 100% 写 ToolExperience 或 explicit unavailable reason；success evidence 写入 `life_evidence_index`；breaker open 时 heartbeat 不继续执行同 capability
+  - **契约承接**: connector attempt 100% 写 ToolExperience 或 explicit unavailable reason；success evidence 写入 `life_evidence_index`；heartbeat/manual/wet triggerSource 可区分；breaker open 时 heartbeat 不继续执行同 capability
   - **参考**: ADR-003、ADR-008、REQ-003、REQ-009
   - **验收标准**:
-    - Given moltbook connector success，When heartbeat 或 manual run 完成，Then `life_evidence_index` 增长且 ToolExperience 写入
+    - Given connector success，When heartbeat connector path 完成，Then `life_evidence_index` 增长且 `tool_experience.trigger_source = "heartbeat"`
+    - Given manual connector run 成功或失败，When 命令完成，Then ToolExperience 写入且 `trigger_source = "manual_run"`，不推进 heartbeat cadence
+    - Given wet probe 执行成功/失败，When body feedback 汇总读取，Then probe result 可转为 pain signal 或 explicit unavailable reason，不冒充 connector execution success
     - Given 同一 capability 连续失败达到阈值，When 下一轮 heartbeat 计划同 capability，Then 返回 `connector_circuit_open` 或等价 structured reason
     - Given breaker cooldown 到期，When half-open probe 成功，Then breaker 恢复 closed，失败则保持 cooldown
   - **验证类型**: 单元测试 | 集成测试 | 回归测试
-  - **验证摘要**: evidence growth；experience feedback；breaker enforcement
+  - **验证摘要**: evidence growth；heartbeat/manual/wet experience feedback；breaker enforcement
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-2`
   - **证据产出**: `tests/integration/control-plane/v7c-evidence-body-feedback.test.ts`
   - **估时**: 8h
-  - **依赖**: T-V7C.C.1
+  - **依赖**: T-V7C.C.1R
   - **优先级**: P0
 
 ---

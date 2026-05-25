@@ -192,14 +192,14 @@ src/
 - ADR-008: Probe Truth, History Browser, and Bounded Rollback
 
 ### 当前任务状态
-- 执行主清单: `.anws/v7/05A_TASKS.md`（46 个任务 + 7 个 INT 里程碑）
+- 执行主清单: `.anws/v7/05A_TASKS.md`（47 个任务 + 7 个 INT 里程碑）
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 70 + 0.1.34 hotfix 完成；Data Lifecycle 已进入自然运行闭环，Evidence 映射完成热修
+- **状态**: v7 `/forge` Wave 71 完成；T-V7C.C.1R + T-V7C.C.2 已交付
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Wave 69 已修复；0.1.32 E2E 剩余 lifecycle production gaps 已进入 S7 闭环修复）
-- **下一步**: `/forge` Wave 71 — T-V7C.C.2 Evidence + Body Feedback Closure
-- **最近更新**: `2026-05-25` (`/forge` 0.1.34 hotfix — wet probe upsert + nested evidence + heartbeat snapshot）
+- **下一步**: `/forge` Wave 72 — T-V7C.C.3 Rhythm Loop Closure (Quiet→Dream auto-schedule + digest hook)
+- **最近更新**: `2026-05-25` (`/forge` Wave 71 settled — C1R narrative:diff hygiene + C2 evidence body feedback closed)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -391,8 +391,19 @@ T-V7C.C.1
 - **审查报告**: `.anws/v7/wave-reviews/wave-70-review.md`
 - **测试**: `pnpm exec tsc --noEmit`; `pnpm build`; `pnpm build:plugin`; targeted `node --test` — 52/52 PASS；`cd plugin && npm pack --dry-run` — `@haaaiawd/second-nature@0.1.34`
 - **最高严重度**: none
-- **残留待跟进**: T-V7C.C.2（connector result → life evidence/body feedback）、T-V7C.C.3、T-V7C.C.4
-- **下一步**: Wave 71 — T-V7C.C.2 Evidence + Body Feedback Closure
+- **残留待跟进**: T-V7C.C.1R（runtime hygiene）、T-V7C.C.2（connector result → life evidence/body feedback）、T-V7C.C.3、T-V7C.C.4
+- **下一步**: Wave 71 — T-V7C.C.1R Runtime Data Closure Release Hygiene + T-V7C.C.2 Evidence + Body Feedback Closure
+
+### 🌊 Wave 71 ✅ — v7 Living Loop Wiring: Runtime Hygiene + Body Feedback
+T-V7C.C.1R, T-V7C.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-25）
+- **交接文档**: `.anws/v7/handoffs/wave-71-forge-handoff.md`
+- **产出**: ops-router narrative:diff 语义修复 + affordanceMap 传播链 + guard-layer 断路器拦截 + heartbeat-loop ExperienceWriter 写入 + workspace-heartbeat-runner/ops-router 注入 + 5 集成测试（5/5 PASS）
+- **测试**: `pnpm build` ✅；`node --test v7c-evidence-body-feedback.test.js` — 5/5 PASS；regression 19/19 PASS（hard-guard + heartbeat + commands + tool-experience-store）
+- **最高严重度**: none
+- **下一步**: Wave 72 — T-V7C.C.3 Rhythm Loop Closure
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 
