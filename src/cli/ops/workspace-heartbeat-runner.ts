@@ -29,6 +29,8 @@ import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 import type { GoalContext } from "../../core/second-nature/orchestrator/intent-planner.js";
+import type { AffordanceMap } from "../../shared/types/v7-entities.js";
+import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 
 export interface WorkspaceHeartbeatRunnerOptions {
   /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
@@ -55,11 +57,15 @@ export interface WorkspaceHeartbeatRunnerOptions {
    * and connector evidence.
    */
   connectorRegistry?: CapabilityContractRegistry;
+  /** v7 T-V7C.C.2: affordance map for breaker-aware guard evaluation. */
+  affordanceMap?: AffordanceMap;
+  /** v7 T-V7C.C.2: experience writer for heartbeat connector attempts. */
+  experienceWriter?: ExperienceWriter;
 }
 
 export async function loadSnapshotInputsForWorkspaceHeartbeat(
   readModels: CliReadModels,
-  options: { state?: StateDatabase; workspaceRoot?: string } = {},
+  options: { state?: StateDatabase; workspaceRoot?: string; affordanceMap?: AffordanceMap } = {},
 ): Promise<SnapshotInputs> {
   const status = await readModels.loadStatus();
   const mode = status.rhythm.mode === "unknown" ? "active" : status.rhythm.mode;
@@ -164,6 +170,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
     acceptedGoalsLoadError,
     narrativeState,
     relationshipMemory,
+    affordanceMap: options.affordanceMap,
   };
 }
 
@@ -190,6 +197,7 @@ export function createWorkspaceHeartbeatRunner(
           loadSnapshotInputsForWorkspaceHeartbeat(readModels, {
             state: options.state,
             workspaceRoot: options.workspaceRoot,
+            affordanceMap: options.affordanceMap,
           }),
         // T1.2.4: pass quietWorkflow dep so runSourceBackedQuiet can persist artifacts.
         quietWorkflow: quietEnabled
@@ -202,6 +210,8 @@ export function createWorkspaceHeartbeatRunner(
         workspaceRoot: options.workspaceRoot,
         // T2.4.1: pass registry so planner resolves platform-specific intents.
         connectorRegistry: options.connectorRegistry,
+        // v7 T-V7C.C.2: pass experience writer for heartbeat connector attempts.
+        experienceWriter: options.experienceWriter,
       },
     });
 

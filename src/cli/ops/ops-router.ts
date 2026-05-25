@@ -47,6 +47,7 @@ import {
   queryNarrativeTimeline,
   queryNarrativeDiff,
   type NarrativeTimelineDeps,
+  NarrativeVersionNotFoundError,
 } from "../../observability/services/narrative-timeline-query-service.js";
 import {
   viewSecretAnchor,
@@ -480,6 +481,21 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           typeof input?.runtimeAvailable === "boolean"
             ? input.runtimeAvailable
             : deps.runtimeAvailable;
+
+        // v7 T-V7C.C.2: assemble affordance map and experience writer for breaker-aware heartbeat.
+        let affordanceMap: import("../../shared/types/v7-entities.js").AffordanceMap | undefined;
+        if (deps.toolAffordancePort) {
+          try {
+            affordanceMap = await deps.toolAffordancePort.assembleAffordanceMap({});
+          } catch {
+            // degrade gracefully; guard-layer will skip breaker check without affordanceMap
+          }
+        }
+        let experienceWriter: import("../../core/second-nature/body/tool-experience/experience-writer.js").ExperienceWriter | undefined;
+        if (deps.state) {
+          experienceWriter = createExperienceWriter(createToolExperienceStore(deps.state));
+        }
+
         const result = await heartbeatCheck({
           probeOnly: coerceProbeOnlyFlag(input),
           runtimeAvailable,
@@ -513,6 +529,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           connectorRegistry:
             (input as Partial<HeartbeatCheckInput> | undefined)
               ?.connectorRegistry ?? deps.connectorRegistry,
+          affordanceMap,
+          experienceWriter,
         });
         if (
           result.ok &&
@@ -1158,6 +1176,23 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           };
           return envelope;
         } catch (err) {
+          if (err instanceof NarrativeVersionNotFoundError) {
+            const envelope: RuntimeOpsEnvelope = {
+              ok: false,
+              command: "narrative:diff",
+              runtimeMode: "workspace_full_runtime",
+              surfaceMode: "cli",
+              generatedAt,
+              error: {
+                code: "NARRATIVE_VERSION_NOT_FOUND",
+                message: err.message,
+                nextStep: "verify_version_exists_in_timeline",
+              },
+              warnings: [],
+              sourceRefs: [],
+            };
+            return envelope;
+          }
           const msg = err instanceof Error ? err.message : String(err);
           const envelope: RuntimeOpsEnvelope = {
             ok: false,

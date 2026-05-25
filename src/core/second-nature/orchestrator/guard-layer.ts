@@ -1,6 +1,7 @@
 import type { CandidateIntent, ContinuitySnapshot, GuardEvaluation } from "../types.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
+import type { AffordanceMap, AffordanceItem } from "../../../shared/types/v7-entities.js";
 
 const QUIET_DENY_KINDS = ["outreach", "social"] as const;
 
@@ -47,6 +48,29 @@ export function evaluateHardGuards(intent: CandidateIntent, runtime: HeartbeatRu
     reasons.push("missing_source_refs");
   }
 
+  // v7: Affordance / breaker guard (T-V7C.C.2)
+  if (
+    (intent.effectClass === "connector_action" ||
+      intent.effectClass === "external_platform_action") &&
+    runtime.affordanceMap &&
+    intent.platformId
+  ) {
+    const platformItems = runtime.affordanceMap[intent.platformId] ?? [];
+    const match = intent.capabilityIntent
+      ? platformItems.find((i: AffordanceItem) => i.capabilityId === intent.capabilityIntent)
+      : platformItems.find((i: AffordanceItem) => i.intent === intent.summary);
+
+    if (match) {
+      if (match.status === "painful") {
+        reasons.push("connector_circuit_open");
+      } else if (match.status === "unavailable") {
+        reasons.push("affordance_unavailable");
+      }
+    } else {
+      reasons.push("affordance_unavailable");
+    }
+  }
+
   const key = intentFingerprint(intent);
   if (runtime.hardGuards.hasDuplicateIntent(key)) {
     reasons.push("duplicate_intent");
@@ -87,7 +111,9 @@ export function evaluateHardGuards(intent: CandidateIntent, runtime: HeartbeatRu
 
   const duplicate = reasons.includes("duplicate_intent");
   const cooldown = reasons.includes("outreach_cooldown");
-  if (duplicate || cooldown) {
+  const circuitOpen = reasons.includes("connector_circuit_open");
+  const affordanceUnavailable = reasons.includes("affordance_unavailable");
+  if (duplicate || cooldown || circuitOpen || affordanceUnavailable) {
     return {
       verdict: "defer",
       reasons,

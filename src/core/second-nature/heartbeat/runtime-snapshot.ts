@@ -6,6 +6,7 @@ import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
 import { rhythmPolicySnapshotToRhythmPolicy } from "../rhythm/policy-bridge.js";
 import { buildPlannerRhythmWindow, type PlannerRhythmWindowSlice } from "../rhythm/planner-rhythm-window.js";
 import type { SnapshotInputs } from "./snapshot-builder.js";
+import type { AffordanceMap } from "../../../shared/types/v7-entities.js";
 
 export interface PlannerLifeEvidenceSlice {
   evidenceRefs: ControlPlaneSourceRef[];
@@ -30,6 +31,8 @@ export interface HeartbeatRuntimeSnapshot {
   hardGuards: HardGuardDeps;
   narrativeState?: import("../../../storage/narrative/narrative-state-store.js").NarrativeState;
   relationshipMemory?: import("../../../storage/relationship/relationship-memory-store.js").RelationshipMemory;
+  /** v7: affordance map for breaker-aware guard evaluation (T-V7C.C.2). */
+  affordanceMap?: AffordanceMap;
 }
 
 export function buildLifeEvidenceSliceFromInputs(inputs: SnapshotInputs): PlannerLifeEvidenceSlice {
@@ -68,5 +71,13 @@ export function buildHeartbeatRuntimeSnapshot(
   const rhythmWindow = buildPlannerRhythmWindow(timestamp, continuity, policy);
   const lifeEvidence = buildLifeEvidenceSliceFromInputs(inputs);
   const hardGuards = buildHardGuardDeps(continuity, inputs);
-  return { continuity, lifeEvidence, rhythmWindow, hardGuards, narrativeState: inputs.narrativeState, relationshipMemory: inputs.relationshipMemory };
+  return {
+    continuity,
+    lifeEvidence,
+    rhythmWindow,
+    hardGuards,
+    narrativeState: inputs.narrativeState,
+    relationshipMemory: inputs.relationshipMemory,
+    affordanceMap: inputs.affordanceMap,
+  };
 }

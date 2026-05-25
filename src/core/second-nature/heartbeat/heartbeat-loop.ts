@@ -51,6 +51,7 @@ import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js"
 import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
+import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -87,7 +88,7 @@ export async function resolveAllowedIntentResult(
   signal: HeartbeatSignal,
   deps: Pick<
     HeartbeatDeps,
-    "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot"
+    "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter"
   >,
 ): Promise<HeartbeatCycleResult> {
   const day =
@@ -179,6 +180,21 @@ export async function resolveAllowedIntentResult(
       }
     }
 
+    // v7 T-V7C.C.2: record ToolExperience for all connector attempts in heartbeat.
+    if (deps.experienceWriter) {
+      try {
+        await deps.experienceWriter.recordExperience({
+          connectorId: intent.platformId,
+          capabilityId: toCapabilityIntent(intent),
+          result,
+          triggerSource: "heartbeat",
+        });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.warn(`[heartbeat] ToolExperience record failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
+      }
+    }
+
     const base: HeartbeatCycleResult = {
       scope: "rhythm",
       status: "intent_selected",
@@ -231,6 +247,8 @@ export interface HeartbeatDeps {
   workspaceRoot?: string;
   /** T2.4.1: when present, planner resolves platform-specific intents. */
   connectorRegistry?: CapabilityContractRegistry;
+  /** v7 T-V7C.C.2: when present, connector attempts write ToolExperience with triggerSource="heartbeat". */
+  experienceWriter?: ExperienceWriter;
 }
 
 /**

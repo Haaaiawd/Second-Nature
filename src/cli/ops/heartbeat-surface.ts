@@ -15,6 +15,8 @@ import type { StateDatabase } from "../../storage/db/index.js";
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
+import type { AffordanceMap } from "../../shared/types/v7-entities.js";
+import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 
 export type HeartbeatSurfaceStatus =
   | "heartbeat_ok"
@@ -63,6 +65,10 @@ export interface HeartbeatCheckInput {
   connectorExecutor?: ConnectorExecutor;
   /** Capability registry used by planner to avoid platform/capability protocol mismatches. */
   connectorRegistry?: CapabilityContractRegistry;
+  /** v7 T-V7C.C.2: affordance map for breaker-aware guard evaluation. */
+  affordanceMap?: AffordanceMap;
+  /** v7 T-V7C.C.2: experience writer for heartbeat connector attempts. */
+  experienceWriter?: ExperienceWriter;
 }
 
 function mapCycleToSurface(
@@ -156,6 +162,8 @@ export async function heartbeatCheck(
     workspaceRoot: input.workspaceRoot ?? process.cwd(),
     connectorExecutor: input.connectorExecutor,
     connectorRegistry: input.connectorRegistry,
+    affordanceMap: input.affordanceMap,
+    experienceWriter: input.experienceWriter,
   });
   const cycle = await run(signal);
   return mapCycleToSurface(cycle, "workspace_full_runtime");
