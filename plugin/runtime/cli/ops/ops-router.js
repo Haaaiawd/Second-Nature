@@ -20,7 +20,7 @@ import { goalCommand } from "../commands/goal.js";
 // v7 observability services (T-ROS.C.1)
 import { getSelfHealthSnapshot, ensureMinimumProbes, } from "../../observability/services/self-health-snapshot.js";
 import { generateHeartbeatDigest, } from "../../observability/services/heartbeat-digest-assembler.js";
-import { queryNarrativeTimeline, queryNarrativeDiff, } from "../../observability/services/narrative-timeline-query-service.js";
+import { queryNarrativeTimeline, queryNarrativeDiff, NarrativeVersionNotFoundError, } from "../../observability/services/narrative-timeline-query-service.js";
 import { viewSecretAnchor, } from "../../observability/services/runtime-secret-anchor-view.js";
 import { writeRestoreAudit, } from "../../observability/services/restore-audit-service.js";
 import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
@@ -284,6 +284,20 @@ export function createOpsRouter(deps) {
                 const runtimeAvailable = typeof input?.runtimeAvailable === "boolean"
                     ? input.runtimeAvailable
                     : deps.runtimeAvailable;
+                // v7 T-V7C.C.2: assemble affordance map and experience writer for breaker-aware heartbeat.
+                let affordanceMap;
+                if (deps.toolAffordancePort) {
+                    try {
+                        affordanceMap = await deps.toolAffordancePort.assembleAffordanceMap({});
+                    }
+                    catch {
+                        // degrade gracefully; guard-layer will skip breaker check without affordanceMap
+                    }
+                }
+                let experienceWriter;
+                if (deps.state) {
+                    experienceWriter = createExperienceWriter(createToolExperienceStore(deps.state));
+                }
                 const result = await heartbeatCheck({
                     probeOnly: coerceProbeOnlyFlag(input),
                     runtimeAvailable,
@@ -308,6 +322,8 @@ export function createOpsRouter(deps) {
                         ?.connectorExecutor ?? deps.connectorExecutor,
                     connectorRegistry: input
                         ?.connectorRegistry ?? deps.connectorRegistry,
+                    affordanceMap,
+                    experienceWriter,
                 });
                 if (result.ok &&
                     result.surfaceMode === "workspace_full_runtime" &&
@@ -914,6 +930,23 @@ export function createOpsRouter(deps) {
                     return envelope;
                 }
                 catch (err) {
+                    if (err instanceof NarrativeVersionNotFoundError) {
+                        const envelope = {
+                            ok: false,
+                            command: "narrative:diff",
+                            runtimeMode: "workspace_full_runtime",
+                            surfaceMode: "cli",
+                            generatedAt,
+                            error: {
+                                code: "NARRATIVE_VERSION_NOT_FOUND",
+                                message: err.message,
+                                nextStep: "verify_version_exists_in_timeline",
+                            },
+                            warnings: [],
+                            sourceRefs: [],
+                        };
+                        return envelope;
+                    }
                     const msg = err instanceof Error ? err.message : String(err);
                     const envelope = {
                         ok: false,

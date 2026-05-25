@@ -11,8 +11,33 @@ function toGuidanceRef(r) {
         observedAt: r.observedAt,
     };
 }
+/**
+ * v7 T-V7C.C.3: Fire-and-forget Dream schedule after successful Quiet write.
+ * Returns the schedule status reason string to embed in HeartbeatCycleResult reasons.
+ * Never throws — Dream scheduling failure must not break the Quiet cycle result.
+ */
+async function maybeScheduleDreamAfterQuiet(dreamSchedulePort, day) {
+    if (!dreamSchedulePort)
+        return undefined;
+    try {
+        const result = await dreamSchedulePort.scheduleDream({
+            triggerKind: "quiet_completion",
+            runId: `dream:quiet_completion:${day}:${Date.now()}`,
+            traceId: `trace:quiet_completion:${day}:${Date.now()}`,
+        });
+        if (result.status === "skipped") {
+            return `quiet_dream_skip:${result.reason ?? "lock_held"}`;
+        }
+        return "quiet_dream_scheduled";
+    }
+    catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[run-source-backed-quiet] Dream schedule failed: ${msg}`);
+        return `quiet_dream_schedule_error:${msg.slice(0, 60)}`;
+    }
+}
 export async function runSourceBackedQuiet(params) {
-    const { candidate, runtime, day, userInterestSnapshot, workspaceRoot } = params;
+    const { candidate, runtime, day, userInterestSnapshot, workspaceRoot, dreamSchedulePort } = params;
     const empty = isLifeEvidenceSliceEmpty(runtime.lifeEvidence);
     if (empty) {
         const input = {
@@ -117,12 +142,17 @@ export async function runSourceBackedQuiet(params) {
         const p = await persistQuietArtifactToWorkspace(workspaceRoot, ack, reportWrite);
         persistedRelativePath = p.relativePath;
     }
+    // v7 T-V7C.C.3: After a successful source-backed Quiet write, auto-trigger Dream scheduling.
+    const dreamReason = await maybeScheduleDreamAfterQuiet(dreamSchedulePort, day);
+    const reasons = ["quiet_artifact_written", ...gq.hints.slice(0, 2)];
+    if (dreamReason)
+        reasons.push(dreamReason);
     return {
         result: {
             scope: "rhythm",
             status: "intent_selected",
             selectedIntentId: candidate.id,
-            reasons: ["quiet_artifact_written", ...gq.hints.slice(0, 2)],
+            reasons,
         },
         artifactAck: ack,
         persistedRelativePath,

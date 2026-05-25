@@ -23,6 +23,8 @@ import type { ConnectorExecutor } from "../../../connectors/base/contract.js";
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 import type { NarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
 import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
+import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
+import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
 export interface HeartbeatDecisionTracePayload {
     scope: RuntimeScope;
     status: HeartbeatCycleStatus;
@@ -43,12 +45,14 @@ export interface HeartbeatOutreachDispatchDeps {
 /** Optional Quiet orchestration: when set, quiet/reflection allows run source-backed Quiet writer (T2.3.3). */
 export interface HeartbeatQuietWorkflowDeps {
     workspaceRoot: string;
+    /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
+    dreamSchedulePort?: QuietDreamSchedulePort;
 }
 /**
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
  */
-export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot">): Promise<HeartbeatCycleResult>;
+export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter">): Promise<HeartbeatCycleResult>;
 export interface HeartbeatDeps {
     /** Load snapshot inputs from state-system */
     loadSnapshotInputs: () => Promise<SnapshotInputs>;
@@ -71,6 +75,8 @@ export interface HeartbeatDeps {
     workspaceRoot?: string;
     /** T2.4.1: when present, planner resolves platform-specific intents. */
     connectorRegistry?: CapabilityContractRegistry;
+    /** v7 T-V7C.C.2: when present, connector attempts write ToolExperience with triggerSource="heartbeat". */
+    experienceWriter?: ExperienceWriter;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

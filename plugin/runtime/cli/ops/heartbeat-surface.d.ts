@@ -11,6 +11,8 @@ import type { RuntimeDecisionRecorder } from "../../observability/services/runti
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
+import type { AffordanceMap } from "../../shared/types/v7-entities.js";
+import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 export type HeartbeatSurfaceStatus = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export interface HeartbeatSurfaceResult {
     ok: boolean;
@@ -50,5 +52,9 @@ export interface HeartbeatCheckInput {
     connectorExecutor?: ConnectorExecutor;
     /** Capability registry used by planner to avoid platform/capability protocol mismatches. */
     connectorRegistry?: CapabilityContractRegistry;
+    /** v7 T-V7C.C.2: affordance map for breaker-aware guard evaluation. */
+    affordanceMap?: AffordanceMap;
+    /** v7 T-V7C.C.2: experience writer for heartbeat connector attempts. */
+    experienceWriter?: ExperienceWriter;
 }
 export declare function heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;

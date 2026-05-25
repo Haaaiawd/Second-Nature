@@ -31,5 +31,13 @@ export function buildHeartbeatRuntimeSnapshot(timestamp, inputs, continuity) {
     const rhythmWindow = buildPlannerRhythmWindow(timestamp, continuity, policy);
     const lifeEvidence = buildLifeEvidenceSliceFromInputs(inputs);
     const hardGuards = buildHardGuardDeps(continuity, inputs);
-    return { continuity, lifeEvidence, rhythmWindow, hardGuards, narrativeState: inputs.narrativeState, relationshipMemory: inputs.relationshipMemory };
+    return {
+        continuity,
+        lifeEvidence,
+        rhythmWindow,
+        hardGuards,
+        narrativeState: inputs.narrativeState,
+        relationshipMemory: inputs.relationshipMemory,
+        affordanceMap: inputs.affordanceMap,
+    };
 }

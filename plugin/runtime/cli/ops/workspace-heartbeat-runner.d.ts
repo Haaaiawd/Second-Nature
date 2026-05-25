@@ -19,6 +19,10 @@ import type { RuntimeDecisionRecorder } from "../../observability/services/runti
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
+import type { AffordanceMap } from "../../shared/types/v7-entities.js";
+import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
+import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
+import { type HeartbeatDigestAssemblerDeps } from "../../observability/services/heartbeat-digest-assembler.js";
 export interface WorkspaceHeartbeatRunnerOptions {
     /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
     runtimeRecorder?: RuntimeDecisionRecorder;
@@ -44,9 +48,29 @@ export interface WorkspaceHeartbeatRunnerOptions {
      * and connector evidence.
      */
     connectorRegistry?: CapabilityContractRegistry;
+    /** v7 T-V7C.C.2: affordance map for breaker-aware guard evaluation. */
+    affordanceMap?: AffordanceMap;
+    /** v7 T-V7C.C.2: experience writer for heartbeat connector attempts. */
+    experienceWriter?: ExperienceWriter;
+    /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
+    dreamSchedulePort?: QuietDreamSchedulePort;
+    /**
+     * v7 T-V7C.C.3: when present, generates a HeartbeatDigest after each cycle
+     * (inside the digest window hour, if specified) and attempts delivery.
+     * Digest delivery failure is recorded as fallbackReason — never blocks the cycle.
+     */
+    digestOpts?: {
+        assemblerDeps: HeartbeatDigestAssemblerDeps;
+        /**
+         * UTC hour (0–23) at which to attempt digest generation.
+         * If unset, digest is generated on every cycle (for testing / always-on mode).
+         */
+        digestWindowHour?: number;
+    };
 }
 export declare function loadSnapshotInputsForWorkspaceHeartbeat(readModels: CliReadModels, options?: {
     state?: StateDatabase;
     workspaceRoot?: string;
+    affordanceMap?: AffordanceMap;
 }): Promise<SnapshotInputs>;
 export declare function createWorkspaceHeartbeatRunner(readModels: CliReadModels, options?: WorkspaceHeartbeatRunnerOptions): (signal: HeartbeatSignal) => Promise<HeartbeatCycleResult>;

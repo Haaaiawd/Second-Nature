@@ -3,6 +3,7 @@ import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-
 import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
+import { generateHeartbeatDigest, } from "../../observability/services/heartbeat-digest-assembler.js";
 export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, options = {}) {
     const status = await readModels.loadStatus();
     const mode = status.rhythm.mode === "unknown" ? "active" : status.rhythm.mode;
@@ -103,6 +104,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         acceptedGoalsLoadError,
         narrativeState,
         relationshipMemory,
+        affordanceMap: options.affordanceMap,
     };
 }
 export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
@@ -121,10 +123,15 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 loadSnapshotInputs: () => loadSnapshotInputsForWorkspaceHeartbeat(readModels, {
                     state: options.state,
                     workspaceRoot: options.workspaceRoot,
+                    affordanceMap: options.affordanceMap,
                 }),
                 // T1.2.4: pass quietWorkflow dep so runSourceBackedQuiet can persist artifacts.
                 quietWorkflow: quietEnabled
-                    ? { workspaceRoot: options.workspaceRoot }
+                    ? {
+                        workspaceRoot: options.workspaceRoot,
+                        // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
+                        dreamSchedulePort: options.dreamSchedulePort,
+                    }
                     : undefined,
                 connectorExecutor: options.connectorExecutor,
                 narrativeStateStore,
@@ -133,6 +140,8 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 workspaceRoot: options.workspaceRoot,
                 // T2.4.1: pass registry so planner resolves platform-specific intents.
                 connectorRegistry: options.connectorRegistry,
+                // v7 T-V7C.C.2: pass experience writer for heartbeat connector attempts.
+                experienceWriter: options.experienceWriter,
             },
         });
         if (options.runtimeRecorder) {
@@ -143,6 +152,25 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 // T1.2.3: recorder must never break the heartbeat surface response.
                 // Failure here means status simply remains at its previous aggregate; the
                 // cycle outcome itself is still returned to the caller.
+            }
+        }
+        // v7 T-V7C.C.3: After each cycle, attempt HeartbeatDigest generation if configured.
+        // Only runs inside the designated UTC digest window hour, or on every cycle when
+        // digestWindowHour is unset (test / always-on mode).
+        if (options.digestOpts) {
+            const { assemblerDeps, digestWindowHour } = options.digestOpts;
+            const nowHour = new Date().getUTCHours();
+            const inDigestWindow = digestWindowHour === undefined || nowHour === digestWindowHour;
+            if (inDigestWindow) {
+                try {
+                    const date = new Date().toISOString().slice(0, 10);
+                    await generateHeartbeatDigest(date, assemblerDeps);
+                }
+                catch (err) {
+                    // Digest generation must not break the heartbeat cycle response.
+                    const msg = err instanceof Error ? err.message : String(err);
+                    console.warn(`[workspace-heartbeat-runner] Digest generation failed: ${msg}`);
+                }
             }
         }
         return cycle;

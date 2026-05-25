@@ -42,6 +42,27 @@ export function evaluateHardGuards(intent, runtime) {
     if (!isSourceBacked(intent)) {
         reasons.push("missing_source_refs");
     }
+    // v7: Affordance / breaker guard (T-V7C.C.2)
+    if ((intent.effectClass === "connector_action" ||
+        intent.effectClass === "external_platform_action") &&
+        runtime.affordanceMap &&
+        intent.platformId) {
+        const platformItems = runtime.affordanceMap[intent.platformId] ?? [];
+        const match = intent.capabilityIntent
+            ? platformItems.find((i) => i.capabilityId === intent.capabilityIntent)
+            : platformItems.find((i) => i.intent === intent.summary);
+        if (match) {
+            if (match.status === "painful") {
+                reasons.push("connector_circuit_open");
+            }
+            else if (match.status === "unavailable") {
+                reasons.push("affordance_unavailable");
+            }
+        }
+        else {
+            reasons.push("affordance_unavailable");
+        }
+    }
     const key = intentFingerprint(intent);
     if (runtime.hardGuards.hasDuplicateIntent(key)) {
         reasons.push("duplicate_intent");
@@ -74,7 +95,9 @@ export function evaluateHardGuards(intent, runtime) {
     }
     const duplicate = reasons.includes("duplicate_intent");
     const cooldown = reasons.includes("outreach_cooldown");
-    if (duplicate || cooldown) {
+    const circuitOpen = reasons.includes("connector_circuit_open");
+    const affordanceUnavailable = reasons.includes("affordance_unavailable");
+    if (duplicate || cooldown || circuitOpen || affordanceUnavailable) {
         return {
             verdict: "defer",
             reasons,
