@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-23` (`/forge` Wave 68 settled)
+- **最近一次更新**: `2026-05-25` (`/forge` Wave 72 settled)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -196,10 +196,10 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 71 完成；T-V7C.C.1R + T-V7C.C.2 已交付
+- **状态**: v7 `/forge` Wave 72 完成；T-V7C.C.3 Rhythm Loop Closure 已交付
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Wave 69 已修复；0.1.32 E2E 剩余 lifecycle production gaps 已进入 S7 闭环修复）
-- **下一步**: `/forge` Wave 72 — T-V7C.C.3 Rhythm Loop Closure (Quiet→Dream auto-schedule + digest hook)
-- **最近更新**: `2026-05-25` (`/forge` Wave 71 settled — C1R narrative:diff hygiene + C2 evidence body feedback closed)
+- **下一步**: `/forge` Wave 73 — T-V7C.C.4 及后续（下一任务按 05A_TASKS.md 确认）
+- **最近更新**: `2026-05-25` (`/forge` Wave 72 settled — T-V7C.C.3 Quiet→Dream auto-trigger + digest delivery proof/fallback)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -404,6 +404,16 @@ T-V7C.C.1R, T-V7C.C.2
 - **测试**: `pnpm build` ✅；`node --test v7c-evidence-body-feedback.test.js` — 5/5 PASS；regression 19/19 PASS（hard-guard + heartbeat + commands + tool-experience-store）
 - **最高严重度**: none
 - **下一步**: Wave 72 — T-V7C.C.3 Rhythm Loop Closure
+
+### 🌊 Wave 72 ✅ — v7 Rhythm Loop Closure
+T-V7C.C.3
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-25）
+- **产出**: QuietDreamSchedulePort narrow port + maybeScheduleDreamAfterQuiet fire-and-forget + heartbeat-loop 传播 + workspace-heartbeat-runner digest hook + 6 集成测试（6/6 PASS）
+- **测试**: `pnpm build` ✅；`node --test v7c-rhythm-loop.test.js` — 6/6 PASS；regression 231/231 PASS（0 fail）
+- **最高严重度**: none
+- **下一步**: Wave 73 — 按 05A_TASKS.md 确认下一任务
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 

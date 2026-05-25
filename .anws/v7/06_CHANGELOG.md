@@ -206,3 +206,42 @@
 - [VERIFY] `pnpm build:plugin`
 - [VERIFY] `node --test dist/tests/unit/storage/tool-experience-store.test.js dist/tests/unit/connectors/t3-3-1-evidence-mapper.test.js dist/tests/integration/cli/heartbeat-surface-workspace.test.js dist/tests/integration/runtime-ops/commands.test.js dist/tests/integration/plugin/plugin-registration.test.js` — 52/52 PASS
 - [VERIFY] `cd plugin && npm pack --dry-run` — `@haaaiawd/second-nature@0.1.34`, 515 files
+
+---
+
+## /change — 2026-05-25 — Wave 71 Forge Handoff Clarification
+
+### Scope
+- [ADD] `T-V7C.C.1R`: Runtime Data Closure Release Hygiene，用于收口 `narrative:diff` 缺版本错误语义、wet re-probe 幂等与 package/runtime version parity。
+- [CHANGE] `T-V7C.C.2`: 明确 heartbeat/manual/wet 三条 connector feedback 路径的 ToolExperience、LifeEvidence、pain signal 与 CircuitBreaker 验收边界。
+- [CHANGE] `05B_VERIFICATION_PLAN.md`: 新增 `T-V7C.C.1R` 验证锚点，并扩展 `T-V7C.C.2` 的 triggerSource、breaker enforcement、wet feedback 断言。
+- [ADD] `.anws/v7/handoffs/wave-71-forge-handoff.md`: 给后续 `/forge` 执行者的 Wave 71 交接说明。
+
+### Rationale
+- 最新 Claw 结果证明 restore 已闭环，剩余 `narrative:diff` 与 wet re-probe 问题不应继续混在“空库未闭环”叙事里。
+- T-V7C.C.2 应聚焦主循环神经线：heartbeat connector attempt 必须进入 ToolExperience/body feedback，breaker 必须影响下一轮 heartbeat。
+- 本次变更不改 REQ/ADR/架构前提，不回填 checkbox，只把下一波 forge 范围写成可交接任务。
+
+### Guardrails
+- `T-V7C.C.3` 仍依赖 `T-V7C.C.2`，不得在 Wave 71 未闭合前启动 Quiet→Dream / daily digest 自动节律。
+
+---
+
+## /forge Wave 72 — 2026-05-25 — T-V7C.C.3 Rhythm Loop Closure
+
+### Scope
+- [ADD] `run-source-backed-quiet.ts`: `QuietDreamSchedulePort` narrow port（依赖反转）+ `maybeScheduleDreamAfterQuiet` fire-and-forget helper；成功 Quiet 写入后自动触发 Dream 调度，skip/error reason 嵌入 `HeartbeatCycleResult.reasons`（`quiet_dream_scheduled` / `quiet_dream_skip:<reason>` / `quiet_dream_schedule_error:<msg>`）
+- [CHANGE] `heartbeat-loop.ts`: `HeartbeatQuietWorkflowDeps.dreamSchedulePort?` 字段 + Quiet 路径传透 `dreamSchedulePort`
+- [CHANGE] `workspace-heartbeat-runner.ts`: `dreamSchedulePort?` + `digestOpts?` 注入；每轮 cycle 后若 `inDigestWindow` 且 `digestOpts` 配置则调用 `generateHeartbeatDigest`，delivery 失败只记 warning 不中断 cycle
+- [ADD] `tests/integration/dream/v7c-rhythm-loop.test.ts`: 6 集成测试全部通过
+
+### Evidence
+- `pnpm build` ✅（tsc clean）
+- `node --test dist/tests/integration/dream/v7c-rhythm-loop.test.js` → 6/6 PASS
+- Full integration suite → 231/231 pass，0 fail，0 回归
+
+### Design decisions
+- `QuietDreamSchedulePort` 采用 narrow port 模式（ADR-005 compliant），避免 quiet 模块硬依赖 dream-scheduler
+- Dream 调度失败 catch 吸收后写 `quiet_dream_schedule_error` reason，保持 Quiet cycle 结果的独立性
+- `inDigestWindow` 判断逻辑委托给 `workspace-heartbeat-runner`（每日一次），`generateHeartbeatDigest` 不感知调用频率
+- `T-V7C.C.4` 与 `INT-V7C` 依赖链保持不变。

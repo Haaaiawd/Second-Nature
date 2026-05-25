@@ -657,16 +657,28 @@
 - **断言**: diff 不因缺版本失败；restore 不因缺 snapshot 失败；wet probe 不返回 dry-run ok。
 - **证据**: `tests/integration/runtime-ops/v7c-data-connector-truth.test.ts`。
 
+<a id="t-v7c-c-1r"></a>
+### T-V7C.C.1R
+- **关联需求**: REQ-009, REQ-011
+- **关联契约**: `narrative:diff` missing-version error semantics, `capability_probe_result` upsert, package/runtime version parity
+- **风险类别**: 缺数据被误判为引擎失败 / wet re-probe 主键冲突 / 宿主加载旧 runtime
+- **单元测试覆盖**: `CapabilityProbeResultStore.appendProbeResult` duplicate id upsert；NarrativeVersionNotFoundError 映射。
+- **API接口功能测试覆盖**: `narrative:diff` missing from/to version 返回 structured missing-version code；`connector_test dryRun:false` repeated call 不抛 UNIQUE constraint。
+- **集成/E2E/冒烟覆盖**: plugin/runtime package 检查 version 与 manifest 一致；Claw 复测时若仍冲突，报告宿主缓存/旧包加载证据。
+- **前置数据**: single timeline row、missing version id、duplicate probeResultId fixture、built plugin runtime。
+- **断言**: missing version 是缺数据错误而非 `NARRATIVE_DIFF_FAILED` 泛化；wet re-probe 幂等；package/plugin/runtime version 可追溯。
+- **证据**: `tests/integration/runtime-ops/v7c-data-connector-truth.test.ts` 或 `tests/integration/runtime-ops/commands.test.ts`。
+
 <a id="t-v7c-c-2"></a>
 ### T-V7C.C.2
 - **关联需求**: REQ-003, REQ-009
-- **关联契约**: connector result -> life evidence, connector result -> ToolExperience, CircuitBreaker enforcement
-- **风险类别**: evidence pipeline 断裂 / body feedback 不生效 / 连败无冷却
-- **单元测试覆盖**: connector result mapping、pain signal threshold、breaker open/half-open/closed。
-- **API接口功能测试覆盖**: manual run before/after ToolExperience 与 life evidence rows。
-- **集成/E2E/冒烟覆盖**: heartbeat connector success/failure across evidence + experience + breaker。
-- **前置数据**: connector success fixture、terminal failure fixture、breaker threshold fixture。
-- **断言**: success 增长 evidence；所有 attempt 写 experience 或 explicit unavailable reason；breaker open 阻止重复执行。
+- **关联契约**: connector result -> life evidence, connector result -> ToolExperience, wet/probe feedback, CircuitBreaker enforcement
+- **风险类别**: evidence pipeline 断裂 / heartbeat 自然路径无 ToolExperience / body feedback 不生效 / 连败无冷却
+- **单元测试覆盖**: connector result mapping、ExperienceWriter triggerSource、pain signal threshold、breaker open/half-open/closed。
+- **API接口功能测试覆盖**: manual run before/after ToolExperience 与 life evidence rows；wet probe feedback/unavailable reason。
+- **集成/E2E/冒烟覆盖**: heartbeat connector success/failure across evidence + experience + breaker；breaker open 后 heartbeat 不重复执行同 capability。
+- **前置数据**: connector success fixture、terminal failure fixture、duplicate failure threshold fixture、half-open success/failure fixture。
+- **断言**: heartbeat success 增长 evidence 且写 `trigger_source=heartbeat`；manual run 写 `trigger_source=manual_run`；所有 attempt 写 experience 或 explicit unavailable reason；breaker open 阻止重复执行。
 - **证据**: `tests/integration/control-plane/v7c-evidence-body-feedback.test.ts`。
 
 <a id="t-v7c-c-3"></a>
