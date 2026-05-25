@@ -36,6 +36,15 @@ const ALL_RESTORABLE_KINDS: readonly RestorableEntityKind[] = [
   "narrative_timeline",
 ];
 
+const TABLE_BY_KIND: Record<RestorableEntityKind, string> = {
+  identity_profile: "identity_profile",
+  agent_goal: "agent_goal",
+  tool_experience: "tool_experience",
+  daily_diary: "daily_diary_index",
+  dream_output: "dream_output_index",
+  narrative_timeline: "narrative_timeline",
+};
+
 const DEFAULT_EXCLUDED_KINDS: readonly SensitiveExcludedKind[] = [
   "credential",
   "raw_private_message",
@@ -283,8 +292,9 @@ export function createRestoreSnapshotStore(
             const values = keys.map(
               (k) => (row as Record<string, unknown>)[k],
             ) as SqlValue[];
+            const table = TABLE_BY_KIND[kind];
             sqlite.run(
-              `INSERT OR REPLACE INTO ${kind} (${columns}) VALUES (${placeholders})`,
+              `INSERT OR REPLACE INTO ${table} (${columns}) VALUES (${placeholders})`,
               values,
             );
           }

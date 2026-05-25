@@ -150,3 +150,59 @@
 - [VERIFY] INT-S1~INT-S5 前序里程碑全部完成
 - [ADD] `reports/int-s6-e2e-release-gate-v7.md` — S6 Release Gate 报告
 - **v7 全部 6 个 Sprint 里程碑完成**
+
+---
+
+## /change — 2026-05-25 — v7 Living Loop Closure Backflow
+
+### Scope
+- [CHANGE] 追加 S7 `Living Loop Closure`，作为 0.1.32 E2E 后的 v7 当前版本内受控闭环修订。
+- [ADD] `T-V7C.C.1`: Data Lifecycle + Connector Truth Closure。
+- [ADD] `T-V7C.C.2`: Evidence + Body Feedback Closure。
+- [ADD] `T-V7C.C.3`: Rhythm Loop Closure。
+- [ADD] `T-V7C.C.4`: Identity / Goal Hygiene Closure。
+- [ADD] `INT-V7C`: v7 Living Loop Closure 集成验证。
+
+### Rationale
+- Claw 0.1.32 E2E 已证明 v7 ops surface 基本闭合，但 `narrative:diff` 与 `restore` 仍依赖缺失的生产数据。
+- `nyx-final-sn-feedback.md` 进一步指出表与 store 已存在，但 write paths / natural runtime triggers 尚未完整咬合。
+- 本次变更不改变 REQ/ADR 前提，只把 v7 PRD 已定义的 lifecycle、rhythm、body feedback 契约回流为可 forge 的任务。
+
+### Guardrails
+- 不回填既有 checkbox。
+- 不新增外部依赖。
+- P1/P2 建议仅纳入与 v7 living loop 直接相关的最小 hygiene closure；其余不自动执行。
+
+---
+
+## /forge Wave 70 — 2026-05-25 — Data Lifecycle + Connector Truth
+
+### Scope
+- [DONE] `T-V7C.C.1`: 新增 `snapshot:capture` runtime ops 入口，并注册到 CLI/plugin workspace bridge。
+- [DONE] `snapshot:capture` 写入 `restore_snapshot`，同时追加 NarrativeTimeline production row，使 `narrative:diff` 可消费真实版本数据。
+- [DONE] `connector_test dryRun:false` 改为真实 `WetProbeRunner` safe endpoint probe，并持久化 `capability_probe_result`。
+- [DONE] `RestoreSnapshotStore.applyBoundedRestore` 补齐 `daily_diary` → `daily_diary_index`、`dream_output` → `dream_output_index` 表映射。
+- [DONE] package/plugin version 升级到 `0.1.33` 并重建插件 runtime。
+
+### Verification
+- [VERIFY] `pnpm exec tsc --noEmit`
+- [VERIFY] `pnpm build`
+- [VERIFY] `pnpm build:plugin`
+- [VERIFY] `node --test dist/tests/integration/runtime-ops/commands.test.js dist/tests/integration/plugin/plugin-registration.test.js` — 38/38 PASS
+
+---
+
+## /forge Hotfix — 2026-05-25 — 0.1.34 SN Issue Closure
+
+### Scope
+- [FIX] `capability_probe_result` 写入改为 `ON CONFLICT(probe_result_id) DO UPDATE`，避免 wet probe 二次运行触发 UNIQUE constraint。
+- [FIX] `mapLifeEvidence` 支持 policy-wrapped connector payload 的 `data.items` 嵌套形状，恢复 Moltbook 成功结果到 `life_evidence_index` 的映射入口。
+- [FIX] `heartbeat_check` full-runtime 成功路径自动捕获 `restore_snapshot` 并追加 NarrativeTimeline production row，避免 snapshot/timeline 只靠手动命令产生。
+- [CHANGE] package/plugin version 升级到 `0.1.34` 并重建插件 runtime。
+
+### Verification
+- [VERIFY] `pnpm exec tsc --noEmit`
+- [VERIFY] `pnpm build`
+- [VERIFY] `pnpm build:plugin`
+- [VERIFY] `node --test dist/tests/unit/storage/tool-experience-store.test.js dist/tests/unit/connectors/t3-3-1-evidence-mapper.test.js dist/tests/integration/cli/heartbeat-surface-workspace.test.js dist/tests/integration/runtime-ops/commands.test.js dist/tests/integration/plugin/plugin-registration.test.js` — 52/52 PASS
+- [VERIFY] `cd plugin && npm pack --dry-run` — `@haaaiawd/second-nature@0.1.34`, 515 files

@@ -1,8 +1,8 @@
 {
   "id": "second-nature",
   "name": "Second Nature",
-  "version": "0.1.28",
-  "description": "OpenClaw native plugin with synchronous surface registration and bundled runtime spine. Set SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot to the same path as the agent workspace. Agent inner guide is packaged as agent-inner-guide.md. v7 ops surface: self_health, tool_affordance, heartbeat_digest, narrative:diff, timeline, restore, runtime_secret_bootstrap.",
+  "version": "0.1.34",
+  "description": "OpenClaw native plugin with synchronous surface registration and bundled runtime spine. Set SECOND_NATURE_WORKSPACE_ROOT or tool workspaceRoot to the same path as the agent workspace. Agent inner guide is packaged as agent-inner-guide.md. v7 ops surface: self_health, tool_affordance, heartbeat_digest, snapshot:capture, narrative:diff, timeline, restore, runtime_secret_bootstrap.",
   "activation": {
     "onStartup": true,
     "onCapabilities": [

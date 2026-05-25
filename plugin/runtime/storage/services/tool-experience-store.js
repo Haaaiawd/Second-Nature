@@ -81,7 +81,15 @@ export function createCapabilityProbeResultStore(database) {
             sqlite.run(`INSERT INTO capability_probe_result
          (probe_result_id, capability_id, connector_id, actual_status,
           http_status, sample_response_ref, probe_config_ref, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(probe_result_id) DO UPDATE SET
+           capability_id = excluded.capability_id,
+           connector_id = excluded.connector_id,
+           actual_status = excluded.actual_status,
+           http_status = excluded.http_status,
+           sample_response_ref = excluded.sample_response_ref,
+           probe_config_ref = excluded.probe_config_ref,
+           created_at = excluded.created_at`, [
                 result.probeResultId,
                 result.capabilityId,
                 result.connectorId,

@@ -1,19 +1,4 @@
-/**
- * ChannelFeedbackIngestionService — T-GVS.C.2
- *
- * Core logic: process delivery result and owner reaction into RelationshipMemory;
- * retry with exponential backoff on persistence failure; audit on exhaustion.
- * Implements DR-029 (retry + audit; no silent loss) and ADR-006 (delivery truth).
- *
- * Boundary:
- * - Consumes ChannelFeedback from runtime-ops-system.
- * - Writes to state-memory-system via port (no direct DB access).
- * - On 3 failed retries, emits observability audit event (family: guidance.feedback_ingestion_failed)
- *   with feedback summary hash — never raw reaction content.
- * - Missing deliveryProof → deliveryResult coerced to "not_sent".
- *
- * Test coverage: tests/unit/guidance/channel-feedback-ingestion.test.ts
- */
+import * as crypto from "node:crypto";
 // ─── Configuration ──────────────────────────────────────────────────────────
 const RETRY_DELAYS_MS = [500, 1000, 2000];
 const REACTION_WEIGHTS = {
@@ -41,9 +26,15 @@ function validateFeedback(feedback) {
         errors.push("missing_timestamp");
     }
     else {
-        const ageDays = (Date.now() - new Date(feedback.timestamp).getTime()) / (1000 * 60 * 60 * 24);
-        if (ageDays > 30) {
-            errors.push("feedback_too_old");
+        const feedbackTime = new Date(feedback.timestamp);
+        if (Number.isNaN(feedbackTime.getTime())) {
+            errors.push("invalid_timestamp");
+        }
+        else {
+            const ageDays = (Date.now() - feedbackTime.getTime()) / (1000 * 60 * 60 * 24);
+            if (ageDays > 30) {
+                errors.push("feedback_too_old");
+            }
         }
     }
     return { valid: errors.length === 0, errors };
@@ -184,20 +175,14 @@ async function persistWithRetry(memory, port) {
 }
 function hashSummary(feedback) {
     const data = `${feedback.channelId}:${feedback.deliveryResult}:${feedback.ownerReaction}:${feedback.timestamp}`;
-    // Simple hash for test determinism; production uses crypto
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-        const char = data.charCodeAt(i);
-        hash = ((hash << 5) - hash + char) | 0;
-    }
-    return Math.abs(hash).toString(16).padStart(8, "0");
+    return crypto.createHash("sha256").update(data).digest("hex");
 }
 // ─── Service ────────────────────────────────────────────────────────────────
 export async function ingestChannelFeedback(feedback, deps) {
     // Step 1: Validate
     const validation = validateFeedback(feedback);
     if (!validation.valid) {
-        return { status: "rejected" };
+        return { status: "rejected", errors: validation.errors };
     }
     // Step 2: Build relationship update (with redaction + delivery-truth coercion)
     const relationshipUpdate = buildRelationshipUpdate(feedback);

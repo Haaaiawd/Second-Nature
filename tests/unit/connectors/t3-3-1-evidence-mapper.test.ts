@@ -50,6 +50,30 @@ test("T3.3.1 empty data returns null", () => {
   assert.equal(candidate, null);
 });
 
+test("T3.3.1 policy-wrapped connector payload maps nested data items", () => {
+  const result: ConnectorResult<unknown> = {
+    status: "success",
+    data: {
+      capability: "feed.read",
+      channel: "api_rest",
+      data: {
+        items: [
+          { id: "post-001", title: "Nested connector item" },
+        ],
+      },
+    },
+    metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 1 },
+  };
+  const candidate = mapLifeEvidence({
+    platformId: "moltbook",
+    intent: "feed.read",
+    result,
+    observedAt: "2026-05-02T00:00:00.000Z",
+  });
+  assert.ok(candidate);
+  assert.equal(candidate!.sourceRefs[0]!.id, "post-001");
+});
+
 test("T3.3.1 failure status returns null", () => {
   const result: ConnectorResult<unknown> = {
     status: "terminal_failure",

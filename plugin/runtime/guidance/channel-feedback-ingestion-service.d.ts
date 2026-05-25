@@ -65,6 +65,7 @@ export interface StrategyAdjustment {
 }
 export interface FeedbackIngestionResult {
     status: "ingested" | "rejected" | "failed_after_retries";
+    errors?: string[];
     relationshipUpdate?: RelationshipUpdate;
     strategyAdjustments?: StrategyAdjustment[];
     updatedTrust?: number;

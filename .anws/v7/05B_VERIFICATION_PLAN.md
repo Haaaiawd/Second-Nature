@@ -645,6 +645,68 @@
 
 ---
 
+<a id="t-v7c-c-1"></a>
+### T-V7C.C.1
+- **关联需求**: REQ-009, REQ-011
+- **关联契约**: `snapshot:capture`, `NarrativeTimeline` snapshot production, `connector_test dryRun:false`, `CapabilityProbeResultStore`
+- **风险类别**: 数据生产端缺失 / wet truth false positive / protocol drift
+- **单元测试覆盖**: snapshot payload whitelist、timeline snapshot lookup、wet probe result persistence。
+- **API接口功能测试覆盖**: `snapshot:capture`、`narrative:diff` normal/error、`connector_test dryRun:false` normal/error。
+- **集成/E2E/冒烟覆盖**: runtime ops bridge 调用后断言 `narrative_timeline`、`restore_snapshot`、`capability_probe_result` before/after。
+- **前置数据**: empty workspace、two narrative revisions、safe probe endpoint fixture。
+- **断言**: diff 不因缺版本失败；restore 不因缺 snapshot 失败；wet probe 不返回 dry-run ok。
+- **证据**: `tests/integration/runtime-ops/v7c-data-connector-truth.test.ts`。
+
+<a id="t-v7c-c-2"></a>
+### T-V7C.C.2
+- **关联需求**: REQ-003, REQ-009
+- **关联契约**: connector result -> life evidence, connector result -> ToolExperience, CircuitBreaker enforcement
+- **风险类别**: evidence pipeline 断裂 / body feedback 不生效 / 连败无冷却
+- **单元测试覆盖**: connector result mapping、pain signal threshold、breaker open/half-open/closed。
+- **API接口功能测试覆盖**: manual run before/after ToolExperience 与 life evidence rows。
+- **集成/E2E/冒烟覆盖**: heartbeat connector success/failure across evidence + experience + breaker。
+- **前置数据**: connector success fixture、terminal failure fixture、breaker threshold fixture。
+- **断言**: success 增长 evidence；所有 attempt 写 experience 或 explicit unavailable reason；breaker open 阻止重复执行。
+- **证据**: `tests/integration/control-plane/v7c-evidence-body-feedback.test.ts`。
+
+<a id="t-v7c-c-3"></a>
+### T-V7C.C.3
+- **关联需求**: REQ-005, REQ-010
+- **关联契约**: Quiet completion trigger, Dream accepted projection, HeartbeatDigest delivery/fallback
+- **风险类别**: rhythm loop 空转 / dream 只存在手动路径 / digest owner proof 缺失
+- **单元测试覆盖**: scheduler gate、explicit skip reason、digest delivery fallback。
+- **API接口功能测试覆盖**: heartbeat/digest command reads generated rhythm outputs。
+- **集成/E2E/冒烟覆盖**: quiet -> dream -> heartbeat -> digest 的代表性链路。
+- **前置数据**: source-backed diary fixture、dream allowed window、delivery adapter stub。
+- **断言**: Quiet 后 Dream 自动触发或 skip；accepted projection 进入 heartbeat；digest 写 proof 或 fallback。
+- **证据**: `tests/integration/dream/v7c-rhythm-loop.test.ts`, `reports/v7c-rhythm-loop.md`。
+
+<a id="t-v7c-c-4"></a>
+### T-V7C.C.4
+- **关联需求**: REQ-004, REQ-006, REQ-008
+- **关联契约**: GoalLifecycle replace/dedupe, IdentityProfile connector context, RelationshipMemory-guided strategy
+- **风险类别**: active goal 分裂 / 身份孤岛 / feedback 不影响表达
+- **单元测试覆盖**: goal replace table tests、identity profile read adapter、strategy no-reply/positive/negative cases。
+- **API接口功能测试覆盖**: goal ops repeated set before/after；connector request identity context inspection。
+- **集成/E2E/冒烟覆盖**: heartbeat reads deduped active goal and connector gets platform handle。
+- **前置数据**: duplicate goal fixture、identity profile fixture、relationship memory fixture。
+- **断言**: 同 kind/scope 只有一个 active；connector request 不含 credential 但含 platform identity；feedback 调整策略。
+- **证据**: `tests/integration/state/v7c-identity-goal-hygiene.test.ts`。
+
+<a id="int-v7c"></a>
+### INT-V7C
+- **关联需求**: v7 living loop closure, REQ-001~REQ-012
+- **关联契约**: data lifecycle, connector truth, body feedback, rhythm loop, identity/goal hygiene
+- **风险类别**: post-E2E release confidence / long-running agent environment
+- **单元测试覆盖**: 汇总 T-V7C.C.1~C.4 单元测试。
+- **API接口功能测试覆盖**: runtime ops closure commands and before/after DB assertions。
+- **集成/E2E/冒烟覆盖**: plugin bridge + Claw final test manual representative commands。
+- **前置数据**: T-V7C.C.1~C.4 全部完成。
+- **断言**: 0.1.32 的 `NARRATIVE_DIFF_FAILED` 与 `snapshot_not_found` 不再是空库必然结论；connector wet truth 与 heartbeat protocol parity 有证据。
+- **证据**: `reports/int-v7c-living-loop-closure.md`。
+
+---
+
 ## 6. Contract Coverage Overlay
 
 | 契约 | 类型 | 实现承接 | 验证承接 | 状态 |

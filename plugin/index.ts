@@ -65,23 +65,11 @@ import {
   type LifecycleState,
 } from "./runtime/core/second-nature/runtime/lifecycle-service.js";
 import { openWorkspaceOpsBridge } from "./workspace-ops-bridge.js";
-// definePluginEntry is OpenClaw's canonical factory for non-channel plugins
-// (provider/tool/command/service/memory/context-engine). At runtime it returns
-// a plain options object; it does NOT add a brand symbol — earlier debugging
-// rounds wrongly assumed the factory was the "plain-capability" marker. The
-// real classification happens via manifest fields (see file header). We still
-// use the factory because it is the documented, supported entry shape, and
-// keeping it future-proof against SDK option-processing changes.
-//
-// IMPORTANT — keep this a STATIC import. The packaged runtime is loaded inside
-// OpenClaw's vm sandbox, which rejects top-level await (manifests as
-// "SyntaxError: Unexpected identifier 'Promise'" at host load time). The same
-// constraint applies to the sql.js async bootstrap noted in the file header.
-// In production the host always provides `openclaw` as a sibling module under
-// ~/.openclaw/npm/node_modules/, so this resolves synchronously. Locally,
-// `openclaw` is declared as a devDependency so build and tests resolve via
-// the same import path.
-import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+// Keep the entry as a plain object instead of importing OpenClaw's
+// SDK entry helper. Upload/package validators may import this module
+// before the host SDK is installed; a static SDK import turns a valid package
+// into ERR_MODULE_NOT_FOUND. OpenClaw classifies this plugin from the manifest
+// fields, and the helper returns this same object shape at runtime.
 
 // Stderr sentinels make daemon load-path observable in `gateway.log`. Three
 // lines should appear at startup: "module evaluated", "register() entered ...",
@@ -186,7 +174,7 @@ const SETUP_MARKER_RELATIVE_PATH = path.join(
   "setup",
   "agent-inner-guide-ack.json",
 );
-const SETUP_GUIDE_VERSION = "0.1.28";
+const SETUP_GUIDE_VERSION = "0.1.34";
 const SETUP_COMMANDS = new Set(["setup_hint", "setup_ack"]);
 
 let activationSpine: ActivationSpine | null = null;
@@ -237,6 +225,7 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "self_health",
   "tool_affordance",
   "heartbeat_digest",
+  "snapshot:capture",
   "narrative:diff",
   "timeline",
   "restore",
@@ -1486,6 +1475,12 @@ function parseCommandInput(
         command,
         input: rest[0] ? { date: rest[0] } : undefined,
       };
+    case "snapshot:capture":
+      return {
+        ok: true,
+        command,
+        input: rest[0] ? { snapshotId: rest[0] } : undefined,
+      };
     case "narrative:diff":
       return {
         ok: true,
@@ -1576,7 +1571,7 @@ const SECOND_NATURE_TOOL_SCHEMA = {
   required: ["command"],
 } as const;
 
-export default definePluginEntry({
+export default {
   id: "second-nature",
   name: "Second Nature",
   description:
@@ -1605,7 +1600,7 @@ export default definePluginEntry({
         }
 
         const resolved = spine.router.resolve(parsed.command);
-        if (!resolved) {
+        if (!resolved && !isWorkspaceBridgeCommand(parsed.command, parsed.input)) {
           return {
             text: JSON.stringify({
               ok: false,
@@ -1634,7 +1629,7 @@ export default definePluginEntry({
       const spine = ensureActivationSpine();
       syncWorkspaceRootFromTool(spine, params.workspaceRoot);
       const resolved = spine.router.resolve(params.command);
-      if (!resolved) {
+      if (!resolved && !isWorkspaceBridgeCommand(params.command, params.args)) {
         return {
           content: [
             {
@@ -1683,4 +1678,4 @@ export default definePluginEntry({
 
     process.stderr.write("[second-nature] register() completed\n");
   },
-});
+};

@@ -9,6 +9,7 @@ import { pathToFileURL } from "node:url";
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { writeOperatorFallback } from "../../../src/storage/fallback/write-operator-fallback.js";
 import { appendLifeEvidence } from "../../../src/storage/life-evidence/append-life-evidence.js";
+import { createAgentGoalStore } from "../../../src/storage/goal/agent-goal-store.js";
 
 interface ServiceRegistration {
   id: string;
@@ -33,6 +34,21 @@ async function loadPlugin() {
     }): void;
   };
 }
+
+test("T1.1.4 direct bridge open without workspaceRoot returns typed error", async () => {
+  const bridgeUrl = pathToFileURL(path.join(process.cwd(), "plugin", "workspace-ops-bridge.js")).href;
+  const mod = (await import(bridgeUrl)) as {
+    openWorkspaceOpsBridge: (workspaceRoot?: string) => Promise<{
+      ok: boolean;
+      error?: { code?: string; requiredUserInput?: string[] };
+    }>;
+  };
+
+  const result = await mod.openWorkspaceOpsBridge();
+  assert.equal(result.ok, false);
+  assert.equal(result.error?.code, "WORKSPACE_ROOT_REQUIRED");
+  assert.deepEqual(result.error?.requiredUserInput, ["workspaceRoot"]);
+});
 
 test("T1.1.4 CH-11-02 — carrier explain (root unknown) is ok:false + EXPLAIN_READ_SURFACE_UNAVAILABLE", async () => {
   delete process.env.SECOND_NATURE_WORKSPACE_ROOT;
@@ -515,6 +531,189 @@ test("T1.1.4 v6 ops commands reachable in full runtime", async () => {
   ) as { ok: boolean; data?: { totalCycles?: number } };
   assert.equal(cycle.ok, true);
   assert.equal(typeof cycle.data?.totalCycles, "number");
+});
+
+test("T-ROS.C.2 v7 ops commands are reachable through workspace bridge", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-v7-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const cases: Array<{ command: string; args?: Record<string, unknown> }> = [
+    { command: "self_health" },
+    { command: "tool_affordance" },
+    { command: "heartbeat_digest" },
+    { command: "runtime_secret_bootstrap" },
+    { command: "timeline" },
+    { command: "restore" },
+    { command: "narrative:diff" },
+    { command: "connector:run", args: { platformId: "moltbook", capabilityId: "feed.read" } },
+  ];
+
+  for (const entry of cases) {
+    const payload = JSON.parse(
+      (await tool.execute("1", {
+        command: entry.command,
+        args: entry.args,
+        workspaceRoot: tmp,
+      })).content[0]?.text ?? "{}",
+    ) as { ok: boolean; command?: string; error?: { code?: string } };
+
+    assert.notEqual(
+      payload.error?.code,
+      "unknown_command",
+      `${entry.command} should be registered in createCliCommands`,
+    );
+    assert.notEqual(
+      payload.error?.code,
+      "unknown_ops_command",
+      `${entry.command} should be handled by createOpsRouter`,
+    );
+    if (entry.command === "tool_affordance") {
+      assert.equal(payload.ok, true, "tool_affordance should be wired");
+    }
+    if (entry.command === "runtime_secret_bootstrap") {
+      assert.equal(payload.ok, true, "runtime_secret_bootstrap should be wired");
+    }
+    if (entry.command === "timeline") {
+      assert.equal(payload.ok, true, "timeline should be wired");
+    }
+    if (entry.command === "narrative:diff") {
+      assert.notEqual(
+        payload.error?.code,
+        "NARRATIVE_TIMELINE_PORT_UNAVAILABLE",
+        "narrative:diff should have timeline deps wired",
+      );
+    }
+  }
+});
+
+test("T2.2.3 bridge heartbeat avoids unsupported moltbook work.discover protocol mismatch", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-no-protocol-mismatch-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  const state = createStateDatabase(path.join(tmp, "data", "state.db"));
+  const now = "2026-05-25T01:20:00.000Z";
+  await createAgentGoalStore(state).upsertAgentGoal({
+    goalId: "goal-moltbook-regression",
+    kind: "short_term",
+    status: "accepted",
+    origin: "owner_set",
+    description: "work on moltbook",
+    completionCriteria: "use moltbook safely",
+    risk: "low",
+    priorityHint: 80,
+    sourceRefs: [],
+    acceptedBy: "owner",
+    createdAt: now,
+    updatedAt: now,
+  });
+  await appendLifeEvidence(state, tmp, {
+    id: "lev-moltbook-regression",
+    timestamp: now,
+    evidenceType: "platform_browse",
+    platformId: "moltbook",
+    summary: "moltbook source for heartbeat planning",
+    rawContentRef: "moltbook://feed/item-regression",
+    sourceRefs: [
+      {
+        id: "src-moltbook-regression",
+        kind: "platform_item",
+        uri: "platform://moltbook/item-regression",
+      },
+    ],
+    sensitivity: "public",
+    producer: "connector-system",
+  });
+  state.close();
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const payload = JSON.parse(
+    (await tool.execute("1", {
+      command: "heartbeat_check",
+      args: { timestamp: now },
+      workspaceRoot: tmp,
+    })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; status?: string; reasons?: string[] };
+
+  assert.equal(payload.ok, true);
+  assert.ok(
+    !(payload.reasons ?? []).includes("protocol_mismatch"),
+    `heartbeat must not route unsupported moltbook work.discover, got ${JSON.stringify(payload.reasons)}`,
+  );
+});
+
+test("T1.2.3 connector_test reloads registry for isolated workspace bridge call", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-connector-test-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+
+  const payload = JSON.parse(
+    (await tool.execute("1", {
+      command: "connector_test",
+      args: { platformId: "moltbook" },
+      workspaceRoot: tmp,
+    })).content[0]?.text ?? "{}",
+  ) as { ok: boolean; data?: { platformId?: string; dryRun?: boolean }; error?: { code?: string } };
+
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data?.platformId, "moltbook");
+  assert.equal(payload.data?.dryRun, true);
 });
 
 test("T1.1.4 v6 ops commands unavailable in carrier-only", async () => {

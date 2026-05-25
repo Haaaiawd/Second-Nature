@@ -29,6 +29,23 @@ export interface RestoreSnapshotStore {
     }): Promise<RestoreSnapshot>;
     loadLatestSnapshot(): Promise<RestoreSnapshot | undefined>;
     listSnapshots(limit?: number): Promise<RestoreSnapshot[]>;
+    /**
+     * Apply a bounded restore from a captured snapshot.
+     * Loads the matching snapshot (by restoreTarget id, or latest fallback),
+     * then attempts to write each whitelisted entity back into its table.
+     * Sensitive kinds are always skipped. Never restores credential fields.
+     */
+    applyBoundedRestore(input: {
+        restoreTarget: string;
+        fromVersion: string;
+        toVersion: string;
+        entityWhitelist?: RestorableEntityKind[];
+    }): Promise<{
+        ok: boolean;
+        completedEntities: string[];
+        failedEntities: string[];
+        warnings: string[];
+    }>;
 }
 export declare function createRestoreSnapshotStore(database: StateDatabase, options?: {
     retentionCount?: number;

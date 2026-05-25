@@ -26,6 +26,14 @@ const ALL_RESTORABLE_KINDS = [
     "dream_output",
     "narrative_timeline",
 ];
+const TABLE_BY_KIND = {
+    identity_profile: "identity_profile",
+    agent_goal: "agent_goal",
+    tool_experience: "tool_experience",
+    daily_diary: "daily_diary_index",
+    dream_output: "dream_output_index",
+    narrative_timeline: "narrative_timeline",
+};
 const DEFAULT_EXCLUDED_KINDS = [
     "credential",
     "raw_private_message",
@@ -41,6 +49,16 @@ function safeParseJson(json, fallback) {
     catch {
         return fallback;
     }
+}
+function parseSnapshotRow(cols, row) {
+    const get = (name) => row[cols.indexOf(name)];
+    return {
+        snapshotId: get("snapshot_id"),
+        entityWhitelist: safeParseJson(get("entity_whitelist_json") ?? "[]", []),
+        excludedSensitiveKinds: safeParseJson(get("excluded_sensitive_kinds_json") ?? "[]", []),
+        capturedAt: get("captured_at"),
+        payload: safeParseJson(get("payload_json") ?? "{}", {}),
+    };
 }
 export function createRestoreSnapshotStore(database, options = {}) {
     const { sqlite } = database;
@@ -94,16 +112,7 @@ export function createRestoreSnapshotStore(database, options = {}) {
             if (result.length === 0 || result[0].values.length === 0) {
                 return undefined;
             }
-            const cols = result[0].columns;
-            const get = (row, name) => row[cols.indexOf(name)];
-            const row = result[0].values[0];
-            return {
-                snapshotId: get(row, "snapshot_id"),
-                entityWhitelist: safeParseJson(get(row, "entity_whitelist_json") ?? "[]", []),
-                excludedSensitiveKinds: safeParseJson(get(row, "excluded_sensitive_kinds_json") ?? "[]", []),
-                capturedAt: get(row, "captured_at"),
-                payload: safeParseJson(get(row, "payload_json") ?? "{}", {}),
-            };
+            return parseSnapshotRow(result[0].columns, result[0].values[0]);
         },
         async listSnapshots(limit = 10) {
             const result = sqlite.exec(`SELECT * FROM restore_snapshot
@@ -112,15 +121,82 @@ export function createRestoreSnapshotStore(database, options = {}) {
             if (result.length === 0 || result[0].values.length === 0) {
                 return [];
             }
-            const cols = result[0].columns;
-            const get = (row, name) => row[cols.indexOf(name)];
-            return result[0].values.map((row) => ({
-                snapshotId: get(row, "snapshot_id"),
-                entityWhitelist: safeParseJson(get(row, "entity_whitelist_json") ?? "[]", []),
-                excludedSensitiveKinds: safeParseJson(get(row, "excluded_sensitive_kinds_json") ?? "[]", []),
-                capturedAt: get(row, "captured_at"),
-                payload: safeParseJson(get(row, "payload_json") ?? "{}", {}),
-            }));
+            return result[0].values.map((row) => parseSnapshotRow(result[0].columns, row));
+        },
+        async applyBoundedRestore(input) {
+            const warnings = [];
+            const completedEntities = [];
+            const failedEntities = [];
+            // 1. Find matching snapshot by exact id, then fallback to latest
+            let snapshot;
+            const exactMatch = sqlite.exec(`SELECT * FROM restore_snapshot WHERE snapshot_id = ? LIMIT 1`, [input.restoreTarget]);
+            if (exactMatch.length > 0 &&
+                exactMatch[0].values.length > 0) {
+                snapshot = parseSnapshotRow(exactMatch[0].columns, exactMatch[0].values[0]);
+            }
+            else {
+                const latestResult = sqlite.exec(`SELECT * FROM restore_snapshot ORDER BY captured_at DESC LIMIT 1`);
+                if (latestResult.length > 0 &&
+                    latestResult[0].values.length > 0) {
+                    snapshot = parseSnapshotRow(latestResult[0].columns, latestResult[0].values[0]);
+                }
+            }
+            if (!snapshot) {
+                return {
+                    ok: false,
+                    completedEntities: [],
+                    failedEntities: [input.restoreTarget],
+                    warnings: ["snapshot_not_found"],
+                };
+            }
+            const whitelist = input.entityWhitelist && input.entityWhitelist.length > 0
+                ? input.entityWhitelist.filter((k) => ALL_RESTORABLE_KINDS.includes(k))
+                : [...snapshot.entityWhitelist];
+            for (const kind of whitelist) {
+                // Never restore sensitive kinds (DR-017)
+                if (DEFAULT_EXCLUDED_KINDS.includes(kind)) {
+                    warnings.push(`skipped_sensitive_kind:${kind}`);
+                    continue;
+                }
+                const kindData = snapshot.payload[kind];
+                if (!kindData) {
+                    // Snapshot whitelist includes this kind but payload has no data for it.
+                    // This is not a failure — the entity simply had no state at capture time.
+                    warnings.push(`payload_missing:${kind}`);
+                    continue;
+                }
+                try {
+                    const rows = Array.isArray(kindData) ? kindData : [kindData];
+                    if (rows.length === 0) {
+                        warnings.push(`empty_payload:${kind}`);
+                        continue;
+                    }
+                    for (const row of rows) {
+                        if (!row || typeof row !== "object")
+                            continue;
+                        const keys = Object.keys(row);
+                        if (keys.length === 0)
+                            continue;
+                        const columns = keys.join(", ");
+                        const placeholders = keys.map(() => "?").join(", ");
+                        const values = keys.map((k) => row[k]);
+                        const table = TABLE_BY_KIND[kind];
+                        sqlite.run(`INSERT OR REPLACE INTO ${table} (${columns}) VALUES (${placeholders})`, values);
+                    }
+                    completedEntities.push(kind);
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    warnings.push(`restore_failed:${kind}:${msg}`);
+                    failedEntities.push(kind);
+                }
+            }
+            return {
+                ok: failedEntities.length === 0,
+                completedEntities,
+                failedEntities,
+                warnings,
+            };
         },
     };
 }

@@ -50,6 +50,17 @@ export function createCliCommands(
   deps: CliCommandDeps,
 ): CliCommandDefinition[] {
   const { readModels, actionBridge, opsRouter } = deps;
+  const opsCommand = (
+    name: string,
+    description: string,
+  ): CliCommandDefinition => ({
+    name,
+    description,
+    execute: async (input) => {
+      const surface = await Promise.resolve(opsRouter.dispatch(name, input));
+      return surface as Record<string, unknown>;
+    },
+  });
 
   return [
     {
@@ -340,6 +351,42 @@ export function createCliCommands(
         return surface as Record<string, unknown>;
       },
     },
+    opsCommand(
+      "connector:run",
+      "T-ROS.C.3 — manually execute a connector capability outside heartbeat cadence",
+    ),
+    opsCommand(
+      "self_health",
+      "T-ROS.C.1 — show v7 self-health snapshot and degraded dimensions",
+    ),
+    opsCommand(
+      "tool_affordance",
+      "T-ROS.C.1 — show v7 tool affordance map or explicit unavailable state",
+    ),
+    opsCommand(
+      "heartbeat_digest",
+      "T-ROS.C.1 — assemble v7 heartbeat digest for a day",
+    ),
+    opsCommand(
+      "snapshot:capture",
+      "T-V7C.C.1 — capture restore snapshot and narrative timeline version",
+    ),
+    opsCommand(
+      "narrative:diff",
+      "T-ROS.C.1 — compare two narrative timeline versions",
+    ),
+    opsCommand(
+      "timeline",
+      "T-ROS.C.1 — query v7 narrative timeline with cursor pagination",
+    ),
+    opsCommand(
+      "restore",
+      "T-ROS.C.1 — apply bounded restore and write restore audit",
+    ),
+    opsCommand(
+      "runtime_secret_bootstrap",
+      "T-ROS.C.1 — inspect runtime secret anchor health without exposing plaintext",
+    ),
     {
       name: "goal",
       description:

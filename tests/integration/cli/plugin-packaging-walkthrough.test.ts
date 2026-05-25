@@ -81,6 +81,11 @@ test("T5.3.1 plugin entry declares load/reload lifecycle registration markers", 
   assert.equal(source.includes("register(api: RegisterApi)"), true);
   assert.equal(source.includes("async register(api: RegisterApi)"), false);
   assert.equal(source.includes("recordRuntimeEvidence"), true);
+  assert.equal(
+    source.includes("openclaw/plugin-sdk"),
+    false,
+    "plugin entry must not statically import host SDK during upload/package validation",
+  );
 });
 
 test("T5.3.1 smoke path covers local install and clawhub/npm fallback order", () => {

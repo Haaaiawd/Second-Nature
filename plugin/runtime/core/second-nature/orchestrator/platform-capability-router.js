@@ -14,7 +14,19 @@ function getPlatformIds(registry) {
         return registry.listRegisteredPlatformIds();
     }
     // Fallback: built-in platforms when registry is absent (backward compat)
-    return ["moltbook", "instreet", "evomap"];
+    return ["moltbook", "instreet", "evomap", "agent-world"];
+}
+const FALLBACK_PLATFORM_CAPABILITIES = {
+    "moltbook": ["feed.read", "post.publish", "comment.reply", "message.send"],
+    "instreet": ["notification.list", "message.send", "comment.reply", "agent.heartbeat"],
+    "evomap": ["agent.register", "agent.heartbeat", "work.discover", "task.claim"],
+    "agent-world": ["feed.read", "work.discover", "task.claim"],
+};
+function fallbackPlatformSupportsCapability(platformId, kind) {
+    const capability = kindToCapability(kind);
+    if (!capability)
+        return false;
+    return (FALLBACK_PLATFORM_CAPABILITIES[platformId] ?? []).includes(capability);
 }
 function extractPlatformIdsFromGoals(goals, kind, platformIds) {
     const capability = kindToCapability(kind);
@@ -110,6 +122,10 @@ export function resolvePlatformForIntent(kind, context, registry) {
         // Registry says unsupported → undefined (guard layer will deny)
         return undefined;
     }
-    // No registry: best-effort return the single candidate (backward compat)
+    // No registry: keep legacy platform-name fallback, but do not invent an
+    // unsupported platform/capability pair that later fails as protocol_mismatch.
+    if (!fallbackPlatformSupportsCapability(single, kind)) {
+        return undefined;
+    }
     return single;
 }

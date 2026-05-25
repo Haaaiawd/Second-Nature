@@ -32,6 +32,12 @@ export function createHistoryDigestStore(database) {
     const { sqlite } = database;
     return {
         async appendNarrativeTimeline(entry) {
+            const deltaGate = validateWritePayload({
+                delta: entry.delta,
+                sourceRefs: ["narrative:append"],
+            });
+            if (!deltaGate.ok)
+                throw new Error(deltaGate.reason ?? "write_validation_failed");
             const gate = validateWritePayload({
                 timelineId: entry.timelineId,
                 entryType: entry.entryType,
@@ -40,7 +46,7 @@ export function createHistoryDigestStore(database) {
                 previousHash: entry.previousHash,
                 currentHash: entry.currentHash,
                 sourceRefs: ["narrative:append"],
-            });
+            }, { runSensitivityScan: false });
             if (!gate.ok)
                 throw new Error(gate.reason ?? "write_validation_failed");
             sqlite.run(`INSERT INTO narrative_timeline

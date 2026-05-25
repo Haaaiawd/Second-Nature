@@ -1,6 +1,11 @@
 function extractSourceRefs(platformId, data, observedAt) {
     if (data && typeof data === "object") {
         const record = data;
+        if (record.data && typeof record.data === "object") {
+            const nested = extractSourceRefs(platformId, record.data, observedAt);
+            if (nested.length > 0)
+                return nested;
+        }
         if (Array.isArray(record.sourceRefs)) {
             const out = [];
             for (const item of record.sourceRefs) {

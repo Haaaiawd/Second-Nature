@@ -8,6 +8,10 @@ import type { LifeEvidenceCandidate, LifeEvidenceType, SourceRef, Sensitivity } 
 function extractSourceRefs(platformId: string, data: unknown, observedAt: string): SourceRef[] {
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
+    if (record.data && typeof record.data === "object") {
+      const nested = extractSourceRefs(platformId, record.data, observedAt);
+      if (nested.length > 0) return nested;
+    }
     if (Array.isArray(record.sourceRefs)) {
       const out: SourceRef[] = [];
       for (const item of record.sourceRefs) {

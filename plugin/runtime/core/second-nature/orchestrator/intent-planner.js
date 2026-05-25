@@ -79,6 +79,9 @@ export function planIntentWithKind(kind, basePriority, runtime, context, registr
         return [];
     const config = INTENT_CONFIGS[kind];
     const platformId = resolvePlatformForIntent(kind, context ?? {}, registry);
+    if (kind === "work" && !options?.multiSource && !platformId) {
+        return [];
+    }
     let priority = basePriority;
     // Social budget exhaustion → cap priority.
     if (kind === "social" &&

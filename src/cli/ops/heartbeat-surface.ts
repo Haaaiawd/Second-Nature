@@ -14,6 +14,7 @@ import type { RuntimeDecisionRecorder } from "../../observability/services/runti
 import type { StateDatabase } from "../../storage/db/index.js";
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
+import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 
 export type HeartbeatSurfaceStatus =
   | "heartbeat_ok"
@@ -60,6 +61,8 @@ export interface HeartbeatCheckInput {
    * connector-system instead of returning connector_dispatch_unwired.
    */
   connectorExecutor?: ConnectorExecutor;
+  /** Capability registry used by planner to avoid platform/capability protocol mismatches. */
+  connectorRegistry?: CapabilityContractRegistry;
 }
 
 function mapCycleToSurface(
@@ -152,6 +155,7 @@ export async function heartbeatCheck(
     state: input.state,
     workspaceRoot: input.workspaceRoot ?? process.cwd(),
     connectorExecutor: input.connectorExecutor,
+    connectorRegistry: input.connectorRegistry,
   });
   const cycle = await run(signal);
   return mapCycleToSurface(cycle, "workspace_full_runtime");

@@ -166,7 +166,14 @@ test("T2.4.1-F: no registry, unknown platform → undefined (not in built-in fal
   const platformId = resolvePlatformForIntent("exploration", {
     acceptedGoals: [makeGoal("Explore agentworld")],
   });
-  // Without registry, built-in fallback only knows moltbook/instreet/evomap
+  // Without registry, built-in fallback only knows packaged connector ids.
+  assert.equal(platformId, undefined);
+});
+
+test("T2.4.1-F: no registry still rejects unsupported fallback capability", () => {
+  const platformId = resolvePlatformForIntent("work", {
+    acceptedGoals: [makeGoal("work on moltbook")],
+  });
   assert.equal(platformId, undefined);
 });
 

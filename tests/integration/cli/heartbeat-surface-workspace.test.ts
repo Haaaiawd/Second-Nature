@@ -68,5 +68,10 @@ test("T1.1.3 heartbeat_check with read models does not return legacy placeholder
   assert.equal(out.surfaceMode, "workspace_full_runtime");
   assert.ok(!out.reasons.includes("s1_placeholder_no_decision_loop"));
   assert.ok(!out.reasons.includes("heartbeat_read_models_unavailable"));
+  assert.ok(out.reasons.includes("restore_snapshot_captured"));
+  const restoreRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM restore_snapshot");
+  assert.equal(restoreRows[0]!.values[0]![0], 1);
+  const timelineRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM narrative_timeline");
+  assert.equal(timelineRows[0]!.values[0]![0], 1);
   closeCliRuntimeDeps(deps);
 });

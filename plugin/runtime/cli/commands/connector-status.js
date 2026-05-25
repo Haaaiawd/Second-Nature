@@ -97,6 +97,11 @@ export async function connectorTest(registry, input) {
             },
         };
     }
+    // Workspace bridge calls are often process-isolated per tool invocation.
+    // Reload here as well as in connector_status so dry-run tests see the same inventory.
+    if (input.workspaceRoot) {
+        registry.reloadConnectors(input.workspaceRoot);
+    }
     const entry = registry.describeConnector(platformId);
     if (!entry) {
         return {

@@ -7,7 +7,7 @@
  *  - heartbeat_digest: 返回 RuntimeOpsEnvelope + digest; 无 auditStore 时降级
  *  - narrative:diff: 返回 RuntimeOpsEnvelope + diff; 无 deps 时降级
  *  - timeline: 返回 RuntimeOpsEnvelope + page; range 超 90 天时 ok=false + NARRATIVE_RANGE_EXCEEDED
- *  - restore: 写 audit, ok=true, data.auditWritten=true; 无 auditStore 时降级
+ *  - restore: 触发 RestoreSnapshotStore + RestoreAudit, ok=true, data.auditWritten=true; 无 auditStore 时降级
  *  - runtime_secret_bootstrap: 返回 RuntimeOpsEnvelope; plaintextKeyExposed=false
  *  - tool_affordance: port 未连线时 ok=false + TOOL_AFFORDANCE_PORT_UNWIRED
  *
@@ -16,8 +16,20 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { createOpsRouter, type RuntimeOpsEnvelope } from "../../../src/cli/ops/ops-router.js";
+import {
+  DynamicConnectorRegistry,
+  createRegistrySnapshotStore,
+} from "../../../src/connectors/registry/index.js";
 import { AppendOnlyAuditStore } from "../../../src/observability/audit/append-only-audit-store.js";
+import { createStateDatabase, type StateDatabase } from "../../../src/storage/db/index.js";
+import { createHistoryDigestStore } from "../../../src/storage/services/history-digest-store.js";
+import {
+  createRestoreSnapshotStore,
+  type RestoreSnapshotStore,
+} from "../../../src/storage/services/restore-snapshot-store.js";
 import type { NarrativeTimelineDeps, NarrativeTimelineRow, NarrativeSnapshotRow } from "../../../src/observability/services/narrative-timeline-query-service.js";
 import type { SecretAnchorDeps } from "../../../src/observability/services/runtime-secret-anchor-view.js";
 
@@ -71,6 +83,65 @@ function makeSecretAnchorDeps(scenario: "ok" | "missing" | "wrong_key" | "error"
       },
     },
   };
+}
+
+function makeStateNarrativeTimelineDeps(stateDb: StateDatabase): NarrativeTimelineDeps {
+  const historyStore = createHistoryDigestStore(stateDb);
+  return {
+    stateMemoryPort: {
+      async listNarrativeTimeline(from, to, opts) {
+        const rows = await historyStore.listNarrativeTimeline({ limit: 100 });
+        return rows
+          .filter((row) => row.createdAt >= from && row.createdAt <= to)
+          .filter((row) => (opts?.afterTimestamp ? row.createdAt > opts.afterTimestamp : true))
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .slice(0, opts?.limit ?? rows.length)
+          .map((row) => ({
+            version: row.timelineId,
+            createdAt: row.createdAt,
+            triggerKind: row.entryType,
+            sourceRefs: Array.isArray(row.delta.sourceRefs)
+              ? row.delta.sourceRefs.filter((ref): ref is string => typeof ref === "string")
+              : [],
+            reasonCode: typeof row.delta.reasonCode === "string" ? row.delta.reasonCode : undefined,
+            summaryText: typeof row.delta.summaryText === "string" ? row.delta.summaryText : undefined,
+          }));
+      },
+      async getNarrativeSnapshot(version) {
+        const rows = await historyStore.listNarrativeTimeline({ limit: 100 });
+        const row = rows.find((candidate) => candidate.timelineId === version || candidate.subjectId === version);
+        if (!row) return null;
+        return {
+          version,
+          focus: row.delta.focus,
+          progress: row.delta.progress,
+          nextIntent: row.delta.nextIntent,
+          toneSignal: row.delta.toneSignal,
+          acceptedGoalId: row.delta.acceptedGoalId,
+          sourceRefs: Array.isArray(row.delta.sourceRefs)
+            ? row.delta.sourceRefs.filter((ref): ref is string => typeof ref === "string")
+            : [],
+          lastChangeReasonCode:
+            typeof row.delta.reasonCode === "string" ? row.delta.reasonCode : undefined,
+        };
+      },
+    },
+  };
+}
+
+async function makeRestoreDeps(snapshotId: string, payload: Record<string, unknown>): Promise<{
+  auditStore: AppendOnlyAuditStore;
+  restoreSnapshotStore: RestoreSnapshotStore;
+  stateDb: StateDatabase;
+}> {
+  const auditStore = new AppendOnlyAuditStore();
+  const stateDb = createStateDatabase(":memory:");
+  const restoreSnapshotStore = createRestoreSnapshotStore(stateDb);
+  await restoreSnapshotStore.captureSnapshot({
+    snapshotId,
+    payload,
+  });
+  return { auditStore, restoreSnapshotStore, stateDb };
 }
 
 // ─── 1. self_health ───────────────────────────────────────────────────────────
@@ -127,6 +198,64 @@ describe("T-ROS.C.1 #3: connector_test --wet", () => {
     const result = await router.dispatch("connector_test", { platformId: "moltbook" });
     assert.ok(typeof result === "object" && result !== null);
   });
+
+  it("dryRun:false executes safe wet probe and persists capability_probe_result", async () => {
+    const stateDb = createStateDatabase(":memory:");
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address() as AddressInfo;
+    const safeEndpoint = `http://127.0.0.1:${address.port}/probe`;
+    const registry = new DynamicConnectorRegistry({
+      builtInManifests: [
+        {
+          schemaVersion: "sn.connector.v1",
+          platformId: "wet-platform",
+          displayName: "Wet Platform",
+          family: "custom",
+          capabilities: [{ id: "feed.read" }],
+          runner: { kind: "declarative_http" },
+          credentials: [],
+          sourceRefPolicy: { minSourceRefs: 0 },
+        },
+      ],
+      snapshotStore: createRegistrySnapshotStore(),
+    });
+    registry.reloadConnectors(process.cwd());
+    const router = createOpsRouter({ runtimeAvailable: true, registry, state: stateDb });
+
+    try {
+      const result = await router.dispatch("connector_test", {
+        platformId: "wet-platform",
+        capabilityId: "feed.read",
+        dryRun: false,
+        safeEndpoint,
+      }) as Record<string, unknown>;
+      assert.strictEqual(result.ok, true);
+      const data = result.data as {
+        dryRun: boolean;
+        actualStatus: string;
+        persistedProbeResult: boolean;
+        triggerSource: string;
+        affectsHeartbeatCadence: boolean;
+      };
+      assert.strictEqual(data.dryRun, false);
+      assert.strictEqual(data.actualStatus, "available");
+      assert.strictEqual(data.persistedProbeResult, true);
+      assert.strictEqual(data.triggerSource, "manual_run");
+      assert.strictEqual(data.affectsHeartbeatCadence, false);
+      const persisted = stateDb.sqlite.exec(
+        "SELECT actual_status, http_status FROM capability_probe_result WHERE connector_id = 'wet-platform'",
+      );
+      assert.strictEqual(persisted[0]!.values[0]![0], "available");
+      assert.strictEqual(persisted[0]!.values[0]![1], 200);
+    } finally {
+      server.close();
+      stateDb.close();
+    }
+  });
 });
 
 // ─── 4. heartbeat_digest ─────────────────────────────────────────────────────
@@ -180,6 +309,45 @@ describe("T-ROS.C.1 #5: narrative:diff", () => {
     const result = await router.dispatch("narrative:diff", { from: "v1", to: "v3" }) as RuntimeOpsEnvelope;
     assert.strictEqual(result.ok, true);
     assert.ok(result.data && "changes" in (result.data as object), "diff must have changes");
+  });
+
+  it("snapshot:capture creates restore data and narrative versions that diff can consume", async () => {
+    const stateDb = createStateDatabase(":memory:");
+    const restoreSnapshotStore = createRestoreSnapshotStore(stateDb);
+    const narrativeTimelineDeps = makeStateNarrativeTimelineDeps(stateDb);
+    const router = createOpsRouter({
+      runtimeAvailable: true,
+      state: stateDb,
+      restoreSnapshotStore,
+      narrativeTimelineDeps,
+    });
+    const first = await router.dispatch("snapshot:capture", {
+      snapshotId: "snap-v7c-1",
+      focus: "initial focus",
+      progress: "bootstrapped",
+      nextIntent: "observe",
+    }) as RuntimeOpsEnvelope;
+    const second = await router.dispatch("snapshot:capture", {
+      snapshotId: "snap-v7c-2",
+      focus: "updated focus",
+      progress: "restorable",
+      nextIntent: "act",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(first.ok, true);
+    assert.strictEqual(second.ok, true);
+    const snapshots = stateDb.sqlite.exec("SELECT COUNT(*) FROM restore_snapshot");
+    assert.strictEqual(snapshots[0]!.values[0]![0], 2);
+    const timeline = stateDb.sqlite.exec("SELECT COUNT(*) FROM narrative_timeline");
+    assert.strictEqual(timeline[0]!.values[0]![0], 2);
+
+    const diff = await router.dispatch("narrative:diff", {
+      from: "snap-v7c-1",
+      to: "snap-v7c-2",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(diff.ok, true);
+    const data = diff.data as { changes: Array<{ field: string }> };
+    assert.ok(data.changes.some((change) => change.field === "focus"));
+    stateDb.close();
   });
 });
 
@@ -235,39 +403,74 @@ describe("T-ROS.C.1 #7: restore", () => {
   });
 
   it("writes audit and returns ok=true + auditWritten=true on success", async () => {
-    const auditStore = new AppendOnlyAuditStore();
-    const router = createOpsRouter({ runtimeAvailable: true, auditStore });
+    const { auditStore, restoreSnapshotStore, stateDb } = await makeRestoreDeps("goal", {
+      identity_profile: [
+        {
+          profile_id: "p-restore-ok",
+          canonical_name: "Restored Identity",
+          platform_handles_json: "[]",
+          updated_at: "2026-05-24T00:00:00.000Z",
+        },
+      ],
+    });
+    const router = createOpsRouter({ runtimeAvailable: true, auditStore, restoreSnapshotStore });
     const result = await router.dispatch("restore", {
       restoreTarget: "goal",
       fromVersion: "v1",
       toVersion: "v2",
       reason: "manual_rollback",
-      completedEntities: ["goal", "narrative"],
-      failedEntities: [],
     }) as RuntimeOpsEnvelope;
     assert.strictEqual(result.ok, true);
-    const data = result.data as { auditWritten: boolean; fromVersion: string; toVersion: string };
+    const data = result.data as {
+      auditWritten: boolean;
+      fromVersion: string;
+      toVersion: string;
+      completedEntities: string[];
+      restoreSnapshotStoreAvailable: boolean;
+    };
     assert.strictEqual(data.auditWritten, true);
     assert.strictEqual(data.fromVersion, "v1");
     assert.strictEqual(data.toVersion, "v2");
+    assert.strictEqual(data.restoreSnapshotStoreAvailable, true);
+    assert.deepStrictEqual(data.completedEntities, ["identity_profile"]);
     assert.strictEqual(auditStore.list().length, 1, "audit store must have 1 entry");
+    const restored = stateDb.sqlite.exec(
+      "SELECT canonical_name FROM identity_profile WHERE profile_id = 'p-restore-ok'",
+    );
+    assert.strictEqual(restored[0]!.values[0]![0], "Restored Identity");
+    stateDb.close();
   });
 
   it("partial restore sets isPartialRestore=true in response", async () => {
-    const auditStore = new AppendOnlyAuditStore();
-    const router = createOpsRouter({ runtimeAvailable: true, auditStore });
+    const { auditStore, restoreSnapshotStore, stateDb } = await makeRestoreDeps("narrative", {
+      identity_profile: [
+        {
+          profile_id: "p-partial-ok",
+          canonical_name: "Partially Restored",
+          platform_handles_json: "[]",
+          updated_at: "2026-05-24T00:00:00.000Z",
+        },
+      ],
+      agent_goal: [{ bad_column: "forces_restore_failure" }],
+    });
+    const router = createOpsRouter({ runtimeAvailable: true, auditStore, restoreSnapshotStore });
     const result = await router.dispatch("restore", {
       restoreTarget: "narrative",
       fromVersion: "v5",
       toVersion: "v4",
       reason: "partial_restore_error",
-      completedEntities: ["goal"],
-      failedEntities: ["evidence", "relationship"],
     }) as RuntimeOpsEnvelope;
-    assert.strictEqual(result.ok, true);
-    const data = result.data as { isPartialRestore: boolean; failedEntities: string[] };
+    assert.strictEqual(result.ok, false);
+    const data = result.data as {
+      isPartialRestore: boolean;
+      completedEntities: string[];
+      failedEntities: string[];
+    };
     assert.strictEqual(data.isPartialRestore, true);
-    assert.deepStrictEqual(data.failedEntities, ["evidence", "relationship"]);
+    assert.deepStrictEqual(data.completedEntities, ["identity_profile"]);
+    assert.deepStrictEqual(data.failedEntities, ["agent_goal"]);
+    assert.strictEqual(auditStore.list().length, 1, "partial restore must still be audited");
+    stateDb.close();
   });
 });
 

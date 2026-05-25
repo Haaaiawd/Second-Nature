@@ -11,7 +11,7 @@
  * Test coverage: tests/unit/observability/audit-envelope.test.ts
  */
 import * as crypto from "node:crypto";
-import { redactEvent } from "../redaction/manifest.js";
+import { redactPayload } from "../redaction/policy.js";
 function fieldPathToAuditPath(field) {
     if (field.startsWith("/")) {
         return field;
@@ -34,16 +34,17 @@ function mapSensitivity(level) {
 }
 /**
  * Apply field redaction rules and lift manifests to audit path vocabulary (observability-system.detail §2).
+ * T-OBS.C.1: now delegates to the unified redactPayload gate (DR-033).
  */
 export function redactAuditEvent(payload) {
-    const { redacted, manifest } = redactEvent(payload);
+    const { payload: redacted, manifest } = redactPayload(payload);
     const redaction = {
-        manifestId: manifest.id,
-        maskedPaths: manifest.maskedFields.map(fieldPathToAuditPath),
-        erasedPaths: manifest.erasedFields.map(fieldPathToAuditPath),
-        hashedPaths: manifest.hashedFields.map(fieldPathToAuditPath),
+        manifestId: `rm:${Date.now()}:${crypto.randomBytes(4).toString("hex")}`,
+        maskedPaths: manifest.maskedPaths.map(fieldPathToAuditPath),
+        erasedPaths: manifest.erasedPaths.map(fieldPathToAuditPath),
+        hashedPaths: manifest.hashedPaths.map(fieldPathToAuditPath),
         contentRefPaths: [],
-        sensitivity: mapSensitivity(manifest.sensitivityLevel),
+        sensitivity: mapSensitivity(manifest.sensitivity),
     };
     return { payload: redacted, redaction };
 }

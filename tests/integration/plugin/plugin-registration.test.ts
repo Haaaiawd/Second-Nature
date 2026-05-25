@@ -108,6 +108,7 @@ const V7_COMMANDS = [
   "self_health",
   "tool_affordance",
   "heartbeat_digest",
+  "snapshot:capture",
   "narrative:diff",
   "timeline",
   "restore",

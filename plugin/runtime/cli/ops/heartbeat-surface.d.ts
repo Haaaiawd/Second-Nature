@@ -10,6 +10,7 @@ import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
+import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 export type HeartbeatSurfaceStatus = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export interface HeartbeatSurfaceResult {
     ok: boolean;
@@ -47,5 +48,7 @@ export interface HeartbeatCheckInput {
      * connector-system instead of returning connector_dispatch_unwired.
      */
     connectorExecutor?: ConnectorExecutor;
+    /** Capability registry used by planner to avoid platform/capability protocol mismatches. */
+    connectorRegistry?: CapabilityContractRegistry;
 }
 export declare function heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;

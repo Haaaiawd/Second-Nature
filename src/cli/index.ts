@@ -23,6 +23,10 @@ import {
 import type { AppendOnlyAuditStore } from "../observability/audit/append-only-audit-store.js";
 import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
 import {
+  createRestoreSnapshotStore,
+  type RestoreSnapshotStore,
+} from "../storage/services/restore-snapshot-store.js";
+import {
   createRuntimeDecisionRecorder,
   type RuntimeDecisionRecorder,
 } from "../observability/services/runtime-decision-recorder.js";
@@ -30,6 +34,31 @@ import {
   createConnectorExecutorAdapter,
   type ConnectorExecutor,
 } from "../connectors/services/connector-executor-adapter.js";
+import { CapabilityContractRegistry, type ConnectorManifest } from "../connectors/base/manifest.js";
+import { CapabilityContractRegistryV7, type IdempotencyClass } from "../connectors/base/manifest-v7.js";
+import { moltbookManifest } from "../connectors/social-community/moltbook/manifest.js";
+import { evomapManifest } from "../connectors/agent-network/evomap/manifest.js";
+import { agentWorldManifest } from "../connectors/agent-network/agent-world/manifest.js";
+import { instreetManifest } from "../connectors/social-community/instreet/manifest.js";
+import {
+  createAffordanceAssembler,
+  type AffordanceAssembler,
+} from "../core/second-nature/body/tool-affordance/affordance-assembler.js";
+import {
+  createHistoryDigestStore,
+} from "../storage/services/history-digest-store.js";
+import {
+  probeCredentialHealth,
+} from "../storage/services/credential-vault.js";
+import type {
+  NarrativeTimelineDeps,
+  NarrativeTimelineRow,
+  NarrativeSnapshotRow,
+} from "../observability/services/narrative-timeline-query-service.js";
+import type {
+  SecretAnchorDeps,
+  SampleDecryptResult,
+} from "../observability/services/runtime-secret-anchor-view.js";
 import {
   DynamicConnectorRegistry,
   createRegistrySnapshotStore,
@@ -82,6 +111,181 @@ const BUILT_IN_CONNECTOR_MANIFESTS: ConnectorManifestV6[] = [
   },
 ];
 
+const BUILT_IN_CAPABILITY_MANIFESTS: ConnectorManifest[] = [
+  moltbookManifest,
+  evomapManifest,
+  agentWorldManifest,
+  instreetManifest,
+];
+
+function idempotencyClassForCapability(capabilityId: string): IdempotencyClass {
+  return capabilityId.includes("read") ||
+    capabilityId.includes("discover") ||
+    capabilityId.includes("list") ||
+    capabilityId.includes("heartbeat")
+    ? "read_only"
+    : "idempotent_write";
+}
+
+function createCapabilityRegistry(): CapabilityContractRegistry {
+  const registry = new CapabilityContractRegistry();
+  for (const manifest of BUILT_IN_CAPABILITY_MANIFESTS) {
+    registry.register(manifest);
+  }
+  return registry;
+}
+
+function createAffordanceRegistry(
+  registry: DynamicConnectorRegistryType,
+  workspaceRoot: string,
+): CapabilityContractRegistryV7 {
+  registry.reloadConnectors(workspaceRoot);
+  const v7 = new CapabilityContractRegistryV7();
+  for (const entry of registry.listConnectors()) {
+    v7.register({
+      platformId: entry.platformId,
+      capabilities: entry.capabilities.map((capabilityId) => ({
+        capabilityId,
+        intent: capabilityId,
+        probeConfig: {
+          safeEndpoint: `connector://${entry.platformId}/${capabilityId}`,
+          idempotencyClass: idempotencyClassForCapability(capabilityId),
+        },
+      })),
+      channelPriority: ["api_rest"],
+      credentialTypes: ["api_key"],
+      sourceRefPolicy: { minSourceRefs: 1 },
+    });
+  }
+  return v7;
+}
+
+function createWorkspaceAffordanceAssembler(
+  registry: DynamicConnectorRegistryType,
+  workspaceRoot: string,
+): AffordanceAssembler {
+  return createAffordanceAssembler({
+    registry: createAffordanceRegistry(registry, workspaceRoot),
+    probeReader: {
+      getLatestProbeResult() {
+        return undefined;
+      },
+    },
+    credentialRequired: () => false,
+  });
+}
+
+function stringifyDeltaField(
+  delta: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = delta[key];
+  if (value === undefined || value === null) return undefined;
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function createNarrativeTimelineDeps(
+  stateDb: StateDatabase,
+): NarrativeTimelineDeps {
+  const historyStore = createHistoryDigestStore(stateDb);
+  return {
+    stateMemoryPort: {
+      async listNarrativeTimeline(from, to, opts) {
+        const rows = await historyStore.listNarrativeTimeline({
+          limit: Math.max(opts?.limit ?? 100, 100),
+        });
+        return rows
+          .filter((row) => row.createdAt >= from && row.createdAt <= to)
+          .filter((row) =>
+            opts?.afterTimestamp ? row.createdAt > opts.afterTimestamp : true,
+          )
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+          .slice(0, opts?.limit ?? rows.length)
+          .map<NarrativeTimelineRow>((row) => ({
+            version: row.timelineId,
+            createdAt: row.createdAt,
+            triggerKind:
+              row.entryType === "restore.applied" ||
+              row.entryType === "goal.transition" ||
+              row.entryType === "dream.projection" ||
+              row.entryType === "owner.override"
+                ? row.entryType
+                : "heartbeat.decision",
+            sourceRefs: asStringArray(row.delta.sourceRefs),
+            reasonCode: stringifyDeltaField(row.delta, "reasonCode"),
+            summaryText:
+              stringifyDeltaField(row.delta, "summaryText") ??
+              `${row.entryType}:${row.subjectId}`,
+          }));
+      },
+      async getNarrativeSnapshot(version) {
+        const rows = await historyStore.listNarrativeTimeline({ limit: 500 });
+        const row = rows.find(
+          (candidate) =>
+            candidate.timelineId === version || candidate.subjectId === version,
+        );
+        if (!row) return null;
+        const delta = row.delta;
+        return {
+          version,
+          focus: delta.focus,
+          progress: delta.progress,
+          nextIntent: delta.nextIntent,
+          toneSignal: delta.toneSignal,
+          acceptedGoalId: delta.acceptedGoalId,
+          sourceRefs: asStringArray(delta.sourceRefs),
+          lastChangeReasonCode: stringifyDeltaField(delta, "reasonCode"),
+        } satisfies NarrativeSnapshotRow;
+      },
+    },
+  };
+}
+
+function createSecretAnchorDeps(stateDb: StateDatabase): SecretAnchorDeps {
+  return {
+    runtimeOpsPort: {
+      getEncryptionKeyPath: () => "SECOND_NATURE_ENCRYPTION_KEY",
+      checkKeyPathExists: async () => {
+        const key = process.env.SECOND_NATURE_ENCRYPTION_KEY?.trim();
+        return Boolean(key && key.length >= 32);
+      },
+    },
+    credentialPort: {
+      verifySampleDecrypt: async (): Promise<SampleDecryptResult> => {
+        const result = stateDb.sqlite.exec(
+          `SELECT platform_id, encrypted_value
+           FROM credential_records
+           WHERE encrypted_value IS NOT NULL AND encrypted_value != ''
+           LIMIT 3`,
+        );
+        if (result.length === 0 || result[0]!.values.length === 0) {
+          return { status: "ok", checkedIds: [] };
+        }
+        const checkedIds: string[] = [];
+        for (const row of result[0]!.values) {
+          const platformId = String(row[0] ?? "unknown");
+          const encryptedValue = typeof row[1] === "string" ? row[1] : "";
+          checkedIds.push(platformId);
+          const probe = probeCredentialHealth(platformId, encryptedValue, undefined);
+          if (probe.keyHealth === "wrong_key") {
+            return { status: "wrong_key", checkedIds };
+          }
+          if (probe.keyHealth !== "ok") {
+            return { status: "error", checkedIds };
+          }
+        }
+        return { status: "ok", checkedIds };
+      },
+    },
+  };
+}
+
 export interface CommandRouter {
   commands: CliCommandDefinition[];
   resolve(name: string): CliCommandDefinition | undefined;
@@ -101,8 +305,18 @@ export interface CliRuntimeDeps {
   runtimeRecorder: RuntimeDecisionRecorder;
   /** Connector-system executor used by full-runtime heartbeat connector_action intents. */
   connectorExecutor: ConnectorExecutor;
+  /** Capability registry used by heartbeat planner to avoid platform/capability mismatches. */
+  capabilityRegistry: CapabilityContractRegistry;
   /** T1.2.3 — DynamicConnectorRegistry for connector:status / connector:test commands. */
   registry: DynamicConnectorRegistryType;
+  /** T-ROS.C.1 — body-tool affordance map port. */
+  affordanceAssembler: AffordanceAssembler;
+  /** T-ROS.C.1 — narrative timeline query deps. */
+  narrativeTimelineDeps: NarrativeTimelineDeps;
+  /** T-ROS.C.1 — runtime secret anchor health deps. */
+  secretAnchorDeps: SecretAnchorDeps;
+  /** T-ROS.C.1 — bounded restore port used by runtime restore command. */
+  restoreSnapshotStore: RestoreSnapshotStore;
 }
 
 export interface CreateCommandRouterOptions {
@@ -147,6 +361,17 @@ export function createCliRuntimeDeps(
       builtInManifests: BUILT_IN_CONNECTOR_MANIFESTS,
       snapshotStore: createRegistrySnapshotStore(),
     });
+  const capabilityRegistry =
+    overrides.capabilityRegistry ?? createCapabilityRegistry();
+  const affordanceAssembler =
+    overrides.affordanceAssembler ??
+    createWorkspaceAffordanceAssembler(registry, workspaceRoot);
+  const narrativeTimelineDeps =
+    overrides.narrativeTimelineDeps ?? createNarrativeTimelineDeps(stateDb);
+  const secretAnchorDeps =
+    overrides.secretAnchorDeps ?? createSecretAnchorDeps(stateDb);
+  const restoreSnapshotStore =
+    overrides.restoreSnapshotStore ?? createRestoreSnapshotStore(stateDb);
 
   return {
     stateDb,
@@ -156,7 +381,12 @@ export function createCliRuntimeDeps(
     actionBridge,
     runtimeRecorder,
     connectorExecutor,
+    capabilityRegistry,
     registry,
+    affordanceAssembler,
+    narrativeTimelineDeps,
+    secretAnchorDeps,
+    restoreSnapshotStore,
   };
 }
 
@@ -174,7 +404,12 @@ export function createCommandRouter(
     workspaceRoot,
     observabilityDb: runtime.observabilityDb,
     connectorExecutor: runtime.connectorExecutor,
+    connectorRegistry: runtime.capabilityRegistry,
     registry: runtime.registry,
+    toolAffordancePort: runtime.affordanceAssembler,
+    narrativeTimelineDeps: runtime.narrativeTimelineDeps,
+    secretAnchorDeps: runtime.secretAnchorDeps,
+    restoreSnapshotStore: runtime.restoreSnapshotStore,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,

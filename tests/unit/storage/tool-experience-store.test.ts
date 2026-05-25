@@ -77,4 +77,34 @@ describe("CapabilityProbeResultStore", () => {
     assert.strictEqual(rows[0]!.actualStatus, "available");
     assert.strictEqual(rows[0]!.httpStatus, 200);
   });
+
+  it("upserts duplicate probe result ids instead of crashing", async () => {
+    const db = createStateDatabase(":memory:");
+    const store = createCapabilityProbeResultStore(db);
+
+    await store.appendProbeResult({
+      probeResultId: "probe-repeat",
+      capabilityId: "moltbook:feed.read",
+      connectorId: "moltbook",
+      actualStatus: "degraded",
+      httpStatus: 503,
+      probeConfigRef: "cfg:old",
+      createdAt: "2026-05-21T00:00:00Z",
+    });
+    await store.appendProbeResult({
+      probeResultId: "probe-repeat",
+      capabilityId: "moltbook:feed.read",
+      connectorId: "moltbook",
+      actualStatus: "available",
+      httpStatus: 200,
+      probeConfigRef: "cfg:new",
+      createdAt: "2026-05-21T00:01:00Z",
+    });
+
+    const rows = await store.listProbeResults("moltbook");
+    assert.strictEqual(rows.length, 1);
+    assert.strictEqual(rows[0]!.actualStatus, "available");
+    assert.strictEqual(rows[0]!.httpStatus, 200);
+    assert.strictEqual(rows[0]!.probeConfigRef, "cfg:new");
+  });
 });

@@ -1,11 +1,11 @@
 # 05A_TASKS.md — Second Nature v7 执行主清单
 
-**项目**: Second Nature v7  
-**版本**: 7.0  
-**生成日期**: 2026-05-21  
-**生成来源**: `/blueprint`  
-**状态**: 初始规划  
-**任务总计**: 42 个任务 + 6 个 INT 里程碑  
+**项目**: Second Nature v7
+**版本**: 7.0
+**生成日期**: 2026-05-21
+**生成来源**: `/blueprint`
+**状态**: 初始规划
+**任务总计**: 42 个任务 + 6 个 INT 里程碑
 **关联文档**: `05B_VERIFICATION_PLAN.md`
 
 ---
@@ -20,6 +20,7 @@
 - [S4 Dream / Quiet + Guidance](#s4-dream--quiet--guidance)
 - [S5 Observability](#s5-observability)
 - [S6 Runtime Ops + E2E](#s6-runtime-ops--e2e)
+- [S7 v7 Living Loop Closure](#s7-v7-living-loop-closure)
 
 ---
 
@@ -52,12 +53,13 @@
 | **S4** | Dream/Quiet + Guidance | Quiet pipeline+DailyDiary、Dream pipeline+lifecycle、GuidanceDraftService+ChannelFeedback | S3 所有产出存在；DailyDiary 含 3 段；Dream accepted projection 被 heartbeat 读取；channel feedback 写入 RelationshipMemory | 4-5d |
 | **S5** | Observability | RedactionPolicy 强制化、AppendOnlyAuditStore+lastHashCache、SelfHealthSnapshot+per-probe 超时、HeartbeatDigest、NarrativeTimeline 分页、RestoreAudit | S4 所有产出存在；audit chain 完整性可验证；self_health 覆盖动态维度且最小维度集完整；digest 按平台分类；timeline cursor 分页正常 | 3-4d |
 | **S6** | Runtime Ops + E2E | OpenClaw plugin+CLI、manual run/wet test/self_health/restore ops、端到端集成冒烟 | S5 所有产出存在；plugin 加载成功；connector_test --wet 返回真实 status；self_health 在 DB 可用时 P95 < 1s；端到端 heartbeat 读取 EmbodiedContext | 3-4d |
+| **S7** | Living Loop Closure | post-E2E 数据生命周期、connector truth、body feedback、rhythm loop、identity/goal hygiene 闭环 | `narrative:diff`/`restore` 有生产数据；wet probe 写 probe result；connector result 写 evidence+experience；Dream/digest 自然触发；identity/goal 长期运行卫生可验收 | 4-6d |
 
 ---
 
 ## S1 Foundation
 
-> **目标**: 建立 TypeScript 共享类型、SQLite schema migration 机制、write queue 并发保护、audit family registry。  
+> **目标**: 建立 TypeScript 共享类型、SQLite schema migration 机制、write queue 并发保护、audit family registry。
 > **退出**: 编译通过 + DB 初始化成功 + write queue 单测通过。
 
 ---
@@ -154,7 +156,7 @@
 
 ## S2 Core State + Connector
 
-> **目标**: 实现 state-memory 全部读写端口（WriteValidationGate、GoalLifecycleStore 等）、connector registry+execution+wet probe。  
+> **目标**: 实现 state-memory 全部读写端口（WriteValidationGate、GoalLifecycleStore 等）、connector registry+execution+wet probe。
 > **退出**: DB 端口集成测试通过；wet probe 返回真实 status；goal lifecycle 可验证。
 
 ---
@@ -372,7 +374,7 @@
 
 ## S3 Body Tool + Heartbeat
 
-> **目标**: AffordanceAssembler、CircuitBreaker、BehaviorPromotion 实现；control-plane heartbeat+EmbodiedContextAssembler。  
+> **目标**: AffordanceAssembler、CircuitBreaker、BehaviorPromotion 实现；control-plane heartbeat+EmbodiedContextAssembler。
 > **退出**: affordance map 正确过滤；heartbeat 能组装 5 类 slice EmbodiedContext；CircuitBreaker 状态机可验证。
 
 ---
@@ -553,7 +555,7 @@
 
 ## S4 Dream / Quiet + Guidance
 
-> **目标**: Quiet pipeline+DailyDiary、Dream pipeline+lifecycle、GuidanceDraftService+ChannelFeedback。  
+> **目标**: Quiet pipeline+DailyDiary、Dream pipeline+lifecycle、GuidanceDraftService+ChannelFeedback。
 > **退出**: DailyDiary 含 3 段；accepted projection 被 heartbeat 读取；channel feedback 写入 RelationshipMemory。
 
 ---
@@ -734,7 +736,7 @@
 
 ## S5 Observability
 
-> **目标**: RedactionPolicy 强制化、AppendOnlyAuditStore+lastHashCache、SelfHealthSnapshot+per-probe 超时、HeartbeatDigest、NarrativeTimeline 分页、RestoreAudit。  
+> **目标**: RedactionPolicy 强制化、AppendOnlyAuditStore+lastHashCache、SelfHealthSnapshot+per-probe 超时、HeartbeatDigest、NarrativeTimeline 分页、RestoreAudit。
 > **退出**: audit chain 完整性可验证；self_health 覆盖动态维度且最小维度集完整；digest 按平台分类；timeline cursor 分页正常。
 
 ---
@@ -891,7 +893,7 @@
 
 ## S6 Runtime Ops + E2E
 
-> **目标**: OpenClaw plugin+CLI、manual run/wet test/self_health/restore ops、端到端集成冒烟。  
+> **目标**: OpenClaw plugin+CLI、manual run/wet test/self_health/restore ops、端到端集成冒烟。
 > **退出**: plugin 加载成功；connector_test --wet 返回真实 status；self_health P95 < 1s；端到端 heartbeat 读取 EmbodiedContext。
 
 ---
@@ -1003,6 +1005,104 @@
   - **验证说明**: 端到端截图/录屏 + self_health dimensions JSON + heartbeat 5 类 slice 日志 + heartbeat P95 报告 + v6 regression 报告
   - **估时**: 4h
   - **依赖**: INT-S1、INT-S2、INT-S3、INT-S4、INT-S5、T-ROS.C.1、T-ROS.C.2、T-ROS.C.3、T-ROS.C.4、T-ROS.C.5
+
+---
+
+## S7 v7 Living Loop Closure
+
+> **目标**: 把 v7 从“ops surface 可调用”推进到“状态生命周期、节律与身体反馈自然闭环”。
+> **退出**: 0.1.32 E2E 剩余缺口不再依赖空库解释；关键生产链路有 before/after 数据证据。
+
+---
+
+- [x] **T-V7C.C.1** [REQ-009, REQ-011]: Data Lifecycle + Connector Truth Closure
+  - **描述**: 补齐 `NarrativeTimeline` 与 `RestoreSnapshot` 的生产入口，并使 `connector_test dryRun:false` 走真实 wet probe；wet probe 结果写入 `capability_probe_result`，heartbeat/manual/wet 三条路径共享 capability/channel 解析，避免 registry health 冒充 wet truth。
+  - **输入**: `01_PRD.md §3.1 G9/G11`、`04_SYSTEM_DESIGN/runtime-ops-system.md §5`、`04_SYSTEM_DESIGN/state-memory-system.md §6.2`、T-SMS.C.5、T-SMS.C.6、T-CS.C.2、T-ROS.C.1、0.1.32 E2E 反馈
+  - **输出**: 更新 `src/cli/commands/`、`src/cli/ops/`、`src/storage/services/`、相关插件 runtime 产物
+  - **契约承接**: `snapshot:capture` ops 入口；narrative timeline snapshot 可被 `narrative:diff` 消费；`connector_test dryRun:false` 返回真实 wet probe status 并持久化 CapabilityProbeResult
+  - **参考**: ADR-008、REQ-009、REQ-011
+  - **验收标准**:
+    - Given workspace 有两个 narrative timeline snapshot，When 调用 `narrative:diff --from A --to B`，Then 返回实际 diff 而非 `NARRATIVE_DIFF_FAILED`
+    - Given workspace 无 restore snapshot，When 调用 `snapshot:capture` 后再调用 `restore`，Then restore 不再返回 `snapshot_not_found` 且写入 restore audit
+    - Given `connector_test` 传入 `dryRun:false`，When safe endpoint 返回 404/401/200，Then response 含真实 `actualStatus/httpStatus` 且 `capability_probe_result` 增长
+  - **验证类型**: API接口功能测试 | 集成测试 | 回归测试
+  - **验证摘要**: data production before/after；wet truth；protocol parity
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-1`
+  - **证据产出**: `tests/integration/runtime-ops/v7c-data-connector-truth.test.ts`
+  - **估时**: 8h
+  - **依赖**: INT-S6
+  - **优先级**: P0
+
+---
+
+- [ ] **T-V7C.C.2** [REQ-003, REQ-009]: Evidence + Body Feedback Closure
+  - **描述**: 将 heartbeat connector、manual connector run 与 wet probe 的结果统一写入 life evidence / ToolExperience / pain signal 输入；连续失败进入 CircuitBreaker，affordance 与 heartbeat 尊重 breaker posture。
+  - **输入**: `01_PRD.md §3.1 G3/G9`、`04_SYSTEM_DESIGN/body-tool-system.md §4.3~4.4`、`04_SYSTEM_DESIGN/connector-system.md §5.1`、T-BTS.C.4、T-BTS.C.5、T-CS.C.3、T-V7C.C.1
+  - **输出**: 更新 connector execution 写入适配、heartbeat connector path、manual run dispatcher、body feedback 集成测试
+  - **契约承接**: connector attempt 100% 写 ToolExperience 或 explicit unavailable reason；success evidence 写入 `life_evidence_index`；breaker open 时 heartbeat 不继续执行同 capability
+  - **参考**: ADR-003、ADR-008、REQ-003、REQ-009
+  - **验收标准**:
+    - Given moltbook connector success，When heartbeat 或 manual run 完成，Then `life_evidence_index` 增长且 ToolExperience 写入
+    - Given 同一 capability 连续失败达到阈值，When 下一轮 heartbeat 计划同 capability，Then 返回 `connector_circuit_open` 或等价 structured reason
+    - Given breaker cooldown 到期，When half-open probe 成功，Then breaker 恢复 closed，失败则保持 cooldown
+  - **验证类型**: 单元测试 | 集成测试 | 回归测试
+  - **验证摘要**: evidence growth；experience feedback；breaker enforcement
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-2`
+  - **证据产出**: `tests/integration/control-plane/v7c-evidence-body-feedback.test.ts`
+  - **估时**: 8h
+  - **依赖**: T-V7C.C.1
+  - **优先级**: P0
+
+---
+
+- [ ] **T-V7C.C.3** [REQ-005, REQ-010]: Rhythm Loop Closure
+  - **描述**: 让 Quiet completion 后的 Dream scheduler 与 heartbeat/daily digest 进入自然运行链路；Dream 未运行时必须写 explicit skip reason，digest 推送失败必须写 fallback，不把手动命令可用冒充自动节律闭环。
+  - **输入**: `01_PRD.md §3.1 G5/G10`、`04_SYSTEM_DESIGN/dream-quiet-system.md §4`、`04_SYSTEM_DESIGN/observability-health-system.md §2.1 G4`、T-DQS.C.4、T-DQS.C.5、T-OBS.C.3、T-OBS.C.4、T-V7C.C.2
+  - **输出**: 更新 quiet/dream scheduler 接线、heartbeat digest trigger/delivery hook、rhythm integration tests
+  - **契约承接**: Quiet 后 Dream 自动触发或写 skip；accepted Dream projection 进入 heartbeat；heartbeat/daily digest 自动生成并推送或记录 fallback proof
+  - **参考**: ADR-005、ADR-006、REQ-005、REQ-010
+  - **验收标准**:
+    - Given Quiet 产出 source-backed diary，When 进入 Dream 允许窗口，Then 自动调度 Dream 或写 explicit skip reason
+    - Given accepted Dream projection 存在，When heartbeat 构造 EmbodiedContext，Then projection 进入 context summary
+    - Given digest delivery target 可用/不可用，When digest window 到达，Then 写 delivery proof 或 fallback reason
+  - **验证类型**: 集成测试 | 冒烟测试 | 手动验证
+  - **验证摘要**: quiet→dream；dream→heartbeat；heartbeat→digest owner proof
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-3`
+  - **证据产出**: `tests/integration/dream/v7c-rhythm-loop.test.ts`、`reports/v7c-rhythm-loop.md`
+  - **估时**: 8h
+  - **依赖**: T-V7C.C.2
+  - **优先级**: P0
+
+---
+
+- [ ] **T-V7C.C.4** [REQ-004, REQ-006, REQ-008]: Identity / Goal Hygiene Closure
+  - **描述**: 加固长期运行卫生：同 kind/scope goal replace/dedupe 在 ops 与 heartbeat 路径一致；IdentityProfile 成为 connector request 的统一身份源；owner feedback/relationship memory 继续影响 guidance strategy。
+  - **输入**: `01_PRD.md §4 US-004/US-006/US-008`、`04_SYSTEM_DESIGN/state-memory-system.md §4.4`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4.1`、T-SMS.C.3、T-SMS.C.4、T-GVS.C.2、T-GVS.C.3、T-V7C.C.3
+  - **输出**: 更新 goal ops/heartbeat hygiene tests、connector identity context adapter、relationship feedback regression tests
+  - **契约承接**: active goal 不分裂；connector 不依赖 prompt 临时身份；owner feedback 影响后续表达策略
+  - **参考**: ADR-004、ADR-006、ADR-007、REQ-004、REQ-006、REQ-008
+  - **验收标准**:
+    - Given 同 kind/scope 多次设置 goal，When heartbeat 读取 active goals，Then 只有最新 accepted goal 有效
+    - Given IdentityProfile 含平台 handle，When connector request 构造，Then 对应平台身份可读且不含 credential
+    - Given owner no-reply/positive/negative feedback，When guidance strategy 选择，Then frequency/tone 按 RelationshipMemory 调整
+  - **验证类型**: 单元测试 | 集成测试 | 回归测试
+  - **验证摘要**: goal dedupe；identity source；relationship feedback
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-4`
+  - **证据产出**: `tests/integration/state/v7c-identity-goal-hygiene.test.ts`
+  - **估时**: 6h
+  - **依赖**: T-V7C.C.3
+  - **优先级**: P1
+
+---
+
+- [ ] **INT-V7C** [MILESTONE]: v7 Living Loop Closure 集成验证
+  - **描述**: 验证 v7 post-E2E closure：data lifecycle、connector truth、body feedback、rhythm loop、identity/goal hygiene 全链路均有真实 before/after 证据。
+  - **输入**: T-V7C.C.1、T-V7C.C.2、T-V7C.C.3、T-V7C.C.4 全部产出
+  - **输出**: `reports/int-v7c-living-loop-closure.md`
+  - **验收标准**: Given v7 closure tasks 完成 / When 逐条检查 0.1.32 剩余缺口与 living-loop 核心路径 / Then 全通过→v7 living loop closure 完成，失败→记 Bug
+  - **验证说明**: 运行相关集成测试、插件 bridge 回归、Claw E2E 手册关键命令；记录 16/16 或明确 non-blocking external unavailable
+  - **估时**: 4h
+  - **依赖**: T-V7C.C.4
 
 ---
 

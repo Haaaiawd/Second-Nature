@@ -5,7 +5,9 @@
  * heartbeat_digest, narrative:diff, timeline, restore, runtime_secret_bootstrap.
  * All commands return RuntimeOpsEnvelope.
  */
+import { createHash } from "node:crypto";
 import fs from "node:fs";
+import path from "node:path";
 import {
   heartbeatCheck,
   type HeartbeatCheckInput,
@@ -56,15 +58,25 @@ import {
 } from "../../observability/services/restore-audit-service.js";
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 import type { RestoreSnapshotStore } from "../../storage/services/restore-snapshot-store.js";
+import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
 // T-ROS.C.3: ManualRunDispatcher and its deps
 import {
   createManualRunDispatcher,
   type ManualRunDispatcher,
 } from "./manual-run-dispatcher.js";
 import { createExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
-import { createToolExperienceStore } from "../../storage/services/tool-experience-store.js";
+import {
+  createCapabilityProbeResultStore,
+  createToolExperienceStore,
+} from "../../storage/services/tool-experience-store.js";
 import { createWetProbeRunner } from "../../connectors/base/wet-probe-runner.js";
 import { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.js";
+import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
+import type { AffordanceAssembler } from "../../core/second-nature/body/tool-affordance/affordance-assembler.js";
+import type {
+  AffordanceStatus,
+  RestorableEntityKind,
+} from "../../shared/types/v7-entities.js";
 
 // ─── RuntimeOpsEnvelope (T-ROS.C.1 / [G1]) ───────────────────────────────────
 
@@ -84,6 +96,176 @@ export interface RuntimeOpsEnvelope<T = unknown> {
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
   return v === true || v === "true" || v === 1 || v === "1";
+}
+
+const SNAPSHOT_TABLE_BY_KIND: Record<RestorableEntityKind, string> = {
+  identity_profile: "identity_profile",
+  agent_goal: "agent_goal",
+  tool_experience: "tool_experience",
+  daily_diary: "daily_diary_index",
+  dream_output: "dream_output_index",
+  narrative_timeline: "narrative_timeline",
+};
+
+const DEFAULT_SNAPSHOT_KINDS: readonly RestorableEntityKind[] = [
+  "identity_profile",
+  "agent_goal",
+  "tool_experience",
+  "daily_diary",
+  "dream_output",
+  "narrative_timeline",
+];
+
+function coerceRestorableKinds(value: unknown): RestorableEntityKind[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const valid = new Set(DEFAULT_SNAPSHOT_KINDS);
+  return value.filter(
+    (item): item is RestorableEntityKind =>
+      typeof item === "string" && valid.has(item as RestorableEntityKind),
+  );
+}
+
+function tableExists(state: StateDatabase, table: string): boolean {
+  const result = state.sqlite.exec(
+    `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`,
+    [table],
+  );
+  return result.length > 0 && result[0]!.values.length > 0;
+}
+
+function readRowsFromTable(
+  state: StateDatabase,
+  table: string,
+): Record<string, unknown>[] {
+  const result = state.sqlite.exec(`SELECT * FROM ${table}`);
+  if (result.length === 0 || result[0]!.values.length === 0) return [];
+  const columns = result[0]!.columns;
+  return result[0]!.values.map((row) => {
+    const out: Record<string, unknown> = {};
+    columns.forEach((column, index) => {
+      out[column] = row[index];
+    });
+    return out;
+  });
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function textInput(
+  input: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = input?.[key];
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function buildSnapshotNarrativeDelta(
+  input: Record<string, unknown> | undefined,
+  snapshotId: string,
+  rowCounts: Record<string, number>,
+): Record<string, unknown> {
+  const explicit =
+    input?.narrativeSnapshot &&
+    typeof input.narrativeSnapshot === "object" &&
+    !Array.isArray(input.narrativeSnapshot)
+      ? (input.narrativeSnapshot as Record<string, unknown>)
+      : {};
+  const from = (key: string) => input?.[key] ?? explicit[key];
+  const sourceRefs = stringArray(from("sourceRefs"));
+  return {
+    focus: from("focus") ?? "workspace_state",
+    progress:
+      from("progress") ??
+      `snapshot_captured:${Object.entries(rowCounts)
+        .map(([kind, count]) => `${kind}=${count}`)
+        .join(",")}`,
+    nextIntent: from("nextIntent") ?? "restore_ready",
+    toneSignal: from("toneSignal") ?? "system_maintenance",
+    acceptedGoalId: from("acceptedGoalId") ?? undefined,
+    sourceRefs:
+      sourceRefs.length > 0
+        ? sourceRefs
+        : [`restore_snapshot:${snapshotId}`, "runtime_ops:snapshot_capture"],
+    reasonCode: from("reasonCode") ?? "snapshot_captured",
+    summaryText: from("summaryText") ?? `Captured restore snapshot ${snapshotId}`,
+  };
+}
+
+function hashNarrativeSnapshot(input: {
+  previousHash: string;
+  snapshotId: string;
+  delta: Record<string, unknown>;
+  createdAt: string;
+}): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        previousHash: input.previousHash,
+        snapshotId: input.snapshotId,
+        delta: input.delta,
+        createdAt: input.createdAt,
+      }),
+    )
+    .digest("hex");
+}
+
+function resolveManifestPath(
+  manifestPath: string,
+  workspaceRoot?: string,
+): string {
+  if (path.isAbsolute(manifestPath)) return manifestPath;
+  return path.join(workspaceRoot ?? process.cwd(), manifestPath);
+}
+
+function registerConnectorForWetProbe(input: {
+  registryV7: CapabilityContractRegistryV7;
+  entry: {
+    platformId: string;
+    capabilities: string[];
+    manifestPath?: string;
+  };
+  workspaceRoot?: string;
+  selectedCapabilityId: string;
+  safeEndpoint?: string;
+}): void {
+  if (input.entry.manifestPath) {
+    try {
+      const manifestText = fs.readFileSync(
+        resolveManifestPath(input.entry.manifestPath, input.workspaceRoot),
+        "utf-8",
+      );
+      const parsed = JSON.parse(manifestText) as Record<string, unknown>;
+      const registered = input.registryV7.register(parsed);
+      if (registered.ok && input.registryV7.hasCapability(input.entry.platformId, input.selectedCapabilityId)) {
+        return;
+      }
+    } catch {
+      // Non-v7 or YAML workspace manifests are projected below.
+    }
+  }
+
+  input.registryV7.register({
+    platformId: input.entry.platformId,
+    capabilities: input.entry.capabilities.map((capabilityId) => ({
+      capabilityId,
+      intent: capabilityId,
+      probeConfig:
+        capabilityId === input.selectedCapabilityId && input.safeEndpoint
+          ? {
+              safeEndpoint: input.safeEndpoint,
+              idempotencyClass: "read_only",
+            }
+          : undefined,
+    })),
+    channelPriority: ["runtime_ops"],
+    credentialTypes: ["runtime_ops_probe"],
+  });
 }
 
 export interface OpsRouterDeps {
@@ -109,6 +291,8 @@ export interface OpsRouterDeps {
    * connector-system instead of returning connector_dispatch_unwired.
    */
   connectorExecutor?: ConnectorExecutor;
+  /** Capability registry used by heartbeat planner to avoid platform/capability mismatches. */
+  connectorRegistry?: CapabilityContractRegistry;
   /**
    * T1.2.3: DynamicConnectorRegistry for connector:status and connector:test commands.
    */
@@ -128,6 +312,8 @@ export interface OpsRouterDeps {
    * Deps for narrative timeline (narrative:diff, timeline commands).
    */
   narrativeTimelineDeps?: NarrativeTimelineDeps;
+  /** Port for tool_affordance command. */
+  toolAffordancePort?: AffordanceAssembler;
   /**
    * Deps for runtime_secret_bootstrap (key anchor health check).
    */
@@ -137,6 +323,108 @@ export interface OpsRouterDeps {
    * When absent, restore command degrades to audit-only.
    */
   restoreSnapshotStore?: RestoreSnapshotStore;
+}
+
+async function captureRuntimeSnapshot(
+  deps: OpsRouterDeps,
+  input: Record<string, unknown> | undefined,
+): Promise<RuntimeOpsEnvelope> {
+  const generatedAt = new Date().toISOString();
+  if (!deps.state || !deps.restoreSnapshotStore) {
+    return {
+      ok: false,
+      command: "snapshot:capture",
+      runtimeMode: "unavailable",
+      surfaceMode: "cli",
+      generatedAt,
+      error: {
+        code: "SNAPSHOT_CAPTURE_DEPS_UNAVAILABLE",
+        message: "snapshot:capture requires state DB and RestoreSnapshotStore in OpsRouterDeps",
+        nextStep: "wire_state_and_restore_snapshot_store_into_ops_router",
+      },
+      warnings: [],
+      sourceRefs: [],
+    };
+  }
+
+  const snapshotId =
+    textInput(input, "snapshotId") ??
+    `snapshot:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  const requestedKinds =
+    coerceRestorableKinds(input?.entityWhitelist) ?? [...DEFAULT_SNAPSHOT_KINDS];
+  const rowCounts: Record<string, number> = {};
+  const warnings: string[] = [];
+
+  for (const kind of requestedKinds) {
+    const table = SNAPSHOT_TABLE_BY_KIND[kind];
+    if (!tableExists(deps.state, table)) {
+      rowCounts[kind] = 0;
+      warnings.push(`table_missing:${kind}:${table}`);
+      continue;
+    }
+    rowCounts[kind] = readRowsFromTable(deps.state, table).length;
+  }
+
+  const historyStore = createHistoryDigestStore(deps.state);
+  const previousHash =
+    (await historyStore.listNarrativeTimeline({ limit: 1 }))[0]?.currentHash ?? "";
+  const delta = buildSnapshotNarrativeDelta(input, snapshotId, rowCounts);
+  const currentHash = hashNarrativeSnapshot({
+    previousHash,
+    snapshotId,
+    delta,
+    createdAt: generatedAt,
+  });
+  await historyStore.appendNarrativeTimeline({
+    timelineId: snapshotId,
+    entryType: "owner.override",
+    subjectId: textInput(input, "subjectId") ?? snapshotId,
+    delta,
+    previousHash,
+    currentHash,
+    createdAt: generatedAt,
+  });
+
+  const payload: Record<string, unknown> = {};
+  const capturedKinds: RestorableEntityKind[] = [];
+  for (const kind of requestedKinds) {
+    const table = SNAPSHOT_TABLE_BY_KIND[kind];
+    if (!tableExists(deps.state, table)) continue;
+    const rows = readRowsFromTable(deps.state, table);
+    rowCounts[kind] = rows.length;
+    if (rows.length > 0) {
+      payload[kind] = rows;
+      capturedKinds.push(kind);
+    }
+  }
+
+  const snapshot = await deps.restoreSnapshotStore.captureSnapshot({
+    snapshotId,
+    entityWhitelist: requestedKinds,
+    payload,
+    capturedAt: generatedAt,
+  });
+
+  return {
+    ok: true,
+    command: "snapshot:capture",
+    runtimeMode: "workspace_full_runtime",
+    surfaceMode: "cli",
+    generatedAt,
+    data: {
+      snapshotId: snapshot.snapshotId,
+      capturedAt: snapshot.capturedAt,
+      entityWhitelist: snapshot.entityWhitelist,
+      capturedKinds,
+      rowCounts,
+      narrativeVersion: snapshotId,
+    },
+    warnings,
+    sourceRefs: [
+      "storage/services/restore-snapshot-store.ts",
+      "storage/services/history-digest-store.ts",
+    ],
+  };
 }
 
 /**
@@ -182,6 +470,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         state: input.state ?? deps.state,
         workspaceRoot: input.workspaceRoot ?? deps.workspaceRoot,
         connectorExecutor: input.connectorExecutor ?? deps.connectorExecutor,
+        connectorRegistry:
+          (input as Partial<HeartbeatCheckInput> | undefined)
+            ?.connectorRegistry ?? deps.connectorRegistry,
       }),
     async dispatch(command, input) {
       if (command === "heartbeat_check") {
@@ -189,7 +480,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           typeof input?.runtimeAvailable === "boolean"
             ? input.runtimeAvailable
             : deps.runtimeAvailable;
-        return heartbeatCheck({
+        const result = await heartbeatCheck({
           probeOnly: coerceProbeOnlyFlag(input),
           runtimeAvailable,
           fakeControlPlanePassthrough:
@@ -219,7 +510,39 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           connectorExecutor:
             (input as Partial<HeartbeatCheckInput> | undefined)
               ?.connectorExecutor ?? deps.connectorExecutor,
+          connectorRegistry:
+            (input as Partial<HeartbeatCheckInput> | undefined)
+              ?.connectorRegistry ?? deps.connectorRegistry,
         });
+        if (
+          result.ok &&
+          result.surfaceMode === "workspace_full_runtime" &&
+          !coerceProbeOnlyFlag(input) &&
+          deps.state &&
+          deps.restoreSnapshotStore
+        ) {
+          try {
+            const capture = await captureRuntimeSnapshot(deps, {
+              snapshotId: `heartbeat:${result.decisionId ?? "cycle"}:${Date.now()}`,
+              subjectId: result.decisionId ?? "heartbeat_check",
+              reasonCode: "heartbeat_check",
+              summaryText: `Heartbeat ${result.status} captured bounded restore snapshot`,
+              focus: result.status,
+              progress: result.reasons.join(",") || "heartbeat_completed",
+              nextIntent: "continue_runtime_loop",
+              sourceRefs: result.decisionId
+                ? [`heartbeat:${result.decisionId}`]
+                : ["heartbeat:runtime"],
+            });
+            if (capture.ok) {
+              result.reasons = [...result.reasons, "restore_snapshot_captured"];
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
+          }
+        }
+        return result;
       }
       if (command === "fallback") {
         const ref = typeof input?.ref === "string" ? input.ref.trim() : "";
@@ -386,19 +709,103 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         });
       }
       if (command === "connector_test") {
-        // v7 T-ROS.C.1: --wet flag (wet=true) sets dryRun=false + marks triggerSource:"manual_run"
-        const isWet = input?.wet === true || input?.wet === "true";
+        // v7 T-V7C.C.1: dryRun=false is the canonical wet probe switch.
+        const isWet =
+          input?.wet === true ||
+          input?.wet === "true" ||
+          input?.dryRun === false ||
+          input?.dryRun === "false";
         const result = await connectorTest(deps.registry, {
           platformId:
             typeof input?.platformId === "string" ? input.platformId : "",
           dryRun: isWet ? false : (input?.dryRun === false ? false : true),
+          workspaceRoot:
+            typeof input?.workspaceRoot === "string"
+              ? input.workspaceRoot
+              : deps.workspaceRoot,
         });
-        if (isWet && result.ok) {
-          // Annotate result with manual trigger context (DR-038 / T-ROS.C.3)
-          (result as Record<string, unknown>).triggerSource = "manual_run";
-          (result as Record<string, unknown>).affectsHeartbeatCadence = false;
+        if (!isWet || !result.ok) {
+          return result;
         }
-        return result;
+
+        const data =
+          result.data && typeof result.data === "object"
+            ? (result.data as Record<string, unknown>)
+            : {};
+        const capabilities = Array.isArray(data.capabilities)
+          ? data.capabilities.filter((item): item is string => typeof item === "string")
+          : [];
+        const capabilityId =
+          textInput(input, "capabilityId") ?? capabilities[0] ?? "";
+        if (!capabilityId) {
+          return {
+            ok: false,
+            command: "connector_test" as const,
+            error: {
+              code: "MISSING_CAPABILITY_ID",
+              message: "wet connector_test requires capabilityId or at least one connector capability",
+              requiredUserInput: ["capabilityId"],
+              nextStep: "reinvoke_with_capability_id",
+            },
+          };
+        }
+
+        const platformId = String(data.platformId ?? input?.platformId ?? "");
+        const registryEntry = deps.registry?.describeConnector(platformId);
+        if (!registryEntry) {
+          return result;
+        }
+
+        const registryV7 = new CapabilityContractRegistryV7();
+        registerConnectorForWetProbe({
+          registryV7,
+          entry: {
+            platformId: registryEntry.platformId,
+            capabilities: registryEntry.capabilities,
+            manifestPath: registryEntry.manifestPath,
+          },
+          workspaceRoot:
+            typeof input?.workspaceRoot === "string"
+              ? input.workspaceRoot
+              : deps.workspaceRoot,
+          selectedCapabilityId: capabilityId,
+          safeEndpoint: textInput(input, "safeEndpoint"),
+        });
+
+        const wetResult = await createWetProbeRunner().runWetProbe(
+          platformId,
+          capabilityId,
+          registryV7,
+        );
+        const warnings: string[] = [];
+        let persistedProbeResult = false;
+        if (deps.state) {
+          await createCapabilityProbeResultStore(deps.state).appendProbeResult(
+            wetResult.probeResult,
+          );
+          persistedProbeResult = true;
+        } else {
+          warnings.push("state_db_unavailable:capability_probe_result_not_persisted");
+        }
+        return {
+          ok: wetResult.probeResult.actualStatus !== "unavailable",
+          command: "connector_test" as const,
+          data: {
+            ...data,
+            dryRun: false,
+            capabilityId,
+            actualStatus: wetResult.probeResult.actualStatus,
+            httpStatus: wetResult.probeResult.httpStatus ?? wetResult.httpStatus,
+            probeResultId: wetResult.probeResult.probeResultId,
+            probeConfigRef: wetResult.probeResult.probeConfigRef,
+            sampleResponseRef: wetResult.probeResult.sampleResponseRef,
+            persistedProbeResult,
+            triggerSource: "manual_run",
+            affectsHeartbeatCadence: false,
+            note: "wet probe mode: executed safe probe endpoint and persisted capability_probe_result when state DB is available",
+          },
+          warnings,
+        };
       }
       if (command === "connector:run") {
         // T-ROS.C.3: manual connector execution — isolated from heartbeat cadence
@@ -577,6 +984,39 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
        */
       if (command === "tool_affordance") {
         const generatedAt = new Date().toISOString();
+        if (deps.toolAffordancePort) {
+          const allStatuses: AffordanceStatus[] = [
+            "safe",
+            "exploratory",
+            "needs_auth",
+            "painful",
+            "unavailable",
+          ];
+          const platformIds = Array.isArray(input?.platformIds)
+            ? input.platformIds.filter((item): item is string => typeof item === "string")
+            : typeof input?.platformId === "string"
+              ? [input.platformId]
+              : undefined;
+          const data = await deps.toolAffordancePort.assembleAffordanceMap({
+            platformIds,
+            allowedStatuses: allStatuses,
+            goalKind:
+              typeof input?.goalKind === "string" ? input.goalKind : undefined,
+          });
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "tool_affordance",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data,
+            warnings: [],
+            sourceRefs: [
+              "core/second-nature/body/tool-affordance/affordance-assembler.ts",
+            ],
+          };
+          return envelope;
+        }
         const envelope: RuntimeOpsEnvelope = {
           ok: false,
           command: "tool_affordance",
@@ -652,6 +1092,14 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           };
           return envelope;
         }
+      }
+
+      /**
+       * [G6] snapshot:capture — production capture path for RestoreSnapshot +
+       * NarrativeTimeline. This gives restore and narrative:diff real state to consume.
+       */
+      if (command === "snapshot:capture") {
+        return captureRuntimeSnapshot(deps, input);
       }
 
       /**

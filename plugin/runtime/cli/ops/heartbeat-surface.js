@@ -74,6 +74,7 @@ export async function heartbeatCheck(input) {
         state: input.state,
         workspaceRoot: input.workspaceRoot ?? process.cwd(),
         connectorExecutor: input.connectorExecutor,
+        connectorRegistry: input.connectorRegistry,
     });
     const cycle = await run(signal);
     return mapCycleToSurface(cycle, "workspace_full_runtime");

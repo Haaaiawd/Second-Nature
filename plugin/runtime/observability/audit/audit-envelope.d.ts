@@ -1,6 +1,6 @@
 import { type RedactionManifest as FieldRedactionManifest } from "../redaction/manifest.js";
 export type AuditPlane = "decision" | "delivery" | "source_coverage" | "governance" | "telemetry";
-export type AuditEventFamily = "heartbeat.decision" | "delivery" | "source_coverage" | "guidance.grounding" | "host_capability" | "connector.attempt" | "state.governance" | "narrative.trace" | "dream.trace";
+export type AuditEventFamily = "heartbeat.decision" | "delivery" | "source_coverage" | "guidance.grounding" | "host_capability" | "connector.attempt" | "state.governance" | "narrative.trace" | "dream.trace" | "restore.audit" | "health.probe" | "narrative.snapshot" | "secret.anchor";
 export type AuditEnvelopeSensitivity = "public" | "internal" | "private" | "credential" | "sensitive";
 export interface AuditRedactionManifest {
     manifestId: string;
@@ -32,6 +32,7 @@ export interface RedactAuditEventResult<TPayload> {
 }
 /**
  * Apply field redaction rules and lift manifests to audit path vocabulary (observability-system.detail §2).
+ * T-OBS.C.1: now delegates to the unified redactPayload gate (DR-033).
  */
 export declare function redactAuditEvent<TPayload extends object>(payload: TPayload): RedactAuditEventResult<TPayload>;
 export interface BuildAuditEnvelopeInput<TPayload extends object> {

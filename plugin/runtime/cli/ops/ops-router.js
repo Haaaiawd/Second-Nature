@@ -1,6 +1,13 @@
 /**
  * Shared ops command dispatch for CLI + tool surfaces (T1.1.3, T1.2.2).
+ *
+ * v7 additions (T-ROS.C.1): self_health, tool_affordance, connector_test --wet,
+ * heartbeat_digest, narrative:diff, timeline, restore, runtime_secret_bootstrap.
+ * All commands return RuntimeOpsEnvelope.
  */
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { heartbeatCheck, } from "./heartbeat-surface.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError, } from "./show-operator-fallback.js";
 import { probeHostCapability } from "../host-capability/probe-host-capability.js";
@@ -10,9 +17,232 @@ import { connectorInit } from "../commands/connector-init.js";
 import { connectorBehaviorAdd } from "../commands/connector-behavior.js";
 import { connectorStatus, connectorTest } from "../commands/connector-status.js";
 import { goalCommand } from "../commands/goal.js";
+// v7 observability services (T-ROS.C.1)
+import { getSelfHealthSnapshot, ensureMinimumProbes, } from "../../observability/services/self-health-snapshot.js";
+import { generateHeartbeatDigest, } from "../../observability/services/heartbeat-digest-assembler.js";
+import { queryNarrativeTimeline, queryNarrativeDiff, } from "../../observability/services/narrative-timeline-query-service.js";
+import { viewSecretAnchor, } from "../../observability/services/runtime-secret-anchor-view.js";
+import { writeRestoreAudit, } from "../../observability/services/restore-audit-service.js";
+import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
+// T-ROS.C.3: ManualRunDispatcher and its deps
+import { createManualRunDispatcher, } from "./manual-run-dispatcher.js";
+import { createExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
+import { createCapabilityProbeResultStore, createToolExperienceStore, } from "../../storage/services/tool-experience-store.js";
+import { createWetProbeRunner } from "../../connectors/base/wet-probe-runner.js";
+import { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.js";
 function coerceProbeOnlyFlag(input) {
     const v = input?.probeOnly;
     return v === true || v === "true" || v === 1 || v === "1";
+}
+const SNAPSHOT_TABLE_BY_KIND = {
+    identity_profile: "identity_profile",
+    agent_goal: "agent_goal",
+    tool_experience: "tool_experience",
+    daily_diary: "daily_diary_index",
+    dream_output: "dream_output_index",
+    narrative_timeline: "narrative_timeline",
+};
+const DEFAULT_SNAPSHOT_KINDS = [
+    "identity_profile",
+    "agent_goal",
+    "tool_experience",
+    "daily_diary",
+    "dream_output",
+    "narrative_timeline",
+];
+function coerceRestorableKinds(value) {
+    if (!Array.isArray(value))
+        return undefined;
+    const valid = new Set(DEFAULT_SNAPSHOT_KINDS);
+    return value.filter((item) => typeof item === "string" && valid.has(item));
+}
+function tableExists(state, table) {
+    const result = state.sqlite.exec(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1`, [table]);
+    return result.length > 0 && result[0].values.length > 0;
+}
+function readRowsFromTable(state, table) {
+    const result = state.sqlite.exec(`SELECT * FROM ${table}`);
+    if (result.length === 0 || result[0].values.length === 0)
+        return [];
+    const columns = result[0].columns;
+    return result[0].values.map((row) => {
+        const out = {};
+        columns.forEach((column, index) => {
+            out[column] = row[index];
+        });
+        return out;
+    });
+}
+function stringArray(value) {
+    return Array.isArray(value)
+        ? value.filter((item) => typeof item === "string")
+        : [];
+}
+function textInput(input, key) {
+    const value = input?.[key];
+    if (typeof value !== "string")
+        return undefined;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+}
+function buildSnapshotNarrativeDelta(input, snapshotId, rowCounts) {
+    const explicit = input?.narrativeSnapshot &&
+        typeof input.narrativeSnapshot === "object" &&
+        !Array.isArray(input.narrativeSnapshot)
+        ? input.narrativeSnapshot
+        : {};
+    const from = (key) => input?.[key] ?? explicit[key];
+    const sourceRefs = stringArray(from("sourceRefs"));
+    return {
+        focus: from("focus") ?? "workspace_state",
+        progress: from("progress") ??
+            `snapshot_captured:${Object.entries(rowCounts)
+                .map(([kind, count]) => `${kind}=${count}`)
+                .join(",")}`,
+        nextIntent: from("nextIntent") ?? "restore_ready",
+        toneSignal: from("toneSignal") ?? "system_maintenance",
+        acceptedGoalId: from("acceptedGoalId") ?? undefined,
+        sourceRefs: sourceRefs.length > 0
+            ? sourceRefs
+            : [`restore_snapshot:${snapshotId}`, "runtime_ops:snapshot_capture"],
+        reasonCode: from("reasonCode") ?? "snapshot_captured",
+        summaryText: from("summaryText") ?? `Captured restore snapshot ${snapshotId}`,
+    };
+}
+function hashNarrativeSnapshot(input) {
+    return createHash("sha256")
+        .update(JSON.stringify({
+        previousHash: input.previousHash,
+        snapshotId: input.snapshotId,
+        delta: input.delta,
+        createdAt: input.createdAt,
+    }))
+        .digest("hex");
+}
+function resolveManifestPath(manifestPath, workspaceRoot) {
+    if (path.isAbsolute(manifestPath))
+        return manifestPath;
+    return path.join(workspaceRoot ?? process.cwd(), manifestPath);
+}
+function registerConnectorForWetProbe(input) {
+    if (input.entry.manifestPath) {
+        try {
+            const manifestText = fs.readFileSync(resolveManifestPath(input.entry.manifestPath, input.workspaceRoot), "utf-8");
+            const parsed = JSON.parse(manifestText);
+            const registered = input.registryV7.register(parsed);
+            if (registered.ok && input.registryV7.hasCapability(input.entry.platformId, input.selectedCapabilityId)) {
+                return;
+            }
+        }
+        catch {
+            // Non-v7 or YAML workspace manifests are projected below.
+        }
+    }
+    input.registryV7.register({
+        platformId: input.entry.platformId,
+        capabilities: input.entry.capabilities.map((capabilityId) => ({
+            capabilityId,
+            intent: capabilityId,
+            probeConfig: capabilityId === input.selectedCapabilityId && input.safeEndpoint
+                ? {
+                    safeEndpoint: input.safeEndpoint,
+                    idempotencyClass: "read_only",
+                }
+                : undefined,
+        })),
+        channelPriority: ["runtime_ops"],
+        credentialTypes: ["runtime_ops_probe"],
+    });
+}
+async function captureRuntimeSnapshot(deps, input) {
+    const generatedAt = new Date().toISOString();
+    if (!deps.state || !deps.restoreSnapshotStore) {
+        return {
+            ok: false,
+            command: "snapshot:capture",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+                code: "SNAPSHOT_CAPTURE_DEPS_UNAVAILABLE",
+                message: "snapshot:capture requires state DB and RestoreSnapshotStore in OpsRouterDeps",
+                nextStep: "wire_state_and_restore_snapshot_store_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+        };
+    }
+    const snapshotId = textInput(input, "snapshotId") ??
+        `snapshot:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    const requestedKinds = coerceRestorableKinds(input?.entityWhitelist) ?? [...DEFAULT_SNAPSHOT_KINDS];
+    const rowCounts = {};
+    const warnings = [];
+    for (const kind of requestedKinds) {
+        const table = SNAPSHOT_TABLE_BY_KIND[kind];
+        if (!tableExists(deps.state, table)) {
+            rowCounts[kind] = 0;
+            warnings.push(`table_missing:${kind}:${table}`);
+            continue;
+        }
+        rowCounts[kind] = readRowsFromTable(deps.state, table).length;
+    }
+    const historyStore = createHistoryDigestStore(deps.state);
+    const previousHash = (await historyStore.listNarrativeTimeline({ limit: 1 }))[0]?.currentHash ?? "";
+    const delta = buildSnapshotNarrativeDelta(input, snapshotId, rowCounts);
+    const currentHash = hashNarrativeSnapshot({
+        previousHash,
+        snapshotId,
+        delta,
+        createdAt: generatedAt,
+    });
+    await historyStore.appendNarrativeTimeline({
+        timelineId: snapshotId,
+        entryType: "owner.override",
+        subjectId: textInput(input, "subjectId") ?? snapshotId,
+        delta,
+        previousHash,
+        currentHash,
+        createdAt: generatedAt,
+    });
+    const payload = {};
+    const capturedKinds = [];
+    for (const kind of requestedKinds) {
+        const table = SNAPSHOT_TABLE_BY_KIND[kind];
+        if (!tableExists(deps.state, table))
+            continue;
+        const rows = readRowsFromTable(deps.state, table);
+        rowCounts[kind] = rows.length;
+        if (rows.length > 0) {
+            payload[kind] = rows;
+            capturedKinds.push(kind);
+        }
+    }
+    const snapshot = await deps.restoreSnapshotStore.captureSnapshot({
+        snapshotId,
+        entityWhitelist: requestedKinds,
+        payload,
+        capturedAt: generatedAt,
+    });
+    return {
+        ok: true,
+        command: "snapshot:capture",
+        runtimeMode: "workspace_full_runtime",
+        surfaceMode: "cli",
+        generatedAt,
+        data: {
+            snapshotId: snapshot.snapshotId,
+            capturedAt: snapshot.capturedAt,
+            entityWhitelist: snapshot.entityWhitelist,
+            capturedKinds,
+            rowCounts,
+            narrativeVersion: snapshotId,
+        },
+        warnings,
+        sourceRefs: [
+            "storage/services/restore-snapshot-store.ts",
+            "storage/services/history-digest-store.ts",
+        ],
+    };
 }
 /**
  * T1.2.8 — static local adapter: all checks return `unknown` when no real host is available.
@@ -46,13 +276,15 @@ export function createOpsRouter(deps) {
             state: input.state ?? deps.state,
             workspaceRoot: input.workspaceRoot ?? deps.workspaceRoot,
             connectorExecutor: input.connectorExecutor ?? deps.connectorExecutor,
+            connectorRegistry: input
+                ?.connectorRegistry ?? deps.connectorRegistry,
         }),
         async dispatch(command, input) {
             if (command === "heartbeat_check") {
                 const runtimeAvailable = typeof input?.runtimeAvailable === "boolean"
                     ? input.runtimeAvailable
                     : deps.runtimeAvailable;
-                return heartbeatCheck({
+                const result = await heartbeatCheck({
                     probeOnly: coerceProbeOnlyFlag(input),
                     runtimeAvailable,
                     fakeControlPlanePassthrough: input?.fakeControlPlanePassthrough &&
@@ -74,7 +306,37 @@ export function createOpsRouter(deps) {
                     scopeHint: input?.scopeHint,
                     connectorExecutor: input
                         ?.connectorExecutor ?? deps.connectorExecutor,
+                    connectorRegistry: input
+                        ?.connectorRegistry ?? deps.connectorRegistry,
                 });
+                if (result.ok &&
+                    result.surfaceMode === "workspace_full_runtime" &&
+                    !coerceProbeOnlyFlag(input) &&
+                    deps.state &&
+                    deps.restoreSnapshotStore) {
+                    try {
+                        const capture = await captureRuntimeSnapshot(deps, {
+                            snapshotId: `heartbeat:${result.decisionId ?? "cycle"}:${Date.now()}`,
+                            subjectId: result.decisionId ?? "heartbeat_check",
+                            reasonCode: "heartbeat_check",
+                            summaryText: `Heartbeat ${result.status} captured bounded restore snapshot`,
+                            focus: result.status,
+                            progress: result.reasons.join(",") || "heartbeat_completed",
+                            nextIntent: "continue_runtime_loop",
+                            sourceRefs: result.decisionId
+                                ? [`heartbeat:${result.decisionId}`]
+                                : ["heartbeat:runtime"],
+                        });
+                        if (capture.ok) {
+                            result.reasons = [...result.reasons, "restore_snapshot_captured"];
+                        }
+                    }
+                    catch (err) {
+                        const msg = err instanceof Error ? err.message : String(err);
+                        result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
+                    }
+                }
+                return result;
             }
             if (command === "fallback") {
                 const ref = typeof input?.ref === "string" ? input.ref.trim() : "";
@@ -227,9 +489,149 @@ export function createOpsRouter(deps) {
                 });
             }
             if (command === "connector_test") {
-                return connectorTest(deps.registry, {
+                // v7 T-V7C.C.1: dryRun=false is the canonical wet probe switch.
+                const isWet = input?.wet === true ||
+                    input?.wet === "true" ||
+                    input?.dryRun === false ||
+                    input?.dryRun === "false";
+                const result = await connectorTest(deps.registry, {
                     platformId: typeof input?.platformId === "string" ? input.platformId : "",
-                    dryRun: input?.dryRun === false ? false : true, // default dry-run
+                    dryRun: isWet ? false : (input?.dryRun === false ? false : true),
+                    workspaceRoot: typeof input?.workspaceRoot === "string"
+                        ? input.workspaceRoot
+                        : deps.workspaceRoot,
+                });
+                if (!isWet || !result.ok) {
+                    return result;
+                }
+                const data = result.data && typeof result.data === "object"
+                    ? result.data
+                    : {};
+                const capabilities = Array.isArray(data.capabilities)
+                    ? data.capabilities.filter((item) => typeof item === "string")
+                    : [];
+                const capabilityId = textInput(input, "capabilityId") ?? capabilities[0] ?? "";
+                if (!capabilityId) {
+                    return {
+                        ok: false,
+                        command: "connector_test",
+                        error: {
+                            code: "MISSING_CAPABILITY_ID",
+                            message: "wet connector_test requires capabilityId or at least one connector capability",
+                            requiredUserInput: ["capabilityId"],
+                            nextStep: "reinvoke_with_capability_id",
+                        },
+                    };
+                }
+                const platformId = String(data.platformId ?? input?.platformId ?? "");
+                const registryEntry = deps.registry?.describeConnector(platformId);
+                if (!registryEntry) {
+                    return result;
+                }
+                const registryV7 = new CapabilityContractRegistryV7();
+                registerConnectorForWetProbe({
+                    registryV7,
+                    entry: {
+                        platformId: registryEntry.platformId,
+                        capabilities: registryEntry.capabilities,
+                        manifestPath: registryEntry.manifestPath,
+                    },
+                    workspaceRoot: typeof input?.workspaceRoot === "string"
+                        ? input.workspaceRoot
+                        : deps.workspaceRoot,
+                    selectedCapabilityId: capabilityId,
+                    safeEndpoint: textInput(input, "safeEndpoint"),
+                });
+                const wetResult = await createWetProbeRunner().runWetProbe(platformId, capabilityId, registryV7);
+                const warnings = [];
+                let persistedProbeResult = false;
+                if (deps.state) {
+                    await createCapabilityProbeResultStore(deps.state).appendProbeResult(wetResult.probeResult);
+                    persistedProbeResult = true;
+                }
+                else {
+                    warnings.push("state_db_unavailable:capability_probe_result_not_persisted");
+                }
+                return {
+                    ok: wetResult.probeResult.actualStatus !== "unavailable",
+                    command: "connector_test",
+                    data: {
+                        ...data,
+                        dryRun: false,
+                        capabilityId,
+                        actualStatus: wetResult.probeResult.actualStatus,
+                        httpStatus: wetResult.probeResult.httpStatus ?? wetResult.httpStatus,
+                        probeResultId: wetResult.probeResult.probeResultId,
+                        probeConfigRef: wetResult.probeResult.probeConfigRef,
+                        sampleResponseRef: wetResult.probeResult.sampleResponseRef,
+                        persistedProbeResult,
+                        triggerSource: "manual_run",
+                        affectsHeartbeatCadence: false,
+                        note: "wet probe mode: executed safe probe endpoint and persisted capability_probe_result when state DB is available",
+                    },
+                    warnings,
+                };
+            }
+            if (command === "connector:run") {
+                // T-ROS.C.3: manual connector execution — isolated from heartbeat cadence
+                const platformId = typeof input?.platformId === "string" ? input.platformId : "";
+                const capabilityId = typeof input?.capabilityId === "string" ? input.capabilityId : "";
+                if (!platformId || !capabilityId) {
+                    return {
+                        ok: false,
+                        command: "connector:run",
+                        error: {
+                            code: "MISSING_PLATFORM_OR_CAPABILITY_ID",
+                            message: "connector:run requires platformId and capabilityId",
+                            requiredUserInput: ["platformId", "capabilityId"],
+                            nextStep: "reinvoke_with_platform_and_capability_id",
+                        },
+                    };
+                }
+                if (!deps.connectorExecutor || !deps.state) {
+                    return {
+                        ok: false,
+                        command: "connector:run",
+                        error: {
+                            code: "MANUAL_RUN_DEPS_UNAVAILABLE",
+                            message: "connector:run requires connectorExecutor and state database",
+                            nextStep: "wire_connector_executor_and_state_into_ops_router",
+                        },
+                    };
+                }
+                const toolExperienceStore = createToolExperienceStore(deps.state);
+                const experienceWriter = createExperienceWriter(toolExperienceStore);
+                const wetProbeRunner = createWetProbeRunner();
+                const registryV7 = new CapabilityContractRegistryV7();
+                // Populate V7 registry from dynamic registry if available (best-effort)
+                if (deps.registry) {
+                    for (const entry of deps.registry.listConnectors()) {
+                        if (entry.manifestPath) {
+                            try {
+                                const manifestText = fs.readFileSync(entry.manifestPath, "utf-8");
+                                const manifest = JSON.parse(manifestText);
+                                registryV7.register(manifest);
+                            }
+                            catch {
+                                // Skip manifests that can't be read or don't validate as V7
+                            }
+                        }
+                    }
+                }
+                const dispatcher = createManualRunDispatcher({
+                    connectorExecutor: deps.connectorExecutor,
+                    experienceWriter,
+                    wetProbeRunner,
+                    registryV7,
+                });
+                return dispatcher.runConnector({
+                    platformId,
+                    capabilityId,
+                    payload: typeof input?.payload === "object" && input?.payload !== null
+                        ? input.payload
+                        : undefined,
+                    caller: typeof input?.caller === "string" ? input.caller : undefined,
+                    reason: typeof input?.reason === "string" ? input.reason : undefined,
                 });
             }
             if (command === "goal") {
@@ -292,6 +694,481 @@ export function createOpsRouter(deps) {
                 const limit = typeof input?.limit === "number" ? input.limit : 5;
                 const data = await deps.readModels.loadCycleRecent(limit);
                 return { ok: true, data };
+            }
+            // ─── v7 commands (T-ROS.C.1) ─────────────────────────────────────────
+            /** [G2] self_health — transparent pass-through from SelfHealthSnapshot (DR-042). */
+            if (command === "self_health") {
+                const generatedAt = new Date().toISOString();
+                try {
+                    ensureMinimumProbes();
+                    const snap = await getSelfHealthSnapshot();
+                    const degraded_dimensions = Object.entries(snap.dimensions)
+                        .filter(([, d]) => d.status === "degraded")
+                        .map(([k]) => k);
+                    const envelope = {
+                        ok: true,
+                        command: "self_health",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data: {
+                            overall: snap.overall,
+                            generatedAt: snap.generatedAt,
+                            degraded_dimensions,
+                            dimensions: snap.dimensions,
+                        },
+                        warnings: [],
+                        sourceRefs: ["observability/services/self-health-snapshot.ts"],
+                    };
+                    return envelope;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const envelope = {
+                        ok: false,
+                        command: "self_health",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: { code: "SELF_HEALTH_PROBE_FAILED", message: msg },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+            }
+            /**
+             * [G3] tool_affordance — body-tool AffordanceMap pass-through.
+             * Port not yet wired in this wave; returns degraded view with clear next-step.
+             */
+            if (command === "tool_affordance") {
+                const generatedAt = new Date().toISOString();
+                if (deps.toolAffordancePort) {
+                    const allStatuses = [
+                        "safe",
+                        "exploratory",
+                        "needs_auth",
+                        "painful",
+                        "unavailable",
+                    ];
+                    const platformIds = Array.isArray(input?.platformIds)
+                        ? input.platformIds.filter((item) => typeof item === "string")
+                        : typeof input?.platformId === "string"
+                            ? [input.platformId]
+                            : undefined;
+                    const data = await deps.toolAffordancePort.assembleAffordanceMap({
+                        platformIds,
+                        allowedStatuses: allStatuses,
+                        goalKind: typeof input?.goalKind === "string" ? input.goalKind : undefined,
+                    });
+                    const envelope = {
+                        ok: true,
+                        command: "tool_affordance",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data,
+                        warnings: [],
+                        sourceRefs: [
+                            "core/second-nature/body/tool-affordance/affordance-assembler.ts",
+                        ],
+                    };
+                    return envelope;
+                }
+                const envelope = {
+                    ok: false,
+                    command: "tool_affordance",
+                    runtimeMode: "unavailable",
+                    surfaceMode: "cli",
+                    generatedAt,
+                    error: {
+                        code: "TOOL_AFFORDANCE_PORT_UNWIRED",
+                        message: "tool_affordance requires body-tool AffordanceMap port (T-BTS.C.1) to be wired into OpsRouterDeps",
+                        nextStep: "wire_body_tool_port_into_ops_router_deps",
+                    },
+                    warnings: [],
+                    sourceRefs: [],
+                };
+                return envelope;
+            }
+            /**
+             * [G6] heartbeat_digest — wraps generateHeartbeatDigest.
+             * Requires auditStore in deps; degrades if unavailable.
+             */
+            if (command === "heartbeat_digest") {
+                const generatedAt = new Date().toISOString();
+                if (!deps.auditStore) {
+                    const envelope = {
+                        ok: false,
+                        command: "heartbeat_digest",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "AUDIT_STORE_UNAVAILABLE",
+                            message: "heartbeat_digest requires auditStore in OpsRouterDeps",
+                            nextStep: "wire_audit_store_into_ops_router",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                const date = typeof input?.date === "string" && input.date
+                    ? input.date
+                    : new Date().toISOString().slice(0, 10);
+                try {
+                    const digestDeps = {
+                        auditStore: deps.auditStore,
+                        ...deps.heartbeatDigestDeps,
+                    };
+                    const digest = await generateHeartbeatDigest(date, digestDeps);
+                    const envelope = {
+                        ok: true,
+                        command: "heartbeat_digest",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data: digest,
+                        warnings: [],
+                        sourceRefs: ["observability/services/heartbeat-digest-assembler.ts"],
+                    };
+                    return envelope;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const envelope = {
+                        ok: false,
+                        command: "heartbeat_digest",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: { code: "DIGEST_GENERATION_FAILED", message: msg },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+            }
+            /**
+             * [G6] snapshot:capture — production capture path for RestoreSnapshot +
+             * NarrativeTimeline. This gives restore and narrative:diff real state to consume.
+             */
+            if (command === "snapshot:capture") {
+                return captureRuntimeSnapshot(deps, input);
+            }
+            /**
+             * [G6] narrative:diff — queryNarrativeDiff between two versions.
+             * Requires narrativeTimelineDeps in OpsRouterDeps.
+             */
+            if (command === "narrative:diff") {
+                const generatedAt = new Date().toISOString();
+                if (!deps.narrativeTimelineDeps) {
+                    const envelope = {
+                        ok: false,
+                        command: "narrative:diff",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "NARRATIVE_TIMELINE_PORT_UNAVAILABLE",
+                            message: "narrative:diff requires narrativeTimelineDeps in OpsRouterDeps",
+                            nextStep: "wire_narrative_timeline_deps_into_ops_router",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                const fromVersion = typeof input?.from === "string" ? input.from : "";
+                const toVersion = typeof input?.to === "string" ? input.to : "";
+                if (!fromVersion || !toVersion) {
+                    const envelope = {
+                        ok: false,
+                        command: "narrative:diff",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "MISSING_VERSIONS",
+                            message: "narrative:diff requires 'from' and 'to' version arguments",
+                            nextStep: "reinvoke_with_from_and_to",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                try {
+                    const diff = await queryNarrativeDiff(fromVersion, toVersion, deps.narrativeTimelineDeps);
+                    const envelope = {
+                        ok: true,
+                        command: "narrative:diff",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data: diff,
+                        warnings: [],
+                        sourceRefs: ["observability/services/narrative-timeline-query-service.ts"],
+                    };
+                    return envelope;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const envelope = {
+                        ok: false,
+                        command: "narrative:diff",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: { code: "NARRATIVE_DIFF_FAILED", message: msg },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+            }
+            /**
+             * [G6] timeline — queryNarrativeTimeline with cursor pagination.
+             * Requires narrativeTimelineDeps in OpsRouterDeps.
+             */
+            if (command === "timeline") {
+                const generatedAt = new Date().toISOString();
+                if (!deps.narrativeTimelineDeps) {
+                    const envelope = {
+                        ok: false,
+                        command: "timeline",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "NARRATIVE_TIMELINE_PORT_UNAVAILABLE",
+                            message: "timeline requires narrativeTimelineDeps in OpsRouterDeps",
+                            nextStep: "wire_narrative_timeline_deps_into_ops_router",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                const now = new Date();
+                const to = typeof input?.to === "string" ? input.to : now.toISOString();
+                const from = typeof input?.from === "string"
+                    ? input.from
+                    : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+                const limit = typeof input?.limit === "number" ? input.limit : 20;
+                const cursor = typeof input?.cursor === "string" ? input.cursor : undefined;
+                try {
+                    const page = await queryNarrativeTimeline(from, to, { limit, cursor }, deps.narrativeTimelineDeps);
+                    const envelope = {
+                        ok: true,
+                        command: "timeline",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data: page,
+                        warnings: [],
+                        sourceRefs: ["observability/services/narrative-timeline-query-service.ts"],
+                    };
+                    return envelope;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const code = err.name === "NarrativeQueryRangeError"
+                        ? "NARRATIVE_RANGE_EXCEEDED"
+                        : "TIMELINE_QUERY_FAILED";
+                    const envelope = {
+                        ok: false,
+                        command: "timeline",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: { code, message: msg },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+            }
+            /**
+             * [G6] restore — bounded state restoration via RestoreSnapshotStore + audit (T-ROS.C.1, T-OBS.C.6).
+             * When restoreSnapshotStore is wired, attempts to apply the snapshot payload back to state.
+             * Always writes RestoreAudit. Never restores credential fields.
+             */
+            if (command === "restore") {
+                const generatedAt = new Date().toISOString();
+                if (!deps.auditStore) {
+                    const envelope = {
+                        ok: false,
+                        command: "restore",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "AUDIT_STORE_UNAVAILABLE",
+                            message: "restore requires auditStore in OpsRouterDeps",
+                            nextStep: "wire_audit_store_into_ops_router",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                const missingFields = [];
+                if (typeof input?.restoreTarget !== "string")
+                    missingFields.push("restoreTarget");
+                if (typeof input?.fromVersion !== "string")
+                    missingFields.push("fromVersion");
+                if (typeof input?.toVersion !== "string")
+                    missingFields.push("toVersion");
+                if (missingFields.length > 0) {
+                    const envelope = {
+                        ok: false,
+                        command: "restore",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "MISSING_RESTORE_FIELDS",
+                            message: `restore requires: ${missingFields.join(", ")}`,
+                            nextStep: "reinvoke_with_required_fields",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                // [NEW] Invoke bounded restore via RestoreSnapshotStore when wired
+                let restoreResult = {
+                    ok: false,
+                    completedEntities: [],
+                    failedEntities: [],
+                    warnings: ["restore_snapshot_store_unavailable"],
+                };
+                if (deps.restoreSnapshotStore) {
+                    restoreResult = await deps.restoreSnapshotStore.applyBoundedRestore({
+                        restoreTarget: input.restoreTarget,
+                        fromVersion: input.fromVersion,
+                        toVersion: input.toVersion,
+                    });
+                }
+                const event = {
+                    id: `restore-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                    restoreTarget: input.restoreTarget,
+                    fromVersion: input.fromVersion,
+                    toVersion: input.toVersion,
+                    triggeredBy: input?.triggeredBy ?? "operator",
+                    reason: typeof input?.reason === "string" ? input.reason : "manual_restore",
+                    completedEntities: restoreResult.completedEntities,
+                    failedEntities: restoreResult.failedEntities,
+                    // credentials are always excluded from restore audit
+                    excludedFields: Array.isArray(input?.excludedFields)
+                        ? input.excludedFields.filter((f) => typeof f === "string")
+                        : ["credential", "encryptionKey"],
+                    restoredFieldCount: restoreResult.completedEntities.length,
+                    createdAt: generatedAt,
+                    traceId: typeof input?.traceId === "string" ? input.traceId : `trace-restore-${Date.now()}`,
+                };
+                const auditResult = await writeRestoreAudit(event, deps.auditStore);
+                const envelope = {
+                    ok: restoreResult.ok && auditResult.ok,
+                    command: "restore",
+                    runtimeMode: "workspace_full_runtime",
+                    surfaceMode: "cli",
+                    generatedAt,
+                    data: {
+                        auditWritten: auditResult.warnings.length === 0,
+                        fromVersion: event.fromVersion,
+                        toVersion: event.toVersion,
+                        restoreTarget: event.restoreTarget,
+                        isPartialRestore: event.failedEntities.length > 0,
+                        failedEntities: event.failedEntities,
+                        completedEntities: event.completedEntities,
+                        restoreSnapshotStoreAvailable: !!deps.restoreSnapshotStore,
+                    },
+                    warnings: [...restoreResult.warnings, ...auditResult.warnings],
+                    sourceRefs: [
+                        "observability/services/restore-audit-service.ts",
+                        "storage/services/restore-snapshot-store.ts",
+                    ],
+                };
+                return envelope;
+            }
+            /**
+             * [G7] runtime_secret_bootstrap — RuntimeSecretAnchorView pass-through.
+             * Requires secretAnchorDeps in OpsRouterDeps; never returns key plaintext.
+             */
+            if (command === "runtime_secret_bootstrap") {
+                const generatedAt = new Date().toISOString();
+                if (!deps.secretAnchorDeps) {
+                    const envelope = {
+                        ok: false,
+                        command: "runtime_secret_bootstrap",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "SECRET_ANCHOR_DEPS_UNAVAILABLE",
+                            message: "runtime_secret_bootstrap requires secretAnchorDeps in OpsRouterDeps",
+                            nextStep: "wire_secret_anchor_deps_into_ops_router",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                try {
+                    const view = await viewSecretAnchor(deps.secretAnchorDeps);
+                    // Map to RuntimeSecretBootstrapView (design model §6.1)
+                    const data = {
+                        status: view.status === "verified" || view.status === "ok"
+                            ? "ok"
+                            : view.status === "missing"
+                                ? "runtime_secret_anchor_missing"
+                                : view.status === "wrong_key"
+                                    ? "credential_recovery_required"
+                                    : view.status === "decryption_failed"
+                                        ? "runtime_secret_unavailable"
+                                        : "unknown",
+                        keyHealth: view.status === "verified" || view.status === "ok"
+                            ? "ok"
+                            : view.status === "missing"
+                                ? "missing_key"
+                                : view.status === "wrong_key"
+                                    ? "wrong_key"
+                                    : "unknown",
+                        anchorLocation: view.keyPath,
+                        recoveryPrincipleRef: view.recoveryDocRef,
+                        plaintextKeyExposed: false,
+                        reasonCode: view.reasonCode,
+                        recoverySteps: view.recoverySteps,
+                    };
+                    const envelope = {
+                        ok: true,
+                        command: "runtime_secret_bootstrap",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data,
+                        warnings: [],
+                        sourceRefs: ["observability/services/runtime-secret-anchor-view.ts"],
+                    };
+                    return envelope;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const envelope = {
+                        ok: false,
+                        command: "runtime_secret_bootstrap",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: { code: "SECRET_ANCHOR_PROBE_FAILED", message: msg },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
             }
             return {
                 ok: false,

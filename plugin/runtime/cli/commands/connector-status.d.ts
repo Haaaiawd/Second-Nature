@@ -7,6 +7,7 @@ export interface ConnectorStatusInput {
 export interface ConnectorTestInput {
     platformId: string;
     dryRun?: boolean;
+    workspaceRoot?: string;
 }
 export declare function connectorStatus(registry: DynamicConnectorRegistry | undefined, ledger: ConnectorInventoryLedger | undefined, input?: ConnectorStatusInput): Promise<Record<string, unknown>>;
 export declare function connectorTest(registry: DynamicConnectorRegistry | undefined, input: ConnectorTestInput): Promise<Record<string, unknown>>;

@@ -10,5 +10,6 @@ export * from "./outreach-draft-schema.js";
 export * from "./draft-outreach-message.js";
 export * from "./guidance-draft-service.js";
 export * from "./channel-feedback-ingestion-service.js";
+export * from "./outreach-strategy-selector.js";
 export * from "./evidence-guidance.js";
 export * from "./draft-narrative-outreach.js";

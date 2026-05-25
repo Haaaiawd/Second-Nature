@@ -192,14 +192,14 @@ src/
 - ADR-008: Probe Truth, History Browser, and Bounded Rollback
 
 ### 当前任务状态
-- 执行主清单: `.anws/v7/05A_TASKS.md`（42 个任务 + 6 个 INT 里程碑）
+- 执行主清单: `.anws/v7/05A_TASKS.md`（46 个任务 + 7 个 INT 里程碑）
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 68 完成；07_CHALLENGE_REPORT CODE review 发现 3 High / 2 Medium，Wave 69 修复中
-- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（CODE review HOLD: restore 缺少状态恢复路径 / v6 regression 9 项未 justified skip / README AGENTS 状态过时 / lint 脚本缺失）
-- **下一步**: `/forge` Wave 69 — 07_CHALLENGE_REPORT 修复：restore 状态恢复 + v6 regression skips + README/AGENTS 更新 + lint 脚本 + INT-S6 报告更新
-- **最近更新**: `2026-05-24` (`/forge` Wave 69 — 修复 07_CHALLENGE_REPORT）
+- **状态**: v7 `/forge` Wave 70 + 0.1.34 hotfix 完成；Data Lifecycle 已进入自然运行闭环，Evidence 映射完成热修
+- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Wave 69 已修复；0.1.32 E2E 剩余 lifecycle production gaps 已进入 S7 闭环修复）
+- **下一步**: `/forge` Wave 71 — T-V7C.C.2 Evidence + Body Feedback Closure
+- **最近更新**: `2026-05-25` (`/forge` 0.1.34 hotfix — wet probe upsert + nested evidence + heartbeat snapshot）
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -381,6 +381,18 @@ CR-CODE-001~005
 - **E2E**: N/A
 - **可进 Step 4**: 是
 - **下一步**: v7 全部 Sprint 里程碑关门，可发布
+
+### 🌊 Wave 70 ✅ — v7 Living Loop Closure: Data Lifecycle + Connector Truth
+T-V7C.C.1
+**签入**: 用户批准修复 + `/forge`
+- **状态**: 完成（2026-05-25）
+- **产出**: `snapshot:capture` ops 命令 + plugin bridge 注册；NarrativeTimeline production row；RestoreSnapshot capture payload；`connector_test dryRun:false` 真实 `WetProbeRunner` 执行并写入 `capability_probe_result`；restore daily/dream 表名映射；package version `0.1.34`
+- **0.1.34 热修**: `capability_probe_result` upsert；policy-wrapped `data.items` evidence 映射；full-runtime heartbeat 自动捕获 `restore_snapshot` + NarrativeTimeline production row
+- **审查报告**: `.anws/v7/wave-reviews/wave-70-review.md`
+- **测试**: `pnpm exec tsc --noEmit`; `pnpm build`; `pnpm build:plugin`; targeted `node --test` — 52/52 PASS；`cd plugin && npm pack --dry-run` — `@haaaiawd/second-nature@0.1.34`
+- **最高严重度**: none
+- **残留待跟进**: T-V7C.C.2（connector result → life evidence/body feedback）、T-V7C.C.3、T-V7C.C.4
+- **下一步**: Wave 71 — T-V7C.C.2 Evidence + Body Feedback Closure
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 

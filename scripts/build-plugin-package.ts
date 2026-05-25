@@ -185,6 +185,13 @@ function main() {
     console.error("❌ plugin/index.js not found");
     process.exit(1);
   }
+  const indexSource = fs.readFileSync(indexJs, "utf-8");
+  if (indexSource.includes("openclaw/plugin-sdk")) {
+    console.error(
+      "❌ plugin/index.js must not statically import openclaw/plugin-sdk; upload validators may not have the host SDK installed",
+    );
+    process.exit(1);
+  }
   if (!Array.isArray(pkg.openclaw?.runtimeExtensions) || !pkg.openclaw.runtimeExtensions.includes("./index.js")) {
     console.error("❌ package.json openclaw.runtimeExtensions must include ./index.js");
     process.exit(1);

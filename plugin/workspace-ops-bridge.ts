@@ -44,9 +44,24 @@ export type WorkspaceOpsBridgeOpenResult =
     };
 
 export async function openWorkspaceOpsBridge(
-  workspaceRoot: string,
+  workspaceRoot?: string,
 ): Promise<WorkspaceOpsBridgeOpenResult> {
-  const resolvedRoot = path.resolve(workspaceRoot);
+  const declaredRoot =
+    typeof workspaceRoot === "string" ? workspaceRoot.trim() : "";
+  if (!declaredRoot) {
+    return {
+      ok: false,
+      error: {
+        code: "WORKSPACE_ROOT_REQUIRED",
+        message:
+          "openWorkspaceOpsBridge requires a workspaceRoot path. Set SECOND_NATURE_WORKSPACE_ROOT or pass tool workspaceRoot.",
+        nextStep: "reinvoke_with_workspaceRoot_or_set_SECOND_NATURE_WORKSPACE_ROOT",
+        requiredUserInput: ["workspaceRoot"],
+      },
+    };
+  }
+
+  const resolvedRoot = path.resolve(declaredRoot);
   try {
     const pluginPackageRoot = path.dirname(fileURLToPath(import.meta.url));
     interface PackagedAuditStore {
@@ -69,8 +84,18 @@ export async function openWorkspaceOpsBridge(
         runtimeRecorder?: unknown;
         /** Optional in older packaged runtimes; when present, heartbeat connector_action is wired. */
         connectorExecutor?: unknown;
+        /** Capability registry for heartbeat platform/capability validation. */
+        capabilityRegistry?: unknown;
         /** T1.2.3: DynamicConnectorRegistry for connector:status / connector:test. */
         registry?: unknown;
+        /** T-ROS.C.1: AffordanceAssembler for tool_affordance. */
+        affordanceAssembler?: unknown;
+        /** T-ROS.C.1: narrative timeline query deps. */
+        narrativeTimelineDeps?: unknown;
+        /** T-ROS.C.1: runtime secret anchor deps. */
+        secretAnchorDeps?: unknown;
+        /** T-ROS.C.1: RestoreSnapshotStore for bounded restore. */
+        restoreSnapshotStore?: unknown;
       };
       closeCliRuntimeDeps: (deps: {
         stateDb: { close: () => void };
@@ -84,9 +109,15 @@ export async function openWorkspaceOpsBridge(
         state?: unknown;
         workspaceRoot?: string;
         connectorExecutor?: unknown;
+        connectorRegistry?: unknown;
         registry?: unknown;
+        toolAffordancePort?: unknown;
         // v7 (T-ROS.C.2): observability ports for v7 commands
         auditStore?: PackagedAuditStore;
+        narrativeTimelineDeps?: unknown;
+        secretAnchorDeps?: unknown;
+        // v7 Wave 69: bounded restore port for restore command
+        restoreSnapshotStore?: unknown;
       }) => {
         dispatch: (command: string, input?: Record<string, unknown>) => unknown;
       };
@@ -159,9 +190,14 @@ export async function openWorkspaceOpsBridge(
       state: stateDb,
       workspaceRoot: resolvedRoot,
       connectorExecutor: deps.connectorExecutor,
+      connectorRegistry: deps.capabilityRegistry,
       registry: deps.registry,
+      toolAffordancePort: deps.affordanceAssembler,
       // v7 (T-ROS.C.2): in-memory audit store for heartbeat_digest / restore / self_health
       auditStore,
+      narrativeTimelineDeps: deps.narrativeTimelineDeps,
+      secretAnchorDeps: deps.secretAnchorDeps,
+      restoreSnapshotStore: deps.restoreSnapshotStore,
     });
     const commands = commandsMod.createCliCommands({
       readModels: deps.readModels,
