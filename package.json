@@ -1,6 +1,6 @@
 {
   "name": "second-nature",
-  "version": "0.1.36",
+  "version": "0.1.37",
   "description": "Agent Self Layer with Dream memory, heartbeat decision loop, dynamic connector ecosystem, and source-backed outreach — an OpenClaw-native runtime.",
   "keywords": [
     "openclaw",
