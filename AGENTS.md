@@ -437,10 +437,10 @@ INT-V7C
 - **07_CHALLENGE_REPORT 关闭**: CR-CODE-001 INT-S6 / CR-CODE-002 restore state / CR-CODE-003 v6 regression skips / CR-CODE-004 AGENTS 更新 / CR-CODE-005 lint script
 - **下一步**: v7 架构版本锁定，后续变更走 `/change`
 
-### 🌊 Wave 76 📋 — 0.1.38 Real-host Closure: Host Ops Surface Parity
+### 🌊 Wave 76 🏗️ — 0.1.38 Real-host Closure: Host Ops Surface Parity
 T-V7C.C.5
-**签入**: 用户批准 `/change` handoff
-**状态**: 待 `/forge` 执行
+**签入**: AUTO
+**状态**: 进行中（Step 2 上下文加载）
 **范围**:
 - 修复 Claw 中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路
 - 收口 `connector_test dryRun:false` 成功时 envelope `ok=false` 的 wrapper 语义
