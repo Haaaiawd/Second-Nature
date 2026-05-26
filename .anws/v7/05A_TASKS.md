@@ -1167,7 +1167,7 @@
 
 ---
 
-- [ ] **T-V7C.C.5** [REQ-006, REQ-007, REQ-009, REQ-011]: Host Ops Surface Parity
+- [x] **T-V7C.C.5** [REQ-006, REQ-007, REQ-009, REQ-011]: Host Ops Surface Parity
   - **描述**: 修复 0.1.38 实机中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路，并收口 `connector_test` 成功 wrapper、`restore snapshotId` 参数兼容与 manifest/host-safe command 描述漂移。
   - **输入**: `01_PRD.md §3.1 G6/G7/G9/G11`、`04_SYSTEM_DESIGN/runtime-ops-system.md §5`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4`、T-ROS.C.1、T-ROS.C.2、T-V7C.C.1R、T-V7C.C.4R、`C:\Users\11341\Downloads\sn-0.1.38-full-issues.md`
   - **输出**: 更新 `plugin/index.ts` workspace bridge whitelist / host-safe router / simple CLI parser、`plugin/openclaw.plugin.json` 描述、`src/cli/ops/ops-router.ts` response/restore 参数兼容、相关 plugin runtime 产物与回归测试
