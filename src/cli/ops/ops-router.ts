@@ -806,7 +806,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           warnings.push("state_db_unavailable:capability_probe_result_not_persisted");
         }
         return {
-          ok: wetResult.probeResult.actualStatus !== "unavailable",
+          // T-V7C.C.5: only "available" (HTTP 200-299) counts as success;
+          // "degraded" (429/503) and "unavailable" both result in ok=false.
+          ok: wetResult.probeResult.actualStatus === "available",
           command: "connector_test" as const,
           data: {
             ...data,
@@ -1295,26 +1297,80 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           };
           return envelope;
         }
-        const missingFields: string[] = [];
-        if (typeof input?.restoreTarget !== "string") missingFields.push("restoreTarget");
-        if (typeof input?.fromVersion !== "string") missingFields.push("fromVersion");
-        if (typeof input?.toVersion !== "string") missingFields.push("toVersion");
-        if (missingFields.length > 0) {
-          const envelope: RuntimeOpsEnvelope = {
-            ok: false,
-            command: "restore",
-            runtimeMode: "workspace_full_runtime",
-            surfaceMode: "cli",
-            generatedAt,
-            error: {
-              code: "MISSING_RESTORE_FIELDS",
-              message: `restore requires: ${missingFields.join(", ")}`,
-              nextStep: "reinvoke_with_required_fields",
-            },
-            warnings: [],
-            sourceRefs: [],
-          };
-          return envelope;
+        let restoreTarget: string | undefined;
+        let fromVersion: string | undefined;
+        let toVersion: string | undefined;
+
+        // T-V7C.C.5: snapshotId operator-friendly parameter takes precedence over legacy fields.
+        // When snapshotId is provided, resolve restoreTarget/fromVersion/toVersion from the
+        // matching snapshot row; otherwise fall back to explicit legacy parameters.
+        const snapshotId = textInput(input, "snapshotId");
+        if (snapshotId) {
+          if (!deps.restoreSnapshotStore) {
+            const envelope: RuntimeOpsEnvelope = {
+              ok: false,
+              command: "restore",
+              runtimeMode: "unavailable",
+              surfaceMode: "cli",
+              generatedAt,
+              error: {
+                code: "RESTORE_SNAPSHOT_STORE_UNAVAILABLE",
+                message: "snapshotId restore requires restoreSnapshotStore in OpsRouterDeps",
+                nextStep: "wire_restore_snapshot_store_into_ops_router",
+              },
+              warnings: [],
+              sourceRefs: [],
+            };
+            return envelope;
+          }
+          const snapshots = await deps.restoreSnapshotStore.listSnapshots();
+          const match = snapshots.find((s) => s.snapshotId === snapshotId);
+          if (match) {
+            restoreTarget = snapshotId;
+            fromVersion = match.capturedAt;
+            toVersion = snapshotId;
+          } else {
+            const envelope: RuntimeOpsEnvelope = {
+              ok: false,
+              command: "restore",
+              runtimeMode: "workspace_full_runtime",
+              surfaceMode: "cli",
+              generatedAt,
+              error: {
+                code: "SNAPSHOT_NOT_FOUND",
+                message: `snapshotId ${snapshotId} not found in restore_snapshot table`,
+                nextStep: "list_available_snapshots_or_verify_snapshotId",
+              },
+              warnings: [],
+              sourceRefs: [],
+            };
+            return envelope;
+          }
+        } else {
+          const missingFields: string[] = [];
+          if (typeof input?.restoreTarget !== "string") missingFields.push("restoreTarget");
+          if (typeof input?.fromVersion !== "string") missingFields.push("fromVersion");
+          if (typeof input?.toVersion !== "string") missingFields.push("toVersion");
+          if (missingFields.length > 0) {
+            const envelope: RuntimeOpsEnvelope = {
+              ok: false,
+              command: "restore",
+              runtimeMode: "workspace_full_runtime",
+              surfaceMode: "cli",
+              generatedAt,
+              error: {
+                code: "MISSING_RESTORE_FIELDS",
+                message: `restore requires: ${missingFields.join(", ")}`,
+                nextStep: "reinvoke_with_required_fields",
+              },
+              warnings: [],
+              sourceRefs: [],
+            };
+            return envelope;
+          }
+          restoreTarget = input!.restoreTarget as string;
+          fromVersion = input!.fromVersion as string;
+          toVersion = input!.toVersion as string;
         }
 
         // [NEW] Invoke bounded restore via RestoreSnapshotStore when wired
@@ -1331,17 +1387,17 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         };
         if (deps.restoreSnapshotStore) {
           restoreResult = await deps.restoreSnapshotStore.applyBoundedRestore({
-            restoreTarget: input!.restoreTarget as string,
-            fromVersion: input!.fromVersion as string,
-            toVersion: input!.toVersion as string,
+            restoreTarget: restoreTarget!,
+            fromVersion: fromVersion!,
+            toVersion: toVersion!,
           });
         }
 
         const event: RestoreAuditEvent = {
           id: `restore-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          restoreTarget: input!.restoreTarget as RestoreAuditEvent["restoreTarget"],
-          fromVersion: input!.fromVersion as string,
-          toVersion: input!.toVersion as string,
+          restoreTarget: restoreTarget! as RestoreAuditEvent["restoreTarget"],
+          fromVersion: fromVersion!,
+          toVersion: toVersion!,
           triggeredBy: (input?.triggeredBy as RestoreAuditEvent["triggeredBy"]) ?? "operator",
           reason: typeof input?.reason === "string" ? input.reason : "manual_restore",
           completedEntities: restoreResult.completedEntities,

@@ -256,6 +256,51 @@ describe("T-ROS.C.1 #3: connector_test --wet", () => {
       stateDb.close();
     }
   });
+
+  it("T-V7C.C.5 — wet probe 429 degraded returns ok=false", async () => {
+    const stateDb = createStateDatabase(":memory:");
+    const server = createServer((_req, res) => {
+      res.writeHead(429, { "content-type": "application/json" });
+      res.end(JSON.stringify({ retryAfter: 60 }));
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address() as AddressInfo;
+    const safeEndpoint = `http://127.0.0.1:${address.port}/probe`;
+    const registry = new DynamicConnectorRegistry({
+      builtInManifests: [
+        {
+          schemaVersion: "sn.connector.v1",
+          platformId: "wet-platform",
+          displayName: "Wet Platform",
+          family: "custom",
+          capabilities: [{ id: "feed.read" }],
+          runner: { kind: "declarative_http" },
+          credentials: [],
+          sourceRefPolicy: { minSourceRefs: 0 },
+        },
+      ],
+      snapshotStore: createRegistrySnapshotStore(),
+    });
+    registry.reloadConnectors(process.cwd());
+    const router = createOpsRouter({ runtimeAvailable: true, registry, state: stateDb });
+
+    try {
+      const result = await router.dispatch("connector_test", {
+        platformId: "wet-platform",
+        capabilityId: "feed.read",
+        dryRun: false,
+        safeEndpoint,
+      }) as Record<string, unknown>;
+      // T-V7C.C.5: 429/503 must result in ok=false (only 200-299 is "available")
+      assert.strictEqual(result.ok, false);
+      const data = result.data as { actualStatus: string; httpStatus: number };
+      assert.strictEqual(data.actualStatus, "degraded");
+      assert.strictEqual(data.httpStatus, 429);
+    } finally {
+      server.close();
+      stateDb.close();
+    }
+  });
 });
 
 // ─── 4. heartbeat_digest ─────────────────────────────────────────────────────
@@ -472,6 +517,50 @@ describe("T-ROS.C.1 #7: restore", () => {
     assert.strictEqual(auditStore.list().length, 1, "partial restore must still be audited");
     stateDb.close();
   });
+
+  it("T-V7C.C.5 — restore with snapshotId resolves and applies bounded restore", async () => {
+    const { auditStore, restoreSnapshotStore, stateDb } = await makeRestoreDeps("snap-by-id", {
+      identity_profile: [
+        {
+          profile_id: "p-snapshot-id",
+          canonical_name: "SnapshotId Restore",
+          platform_handles_json: "[]",
+          updated_at: "2026-05-24T00:00:00.000Z",
+        },
+      ],
+    });
+    const router = createOpsRouter({ runtimeAvailable: true, auditStore, restoreSnapshotStore });
+    const result = await router.dispatch("restore", {
+      snapshotId: "snap-by-id",
+      reason: "snapshotId_rollback",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(result.ok, true);
+    const data = result.data as {
+      auditWritten: boolean;
+      fromVersion: string;
+      toVersion: string;
+      restoreTarget: string;
+      restoreSnapshotStoreAvailable: boolean;
+    };
+    assert.strictEqual(data.auditWritten, true);
+    assert.strictEqual(data.restoreTarget, "snap-by-id");
+    assert.strictEqual(data.toVersion, "snap-by-id");
+    assert.strictEqual(data.restoreSnapshotStoreAvailable, true);
+    stateDb.close();
+  });
+
+  it("T-V7C.C.5 — restore with unknown snapshotId returns SNAPSHOT_NOT_FOUND", async () => {
+    const auditStore = new AppendOnlyAuditStore();
+    const stateDb = createStateDatabase(":memory:");
+    const restoreSnapshotStore = createRestoreSnapshotStore(stateDb);
+    const router = createOpsRouter({ runtimeAvailable: true, auditStore, restoreSnapshotStore });
+    const result = await router.dispatch("restore", {
+      snapshotId: "no-such-snapshot",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.error?.code, "SNAPSHOT_NOT_FOUND");
+    stateDb.close();
+  });
 });
 
 // ─── 8. runtime_secret_bootstrap ─────────────────────────────────────────────
@@ -522,5 +611,51 @@ describe("T-ROS.C.1 #8: runtime_secret_bootstrap", () => {
       assert.ok(Array.isArray(data.recoverySteps), `recoverySteps must be array for scenario: ${scenario}`);
       assert.ok(data.recoverySteps.length > 0, `recoverySteps must be non-empty for scenario: ${scenario}`);
     }
+  });
+});
+
+// ─── T-V7C.C.5: guidance_payload ─────────────────────────────────────────────
+
+describe("T-V7C.C.5 #9: guidance_payload", () => {
+  it("returns impulse + atmosphere for social scene", async () => {
+    const router = createOpsRouter({ runtimeAvailable: true });
+    const result = await router.dispatch("guidance_payload", {
+      sceneType: "social",
+      capabilityIntent: "post.publish",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(result.ok, true);
+    const data = result.data as {
+      sceneType: string;
+      capabilityClass: string;
+      impulseText: string | null;
+      atmosphereText: string;
+    };
+    assert.strictEqual(data.sceneType, "social");
+    assert.strictEqual(data.capabilityClass, "broadcast");
+    assert.ok(typeof data.atmosphereText === "string" && data.atmosphereText.length > 0);
+  });
+
+  it("returns null impulse for agent.heartbeat (excluded capability)", async () => {
+    const router = createOpsRouter({ runtimeAvailable: true });
+    const result = await router.dispatch("guidance_payload", {
+      sceneType: "social",
+      capabilityIntent: "agent.heartbeat",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(result.ok, true);
+    const data = result.data as {
+      impulseText: string | null;
+      capabilityIntent: string;
+    };
+    assert.strictEqual(data.impulseText, null);
+    assert.strictEqual(data.capabilityIntent, "agent.heartbeat");
+  });
+
+  it("returns INVALID_SCENE_TYPE for unknown sceneType", async () => {
+    const router = createOpsRouter({ runtimeAvailable: true });
+    const result = await router.dispatch("guidance_payload", {
+      sceneType: "not_a_scene",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(result.ok, false);
+    assert.strictEqual(result.error?.code, "INVALID_SCENE_TYPE");
   });
 });
