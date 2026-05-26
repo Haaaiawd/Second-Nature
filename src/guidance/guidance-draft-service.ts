@@ -76,16 +76,16 @@ function buildDraftText(
   request: GuidanceDraftRequest,
   claims: DraftEvidencePackClaim[],
 ): string {
-  const anchor = claims.map((c) => c.text).join("; ");
+  const anchor = claims.map((c) => c.text).join("；");
   switch (request.sceneKind) {
     case "outreach":
-      return `Hi there — wanted to share something that came up: ${anchor}`;
+      return `有件事想跟你分享，正好碰到了：${anchor}`;
     case "follow_up":
-      return `Following up on what we talked about: ${anchor}`;
+      return `接着上次聊的说一下：${anchor}`;
     case "reconnect":
-      return `It's been a while — here's what caught my attention: ${anchor}`;
+      return `好久不见，最近有个东西让我想到你：${anchor}`;
     default:
-      return `Draft for ${request.sceneKind}: ${anchor}`;
+      return `关于 ${request.sceneKind}：${anchor}`;
   }
 }
 

@@ -693,6 +693,18 @@
 - **断言**: Quiet 后 Dream 自动触发或 skip；accepted projection 进入 heartbeat；digest 写 proof 或 fallback。
 - **证据**: `tests/integration/dream/v7c-rhythm-loop.test.ts`, `reports/v7c-rhythm-loop.md`。
 
+<a id="t-v7c-c-4r"></a>
+### T-V7C.C.4R
+- **关联需求**: REQ-006, REQ-008
+- **关联契约**: capabilityClass 推断、impulse fallback 链、guidance bridge 接线、`guidance_payload` command、buildDraftText 中文内容、agent.* 排除
+- **风险类别**: guidance bridge 断路导致 impulse 从不注入 / buildDraftText 继续返回英文占位 / capabilityClass 推断边界遗漏
+- **单元测试覆盖**: `inferCapabilityClass` 覆盖所有已知前缀（feed/post/comment/message/notification/work/task/agent）；impulse assembler 三级 fallback（platform-specific → capabilityClass → intentKind）；agent.* 返回 null 断言。
+- **API接口功能测试覆盖**: `guidance_payload` command 返回 impulseText/atmosphereText/sceneKind 非空结构体；`agent.heartbeat` 输入时返回空 impulse。
+- **集成/E2E/冒烟覆盖**: `run-heartbeat-cycle-v7.ts` → `heartbeat-executor.ts` guidance bridge 接线后 buildDraftText 返回中文内容；platform-specific impulse 优先于系统预设。
+- **前置数据**: mock capabilityIntent 覆盖表（6 种前缀）、workspace platform-specific impulse fixture、guidance scene mock。
+- **断言**: `post.*` → broadcast；`feed.*` → consume；`agent.*` → null；有 platform-specific 时 assembler 优先返回 platform-specific；无时 fallback 到 capabilityClass preset；buildDraftText 结果为中文且来自 template-registry。
+- **证据**: `tests/unit/guidance/capability-class.test.ts`、`tests/unit/guidance/impulse-assembler.test.ts`、`tests/integration/guidance/v7c-guidance-chain.test.ts`。
+
 <a id="t-v7c-c-4"></a>
 ### T-V7C.C.4
 - **关联需求**: REQ-004, REQ-006, REQ-008

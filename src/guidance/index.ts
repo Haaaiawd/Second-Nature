@@ -5,6 +5,8 @@ export * from "./output-guard.js";
 export * from "./fallback.js";
 export * from "./template-registry.js";
 export * from "./review-workflow.js";
+export * from "./capability-class.js";
+export * from "./impulse-assembler.js";
 export * from "./guidance-assembler.js";
 export * from "./outreach-draft-schema.js";
 export * from "./draft-outreach-message.js";

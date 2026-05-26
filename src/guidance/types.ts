@@ -6,7 +6,7 @@ export type GuidanceRiskLevel = "low" | "medium" | "high";
 
 export type AtmosphereOpenness = "open" | "narrow" | "quiet";
 
-export type ImpulseKind = "social" | "reply" | "outreach" | "quiet";
+export type ImpulseKind = "social" | "reply" | "outreach" | "quiet" | "explore" | "work";
 
 export type PersonaSource = "SOUL" | "USER" | "IDENTITY" | "MEMORY";
 
@@ -19,6 +19,18 @@ export interface SceneContext {
   riskLevel?: GuidanceRiskLevel;
   sceneSummary?: string;
   constraintSummary?: string[];
+  /**
+   * T-V7C.C.4R: The capability being executed (e.g. "post.publish", "feed.read").
+   * Used by ImpulseAssembler to derive capabilityClass for dual-axis impulse selection.
+   * When absent, assembler falls back to sceneType-based impulse.
+   */
+  capabilityIntent?: string;
+  /**
+   * T-V7C.C.4R: The target platform identifier (e.g. "moltbook", "instreet").
+   * Used by ImpulseAssembler to check for platform-specific impulse overrides.
+   * When absent, platform-specific lookup is skipped.
+   */
+  platformId?: string;
 }
 
 export interface AtmosphereBlock {

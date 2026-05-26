@@ -227,6 +227,32 @@
 
 ---
 
+## /change — 2026-05-25 — Wave 73 Guidance Chain Closure (T-V7C.C.4R)
+
+### Scope
+- [ADD] `T-V7C.C.4R` [REQ-006, REQ-008]: Guidance Chain & Prompt Injection Closure — 修复 guidance bridge 断路、替换 `buildDraftText` 硬编码英文占位、实现 capabilityClass 双轴 impulse 选择体系、新增 `guidance_payload` ops 命令，支持 Claw 通过 workspace 自定义 platform-specific impulse。
+- [CHANGE] `T-V7C.C.4` 依赖：`T-V7C.C.3` → `T-V7C.C.4R`（identity/goal hygiene 需先有 guidance chain 修复）
+- [CHANGE] `INT-V7C` 依赖与描述：补入 `T-V7C.C.4R`；描述追加 guidance chain 链路
+- [ADD] `05B_VERIFICATION_PLAN.md#t-v7c-c-4r`：新增验证锚点（capabilityClass 推断、impulse fallback、bridge 接线、guidance_payload command）
+
+### Architecture Decision (recorded inline)
+- **capabilityClass** 从 `capabilityIntent` 字符串前缀推断（`feed.*` → consume / `post.*` → broadcast / `comment.*`+`message.*` → interact / `work.*` → discover / `task.*` → claim / `agent.*` → 排除）；不依赖 `EffectSemanticsClass`（执行层与表达层解耦）
+- **impulse 选择优先级**: platform-specific（workspace）> capabilityClass preset > intentKind fallback > baseline atmosphere
+- `agent.*` 完全排除，不进入 impulse 体系，不注入任何内容
+- `EffectSemanticsClass`（execution-policy.ts）职责单一，不跨层承担 impulse 判断
+
+### Rationale
+- Guidance bridge（`run-heartbeat-cycle-v7.ts` → `heartbeat-executor.ts`）当前断路，impulse 从未真正注入
+- `buildDraftText` 返回硬编码英文占位，guidance-voice-system 的 template-registry 从未被消费
+- `intentKind` 精度不足（social + post.publish 与 social + comment.reply 走同一 impulse 是错的）；capabilityClass 补足这一精度
+- keepalive 行为（agent.*）与表达无关，排除可降低 impulse 体系噪声
+
+### Guardrails
+- 本次变更不改 REQ/ADR/架构前提，不回填任何 checkbox，不改 `[REQ-*]` 绑定
+- T-V7C.C.4R 依赖 T-V7C.C.3（Wave 72 已完成），可立即启动 Wave 73
+
+---
+
 ## /forge Wave 72 — 2026-05-25 — T-V7C.C.3 Rhythm Loop Closure
 
 ### Scope

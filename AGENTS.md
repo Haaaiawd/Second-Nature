@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-25` (`/forge` Wave 72 settled)
+- **最近一次更新**: `2026-05-25` (`/change` Wave 73 handoff — T-V7C.C.4R Guidance Chain Closure)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -196,10 +196,10 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 72 完成；T-V7C.C.3 Rhythm Loop Closure 已交付
+- **状态**: v7 `/forge` Wave 73 完成；T-V7C.C.4R Guidance Chain & Prompt Injection Closure 已交付
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Wave 69 已修复；0.1.32 E2E 剩余 lifecycle production gaps 已进入 S7 闭环修复）
-- **下一步**: `/forge` Wave 73 — T-V7C.C.4 及后续（下一任务按 05A_TASKS.md 确认）
-- **最近更新**: `2026-05-25` (`/forge` Wave 72 settled — T-V7C.C.3 Quiet→Dream auto-trigger + digest delivery proof/fallback)
+- **下一步**: `/forge` Wave 74 — T-V7C.C.4 Identity / Goal Hygiene Closure
+- **最近更新**: `2026-05-25` (`/forge` Wave 73 settled — capabilityClass 双轴 impulse + guidance_payload command + explore/work prompt 审核通过)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1

@@ -1077,7 +1077,7 @@
 
 ---
 
-- [ ] **T-V7C.C.3** [REQ-005, REQ-010]: Rhythm Loop Closure
+- [x] **T-V7C.C.3** [REQ-005, REQ-010]: Rhythm Loop Closure
   - **描述**: 让 Quiet completion 后的 Dream scheduler 与 heartbeat/daily digest 进入自然运行链路；Dream 未运行时必须写 explicit skip reason，digest 推送失败必须写 fallback，不把手动命令可用冒充自动节律闭环。
   - **输入**: `01_PRD.md §3.1 G5/G10`、`04_SYSTEM_DESIGN/dream-quiet-system.md §4`、`04_SYSTEM_DESIGN/observability-health-system.md §2.1 G4`、T-DQS.C.4、T-DQS.C.5、T-OBS.C.3、T-OBS.C.4、T-V7C.C.2
   - **输出**: 更新 quiet/dream scheduler 接线、heartbeat digest trigger/delivery hook、rhythm integration tests
@@ -1097,9 +1097,41 @@
 
 ---
 
+- [x] **T-V7C.C.4R** [REQ-006, REQ-008]: Guidance Chain & Prompt Injection Closure
+  - **描述**: 修复 guidance bridge 接线断路、替换 `buildDraftText` 硬编码英文占位、新增 `guidance_payload` ops 命令、实现 capabilityClass 双轴 impulse 选择体系，并支持 Claw 通过 workspace 自定义 platform-specific impulse。capabilityClass 从 `capabilityIntent` 字符串前缀推断，不依赖 `EffectSemanticsClass`（执行层与表达层解耦）。`agent.*` 能力完全排除，不进入 impulse 体系。
+  - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md`、`src/core/second-nature/heartbeat/run-heartbeat-cycle-v7.ts`、`src/core/second-nature/heartbeat/heartbeat-executor.ts`、`src/guidance/guidance-draft-service.ts`、`src/cli/ops/ops-router.ts`、`src/guidance/templates/impulses/`、T-GVS.C.1、T-V7C.C.3
+  - **输出**:
+    - `src/guidance/capability-class.ts`：`inferCapabilityClass(capabilityIntent)` 推断函数 + `CapabilityClass` 类型（consume / broadcast / interact / discover / claim）
+    - `src/guidance/impulse-assembler.ts`：三级 fallback 选择逻辑（platform-specific → capabilityClass → intentKind → baseline）
+    - `src/guidance/templates/impulses/explore.md`：consume/discover 场景姿态模板
+    - `src/guidance/templates/impulses/work.md`：claim 场景极简姿态模板
+    - `src/core/second-nature/heartbeat/run-heartbeat-cycle-v7.ts`：接入 `heartbeat-executor.ts` guidance bridge
+    - `src/guidance/guidance-draft-service.ts`：`buildDraftText` 替换为真实中文模板内容（消费 `template-registry.ts`）
+    - `src/cli/ops/ops-router.ts`：新增 `guidance_payload` command（返回当前 scene 的 impulse + atmosphere + persona 组装结果）
+    - `plugin/agent-inner-guide.md`：补充平台语言指导章节（capabilityClass 语义与 platform-specific impulse 自定义说明）
+  - **契约承接**: capabilityClass 推断覆盖所有已知 capability 前缀；impulse 三级 fallback 可单测；`guidance_payload` 返回结构体含 impulseText/atmosphereText/sceneKind；`agent.*` 不注入任何 impulse
+  - **参考**: ADR-005、ADR-006、REQ-006、REQ-008
+  - **验收标准**:
+    - Given `capabilityIntent = "post.publish"`，When `inferCapabilityClass`，Then 返回 `broadcast`
+    - Given `capabilityIntent = "feed.read"`，When `inferCapabilityClass`，Then 返回 `consume`
+    - Given `capabilityIntent = "agent.heartbeat"`，When impulse assembler，Then 返回 null（排除）
+    - Given `intentKind = "social"` + `capabilityClass = "broadcast"`，When assembler，Then 返回 `social.md` impulse（无 platform-specific 时）
+    - Given platform-specific impulse 存在 workspace，When assembler，Then 优先使用 platform-specific
+    - Given `run-heartbeat-cycle-v7.ts` 调用 heartbeat executor，When guidance bridge 有上下文，Then `buildDraftText` 返回中文模板内容而非英文占位
+    - Given `ops-router.ts` 收到 `guidance_payload` 命令，When 执行，Then 返回含 impulseText/atmosphereText 的结构体
+  - **验证类型**: 单元测试 | 集成测试 | API接口功能测试
+  - **验证摘要**: capabilityClass 推断正确性；impulse fallback 链路；guidance bridge 接线；buildDraftText 中文内容；guidance_payload command 结构
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-4r`
+  - **证据产出**: `tests/unit/guidance/capability-class.test.ts`、`tests/unit/guidance/impulse-assembler.test.ts`、`tests/integration/guidance/v7c-guidance-chain.test.ts`
+  - **估时**: 10h
+  - **依赖**: T-V7C.C.3
+  - **优先级**: P0
+
+---
+
 - [ ] **T-V7C.C.4** [REQ-004, REQ-006, REQ-008]: Identity / Goal Hygiene Closure
   - **描述**: 加固长期运行卫生：同 kind/scope goal replace/dedupe 在 ops 与 heartbeat 路径一致；IdentityProfile 成为 connector request 的统一身份源；owner feedback/relationship memory 继续影响 guidance strategy。
-  - **输入**: `01_PRD.md §4 US-004/US-006/US-008`、`04_SYSTEM_DESIGN/state-memory-system.md §4.4`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4.1`、T-SMS.C.3、T-SMS.C.4、T-GVS.C.2、T-GVS.C.3、T-V7C.C.3
+  - **输入**: `01_PRD.md §4 US-004/US-006/US-008`、`04_SYSTEM_DESIGN/state-memory-system.md §4.4`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4.1`、T-SMS.C.3、T-SMS.C.4、T-GVS.C.2、T-GVS.C.3、T-V7C.C.4R
   - **输出**: 更新 goal ops/heartbeat hygiene tests、connector identity context adapter、relationship feedback regression tests
   - **契约承接**: active goal 不分裂；connector 不依赖 prompt 临时身份；owner feedback 影响后续表达策略
   - **参考**: ADR-004、ADR-006、ADR-007、REQ-004、REQ-006、REQ-008
@@ -1112,14 +1144,14 @@
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-4`
   - **证据产出**: `tests/integration/state/v7c-identity-goal-hygiene.test.ts`
   - **估时**: 6h
-  - **依赖**: T-V7C.C.3
+  - **依赖**: T-V7C.C.4R
   - **优先级**: P1
 
 ---
 
 - [ ] **INT-V7C** [MILESTONE]: v7 Living Loop Closure 集成验证
-  - **描述**: 验证 v7 post-E2E closure：data lifecycle、connector truth、body feedback、rhythm loop、identity/goal hygiene 全链路均有真实 before/after 证据。
-  - **输入**: T-V7C.C.1、T-V7C.C.2、T-V7C.C.3、T-V7C.C.4 全部产出
+  - **描述**: 验证 v7 post-E2E closure：data lifecycle、connector truth、body feedback、rhythm loop、guidance chain、identity/goal hygiene 全链路均有真实 before/after 证据。
+  - **输入**: T-V7C.C.1、T-V7C.C.2、T-V7C.C.3、T-V7C.C.4R、T-V7C.C.4 全部产出
   - **输出**: `reports/int-v7c-living-loop-closure.md`
   - **验收标准**: Given v7 closure tasks 完成 / When 逐条检查 0.1.32 剩余缺口与 living-loop 核心路径 / Then 全通过→v7 living loop closure 完成，失败→记 Bug
   - **验证说明**: 运行相关集成测试、插件 bridge 回归、Claw E2E 手册关键命令；记录 16/16 或明确 non-blocking external unavailable
