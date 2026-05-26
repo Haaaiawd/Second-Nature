@@ -1129,7 +1129,7 @@
 
 ---
 
-- [ ] **T-V7C.C.4** [REQ-004, REQ-006, REQ-008]: Identity / Goal Hygiene Closure
+- [x] **T-V7C.C.4** [REQ-004, REQ-006, REQ-008]: Identity / Goal Hygiene Closure
   - **描述**: 加固长期运行卫生：同 kind/scope goal replace/dedupe 在 ops 与 heartbeat 路径一致；IdentityProfile 成为 connector request 的统一身份源；owner feedback/relationship memory 继续影响 guidance strategy。
   - **输入**: `01_PRD.md §4 US-004/US-006/US-008`、`04_SYSTEM_DESIGN/state-memory-system.md §4.4`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4.1`、T-SMS.C.3、T-SMS.C.4、T-GVS.C.2、T-GVS.C.3、T-V7C.C.4R
   - **输出**: 更新 goal ops/heartbeat hygiene tests、connector identity context adapter、relationship feedback regression tests

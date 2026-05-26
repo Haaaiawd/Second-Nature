@@ -203,7 +203,7 @@ export function buildFallbackCopy(ctx: FallbackContext): FallbackCopy {
  * - noReply signals: if ≥50% of last 5 patterns are "ignore" → reduce frequency
  * - trustDelta: negative trust pushes toward minimal/paused
  */
-function computeFrequency(memory: RelationshipMemory): OutreachFrequency {
+export function computeFrequency(memory: RelationshipMemory): OutreachFrequency {
   const recent = memory.responsePatterns.slice(-RECENT_PATTERNS_WINDOW);
   const noReplyCount = recent.filter(
     (p: ResponsePatternEntry) => p.reaction === "ignore" || p.reaction === "block",
@@ -230,7 +230,7 @@ function computeFrequency(memory: RelationshipMemory): OutreachFrequency {
  * - neutral or mixed → concise_factual
  * - degraded trust / mostly negative → light_check
  */
-function computeStyle(memory: RelationshipMemory, frequency: OutreachFrequency): OutreachStyle {
+export function computeStyle(memory: RelationshipMemory, frequency?: OutreachFrequency): OutreachStyle {
   if (frequency === "paused" || frequency === "minimal") return "light_check";
 
   const recent = memory.responsePatterns.slice(-RECENT_PATTERNS_WINDOW);

@@ -150,6 +150,10 @@ export async function resolveAllowedIntentResult(
       };
     }
     const decisionId = `decision:${intent.id}:${Date.now()}`;
+    // T-V7C.C.4: inject identity from EmbodiedContext into connector request (readable, no credential)
+    const platformHandle = runtime.identity?.platformHandles.find(
+      (h) => h.platformId === intent.platformId,
+    )?.handle;
     const result = await deps.connectorExecutor.executeEffect({
       platformId: intent.platformId,
       intent: toCapabilityIntent(intent),
@@ -157,6 +161,12 @@ export async function resolveAllowedIntentResult(
       decisionId,
       intentId: intent.id,
       idempotencyKey: `idem:${intent.id}:${Date.now()}`,
+      identity: platformHandle || runtime.identity?.canonicalName
+        ? {
+            platformHandle,
+            canonicalName: runtime.identity?.canonicalName,
+          }
+        : undefined,
     });
 
     // T3.3.1: on success, map connector result to life evidence and append.

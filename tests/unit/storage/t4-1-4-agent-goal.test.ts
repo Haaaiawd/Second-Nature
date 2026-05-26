@@ -94,9 +94,9 @@ test("listAgentGoals filters by status", async () => {
   const db = createStateDatabase(":memory:");
   const store = createAgentGoalStore(db);
 
-  const g1 = makeGoal({ status: "accepted", origin: "owner_set" });
-  const g2 = makeGoal({ status: "proposal", origin: "agent_proposed" });
-  const g3 = makeGoal({ status: "completed", origin: "owner_set" });
+  const g1 = makeGoal({ status: "accepted", origin: "owner_set", scope: "global" });
+  const g2 = makeGoal({ status: "proposal", origin: "agent_proposed", scope: "moltbook" });
+  const g3 = makeGoal({ status: "completed", origin: "owner_set", scope: "instreet" });
   await store.upsertAgentGoal(g1);
   await store.upsertAgentGoal(g2);
   await store.upsertAgentGoal(g3);
@@ -146,4 +146,68 @@ test("goal update preserves createdAt and changes updatedAt", async () => {
   assert.equal(loaded!.createdAt, created);
   assert.equal(loaded!.updatedAt, updated);
   assert.equal(loaded!.description, "Updated");
+});
+
+// ─── T-V7C.C.4: goal dedupe ────────────────────────────────────────────────
+
+test("upsert accepted goal marks old same-kind-scope as replaced", async () => {
+  const db = createStateDatabase(":memory:");
+  const store = createAgentGoalStore(db);
+
+  const oldGoal = makeGoal({ status: "accepted", origin: "owner_set", scope: "global", acceptedBy: "owner" });
+  const newGoal = makeGoal({ status: "accepted", origin: "owner_set", scope: "global", acceptedBy: "owner" });
+
+  await store.upsertAgentGoal(oldGoal);
+  await store.upsertAgentGoal(newGoal);
+
+  const oldLoaded = await store.loadAgentGoal(oldGoal.goalId);
+  assert.equal(oldLoaded!.status, "replaced");
+
+  const newLoaded = await store.loadAgentGoal(newGoal.goalId);
+  assert.equal(newLoaded!.status, "accepted");
+});
+
+test("upsert accepted goal does NOT replace different scope", async () => {
+  const db = createStateDatabase(":memory:");
+  const store = createAgentGoalStore(db);
+
+  const globalGoal = makeGoal({ status: "accepted", scope: "global", acceptedBy: "owner" });
+  const platformGoal = makeGoal({ status: "accepted", scope: "moltbook", acceptedBy: "owner" });
+
+  await store.upsertAgentGoal(globalGoal);
+  await store.upsertAgentGoal(platformGoal);
+
+  const globalLoaded = await store.loadAgentGoal(globalGoal.goalId);
+  assert.equal(globalLoaded!.status, "accepted");
+
+  const platformLoaded = await store.loadAgentGoal(platformGoal.goalId);
+  assert.equal(platformLoaded!.status, "accepted");
+});
+
+test("listAgentGoals dedupes by kind+scope keeping newest", async () => {
+  const db = createStateDatabase(":memory:");
+  const store = createAgentGoalStore(db);
+
+  const now = Date.now();
+  const oldGoal = makeGoal({
+    status: "accepted", scope: "global", acceptedBy: "owner",
+    updatedAt: new Date(now - 1000).toISOString(),
+  });
+  const newGoal = makeGoal({
+    status: "accepted", scope: "global", acceptedBy: "owner",
+    updatedAt: new Date(now).toISOString(),
+  });
+  // Insert old as "replaced" manually to simulate a race condition where DB still has both accepted
+  await store.upsertAgentGoal(oldGoal);
+  await store.upsertAgentGoal(newGoal);
+  // Force old back to accepted to test listAgentGoals dedupe
+  await store.transitionGoalStatus({
+    goalId: oldGoal.goalId,
+    newStatus: "accepted",
+    updatedAt: oldGoal.updatedAt,
+  });
+
+  const listed = await store.listAgentGoals({ statuses: ["accepted"] });
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0]!.goalId, newGoal.goalId);
 });

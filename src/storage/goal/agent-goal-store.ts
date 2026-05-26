@@ -13,6 +13,7 @@ export interface SourceRef {
 export interface AgentGoal {
   goalId: string;
   kind: "short_term" | "long_term";
+  scope?: string;
   status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
   origin: "owner_set" | "agent_proposed" | "policy_seeded";
   description: string;
@@ -28,6 +29,7 @@ export interface AgentGoal {
 export interface AgentGoalWrite {
   goalId: string;
   kind: "short_term" | "long_term";
+  scope?: string;
   status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
   origin: "owner_set" | "agent_proposed" | "policy_seeded";
   description: string;
@@ -77,6 +79,7 @@ function rowToGoal(row: AgentGoalRow): AgentGoal {
   return {
     goalId: row.goalId,
     kind: row.kind as "short_term" | "long_term",
+    scope: row.scope ?? undefined,
     status: row.status as AgentGoal["status"],
     origin: row.origin as AgentGoal["origin"],
     description: row.description,
@@ -95,6 +98,28 @@ export function createAgentGoalStore(database: StateDatabase): AgentGoalStore {
 
   return {
     async upsertAgentGoal(goal: AgentGoalWrite): Promise<AgentGoalWriteAck> {
+      // T-V7C.C.4: dedupe — same kind+scope accepted goals → mark old as replaced
+      if (goal.status === "accepted") {
+        const oldGoals = await db
+          .select()
+          .from(agentGoal)
+          .where(
+            and(
+              eq(agentGoal.kind, goal.kind),
+              eq(agentGoal.scope, goal.scope ?? "global"),
+              eq(agentGoal.status, "accepted"),
+            ),
+          );
+        for (const old of oldGoals) {
+          if (old.goalId !== goal.goalId) {
+            await db
+              .update(agentGoal)
+              .set({ status: "replaced" as const, updatedAt: goal.updatedAt })
+              .where(eq(agentGoal.goalId, old.goalId));
+          }
+        }
+      }
+
       const existing = await db
         .select()
         .from(agentGoal)
@@ -106,6 +131,7 @@ export function createAgentGoalStore(database: StateDatabase): AgentGoalStore {
           .update(agentGoal)
           .set({
             kind: goal.kind,
+            scope: goal.scope ?? "global",
             status: goal.status,
             origin: goal.origin,
             description: goal.description,
@@ -121,6 +147,7 @@ export function createAgentGoalStore(database: StateDatabase): AgentGoalStore {
         await db.insert(agentGoal).values({
           goalId: goal.goalId,
           kind: goal.kind,
+          scope: goal.scope ?? "global",
           status: goal.status,
           origin: goal.origin,
           description: goal.description,
@@ -153,7 +180,16 @@ export function createAgentGoalStore(database: StateDatabase): AgentGoalStore {
         .orderBy(desc(agentGoal.updatedAt))
         .limit(query.limit ?? 100);
 
-      return rows.map(rowToGoal);
+      // T-V7C.C.4: dedupe by kind+scope — keep newest (rows already sorted by updatedAt desc)
+      const seen = new Map<string, AgentGoal>();
+      for (const row of rows) {
+        const goal = rowToGoal(row);
+        const key = `${goal.kind}:${goal.scope ?? "global"}`;
+        if (!seen.has(key)) {
+          seen.set(key, goal);
+        }
+      }
+      return Array.from(seen.values());
     },
 
     async transitionGoalStatus(input: AgentGoalStatusTransition): Promise<AgentGoalWriteAck> {

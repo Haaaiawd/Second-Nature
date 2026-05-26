@@ -196,10 +196,10 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 73 完成；T-V7C.C.4R Guidance Chain & Prompt Injection Closure 已交付
+- **状态**: v7 `/forge` Wave 74 完成；T-V7C.C.4 Identity / Goal Hygiene Closure 已交付；C1R/C2/C3/C4R/C4 全部完成
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Wave 69 已修复；0.1.32 E2E 剩余 lifecycle production gaps 已进入 S7 闭环修复）
-- **下一步**: `/forge` Wave 74 — T-V7C.C.4 Identity / Goal Hygiene Closure
-- **最近更新**: `2026-05-25` (`/forge` Wave 73 settled — capabilityClass 双轴 impulse + guidance_payload command + explore/work prompt 审核通过)
+- **下一步**: `/forge` Wave 75 — INT-V7C v7 Living Loop Closure 集成验证
+- **最近更新**: `2026-05-25` (`/forge` Wave 74 settled — goal dedupe + identity→connector + relationship→guidance strategy)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -414,6 +414,26 @@ T-V7C.C.3
 - **测试**: `pnpm build` ✅；`node --test v7c-rhythm-loop.test.js` — 6/6 PASS；regression 231/231 PASS（0 fail）
 - **最高严重度**: none
 - **下一步**: Wave 73 — 按 05A_TASKS.md 确认下一任务
+
+### 🌊 Wave 73 ✅ — v7 Guidance Chain & Prompt Injection Closure
+T-V7C.C.4R
+**签入**: AUTO
+**code-reviewer**: 用户审核提示词后执行
+- **状态**: 完成（2026-05-25）
+- **产出**: capability-class.ts + impulse-assembler.ts + explore.md + work.md + guidance_payload command + buildDraftText 中文化 + agent-inner-guide.md 平台语言指导章节 + 53 测试（53/53 PASS）
+- **测试**: `pnpm build` ✅；`node --test v7c-guidance-chain.test.js` — 53/53 PASS；regression 231/231 PASS（0 fail）
+- **最高严重度**: none
+- **下一步**: Wave 74 — T-V7C.C.4 Identity / Goal Hygiene Closure
+
+### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
+T-V7C.C.4
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-25）
+- **产出**: agent-goal-store.ts dedupe (scope + upsert replace + list dedupe) + goal command scope 参数 + IdentityProfile→ConnectorRequest (snapshot-builder + runtime-snapshot + heartbeat-loop + contract) + outreach-strategy-selector export + v7c-identity-goal-hygiene 集成测试（20/20 PASS）
+- **测试**: `pnpm build` ✅；`node --test t4-1-4-agent-goal.test.js + v7c-identity-goal-hygiene.test.js` — 20/20 PASS；full regression 231/231 PASS（0 fail）
+- **最高严重度**: none
+- **下一步**: Wave 75 — INT-V7C v7 Living Loop Closure 集成验证
 
 ### 🌊 Wave 55 ✅ — v7 S3 Body Tool + Heartbeat: BehaviorPromotion
 

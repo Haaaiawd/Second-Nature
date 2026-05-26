@@ -12,6 +12,7 @@ export interface GoalCommandInput {
   criteria?: string;
   risk?: "low" | "medium" | "high";
   kind?: "short_term" | "long_term";
+  scope?: string;
   statusFilter?: string;
   originFilter?: string;
   limit?: number;
@@ -106,6 +107,7 @@ export async function goalCommand(
       await store.upsertAgentGoal({
         goalId,
         kind: input.kind ?? "short_term",
+        scope: input.scope?.trim() || "global",
         status: "accepted",
         origin: "owner_set",
         description,

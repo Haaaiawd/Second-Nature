@@ -25,6 +25,7 @@ import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-
 import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
+import { createIdentityProfileStore } from "../../storage/services/identity-profile-store.js";
 import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
@@ -157,6 +158,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
   // CR-02: Load narrative state and relationship memory when state is available.
   let narrativeState: import("../../storage/narrative/narrative-state-store.js").NarrativeState | undefined;
   let relationshipMemory: import("../../storage/relationship/relationship-memory-store.js").RelationshipMemory | undefined;
+  let identity: import("../../shared/types/v7-entities.js").IdentityProfile | undefined;
   if (options.state) {
     try {
       const narrativeStore = createNarrativeStateStore(options.state);
@@ -169,6 +171,15 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
       relationshipMemory = (await relationshipStore.loadRelationshipMemory()) ?? undefined;
     } catch {
       // Relationship memory is optional; failure should not block the cycle.
+    }
+    try {
+      const identityStore = createIdentityProfileStore(options.state);
+      const identityResult = await identityStore.loadIdentityProfile("default");
+      if (identityResult.status === "loaded" && identityResult.profile) {
+        identity = identityResult.profile;
+      }
+    } catch {
+      // Identity is optional; failure should not block the cycle.
     }
   }
 
@@ -191,6 +202,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
     narrativeState,
     relationshipMemory,
     affordanceMap: options.affordanceMap,
+    identity,
   };
 }
 

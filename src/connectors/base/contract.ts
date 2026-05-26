@@ -39,6 +39,13 @@ export function isKnownCapabilityIntent(intent: string): intent is BuiltInCapabi
   return (CAPABILITY_INTENTS as readonly string[]).includes(intent);
 }
 
+export interface ConnectorRequestIdentity {
+  /** Platform handle for the target platform (readable, no credential). */
+  platformHandle?: string;
+  /** Canonical name across all platforms. */
+  canonicalName?: string;
+}
+
 export interface ConnectorRequest {
   platformId: string;
   intent: CapabilityIntent;
@@ -48,6 +55,8 @@ export interface ConnectorRequest {
   idempotencyKey?: string;
   decisionId?: string;
   intentId?: string;
+  /** T-V7C.C.4: identity for connector request (readable, no credential). */
+  identity?: ConnectorRequestIdentity;
 }
 
 export interface ExecutionPlan {
@@ -140,6 +149,8 @@ export interface ConnectorExecutor {
     decisionId: string;
     intentId: string;
     idempotencyKey: string;
+    /** T-V7C.C.4: identity for connector request (readable, no credential). */
+    identity?: ConnectorRequestIdentity;
   }): Promise<ConnectorResult<unknown>>;
 }
 
