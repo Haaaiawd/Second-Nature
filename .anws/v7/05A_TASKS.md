@@ -1160,12 +1160,93 @@
 
 ---
 
+## S8 0.1.38 Real-host Closure
+
+> **目标**: 将 0.1.38 Claw 实机反馈中暴露的宿主入口、生产数据增长与 guidance 语义悬空问题转化为可验证修复，避免本地集成测试 PASS 冒充真实宿主闭环。
+> **退出**: `sn-0.1.38-full-issues.md` 的 P0/P1 项均有源码修复或结构化 non-blocking 解释；Claw 复测报告能看到 command 可达性、DB before/after 与 guidance 语义证据。
+
+---
+
+- [ ] **T-V7C.C.5** [REQ-006, REQ-007, REQ-009, REQ-011]: Host Ops Surface Parity
+  - **描述**: 修复 0.1.38 实机中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路，并收口 `connector_test` 成功 wrapper、`restore snapshotId` 参数兼容与 manifest/host-safe command 描述漂移。
+  - **输入**: `01_PRD.md §3.1 G6/G7/G9/G11`、`04_SYSTEM_DESIGN/runtime-ops-system.md §5`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4`、T-ROS.C.1、T-ROS.C.2、T-V7C.C.1R、T-V7C.C.4R、`C:\Users\11341\Downloads\sn-0.1.38-full-issues.md`
+  - **输出**: 更新 `plugin/index.ts` workspace bridge whitelist / host-safe router / simple CLI parser、`plugin/openclaw.plugin.json` 描述、`src/cli/ops/ops-router.ts` response/restore 参数兼容、相关 plugin runtime 产物与回归测试
+  - **契约承接**: `guidance_payload` 在 Claw `second_nature_ops` 可达；wet probe 成功时 envelope `ok=true`；`restore` 同时接受 legacy `restoreTarget/fromVersion/toVersion` 与 operator-friendly `snapshotId`；manifest 描述包含真实 v7 ops surface
+  - **参考**: ADR-006、ADR-007、ADR-008、REQ-006、REQ-007、REQ-009、REQ-011
+  - **验收标准**:
+    - Given Claw 通过 `second_nature_ops` 调用 `guidance_payload`，When 输入 `post.publish/feed.read/agent.heartbeat`，Then 命令不再 `unknown_command` 且返回对应 impulse/none 结构
+    - Given wet probe 返回健康结果，When 调用 `connector_test dryRun:false`，Then envelope `ok=true` 且 `capability_probe_result` upsert 成功
+    - Given operator 只传 `snapshotId`，When 调用 `restore`，Then 命令可恢复该 snapshot 或返回结构化 `SNAPSHOT_NOT_FOUND`，不再 `MISSING_RESTORE_FIELDS`
+    - Given plugin package 被 Claw 加载，When 查看 manifest/command list，Then v7 ops surface 描述与实际 whitelist 一致
+  - **验证类型**: API接口功能测试 | 集成测试 | 手动验证 | 回归测试
+  - **验证摘要**: plugin entry parity；ops envelope truth；restore parameter compatibility；host manifest truth
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-5`
+  - **证据产出**: `tests/integration/plugin/plugin-registration.test.ts`、`tests/integration/runtime-ops/commands.test.ts`、`reports/claw-0.1.38-gap-regression.md`
+  - **估时**: 6h
+  - **依赖**: INT-V7C
+  - **优先级**: P0
+
+---
+
+- [ ] **T-V7C.C.6** [REQ-003, REQ-005, REQ-009, REQ-010]: Production Data Growth Closure
+  - **描述**: 修复实机中 `life_evidence_index`、`tool_experience`、`dream_output_index`、`heartbeat_digest` 无增长的问题；区分“没有可执行 intent”的合理 defer/deny 与“生产写入链路没接上”的真实缺口。
+  - **输入**: `01_PRD.md §3.1 G3/G5/G9/G10`、`04_SYSTEM_DESIGN/control-plane-system.md §4`、`04_SYSTEM_DESIGN/body-tool-system.md §4.3`、`04_SYSTEM_DESIGN/dream-quiet-system.md §4`、T-V7C.C.2、T-V7C.C.3、`C:\Users\11341\Downloads\sn-0.1.38-full-issues.md`
+  - **输出**: 更新 heartbeat connector/evidence 写入路径、ToolExperience 生产注入、Quiet→Dream 实机触发或 explicit skip、heartbeat_digest 持久化/可观测路径、DB before/after 验证报告
+  - **契约承接**: heartbeat connector attempt 写 ToolExperience 或 explicit unavailable reason；success evidence 写入 `life_evidence_index`；Dream 自动触发或写 skip reason；heartbeat digest 有持久化 row 或明确无 delivery target 的 fallback
+  - **参考**: ADR-003、ADR-005、ADR-006、ADR-008、REQ-003、REQ-005、REQ-009、REQ-010
+  - **验收标准**:
+    - Given 实机 heartbeat 选择 connector intent 并执行成功，When 比较前后 DB，Then `life_evidence_index` 与 `tool_experience` 至少一项增长且 triggerSource 可读
+    - Given connector intent 因 `missing_source_refs` 或 `affordance_unavailable` defer/deny，When 读取 heartbeat result，Then 返回结构化原因并不冒充执行成功
+    - Given Quiet 写入 source-backed diary，When Dream 允许窗口满足，Then `dream_output_index` 增长或写 explicit skip reason
+    - Given heartbeat/digest window 触发，When digest delivery target 不可用，Then 写 fallback/proof 信息而不是静默 0 rows
+  - **验证类型**: 集成测试 | API接口功能测试 | 冒烟测试 | 手动验证
+  - **验证摘要**: production DB growth；heartbeat defer/deny truth；quiet→dream rows；digest rows/fallback
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-6`
+  - **证据产出**: `tests/integration/control-plane/v7c-production-growth.test.ts`、`tests/integration/dream/v7c-rhythm-loop.test.ts`、`reports/claw-0.1.38-db-growth.md`
+  - **估时**: 8h
+  - **依赖**: T-V7C.C.5
+  - **优先级**: P0
+
+---
+
+- [ ] **T-V7C.C.7** [REQ-006, REQ-008]: Guidance Semantics Refinement
+  - **描述**: 将 guidance payload 从“可预览字段”收敛为“引导而非程序”的表达协议：`outputGuard` 不再被误解为最终格式规范或 hard guard；`atmosphere` 压缩为低频状态约束；`impulse/persona/expression boundary` 必须能进入真实生成上下文或明确标记为 preview-only。
+  - **输入**: `01_PRD.md §3.1 G6/G8`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4`、ADR-006、T-GVS.C.1、T-GVS.C.3、T-V7C.C.4R、用户关于“引导而非程序”的确认
+  - **输出**: 更新 `src/guidance/output-guard.ts` 命名/兼容层、`src/guidance/template-registry.ts` atmosphere 文本策略、guidance assembly/apply 语义、agent-inner-guide 说明与测试 fixtures
+  - **契约承接**: expression boundary 只塑造表达、不决定 allow/deny、不规定最终格式；atmosphere 是短状态约束；impulse 是动作姿态；hard guard 仍由 guard layer 独占
+  - **参考**: ADR-002、ADR-006、REQ-006、REQ-008
+  - **验收标准**:
+    - Given guidance payload 包含 expression boundary，When 进入生成上下文，Then 它只表现为 avoid/prefer 式表达约束，不要求固定 JSON/Markdown 格式
+    - Given `agent.heartbeat` 或内部能力，When 组装 guidance，Then 不注入 social impulse，且 boundary 不越权影响 hard guard verdict
+    - Given high-risk / quiet / active 三类 mode，When 生成 atmosphere，Then 返回短约束文本而非长篇背景散文
+    - Given 现有消费者仍读取 `outputGuard`，When 运行兼容测试，Then 不发生破坏性字段缺失；新语义以 `expressionBoundary` 或等价字段为主
+  - **验证类型**: 单元测试 | 集成测试 | 回归测试 | 手动验证
+  - **验证摘要**: guidance semantics；backward compatibility；prompt pollution reduction；hard guard boundary
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-v7c-c-7`
+  - **证据产出**: `tests/integration/guidance/v7c-guidance-semantics.test.ts`、`tests/integration/guidance/v7c-guidance-chain.test.ts`
+  - **估时**: 6h
+  - **依赖**: T-V7C.C.5
+  - **优先级**: P1
+
+---
+
+- [ ] **INT-V7C.R** [MILESTONE]: 0.1.38 Claw Gap Regression Gate
+  - **描述**: 以 `sn-0.1.38-full-issues.md` 为回归基线，验证 host ops 可达、生产数据增长、Dream/digest、guidance 语义与发布包版本在 Claw 实机中闭合。
+  - **输入**: T-V7C.C.5、T-V7C.C.6、T-V7C.C.7 全部产出
+  - **输出**: `reports/int-v7c-r-claw-gap-regression.md`
+  - **验收标准**: Given 0.1.38 gap 修复完成 / When 在 Claw 实机与本地集成测试执行 representative commands / Then P0 全 PASS，P1 有 PASS 或结构化 non-blocking reason，失败项进入下一轮 change
+  - **验证说明**: 对照 `sn-0.1.38-full-issues.md` 逐项执行；记录 command JSON、DB before/after、插件版本、package dry-run 与实机截图/日志
+  - **估时**: 4h
+  - **依赖**: T-V7C.C.6、T-V7C.C.7
+
+---
+
 ## 附录：优先级速查
 
 | 优先级 | 任务数 | 代表任务 |
 |--------|--------|---------|
-| P0 | 32 | Foundation schema、WriteValidationGate、CircuitBreaker、EmbodiedContext、Dream acceptance、audit chain |
-| P1 | 9 | RestoreSnapshot、BehaviorPromotion、ChannelFeedback、HeartbeatDigest delivery、NarrativeTimeline、SecretAnchorView |
+| P0 | 34 | Foundation schema、WriteValidationGate、CircuitBreaker、EmbodiedContext、Dream acceptance、audit chain、host ops parity、production data growth |
+| P1 | 10 | RestoreSnapshot、BehaviorPromotion、ChannelFeedback、HeartbeatDigest delivery、NarrativeTimeline、SecretAnchorView、guidance semantics |
 | P2 | 1 | OutreachStrategySelector、language quality lint 等 |
 
 ---

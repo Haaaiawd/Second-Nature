@@ -729,6 +729,54 @@
 - **断言**: 0.1.32 的 `NARRATIVE_DIFF_FAILED` 与 `snapshot_not_found` 不再是空库必然结论；connector wet truth 与 heartbeat protocol parity 有证据。
 - **证据**: `reports/int-v7c-living-loop-closure.md`。
 
+<a id="t-v7c-c-5"></a>
+### T-V7C.C.5
+- **关联需求**: REQ-006, REQ-007, REQ-009, REQ-011
+- **关联契约**: Claw `second_nature_ops` command reachability, `guidance_payload` ops command, `connector_test` envelope truth, `restore snapshotId` compatibility, plugin manifest/runtime surface parity
+- **风险类别**: plugin whitelist 漏注册 / host-safe router 漂移 / 成功被 wrapper 标为失败 / 文档参数与真实命令不一致 / Claw 旧 surface 被误判为 runtime failure
+- **单元测试覆盖**: command parser 对 `guidance_payload`、`restore snapshotId`、legacy restore args 的输入映射；envelope ok 判定 helper（如抽出）覆盖 available/unavailable probe 状态。
+- **API接口功能测试覆盖**: `ops-router` 对 `guidance_payload` 三态返回；`connector_test dryRun:false` 成功返回 `ok=true`；`restore snapshotId` 可恢复或返回 structured `SNAPSHOT_NOT_FOUND`。
+- **集成/E2E/冒烟覆盖**: plugin registration / workspace bridge 测试确认 `guidance_payload` 在 `second_nature_ops` 可达；Claw 实机复测命令不再 `unknown_command`。
+- **前置数据**: 0.1.38 plugin package、workspace bridge root、wet probe fixture、restore snapshot fixture、`post.publish/feed.read/agent.heartbeat` guidance fixture。
+- **断言**: host command list、workspace bridge whitelist、host-safe router、simple parser 与 `ops-router` 命令集合一致；成功 wet probe envelope 为 `ok=true`；snapshotId 路径不要求 operator 手动补 from/to。
+- **证据**: `tests/integration/plugin/plugin-registration.test.ts`、`tests/integration/runtime-ops/commands.test.ts`、`reports/claw-0.1.38-gap-regression.md`。
+
+<a id="t-v7c-c-6"></a>
+### T-V7C.C.6
+- **关联需求**: REQ-003, REQ-005, REQ-009, REQ-010
+- **关联契约**: heartbeat connector attempt -> ToolExperience, success result -> life_evidence_index, Quiet completion -> Dream schedule/run-or-skip, heartbeat digest persisted proof/fallback
+- **风险类别**: 本地 mock PASS 但实机 DB 无增长 / defer-deny 被误读为已执行 / Dream 只存在手动路径 / digest 命令可用但无自然写入
+- **单元测试覆盖**: heartbeat result reason classifier、Dream skip reason mapper、digest persistence/fallback helper。
+- **API接口功能测试覆盖**: heartbeat before/after 查询 `life_evidence_index`、`tool_experience`、`dream_output_index`、`heartbeat_digest`；defer/deny 返回 structured reasons 不写假 evidence。
+- **集成/E2E/冒烟覆盖**: Claw full heartbeat 代表路径执行；connector success/failure fixture；Quiet -> Dream -> digest representative chain。
+- **前置数据**: 可执行 connector fixture、missing_source_refs fixture、source-backed diary fixture、digest window fixture、delivery target unavailable fixture。
+- **断言**: 有执行就有 ToolExperience 或 explicit unavailable reason；有 success 就有 life evidence；Dream 触发或 skip 不静默；digest 有 row/proof/fallback。
+- **证据**: `tests/integration/control-plane/v7c-production-growth.test.ts`、`tests/integration/dream/v7c-rhythm-loop.test.ts`、`reports/claw-0.1.38-db-growth.md`。
+
+<a id="t-v7c-c-7"></a>
+### T-V7C.C.7
+- **关联需求**: REQ-006, REQ-008
+- **关联契约**: expression boundary / outputGuard compatibility, atmosphere short runtime constraint, impulse/persona/boundary guidance context, hard guard ownership separation
+- **风险类别**: guidance 字段只可预览不影响生成 / `outputGuard` 被误当 final formatter 或 hard guard / atmosphere 长文本污染 prompt / 新字段破坏旧消费者
+- **单元测试覆盖**: `buildOutputGuard`/expressionBoundary compatibility；atmosphere mode/risk 短文本策略；hard guard boundary 不被 guidance 覆盖。
+- **API接口功能测试覆盖**: `guidance_payload` 返回新旧兼容字段；`agent.heartbeat` 不注入 social impulse；invalid sceneType 仍返回 structured error。
+- **集成/E2E/冒烟覆盖**: guidance draft/model prompt 代表路径能消费 impulse/persona/expression boundary；输出不呈现客服腔/日报腔/教程腔且不要求固定格式。
+- **前置数据**: active/quiet/high-risk scene fixtures、persona candidate fixture、legacy `outputGuard` consumer fixture、agent internal capability fixture。
+- **断言**: expression boundary 只塑造表达；hard guard 仍独占 allow/deny；atmosphere 不超过短约束预算；兼容字段存在且语义标注清晰。
+- **证据**: `tests/integration/guidance/v7c-guidance-semantics.test.ts`、`tests/integration/guidance/v7c-guidance-chain.test.ts`。
+
+<a id="int-v7c-r"></a>
+### INT-V7C.R
+- **关联需求**: 0.1.38 Claw gap regression, REQ-003, REQ-005, REQ-006, REQ-007, REQ-009, REQ-010, REQ-011
+- **关联契约**: host ops parity, production DB growth, guidance semantics, package/runtime version parity
+- **风险类别**: 实机与本地测试偏离 / 发布包旧缓存 / P0 gap 残留
+- **单元测试覆盖**: 汇总 T-V7C.C.5~C.7 单元测试。
+- **API接口功能测试覆盖**: runtime ops representative commands、restore snapshotId、guidance_payload、connector_test wet envelope、DB before/after。
+- **集成/E2E/冒烟覆盖**: Claw 0.1.38+ 实机复测；plugin pack dry-run；workspace bridge direct call；full heartbeat representative run。
+- **前置数据**: T-V7C.C.5~C.7 完成；`sn-0.1.38-full-issues.md` 作为 baseline。
+- **断言**: P0 全 PASS；P1 PASS 或 structured non-blocking reason；任何 failure 有 next task/change handoff。
+- **证据**: `reports/int-v7c-r-claw-gap-regression.md`。
+
 ---
 
 ## 6. Contract Coverage Overlay
@@ -769,6 +817,9 @@
 | RuntimeSurfaceRouter v7 commands | CLI/ops API | T-ROS.C.1 | T-ROS.C.1 API接口功能测试 + 集成；前置依赖显式覆盖 S5/body/connector/recovery | Planned |
 | OpenClaw plugin / WorkspaceOpsBridge | host integration | T-ROS.C.2 | T-ROS.C.2 集成 + 手动验证 | Planned |
 | ManualRunDispatcher | runtime operation | T-ROS.C.3 | T-ROS.C.3 单元 + 集成 | Planned |
+| Host ops surface parity / `guidance_payload` reachability | plugin/ops API | T-V7C.C.5 | T-V7C.C.5 API接口功能测试 + plugin integration + Claw manual verification | Planned |
+| Production DB growth / real heartbeat evidence | production data contract | T-V7C.C.6 | T-V7C.C.6 integration + DB before/after E2E | Planned |
+| Guidance expression boundary / atmosphere semantics | guidance expression contract | T-V7C.C.7 | T-V7C.C.7 单元 + 集成 + manual output review | Planned |
 
 ---
 
@@ -800,6 +851,9 @@
 | Runtime secret recovery | secret recovery | unit + API接口功能测试 + doc review | T-OBS.C.7, T-ROS.C.4 | `tests/unit/observability/runtime-secret-anchor-view.test.ts` | Planned |
 | Plugin host registration | host E2E | integration + manual screenshot | T-ROS.C.2, INT-S6 | `tests/integration/plugin/plugin-registration.test.ts` | Planned |
 | v6 regression gate | compatibility | full regression suite | T-ROS.C.5, INT-S6 | `reports/v6-regression-gate-v7.md` | Planned |
+| Claw host ops parity regression | host E2E/API drift | plugin integration + Claw command JSON | T-V7C.C.5, INT-V7C.R | `reports/claw-0.1.38-gap-regression.md` | Planned |
+| Production growth before/after | real data lifecycle | integration + DB row-count assertions | T-V7C.C.6, INT-V7C.R | `reports/claw-0.1.38-db-growth.md` | Planned |
+| Guidance semantics review | expression quality/boundary | fixture tests + manual output review | T-V7C.C.7, INT-V7C.R | `tests/integration/guidance/v7c-guidance-semantics.test.ts` | Planned |
 
 ---
 
@@ -809,15 +863,15 @@
 |---|---|---|---|---|---|
 | REQ-001 Heartbeat 读取具身上下文 | T-SMS.F.1, T-SMS.C.2, T-CP.C.1, T-CP.C.2, T-DQS.C.5, T-ROS.C.2 | 单元 + API接口功能测试 + 集成 + E2E trigger | context/heartbeat/plugin tests | heartbeat context log + release gate report | Planned |
 | REQ-002 Tool Affordance Map | T-BTS.C.1, T-BTS.C.2, T-ROS.C.3 | 单元 + API接口功能测试 + 集成 | body/affordance tests | affordance map test report | Planned |
-| REQ-003 Tool Experience 反馈 | T-SMS.F.3, T-SMS.C.5, T-CS.C.3, T-BTS.C.4, T-BTS.C.5 | 单元 + API接口功能测试 + 集成 | storage/body/connector tests | experience write report | Planned |
+| REQ-003 Tool Experience 反馈 | T-SMS.F.3, T-SMS.C.5, T-CS.C.3, T-BTS.C.4, T-BTS.C.5, T-V7C.C.6 | 单元 + API接口功能测试 + 集成 + DB before/after E2E | storage/body/connector tests | experience write report + production growth report | Planned |
 | REQ-004 Goal Lifecycle / Idle Curiosity | T-SMS.C.3, T-SMS.C.4, T-CP.C.3, T-BTS.C.2, T-BTS.C.3 | 单元 + 集成 | goal lifecycle tests | goal lifecycle report | Planned |
-| REQ-005 Quiet / Dream Projection | T-SMS.C.7, T-DQS.C.1~C.5 | 单元 + API接口功能测试 + 集成 | quiet/dream tests | Dream acceptance report | Planned |
-| REQ-006 Channel Feedback Loop | T-SMS.C.2, T-GVS.C.1~C.3 | 单元 + API接口功能测试 + 集成 | guidance tests | channel feedback report | Planned |
-| REQ-007 Self Health Snapshot | T-OBS.F.1, T-OBS.C.1, T-OBS.C.2, T-ROS.C.1, T-ROS.C.2, T-ROS.C.4 | 单元 + API接口功能测试 + 手动验证 | observability/runtime tests | self_health JSON + doc checklist | Planned |
-| REQ-008 IdentityProfile | T-SMS.F.1, T-SMS.C.1, T-SMS.C.4, T-CP.C.1 | 单元 + API接口功能测试 | identity/context tests | identity profile test report | Planned |
-| REQ-009 Auto-Probe / Wet Test / CircuitBreaker | T-CS.C.1~C.3, T-BTS.C.4, T-BTS.C.5, T-ROS.C.1 | 单元 + API接口功能测试 + 集成 | connector/body/runtime tests | wet probe log + breaker lifecycle report | Planned |
-| REQ-010 HeartbeatDigest | T-SMS.C.7, T-OBS.C.3, T-OBS.C.4, T-ROS.C.1 | 单元 + API接口功能测试 + 集成 | digest tests | digest delivery report | Planned |
-| REQ-011 NarrativeTimeline / RestoreSnapshot | T-SMS.F.2, T-SMS.C.6, T-OBS.C.5, T-OBS.C.6, T-ROS.C.1 | 单元 + API接口功能测试 + 集成 | timeline/restore tests | restore audit report | Planned |
+| REQ-005 Quiet / Dream Projection | T-SMS.C.7, T-DQS.C.1~C.5, T-V7C.C.6 | 单元 + API接口功能测试 + 集成 + E2E trigger | quiet/dream tests | Dream acceptance report + dream output row evidence | Planned |
+| REQ-006 Channel Feedback Loop | T-SMS.C.2, T-GVS.C.1~C.3, T-V7C.C.5, T-V7C.C.7 | 单元 + API接口功能测试 + 集成 + manual output review | guidance tests | channel feedback report + guidance semantics report | Planned |
+| REQ-007 Self Health Snapshot | T-OBS.F.1, T-OBS.C.1, T-OBS.C.2, T-ROS.C.1, T-ROS.C.2, T-ROS.C.4, T-V7C.C.5 | 单元 + API接口功能测试 + 手动验证 | observability/runtime/plugin tests | self_health JSON + doc checklist + host ops parity report | Planned |
+| REQ-008 IdentityProfile | T-SMS.F.1, T-SMS.C.1, T-SMS.C.4, T-CP.C.1, T-V7C.C.7 | 单元 + API接口功能测试 + guidance semantics review | identity/context/guidance tests | identity profile test report + guidance semantics report | Planned |
+| REQ-009 Auto-Probe / Wet Test / CircuitBreaker | T-CS.C.1~C.3, T-BTS.C.4, T-BTS.C.5, T-ROS.C.1, T-V7C.C.5, T-V7C.C.6 | 单元 + API接口功能测试 + 集成 + Claw E2E | connector/body/runtime tests | wet probe log + breaker lifecycle report + production growth report | Planned |
+| REQ-010 HeartbeatDigest | T-SMS.C.7, T-OBS.C.3, T-OBS.C.4, T-ROS.C.1, T-V7C.C.6 | 单元 + API接口功能测试 + 集成 + DB before/after E2E | digest tests | digest delivery report + heartbeat_digest row evidence | Planned |
+| REQ-011 NarrativeTimeline / RestoreSnapshot | T-SMS.F.2, T-SMS.C.6, T-OBS.C.5, T-OBS.C.6, T-ROS.C.1, T-V7C.C.5 | 单元 + API接口功能测试 + 集成 + Claw E2E | timeline/restore tests | restore audit report + restore snapshotId compatibility report | Planned |
 | REQ-012 Bootstrap Recovery / RuntimeSecretAnchor | T-SMS.C.6, T-OBS.C.2, T-OBS.C.7, T-ROS.C.1, T-ROS.C.4 | 单元 + API接口功能测试 + 文档审查 | runtime secret tests | recovery view + checklist | Planned |
 | DR-001 CapabilityProbeResult.capabilityId | T-CS.C.1, T-CS.C.2, T-SMS.C.5 | 单元 + API接口功能测试 | manifest/probe/store tests | capabilityId assertion | Planned |
 | DR-002 HalfOpen wet probe responsibility | T-BTS.C.5, T-CS.C.2 | 单元 + 集成 | breaker/probe tests | HalfOpen transition log | Planned |
@@ -832,6 +886,10 @@
 | S4 Dream/Quiet + Guidance exit | INT-S4 | 冒烟测试 | S4 verification report | `reports/int-s4-dream-quiet-guidance-v7.md` | Planned |
 | S5 Observability exit | INT-S5 | 冒烟测试 | S5 verification report | `reports/int-s5-observability-v7.md` | Planned |
 | S6 Release Gate | INT-S6 | E2E + 冒烟 + 回归 | release gate tests | `reports/int-s6-e2e-release-gate-v7.md` | Planned |
+| 0.1.38 host ops parity | T-V7C.C.5 | API接口功能测试 + plugin integration + Claw manual | runtime ops/plugin tests | `reports/claw-0.1.38-gap-regression.md` | Planned |
+| 0.1.38 production data growth | T-V7C.C.6 | integration + DB before/after E2E | heartbeat/dream/digest tests | `reports/claw-0.1.38-db-growth.md` | Planned |
+| Guidance semantics refinement | T-V7C.C.7 | 单元 + 集成 + manual review | guidance semantics tests | guidance fixture report | Planned |
+| 0.1.38 Claw gap regression | INT-V7C.R | E2E + 冒烟 + 回归 | Claw representative commands | `reports/int-v7c-r-claw-gap-regression.md` | Planned |
 
 ---
 
@@ -845,6 +903,7 @@
 | OpenClaw plugin 工具可见 | host register -> `second_nature_ops` visible | host screenshot / tool list log | T-ROS.C.2, INT-S6 |
 | wet probe 真实状态 | `connector_test --wet` -> real httpStatus | command JSON / endpoint log | T-ROS.C.1, INT-S6 |
 | release gate | plugin + wet + dynamic self_health + heartbeat P95 + regression | release gate report + screenshots + heartbeat P95 report + self_health dimensions JSON | INT-S6 |
+| 0.1.38 Claw gap regression | guidance_payload + connector_test + restore snapshotId + DB growth + Dream/digest | command JSON + DB before/after + plugin version evidence | T-V7C.C.5, T-V7C.C.6, T-V7C.C.7, INT-V7C.R |
 
 ---
 

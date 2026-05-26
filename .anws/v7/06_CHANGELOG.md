@@ -271,3 +271,23 @@
 - Dream 调度失败 catch 吸收后写 `quiet_dream_schedule_error` reason，保持 Quiet cycle 结果的独立性
 - `inDigestWindow` 判断逻辑委托给 `workspace-heartbeat-runner`（每日一次），`generateHeartbeatDigest` 不感知调用频率
 - `T-V7C.C.4` 与 `INT-V7C` 依赖链保持不变。
+
+---
+
+## /change — 2026-05-26 — S8 0.1.38 Real-host Closure Handoff
+
+### Scope
+- [ADD] `T-V7C.C.5` [REQ-006, REQ-007, REQ-009, REQ-011]: Host Ops Surface Parity — 修复 Claw 中 `guidance_payload` 仍为 `unknown_command` 的插件入口断路，收口 `connector_test` envelope、`restore snapshotId` 参数兼容与 manifest/host-safe surface 描述漂移。
+- [ADD] `T-V7C.C.6` [REQ-003, REQ-005, REQ-009, REQ-010]: Production Data Growth Closure — 将 0.1.38 实机 `life_evidence_index/tool_experience/dream_output_index/heartbeat_digest` 无增长问题转为 DB before/after 验收任务。
+- [ADD] `T-V7C.C.7` [REQ-006, REQ-008]: Guidance Semantics Refinement — 将 `outputGuard` 收敛为 expression/voice boundary 语义，压缩 atmosphere，并确认 impulse/persona/boundary 是否进入真实生成上下文。
+- [ADD] `INT-V7C.R`: 0.1.38 Claw Gap Regression Gate — 以 `sn-0.1.38-full-issues.md` 为 baseline 做实机回归。
+- [CHANGE] `05B_VERIFICATION_PLAN.md`: 新增 S8 任务验证锚点、Contract Coverage、Testing Coverage、Traceability Matrix 与 E2E 触发记录。
+
+### Rationale
+- 0.1.38 实机报告证明 snapshot/timeline 已增长，但 host ops surface、evidence growth、Dream/digest 与 guidance preview 仍存在真实宿主 gap。
+- `guidance_payload` 已在 `ops-router` 存在，但插件 workspace bridge whitelist / host-safe surface 未同步，属于入口 parity 问题而非 guidance 核心算法问题。
+- `outputGuard` 当前命名和 `hardGuardPriority` 容易被误解为格式控制或 hard guard；v7 新理念要求它只作为表达边界，保持“引导而非程序”。
+
+### Guardrails
+- 本次 `/change` 不回填任何已完成 checkbox，不改 `[REQ-*]` 绑定，不改 ADR/PRD 核心前提。
+- 当前未归属代码修改（plugin runtime version 注入）不在本次文档回流范围内，后续 `/forge` 应先纳入工作区状态审计。

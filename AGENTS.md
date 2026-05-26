@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-25` (`/change` Wave 73 handoff — T-V7C.C.4R Guidance Chain Closure)
+- **最近一次更新**: `2026-05-26` (`/change` S8 handoff — 0.1.38 Real-host Closure)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -192,14 +192,14 @@ src/
 - ADR-008: Probe Truth, History Browser, and Bounded Rollback
 
 ### 当前任务状态
-- 执行主清单: `.anws/v7/05A_TASKS.md`（47 个任务 + 7 个 INT 里程碑）
+- 执行主清单: `.anws/v7/05A_TASKS.md`（50 个任务 + 8 个 INT 里程碑）
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 75 完成；INT-V7C Living Loop Closure 集成验证已通过；v7 全部 42 任务 + 7 INT 里程碑关闭
+- **状态**: v7 `/forge` Wave 75 完成；`/change` 已追加 S8 0.1.38 Real-host Closure，用于收口 Claw 实机 P0/P1 gap
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: v7 架构版本锁定，后续变更走 `/change` 工作流
-- **最近更新**: `2026-05-25` (`/forge` Wave 75 settled — INT-V7C closure 报告 + 231/231 PASS + 07_CHALLENGE_REPORT 全关闭)
+- **下一步**: `/forge` Wave 76 — T-V7C.C.5 Host Ops Surface Parity（guidance_payload 可达性、connector_test envelope、restore snapshotId、manifest/bridge parity）
+- **最近更新**: `2026-05-26` (`/change` S8 handoff — T-V7C.C.5~C.7 + INT-V7C.R added from 0.1.38 Claw full issues)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -436,6 +436,18 @@ INT-V7C
 - **最高严重度**: none
 - **07_CHALLENGE_REPORT 关闭**: CR-CODE-001 INT-S6 / CR-CODE-002 restore state / CR-CODE-003 v6 regression skips / CR-CODE-004 AGENTS 更新 / CR-CODE-005 lint script
 - **下一步**: v7 架构版本锁定，后续变更走 `/change`
+
+### 🌊 Wave 76 📋 — 0.1.38 Real-host Closure: Host Ops Surface Parity
+T-V7C.C.5
+**签入**: 用户批准 `/change` handoff
+**状态**: 待 `/forge` 执行
+**范围**:
+- 修复 Claw 中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路
+- 收口 `connector_test dryRun:false` 成功时 envelope `ok=false` 的 wrapper 语义
+- 为 `restore` 增加 `snapshotId` operator-friendly 参数兼容，同时保留 `restoreTarget/fromVersion/toVersion`
+- 同步 plugin bridge whitelist、host-safe router、simple parser、manifest 描述与 ops-router 真实命令集合
+**验证**: `tests/integration/plugin/plugin-registration.test.ts`、`tests/integration/runtime-ops/commands.test.ts`、Claw `0.1.38+` command JSON 复测
+**下一步**: `/forge` Wave 76 — T-V7C.C.5
 
 ### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
 T-V7C.C.4
