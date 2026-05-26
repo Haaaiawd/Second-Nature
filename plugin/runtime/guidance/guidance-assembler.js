@@ -1,7 +1,8 @@
 import { buildMinimalGuidanceFallback } from "./fallback.js";
 import { buildOutputGuard } from "./output-guard.js";
 import { selectPersonaSnippets } from "./persona-selection.js";
-import { getBaselineAtmosphereTemplate, getImpulseTemplate } from "./template-registry.js";
+import { getBaselineAtmosphereTemplate } from "./template-registry.js";
+import { assembleImpulse } from "./impulse-assembler.js";
 async function buildAtmosphere(sceneContext) {
     const template = getBaselineAtmosphereTemplate();
     return {
@@ -12,11 +13,21 @@ async function buildAtmosphere(sceneContext) {
         reviewStatus: template.reviewStatus,
     };
 }
-async function selectImpulses(sceneContext) {
+/**
+ * Select impulses using the dual-axis capabilityClass assembler (T-V7C.C.4R).
+ *
+ * Fallback chain: platform-specific → capabilityClass preset → intentKind → []
+ */
+async function selectImpulses(sceneContext, deps) {
     if (sceneContext.sceneType === "explain" || sceneContext.sceneType === "user_reply") {
         return [];
     }
-    return [getImpulseTemplate(sceneContext.sceneType)];
+    const result = await assembleImpulse({
+        sceneType: sceneContext.sceneType,
+        capabilityIntent: sceneContext.capabilityIntent,
+        platformId: sceneContext.platformId,
+    }, deps);
+    return result.impulse ? [result.impulse] : [];
 }
 export async function assembleGuidance(input) {
     if (!input.sceneContext) {
@@ -26,10 +37,11 @@ export async function assembleGuidance(input) {
         };
     }
     const sceneContext = input.sceneContext;
+    const deps = { platformImpulsePort: input.platformImpulsePort };
     try {
         const [atmosphere, impulses] = await Promise.all([
             buildAtmosphere(sceneContext),
-            selectImpulses(sceneContext),
+            selectImpulses(sceneContext, deps),
         ]);
         const personaDecision = selectPersonaSnippets({
             sceneContext,

@@ -1203,6 +1203,73 @@ export function createOpsRouter(deps) {
                     return envelope;
                 }
             }
+            // ─── T-V7C.C.4R: guidance_payload ──────────────────────────────────────
+            // Returns the assembled impulse + atmosphere for a given scene context.
+            // Useful for Claw to inspect what guidance content would be injected before
+            // a real heartbeat cycle, and to verify platform-specific impulse overrides.
+            if (command === "guidance_payload") {
+                const generatedAt = new Date().toISOString();
+                const { assembleImpulseSync } = await import("../../guidance/impulse-assembler.js");
+                const { getBaselineAtmosphereTemplate } = await import("../../guidance/template-registry.js");
+                const sceneType = input?.sceneType ?? "social";
+                const capabilityIntent = typeof input?.capabilityIntent === "string"
+                    ? input.capabilityIntent
+                    : undefined;
+                const platformId = typeof input?.platformId === "string"
+                    ? input.platformId
+                    : undefined;
+                const validSceneTypes = ["social", "reply", "outreach", "quiet", "explain", "user_reply"];
+                if (!validSceneTypes.includes(sceneType)) {
+                    const envelope = {
+                        ok: false,
+                        command: "guidance_payload",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "INVALID_SCENE_TYPE",
+                            message: `sceneType must be one of: ${validSceneTypes.join(", ")}`,
+                            nextStep: "reinvoke_with_valid_scene_type",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                const impulseResult = assembleImpulseSync({
+                    sceneType: sceneType,
+                    capabilityIntent,
+                    platformId,
+                });
+                const atmosphere = getBaselineAtmosphereTemplate();
+                const envelope = {
+                    ok: true,
+                    command: "guidance_payload",
+                    runtimeMode: deps.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier",
+                    surfaceMode: "cli",
+                    generatedAt,
+                    data: {
+                        sceneType,
+                        capabilityIntent: capabilityIntent ?? null,
+                        platformId: platformId ?? null,
+                        capabilityClass: impulseResult.capabilityClass,
+                        impulseSource: impulseResult.source,
+                        impulseText: impulseResult.impulse?.text ?? null,
+                        impulseReviewStatus: impulseResult.impulse?.reviewStatus ?? null,
+                        atmosphereText: atmosphere.text,
+                        atmosphereReviewStatus: atmosphere.reviewStatus,
+                    },
+                    warnings: impulseResult.source === "none"
+                        ? ["no_impulse_available_for_this_scene_and_capability"]
+                        : [],
+                    sourceRefs: [
+                        "guidance/capability-class.ts",
+                        "guidance/impulse-assembler.ts",
+                        "guidance/template-registry.ts",
+                    ],
+                };
+                return envelope;
+            }
             return {
                 ok: false,
                 error: {
