@@ -437,10 +437,23 @@ INT-V7C
 - **07_CHALLENGE_REPORT 关闭**: CR-CODE-001 INT-S6 / CR-CODE-002 restore state / CR-CODE-003 v6 regression skips / CR-CODE-004 AGENTS 更新 / CR-CODE-005 lint script
 - **下一步**: v7 架构版本锁定，后续变更走 `/change`
 
-### 🌊 Wave 76 🏗️ — 0.1.38 Real-host Closure: Host Ops Surface Parity
+### 🌊 Wave 76 ✅ — 0.1.38 Real-host Closure: Host Ops Surface Parity
 T-V7C.C.5
 **签入**: AUTO
-**状态**: 进行中（Step 2 上下文加载）
+**code-reviewer**: 默认执行
+**状态**: 完成（2026-05-26）
+**产出**: 
+- `plugin/index.ts` — guidance_payload 加入 WORKSPACE_BRIDGE_COMMANDS whitelist
+- `plugin/openclaw.plugin.json` — manifest 描述更新（+ connector:run + guidance_payload）
+- `src/cli/ops/ops-router.ts` — connector_test ok 语义收紧（仅 "available" ⇒ ok=true）；restore snapshotId operator-friendly 参数兼容
+- `tests/integration/plugin/plugin-registration.test.ts` — V7_COMMANDS 扩展 + whitelist 测试
+- `tests/integration/runtime-ops/commands.test.ts` — 4 新增测试（connector_test degraded, restore snapshotId success/NotFound, guidance_payload impulse/atmosphere）
+**测试**: `pnpm build` ✅；`pnpm lint` ✅；plugin-registration 15/15 PASS；commands 31/31 PASS
+**审查报告**: `.anws/v7/wave-reviews/wave-76-review.md`（最高严重度：Low）
+**最高严重度**: Low（connector_test wet probe test duplication，非阻断）
+**残留待跟进**: 无
+**E2E**: guide-only（`wave-reviews/wave-76-e2e.md`），实机 Claw 复测待回填
+**下一步**: Wave 77 — T-V7C.C.6 Production Data Growth Closure（依赖 T-V7C.C.5，现已就绪）
 **范围**:
 - 修复 Claw 中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路
 - 收口 `connector_test dryRun:false` 成功时 envelope `ok=false` 的 wrapper 语义
