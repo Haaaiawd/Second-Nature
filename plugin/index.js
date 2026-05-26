@@ -71,7 +71,7 @@ process.stderr.write("[second-nature] module evaluated\n");
 const INTERNAL_RUNTIME_TRACE_PREFIX = "sn-runtime-";
 const HOST_SAFE_LIMITATION_MESSAGE = "Host-safe plugin package keeps synchronous register/load semantics, but mutating workspace runtime flows remain unavailable here.";
 const SETUP_MARKER_RELATIVE_PATH = path.join(".second-nature", "setup", "agent-inner-guide-ack.json");
-const SETUP_GUIDE_VERSION = "0.1.34";
+const SETUP_GUIDE_VERSION = "0.1.38";
 const SETUP_COMMANDS = new Set(["setup_hint", "setup_ack"]);
 let activationSpine = null;
 /** T1.1.4 — lazily opened full read bridge; closed when workspace root / resolution changes. */

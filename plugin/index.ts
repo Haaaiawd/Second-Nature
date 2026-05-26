@@ -174,7 +174,7 @@ const SETUP_MARKER_RELATIVE_PATH = path.join(
   "setup",
   "agent-inner-guide-ack.json",
 );
-const SETUP_GUIDE_VERSION = "0.1.34";
+const SETUP_GUIDE_VERSION = "0.1.38";
 const SETUP_COMMANDS = new Set(["setup_hint", "setup_ack"]);
 
 let activationSpine: ActivationSpine | null = null;
