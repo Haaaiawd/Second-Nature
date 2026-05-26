@@ -39,5 +39,6 @@ export function buildHeartbeatRuntimeSnapshot(timestamp, inputs, continuity) {
         narrativeState: inputs.narrativeState,
         relationshipMemory: inputs.relationshipMemory,
         affordanceMap: inputs.affordanceMap,
+        identity: inputs.identity,
     };
 }

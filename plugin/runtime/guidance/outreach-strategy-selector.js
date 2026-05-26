@@ -138,7 +138,7 @@ export function buildFallbackCopy(ctx) {
  * - noReply signals: if ≥50% of last 5 patterns are "ignore" → reduce frequency
  * - trustDelta: negative trust pushes toward minimal/paused
  */
-function computeFrequency(memory) {
+export function computeFrequency(memory) {
     const recent = memory.responsePatterns.slice(-RECENT_PATTERNS_WINDOW);
     const noReplyCount = recent.filter((p) => p.reaction === "ignore" || p.reaction === "block").length;
     const noReplyRatio = recent.length > 0 ? noReplyCount / recent.length : 0;
@@ -162,7 +162,7 @@ function computeFrequency(memory) {
  * - neutral or mixed → concise_factual
  * - degraded trust / mostly negative → light_check
  */
-function computeStyle(memory, frequency) {
+export function computeStyle(memory, frequency) {
     if (frequency === "paused" || frequency === "minimal")
         return "light_check";
     const recent = memory.responsePatterns.slice(-RECENT_PATTERNS_WINDOW);

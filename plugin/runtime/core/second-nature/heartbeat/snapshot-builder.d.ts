@@ -12,7 +12,7 @@ import type { DeliveryCapabilitySnapshot } from "../outreach/delivery-target.js"
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
 import type { NarrativeState } from "../../../storage/narrative/narrative-state-store.js";
 import type { RelationshipMemory } from "../../../storage/relationship/relationship-memory-store.js";
-import type { AffordanceMap } from "../../../shared/types/v7-entities.js";
+import type { AffordanceMap, IdentityProfile } from "../../../shared/types/v7-entities.js";
 export interface SnapshotInputs {
     mode: TopLevelMode;
     currentWindowId: string;
@@ -61,6 +61,8 @@ export interface SnapshotInputs {
     relationshipMemory?: RelationshipMemory;
     /** v7: affordance map for breaker-aware guard evaluation (T-V7C.C.2). */
     affordanceMap?: AffordanceMap;
+    /** T-V7C.C.4: identity profile for connector request identity injection. */
+    identity?: IdentityProfile;
 }
 /**
  * Build a ContinuitySnapshot from loaded inputs.

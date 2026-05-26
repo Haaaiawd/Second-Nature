@@ -196,10 +196,10 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 74 完成；T-V7C.C.4 Identity / Goal Hygiene Closure 已交付；C1R/C2/C3/C4R/C4 全部完成
-- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（Wave 69 已修复；0.1.32 E2E 剩余 lifecycle production gaps 已进入 S7 闭环修复）
-- **下一步**: `/forge` Wave 75 — INT-V7C v7 Living Loop Closure 集成验证
-- **最近更新**: `2026-05-25` (`/forge` Wave 74 settled — goal dedupe + identity→connector + relationship→guidance strategy)
+- **状态**: v7 `/forge` Wave 75 完成；INT-V7C Living Loop Closure 集成验证已通过；v7 全部 42 任务 + 7 INT 里程碑关闭
+- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
+- **下一步**: v7 架构版本锁定，后续变更走 `/change` 工作流
+- **最近更新**: `2026-05-25` (`/forge` Wave 75 settled — INT-V7C closure 报告 + 231/231 PASS + 07_CHALLENGE_REPORT 全关闭)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -424,6 +424,18 @@ T-V7C.C.4R
 - **测试**: `pnpm build` ✅；`node --test v7c-guidance-chain.test.js` — 53/53 PASS；regression 231/231 PASS（0 fail）
 - **最高严重度**: none
 - **下一步**: Wave 74 — T-V7C.C.4 Identity / Goal Hygiene Closure
+
+### 🌊 Wave 75 ✅ — v7 INT-V7C Living Loop Closure 集成验证
+INT-V7C
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-25）
+- **产出**: `reports/int-v7c-living-loop-closure.md` — 全链路 closure 验证报告；07_CHALLENGE_REPORT 全部 5 项发现关闭确认
+- **验证领域**: Data Lifecycle (25/25 PASS) / Connector Truth + Body Feedback (5/5 PASS) / Rhythm Loop (6/6 PASS) / Guidance Chain (12/12 PASS) / Identity/Goal Hygiene (9/9 PASS)
+- **测试**: `pnpm test` — 231/231 PASS（0 fail）；`pnpm lint` ✅；`pnpm build` ✅
+- **最高严重度**: none
+- **07_CHALLENGE_REPORT 关闭**: CR-CODE-001 INT-S6 / CR-CODE-002 restore state / CR-CODE-003 v6 regression skips / CR-CODE-004 AGENTS 更新 / CR-CODE-005 lint script
+- **下一步**: v7 架构版本锁定，后续变更走 `/change`
 
 ### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
 T-V7C.C.4

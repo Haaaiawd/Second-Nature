@@ -1149,7 +1149,7 @@
 
 ---
 
-- [ ] **INT-V7C** [MILESTONE]: v7 Living Loop Closure 集成验证
+- [x] **INT-V7C** [MILESTONE]: v7 Living Loop Closure 集成验证
   - **描述**: 验证 v7 post-E2E closure：data lifecycle、connector truth、body feedback、rhythm loop、guidance chain、identity/goal hygiene 全链路均有真实 before/after 证据。
   - **输入**: T-V7C.C.1、T-V7C.C.2、T-V7C.C.3、T-V7C.C.4R、T-V7C.C.4 全部产出
   - **输出**: `reports/int-v7c-living-loop-closure.md`

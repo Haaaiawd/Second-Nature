@@ -8,6 +8,7 @@ export interface SourceRef {
 export interface AgentGoal {
     goalId: string;
     kind: "short_term" | "long_term";
+    scope?: string;
     status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
     origin: "owner_set" | "agent_proposed" | "policy_seeded";
     description: string;
@@ -22,6 +23,7 @@ export interface AgentGoal {
 export interface AgentGoalWrite {
     goalId: string;
     kind: "short_term" | "long_term";
+    scope?: string;
     status: "proposal" | "accepted" | "rejected" | "completed" | "paused";
     origin: "owner_set" | "agent_proposed" | "policy_seeded";
     description: string;

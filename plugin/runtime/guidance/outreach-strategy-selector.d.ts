@@ -66,6 +66,19 @@ export declare function runStyleLint(draftText: string): StyleLintResult;
  * Never returns empty string. Includes sourceRefs anchor and human-readable channel reason.
  */
 export declare function buildFallbackCopy(ctx: FallbackContext): FallbackCopy;
+/**
+ * Compute outreach frequency from RelationshipMemory.
+ * - noReply signals: if ≥50% of last 5 patterns are "ignore" → reduce frequency
+ * - trustDelta: negative trust pushes toward minimal/paused
+ */
+export declare function computeFrequency(memory: RelationshipMemory): OutreachFrequency;
+/**
+ * Compute phrasing style from RelationshipMemory.
+ * - positive tone patterns → warm_anchored
+ * - neutral or mixed → concise_factual
+ * - degraded trust / mostly negative → light_check
+ */
+export declare function computeStyle(memory: RelationshipMemory, frequency?: OutreachFrequency): OutreachStyle;
 export interface OutreachStrategySelectorOptions {
     fallbackContext?: FallbackContext;
 }

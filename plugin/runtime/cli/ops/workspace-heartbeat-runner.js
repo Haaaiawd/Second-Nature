@@ -3,6 +3,7 @@ import { loadLifeEvidenceSnapshot } from "../../storage/snapshots/life-evidence-
 import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
+import { createIdentityProfileStore } from "../../storage/services/identity-profile-store.js";
 import { generateHeartbeatDigest, } from "../../observability/services/heartbeat-digest-assembler.js";
 export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, options = {}) {
     const status = await readModels.loadStatus();
@@ -70,6 +71,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
     // CR-02: Load narrative state and relationship memory when state is available.
     let narrativeState;
     let relationshipMemory;
+    let identity;
     if (options.state) {
         try {
             const narrativeStore = createNarrativeStateStore(options.state);
@@ -84,6 +86,16 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         }
         catch {
             // Relationship memory is optional; failure should not block the cycle.
+        }
+        try {
+            const identityStore = createIdentityProfileStore(options.state);
+            const identityResult = await identityStore.loadIdentityProfile("default");
+            if (identityResult.status === "loaded" && identityResult.profile) {
+                identity = identityResult.profile;
+            }
+        }
+        catch {
+            // Identity is optional; failure should not block the cycle.
         }
     }
     return {
@@ -105,6 +117,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
         narrativeState,
         relationshipMemory,
         affordanceMap: options.affordanceMap,
+        identity,
     };
 }
 export function createWorkspaceHeartbeatRunner(readModels, options = {}) {

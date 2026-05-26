@@ -8,6 +8,7 @@ export interface GoalCommandInput {
     criteria?: string;
     risk?: "low" | "medium" | "high";
     kind?: "short_term" | "long_term";
+    scope?: string;
     statusFilter?: string;
     originFilter?: string;
     limit?: number;

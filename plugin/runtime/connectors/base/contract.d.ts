@@ -6,6 +6,12 @@ export declare const CAPABILITY_INTENTS: readonly ["feed.read", "post.publish", 
 export type BuiltInCapabilityIntent = (typeof CAPABILITY_INTENTS)[number];
 export type CapabilityIntent = BuiltInCapabilityIntent | (string & {});
 export declare function isKnownCapabilityIntent(intent: string): intent is BuiltInCapabilityIntent;
+export interface ConnectorRequestIdentity {
+    /** Platform handle for the target platform (readable, no credential). */
+    platformHandle?: string;
+    /** Canonical name across all platforms. */
+    canonicalName?: string;
+}
 export interface ConnectorRequest {
     platformId: string;
     intent: CapabilityIntent;
@@ -15,6 +21,8 @@ export interface ConnectorRequest {
     idempotencyKey?: string;
     decisionId?: string;
     intentId?: string;
+    /** T-V7C.C.4: identity for connector request (readable, no credential). */
+    identity?: ConnectorRequestIdentity;
 }
 export interface ExecutionPlan {
     platformId: string;
@@ -89,6 +97,8 @@ export interface ConnectorExecutor {
         decisionId: string;
         intentId: string;
         idempotencyKey: string;
+        /** T-V7C.C.4: identity for connector request (readable, no credential). */
+        identity?: ConnectorRequestIdentity;
     }): Promise<ConnectorResult<unknown>>;
 }
 export declare function normalizeOutcome(attempt: RawAttempt): ConnectorResult<unknown>;

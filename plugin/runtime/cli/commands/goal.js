@@ -50,6 +50,7 @@ export async function goalCommand(stateDb, input) {
             await store.upsertAgentGoal({
                 goalId,
                 kind: input.kind ?? "short_term",
+                scope: input.scope?.trim() || "global",
                 status: "accepted",
                 origin: "owner_set",
                 description,

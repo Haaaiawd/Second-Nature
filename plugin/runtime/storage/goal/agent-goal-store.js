@@ -12,6 +12,7 @@ function rowToGoal(row) {
     return {
         goalId: row.goalId,
         kind: row.kind,
+        scope: row.scope ?? undefined,
         status: row.status,
         origin: row.origin,
         description: row.description,
@@ -28,6 +29,21 @@ export function createAgentGoalStore(database) {
     const db = database.db;
     return {
         async upsertAgentGoal(goal) {
+            // T-V7C.C.4: dedupe — same kind+scope accepted goals → mark old as replaced
+            if (goal.status === "accepted") {
+                const oldGoals = await db
+                    .select()
+                    .from(agentGoal)
+                    .where(and(eq(agentGoal.kind, goal.kind), eq(agentGoal.scope, goal.scope ?? "global"), eq(agentGoal.status, "accepted")));
+                for (const old of oldGoals) {
+                    if (old.goalId !== goal.goalId) {
+                        await db
+                            .update(agentGoal)
+                            .set({ status: "replaced", updatedAt: goal.updatedAt })
+                            .where(eq(agentGoal.goalId, old.goalId));
+                    }
+                }
+            }
             const existing = await db
                 .select()
                 .from(agentGoal)
@@ -38,6 +54,7 @@ export function createAgentGoalStore(database) {
                     .update(agentGoal)
                     .set({
                     kind: goal.kind,
+                    scope: goal.scope ?? "global",
                     status: goal.status,
                     origin: goal.origin,
                     description: goal.description,
@@ -54,6 +71,7 @@ export function createAgentGoalStore(database) {
                 await db.insert(agentGoal).values({
                     goalId: goal.goalId,
                     kind: goal.kind,
+                    scope: goal.scope ?? "global",
                     status: goal.status,
                     origin: goal.origin,
                     description: goal.description,
@@ -82,7 +100,16 @@ export function createAgentGoalStore(database) {
                 .where(conditions.length > 0 ? and(...conditions) : undefined)
                 .orderBy(desc(agentGoal.updatedAt))
                 .limit(query.limit ?? 100);
-            return rows.map(rowToGoal);
+            // T-V7C.C.4: dedupe by kind+scope — keep newest (rows already sorted by updatedAt desc)
+            const seen = new Map();
+            for (const row of rows) {
+                const goal = rowToGoal(row);
+                const key = `${goal.kind}:${goal.scope ?? "global"}`;
+                if (!seen.has(key)) {
+                    seen.set(key, goal);
+                }
+            }
+            return Array.from(seen.values());
         },
         async transitionGoalStatus(input) {
             await db

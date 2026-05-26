@@ -26,6 +26,8 @@ export interface HeartbeatRuntimeSnapshot {
     relationshipMemory?: import("../../../storage/relationship/relationship-memory-store.js").RelationshipMemory;
     /** v7: affordance map for breaker-aware guard evaluation (T-V7C.C.2). */
     affordanceMap?: AffordanceMap;
+    /** T-V7C.C.4: identity profile for connector request identity injection. */
+    identity?: import("../../../shared/types/v7-entities.js").IdentityProfile;
 }
 export declare function buildLifeEvidenceSliceFromInputs(inputs: SnapshotInputs): PlannerLifeEvidenceSlice;
 export declare function buildHardGuardDeps(continuity: ContinuitySnapshot, inputs: SnapshotInputs): HardGuardDeps;
