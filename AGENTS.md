@@ -447,17 +447,18 @@ T-V7C.C.5
 T-V7C.C.6
 **签入**: AUTO
 **code-reviewer**: 默认执行
-**状态**: 完成（2026-05-26）
+**状态**: 完成（2026-05-27）
 **产出**:
-- `src/cli/ops/heartbeat-surface.ts` — `HeartbeatCheckInput` 新增 `digestOpts` 和 `dreamSchedulePort`；透传至 `createWorkspaceHeartbeatRunner`
-- `src/cli/ops/ops-router.ts` — `heartbeat_check` dispatch 内联创建 `digestOpts`（auditStore + heartbeatDigestDeps）和 `dreamSchedulePort` adapter（state DB → `scheduleDream`）；`createOpsRouter.heartbeatCheck` 透传新字段
+- `src/cli/ops/heartbeat-surface.ts` — `HeartbeatCheckInput` 新增 `digestOpts` 和 `dreamSchedulePort`；透传至 `createWorkspaceHeartbeatRunner`；新增 try-catch 异常保护
+- `src/cli/ops/ops-router.ts` — `heartbeat_check` dispatch 内联创建 `digestOpts`（auditStore + heartbeatDigestDeps）和 `dreamSchedulePort` adapter（state DB → `scheduleDream`）；`createOpsRouter.heartbeatCheck` 透传新字段；新增 try-catch → `HEARTBEAT_CYCLE_EXCEPTION` 结构化错误
 - `src/cli/ops/workspace-heartbeat-runner.ts` — digest 生成后调用 `toStoreDigest` 桥接 + `createHistoryDigestStore.writeHeartbeatDigest` 持久化；修复生成结果被丢弃的断裂
-- `tests/integration/runtime-ops/commands.test.ts` — 2 新增集成测试（digest 持久化/降级）
-**测试**: `pnpm build` ✅；`pnpm lint` ✅；commands 33/33 PASS；heartbeat-surface-workspace 5/5 PASS；plugin-registration 15/15 PASS
-**审查报告**: 待生成
-**最高严重度**: 待生成
-**残留待跟进**: 无
-**E2E**: 待生成
+- `tests/integration/runtime-ops/commands.test.ts` — 3 个 T-V7C.C.6 集成测试（digest 持久化 / 无 auditStore 降级 / stateMemoryPort 抛出时 cycle 存活）
+- `scripts/build-plugin-package.ts` — `dream/` 加入 RUNTIME_ARTIFACTS，修复 plugin 打包后 `createQuietDreamSchedulePort` import 失败
+**测试**: `pnpm build` ✅；`pnpm lint` ✅；commands 36/36 PASS；heartbeat-surface-workspace 5/5 PASS；plugin-registration 15/15 PASS；heartbeat integration 84/84 PASS；dream 12/12 PASS；bridge 16/16 PASS
+**审查报告**: `.anws/v7/wave-reviews/wave-77-review.md`（Partial Pass → 修复后 Pass）
+**最高严重度**: High（2 项，均已修复：exception catch + test corrections）
+**残留待跟进**: life_evidence_index / tool_experience / dream_output_index 行增长需真实 connector exec，实机验证时补充
+**E2E**: `.anws/v7/wave-reviews/wave-77-e2e.md`（guide-only；实机步骤 A/B Journey 待 Claw 0.1.38+ 环境）
 **下一步**: Wave 78 — T-V7C.C.7（如有）或 INT-V7C.R 回归门
 
 ### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
