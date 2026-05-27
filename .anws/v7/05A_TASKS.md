@@ -1230,7 +1230,7 @@
 
 ---
 
-- [ ] **INT-V7C.R** [MILESTONE]: 0.1.38 Claw Gap Regression Gate
+- [x] **INT-V7C.R** [MILESTONE]: 0.1.38 Claw Gap Regression Gate
   - **描述**: 以 `sn-0.1.38-full-issues.md` 为回归基线，验证 host ops 可达、生产数据增长、Dream/digest、guidance 语义与发布包版本在 Claw 实机中闭合。
   - **输入**: T-V7C.C.5、T-V7C.C.6、T-V7C.C.7 全部产出
   - **输出**: `reports/int-v7c-r-claw-gap-regression.md`

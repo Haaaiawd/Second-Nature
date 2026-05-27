@@ -196,9 +196,9 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 78 完成；S8 0.1.38 Real-host Closure 中 T-V7C.C.5~C.7 全部交付，剩余 INT-V7C.R
+- **状态**: v7 `/forge` Wave 79 完成；S8 0.1.38 Real-host Closure 全部关闭（T-V7C.C.5~C.7 + INT-V7C.R）
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: `/forge` Wave 79 — INT-V7C.R 0.1.38 Claw Gap Regression Gate
+- **下一步**: v7 架构版本锁定，后续变更走 `/change`
 - **最近更新**: `2026-05-26` (`/change` S8 handoff — T-V7C.C.5~C.7 + INT-V7C.R added from 0.1.38 Claw full issues)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
@@ -459,7 +459,24 @@ T-V7C.C.6
 **最高严重度**: High（2 项，均已修复：exception catch + test corrections）
 **残留待跟进**: life_evidence_index / tool_experience / dream_output_index 行增长需真实 connector exec，实机验证时补充
 **E2E**: `.anws/v7/wave-reviews/wave-77-e2e.md`（guide-only；实机步骤 A/B Journey 待 Claw 0.1.38+ 环境）
-**下一步**: Wave 78 — T-V7C.C.7 Guidance Semantics Refinement
+**下一步**: Wave 79 — INT-V7C.R 0.1.38 Claw Gap Regression Gate
+
+### 🌊 Wave 79 ✅ — 0.1.38 Claw Gap Regression Gate
+INT-V7C.R
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-27）
+- **产出**:
+  - `reports/int-v7c-r-claw-gap-regression.md` — 回归验证报告
+  - 本地集成测试 ~231/231 PASS（0 fail，3 justified skips）
+  - `pnpm build` ✅；`pnpm lint` ✅
+  - package/plugin version `0.1.38` 一致
+  - 实机复测手册 §6（guide-only；待 Claw 0.1.38+ 环境）
+- **审查报告**: `.anws/v7/wave-reviews/wave-79-review.md` — PASS
+- **最高严重度**: none
+- **残留待跟进**: 实机 connector exec DB growth（Wave 77 已标记，非本波引入）
+- **E2E**: `.anws/v7/wave-reviews/wave-79-e2e.md`（guide-only）
+- **下一步**: v7 S8 全部关闭，v7 架构版本锁定
 
 ### 🌊 Wave 78 ✅ — 0.1.38 Real-host Closure: Guidance Semantics Refinement
 T-V7C.C.7
