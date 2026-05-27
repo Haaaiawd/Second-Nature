@@ -34,6 +34,7 @@ function createMockGuidanceDeps(override?: Partial<GuidanceBridgeDeps>): Guidanc
     impulseTexts: ["Be friendly"],
     personaRationales: [],
     outputConstraints: ["no-customer-service"],
+    expressionConstraints: ["no-customer-service"],
   };
 
   return {
@@ -173,6 +174,7 @@ test("T2.2.2 allow verdict: guidance is requested for generative scene (social)"
       impulseTexts: [],
       personaRationales: [],
       outputConstraints: [],
+      expressionConstraints: [],
     }),
   };
 
@@ -298,6 +300,7 @@ test("T2.2.2 sceneContext.mode comes from real runtime input, not hardcoded", as
       impulseTexts: [],
       personaRationales: [],
       outputConstraints: [],
+      expressionConstraints: [],
     }),
   };
 
@@ -345,6 +348,7 @@ test("T2.2.2 outreach generative scene requests guidance", async () => {
       impulseTexts: [],
       personaRationales: [],
       outputConstraints: [],
+      expressionConstraints: [],
     }),
   };
 
@@ -387,6 +391,7 @@ test("T2.2.2 exploration generative scene requests guidance", async () => {
       impulseTexts: [],
       personaRationales: [],
       outputConstraints: [],
+      expressionConstraints: [],
     }),
   };
 

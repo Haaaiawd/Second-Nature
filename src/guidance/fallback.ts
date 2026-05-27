@@ -1,19 +1,22 @@
 import type { GuidanceFallback, SceneContext } from "./types.js";
-import { buildOutputGuard } from "./output-guard.js";
+import { buildOutputGuard, buildExpressionBoundary } from "./output-guard.js";
+import { getShortAtmosphereTemplate } from "./template-registry.js";
 
 export function buildMinimalGuidanceFallback(sceneContext: SceneContext): GuidanceFallback {
+  const atmosphereTemplate = getShortAtmosphereTemplate(sceneContext.mode, sceneContext.riskLevel);
   return {
     scene: sceneContext,
     atmosphere: {
       kind: "atmosphere",
-      text: "我先保留最小但真实的状态感，不因为 guidance 缺席就假装自己失去姿态。",
+      text: atmosphereTemplate.text,
       openness: sceneContext.mode === "quiet" ? "quiet" : sceneContext.riskLevel === "high" ? "narrow" : "open",
       pressureLabels: [sceneContext.mode, sceneContext.riskLevel ?? "unknown_risk"],
-      reviewStatus: "pending_human_review",
+      reviewStatus: atmosphereTemplate.reviewStatus,
     },
     impulses: [],
     personaReinforcement: [],
     outputGuard: buildOutputGuard(sceneContext.sceneType),
+    expressionBoundary: buildExpressionBoundary(sceneContext.sceneType),
     minimal: true,
   };
 }

@@ -1209,7 +1209,7 @@
 
 ---
 
-- [ ] **T-V7C.C.7** [REQ-006, REQ-008]: Guidance Semantics Refinement
+- [x] **T-V7C.C.7** [REQ-006, REQ-008]: Guidance Semantics Refinement
   - **描述**: 将 guidance payload 从“可预览字段”收敛为“引导而非程序”的表达协议：`outputGuard` 不再被误解为最终格式规范或 hard guard；`atmosphere` 压缩为低频状态约束；`impulse/persona/expression boundary` 必须能进入真实生成上下文或明确标记为 preview-only。
   - **输入**: `01_PRD.md §3.1 G6/G8`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4`、ADR-006、T-GVS.C.1、T-GVS.C.3、T-V7C.C.4R、用户关于“引导而非程序”的确认
   - **输出**: 更新 `src/guidance/output-guard.ts` 命名/兼容层、`src/guidance/template-registry.ts` atmosphere 文本策略、guidance assembly/apply 语义、agent-inner-guide 说明与测试 fixtures

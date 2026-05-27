@@ -1645,7 +1645,11 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           platformId,
         });
 
-        const atmosphere = getBaselineAtmosphereTemplate();
+        const { buildExpressionBoundary } = await import("../../guidance/output-guard.js");
+        const { getShortAtmosphereTemplate } = await import("../../guidance/template-registry.js");
+
+        const atmosphere = getShortAtmosphereTemplate("active", "low");
+        const expressionBoundary = buildExpressionBoundary(sceneType as import("../../guidance/types.js").GuidanceSceneType);
 
         const envelope: RuntimeOpsEnvelope = {
           ok: true,
@@ -1663,6 +1667,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             impulseReviewStatus: impulseResult.impulse?.reviewStatus ?? null,
             atmosphereText: atmosphere.text,
             atmosphereReviewStatus: atmosphere.reviewStatus,
+            expressionBoundaryConstraints: expressionBoundary.constraints,
+            expressionBoundaryStyle: expressionBoundary.style,
           },
           warnings: impulseResult.source === "none"
             ? ["no_impulse_available_for_this_scene_and_capability"]
@@ -1671,6 +1677,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             "guidance/capability-class.ts",
             "guidance/impulse-assembler.ts",
             "guidance/template-registry.ts",
+            "guidance/output-guard.ts",
           ],
         };
         return envelope;

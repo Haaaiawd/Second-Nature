@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-26` (`/change` S8 handoff — 0.1.38 Real-host Closure)
+- **最近一次更新**: `2026-05-27` (`/forge` Wave 77 — T-V7C.C.6 Production Data Growth Closure)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -196,9 +196,9 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 75 完成；`/change` 已追加 S8 0.1.38 Real-host Closure，用于收口 Claw 实机 P0/P1 gap
+- **状态**: v7 `/forge` Wave 78 完成；S8 0.1.38 Real-host Closure 中 T-V7C.C.5~C.7 全部交付，剩余 INT-V7C.R
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: `/forge` Wave 76 — T-V7C.C.5 Host Ops Surface Parity（guidance_payload 可达性、connector_test envelope、restore snapshotId、manifest/bridge parity）
+- **下一步**: `/forge` Wave 79 — INT-V7C.R 0.1.38 Claw Gap Regression Gate
 - **最近更新**: `2026-05-26` (`/change` S8 handoff — T-V7C.C.5~C.7 + INT-V7C.R added from 0.1.38 Claw full issues)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
@@ -459,7 +459,30 @@ T-V7C.C.6
 **最高严重度**: High（2 项，均已修复：exception catch + test corrections）
 **残留待跟进**: life_evidence_index / tool_experience / dream_output_index 行增长需真实 connector exec，实机验证时补充
 **E2E**: `.anws/v7/wave-reviews/wave-77-e2e.md`（guide-only；实机步骤 A/B Journey 待 Claw 0.1.38+ 环境）
-**下一步**: Wave 78 — T-V7C.C.7（如有）或 INT-V7C.R 回归门
+**下一步**: Wave 78 — T-V7C.C.7 Guidance Semantics Refinement
+
+### 🌊 Wave 78 ✅ — 0.1.38 Real-host Closure: Guidance Semantics Refinement
+T-V7C.C.7
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-27）
+- **产出**:
+  - `src/guidance/output-guard.ts` — `buildExpressionBoundary` + `ExpressionBoundaryBlock` 新语义；`buildOutputGuard` 兼容层保留
+  - `src/guidance/template-registry.ts` — `getShortAtmosphereTemplate` 短约束 atmosphere（按 mode+risk ≤120 字）；`getBaselineAtmosphereTemplate` 兼容层保留
+  - `src/guidance/guidance-assembler.ts` / `fallback.ts` — 生产默认使用短 atmosphere + expressionBoundary
+  - `src/core/second-nature/guidance/apply-guidance.ts` — 消费 `expressionBoundary` 并回退 `outputGuard`
+  - `src/core/second-nature/guidance/user-reply-continuity.ts` — expressionBoundary 注入
+  - `src/observability/projections/guidance-audit.ts` — `expression_boundary` block 识别
+  - `src/cli/ops/ops-router.ts` — `guidance_payload` 返回 `expressionBoundaryConstraints`
+  - `plugin/agent-inner-guide.md` — expression boundary 语义说明章节
+  - `tests/integration/guidance/v7c-guidance-semantics.test.ts` — 12 项新测试全部通过
+  - `tests/unit/guidance/guidance-draft-service.test.ts` — 修复中文 buildDraftText 期望
+- **测试**: `pnpm build` ✅；`pnpm lint` ✅；guidance integration + unit + heartbeat 170/170 PASS
+- **审查报告**: `.anws/v7/wave-reviews/wave-78-review.md` — PASS
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **E2E**: N/A
+- **下一步**: Wave 79 — INT-V7C.R 0.1.38 Claw Gap Regression Gate
 
 ### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
 T-V7C.C.4
