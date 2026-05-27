@@ -564,73 +564,92 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           dreamSchedulePort = createQuietDreamSchedulePort(deps.state);
         }
 
-        const result = await heartbeatCheck({
-          probeOnly: coerceProbeOnlyFlag(input),
-          runtimeAvailable,
-          fakeControlPlanePassthrough:
-            input?.fakeControlPlanePassthrough &&
-            typeof input.fakeControlPlanePassthrough === "object"
-              ? (input.fakeControlPlanePassthrough as Record<string, unknown>)
-              : undefined,
-          readModels:
-            (input as Partial<HeartbeatCheckInput> | undefined)?.readModels ??
-            deps.readModels,
-          runtimeRecorder:
-            (input as Partial<HeartbeatCheckInput> | undefined)
-              ?.runtimeRecorder ?? deps.runtimeRecorder,
-          state:
-            (input as Partial<HeartbeatCheckInput> | undefined)?.state ??
-            deps.state,
-          workspaceRoot:
-            (input as Partial<HeartbeatCheckInput> | undefined)
-              ?.workspaceRoot ?? deps.workspaceRoot,
-          timestamp:
-            typeof input?.timestamp === "string" ? input.timestamp : undefined,
-          sessionContext:
-            typeof input?.sessionContext === "string"
-              ? input.sessionContext
-              : undefined,
-          scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],
-          connectorExecutor:
-            (input as Partial<HeartbeatCheckInput> | undefined)
-              ?.connectorExecutor ?? deps.connectorExecutor,
-          connectorRegistry:
-            (input as Partial<HeartbeatCheckInput> | undefined)
-              ?.connectorRegistry ?? deps.connectorRegistry,
-          affordanceMap,
-          experienceWriter,
-          digestOpts,
-          dreamSchedulePort,
-        });
-        if (
-          result.ok &&
-          result.surfaceMode === "workspace_full_runtime" &&
-          !coerceProbeOnlyFlag(input) &&
-          deps.state &&
-          deps.restoreSnapshotStore
-        ) {
-          try {
-            const capture = await captureRuntimeSnapshot(deps, {
-              snapshotId: `heartbeat:${result.decisionId ?? "cycle"}:${Date.now()}`,
-              subjectId: result.decisionId ?? "heartbeat_check",
-              reasonCode: "heartbeat_check",
-              summaryText: `Heartbeat ${result.status} captured bounded restore snapshot`,
-              focus: result.status,
-              progress: result.reasons.join(",") || "heartbeat_completed",
-              nextIntent: "continue_runtime_loop",
-              sourceRefs: result.decisionId
-                ? [`heartbeat:${result.decisionId}`]
-                : ["heartbeat:runtime"],
-            });
-            if (capture.ok) {
-              result.reasons = [...result.reasons, "restore_snapshot_captured"];
+        try {
+          const result = await heartbeatCheck({
+            probeOnly: coerceProbeOnlyFlag(input),
+            runtimeAvailable,
+            fakeControlPlanePassthrough:
+              input?.fakeControlPlanePassthrough &&
+              typeof input.fakeControlPlanePassthrough === "object"
+                ? (input.fakeControlPlanePassthrough as Record<string, unknown>)
+                : undefined,
+            readModels:
+              (input as Partial<HeartbeatCheckInput> | undefined)?.readModels ??
+              deps.readModels,
+            runtimeRecorder:
+              (input as Partial<HeartbeatCheckInput> | undefined)
+                ?.runtimeRecorder ?? deps.runtimeRecorder,
+            state:
+              (input as Partial<HeartbeatCheckInput> | undefined)?.state ??
+              deps.state,
+            workspaceRoot:
+              (input as Partial<HeartbeatCheckInput> | undefined)
+                ?.workspaceRoot ?? deps.workspaceRoot,
+            timestamp:
+              typeof input?.timestamp === "string" ? input.timestamp : undefined,
+            sessionContext:
+              typeof input?.sessionContext === "string"
+                ? input.sessionContext
+                : undefined,
+            scopeHint: input?.scopeHint as HeartbeatCheckInput["scopeHint"],
+            connectorExecutor:
+              (input as Partial<HeartbeatCheckInput> | undefined)
+                ?.connectorExecutor ?? deps.connectorExecutor,
+            connectorRegistry:
+              (input as Partial<HeartbeatCheckInput> | undefined)
+                ?.connectorRegistry ?? deps.connectorRegistry,
+            affordanceMap,
+            experienceWriter,
+            digestOpts,
+            dreamSchedulePort,
+          });
+          if (
+            result.ok &&
+            result.surfaceMode === "workspace_full_runtime" &&
+            !coerceProbeOnlyFlag(input) &&
+            deps.state &&
+            deps.restoreSnapshotStore
+          ) {
+            try {
+              const capture = await captureRuntimeSnapshot(deps, {
+                snapshotId: `heartbeat:${result.decisionId ?? "cycle"}:${Date.now()}`,
+                subjectId: result.decisionId ?? "heartbeat_check",
+                reasonCode: "heartbeat_check",
+                summaryText: `Heartbeat ${result.status} captured bounded restore snapshot`,
+                focus: result.status,
+                progress: result.reasons.join(",") || "heartbeat_completed",
+                nextIntent: "continue_runtime_loop",
+                sourceRefs: result.decisionId
+                  ? [`heartbeat:${result.decisionId}`]
+                  : ["heartbeat:runtime"],
+              });
+              if (capture.ok) {
+                result.reasons = [...result.reasons, "restore_snapshot_captured"];
+              }
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err);
+              result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
             }
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
           }
+          return result;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "heartbeat_check",
+            runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "unavailable",
+            surfaceMode: "cli",
+            generatedAt: new Date().toISOString(),
+            error: {
+              code: "HEARTBEAT_CYCLE_EXCEPTION",
+              message: `heartbeat_check cycle threw unexpectedly: ${msg.slice(0, 200)}`,
+              nextStep: "check_logs_and_report",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
         }
-        return result;
       }
       if (command === "fallback") {
         const ref = typeof input?.ref === "string" ? input.ref.trim() : "";

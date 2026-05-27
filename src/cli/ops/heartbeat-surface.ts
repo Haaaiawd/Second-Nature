@@ -182,6 +182,17 @@ export async function heartbeatCheck(
     dreamSchedulePort: input.dreamSchedulePort,
     digestOpts: input.digestOpts,
   });
-  const cycle = await run(signal);
-  return mapCycleToSurface(cycle, "workspace_full_runtime");
+  try {
+    const cycle = await run(signal);
+    return mapCycleToSurface(cycle, "workspace_full_runtime");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      status: "denied",
+      surfaceMode: "workspace_full_runtime",
+      reasons: [`heartbeat_cycle_exception:${msg.slice(0, 120)}`],
+      livedExperienceLoopClaimed: false,
+    };
+  }
 }

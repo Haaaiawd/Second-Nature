@@ -309,7 +309,7 @@ describe("T-ROS.C.1 #3: connector_test --wet", () => {
 // ─── 3.5. heartbeat_check production data growth (T-V7C.C.6) ─────────────────
 
 describe("T-V7C.C.6: heartbeat_check production data growth", () => {
-  it("persists heartbeat_digest when auditStore + state + readModels are wired", async () => {
+  it("persists heartbeat_digest when auditStore + state + digestOpts are wired", async () => {
     const stateDb = createStateDatabase(":memory:");
     const observabilityDb = createObservabilityDatabase(":memory:");
     const auditStore = new AppendOnlyAuditStore();
@@ -319,23 +319,36 @@ describe("T-V7C.C.6: heartbeat_check production data growth", () => {
       readModels,
       auditStore,
       state: stateDb,
+      heartbeatDigestDeps: {
+        stateMemoryPort: {
+          async queryGoalTransitions() {
+            return { newGoals: 0, completedGoals: 0, expiredGoals: 0, replacedGoals: 0, activeGoals: 0 };
+          },
+          async queryQuietDreamStatus() {
+            return { quietRuns: 0, quietSucceeded: 0, dreamRuns: 0, dreamAccepted: 0, dreamSkipped: 0, dreamSkipReasons: [] };
+          },
+        },
+      },
     });
     const result = (await router.dispatch("heartbeat_check", {
       probeOnly: false,
     })) as HeartbeatSurfaceResult;
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.surfaceMode, "workspace_full_runtime");
-    // Verify heartbeat_digest table received a row from digestOpts injection
+    // Verify heartbeat_digest table received a row — this is the primary evidence for T-V7C.C.6.
+    // life_evidence_index / tool_experience / dream_output_index only grow when a real connector
+    // intent is dispatched (requires connectorExecutor + platformId), which is E2E tested separately.
     const digestRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM heartbeat_digest");
     assert.strictEqual(digestRows[0]!.values[0]![0], 1);
     stateDb.close();
     observabilityDb.close();
   });
 
-  it("degrades digest generation gracefully when auditStore is missing", async () => {
+  it("does NOT persist heartbeat_digest when auditStore is absent", async () => {
     const stateDb = createStateDatabase(":memory:");
     const observabilityDb = createObservabilityDatabase(":memory:");
     const readModels = createCliReadModels({ stateDb, observabilityDb });
+    // No auditStore → digestOpts is not assembled → no digest write
     const router = createOpsRouter({
       runtimeAvailable: true,
       readModels,
@@ -346,9 +359,45 @@ describe("T-V7C.C.6: heartbeat_check production data growth", () => {
     })) as HeartbeatSurfaceResult;
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.surfaceMode, "workspace_full_runtime");
-    // No digest should be written because auditStore is absent
     const digestRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM heartbeat_digest");
     assert.strictEqual(digestRows[0]!.values[0]![0], 0);
+    stateDb.close();
+    observabilityDb.close();
+  });
+
+  it("heartbeat_check returns ok:true even when stateMemoryPort throws during digest", async () => {
+    const stateDb = createStateDatabase(":memory:");
+    const observabilityDb = createObservabilityDatabase(":memory:");
+    const auditStore = new AppendOnlyAuditStore();
+    const readModels = createCliReadModels({ stateDb, observabilityDb });
+    // Pass a stateMemoryPort that throws — generateHeartbeatDigest degrades gracefully
+    // (returns zeros for goal/quiet summary), so the digest IS still written.
+    // The key invariant here is that the cycle result remains ok:true — not that digest=0.
+    const router = createOpsRouter({
+      runtimeAvailable: true,
+      readModels,
+      auditStore,
+      state: stateDb,
+      heartbeatDigestDeps: {
+        stateMemoryPort: {
+          async queryGoalTransitions() {
+            throw new Error("DB connection lost");
+          },
+          async queryQuietDreamStatus() {
+            throw new Error("DB connection lost");
+          },
+        },
+      },
+    });
+    const result = (await router.dispatch("heartbeat_check", {
+      probeOnly: false,
+    })) as HeartbeatSurfaceResult;
+    // Cycle must succeed even when stateMemoryPort throws — digest failure is non-fatal
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.surfaceMode, "workspace_full_runtime");
+    // generateHeartbeatDigest degrades gracefully, so digest is still written (with zero summaries)
+    const digestRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM heartbeat_digest");
+    assert.strictEqual(digestRows[0]!.values[0]![0], 1);
     stateDb.close();
     observabilityDb.close();
   });
