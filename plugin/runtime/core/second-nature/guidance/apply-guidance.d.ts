@@ -5,6 +5,8 @@ export interface AppliedGuidanceContext {
     atmosphereText?: string;
     impulseTexts: string[];
     personaRationales: string[];
+    /** @deprecated Use expressionConstraints. Kept for backward compatibility. */
     outputConstraints: string[];
+    expressionConstraints: string[];
 }
 export declare function applyGuidance(input: GuidancePayload | GuidanceFallback): AppliedGuidanceContext;
