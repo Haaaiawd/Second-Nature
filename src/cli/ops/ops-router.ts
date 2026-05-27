@@ -78,6 +78,11 @@ import type {
   AffordanceStatus,
   RestorableEntityKind,
 } from "../../shared/types/v7-entities.js";
+// v7 T-V7C.C.6: Dream scheduling deps for heartbeat_check quiet→dream auto-trigger
+import { scheduleDream } from "../../dream/dream-scheduler.js";
+import { createDreamInputLoader } from "../../dream/dream-input-loader.js";
+import { createDiaryDreamStore } from "../../storage/services/diary-dream-store.js";
+import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
 
 // ─── RuntimeOpsEnvelope (T-ROS.C.1 / [G1]) ───────────────────────────────────
 
@@ -97,6 +102,50 @@ export interface RuntimeOpsEnvelope<T = unknown> {
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
   const v = input?.probeOnly;
   return v === true || v === "true" || v === 1 || v === "1";
+}
+
+/**
+ * v7 T-V7C.C.6: Build a minimal QuietDreamSchedulePort backed by the state DB.
+ * When a source-backed Quiet write completes, this port triggers Dream scheduling
+ * via the standard scheduleDream path (rules-only mode when no model port).
+ */
+function createQuietDreamSchedulePort(state: StateDatabase): QuietDreamSchedulePort {
+  return {
+    async scheduleDream({ triggerKind, runId, traceId }) {
+      const dreamStore = createDiaryDreamStore(state);
+      const inputLoader = createDreamInputLoader({ database: state });
+      const statePort: import("../../dream/types.js").DreamStatePort = {
+        async loadDreamInputs(query) {
+          return inputLoader.loadDreamInputs(query);
+        },
+        async writeDreamOutput(output) {
+          // Bridge: dream-engine emits dream/types DreamOutput; diary-dream-store expects shared/types.
+          // Structures are identical at runtime; TS strictness requires the cast.
+          await dreamStore.appendDreamOutput(output as unknown as import("../../shared/types/v7-entities.js").DreamOutput);
+          return { outputId: output.outputId, status: "acknowledged" };
+        },
+        async markDreamOutputLifecycle(input) {
+          // transitionDreamOutputLifecycle only accepts accepted|archived.
+          if (input.newStatus !== "accepted" && input.newStatus !== "archived") {
+            return { outputId: input.outputId, status: "degraded" };
+          }
+          await dreamStore.transitionDreamOutputLifecycle(
+            input.outputId,
+            input.newStatus,
+          );
+          return { outputId: input.outputId, status: "acknowledged" };
+        },
+      };
+      const result = await scheduleDream({
+        triggerKind,
+        runId,
+        traceId,
+        statePort,
+        windowKey: "quiet_completion",
+      });
+      return { status: result.status, reason: result.reason };
+    },
+  };
 }
 
 const SNAPSHOT_TABLE_BY_KIND: Record<RestorableEntityKind, string> = {
@@ -474,6 +523,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         connectorRegistry:
           (input as Partial<HeartbeatCheckInput> | undefined)
             ?.connectorRegistry ?? deps.connectorRegistry,
+        digestOpts: input.digestOpts,
+        dreamSchedulePort: input.dreamSchedulePort,
       }),
     async dispatch(command, input) {
       if (command === "heartbeat_check") {
@@ -494,6 +545,23 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         let experienceWriter: import("../../core/second-nature/body/tool-experience/experience-writer.js").ExperienceWriter | undefined;
         if (deps.state) {
           experienceWriter = createExperienceWriter(createToolExperienceStore(deps.state));
+        }
+
+        // v7 T-V7C.C.6: assemble digest opts when auditStore is wired.
+        let digestOpts: import("./heartbeat-surface.js").HeartbeatCheckInput["digestOpts"] | undefined;
+        if (deps.auditStore) {
+          digestOpts = {
+            assemblerDeps: {
+              auditStore: deps.auditStore,
+              ...deps.heartbeatDigestDeps,
+            },
+          };
+        }
+
+        // v7 T-V7C.C.6: assemble dream schedule port when state DB is wired.
+        let dreamSchedulePort: QuietDreamSchedulePort | undefined;
+        if (deps.state) {
+          dreamSchedulePort = createQuietDreamSchedulePort(deps.state);
         }
 
         const result = await heartbeatCheck({
@@ -531,6 +599,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
               ?.connectorRegistry ?? deps.connectorRegistry,
           affordanceMap,
           experienceWriter,
+          digestOpts,
+          dreamSchedulePort,
         });
         if (
           result.ok &&

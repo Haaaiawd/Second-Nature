@@ -14,6 +14,9 @@ export interface RuntimeServiceContext {
   workspaceRoot?: string;
   /** Plugin configuration overrides */
   config?: Record<string, unknown>;
+  /** Runtime version — supplied by the plugin entry from its package manifest.
+   *  Eliminates hard-coded version drift (previously `const version = "0.1.38"`). */
+  version?: string;
 }
 
 export interface RuntimeServiceHandle {
@@ -47,8 +50,7 @@ export function startRuntimeService(
   // - observability-system (event store setup)
   // - control-plane-system (heartbeat bridge preparation)
   const workspaceRoot = ctx?.workspaceRoot ?? process.cwd();
-  /** Keep in sync with `plugin/package.json` when cutting releases. */
-  const version = "0.1.38";
+  const version = ctx?.version ?? "unknown";
 
   activeHandle = {
     ready: true,

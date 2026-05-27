@@ -19,12 +19,15 @@ import assert from "node:assert";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createOpsRouter, type RuntimeOpsEnvelope } from "../../../src/cli/ops/ops-router.js";
+import type { HeartbeatSurfaceResult } from "../../../src/cli/ops/heartbeat-surface.js";
 import {
   DynamicConnectorRegistry,
   createRegistrySnapshotStore,
 } from "../../../src/connectors/registry/index.js";
 import { AppendOnlyAuditStore } from "../../../src/observability/audit/append-only-audit-store.js";
 import { createStateDatabase, type StateDatabase } from "../../../src/storage/db/index.js";
+import { createObservabilityDatabase } from "../../../src/observability/db/index.js";
+import { createCliReadModels } from "../../../src/cli/read-models/index.js";
 import { createHistoryDigestStore } from "../../../src/storage/services/history-digest-store.js";
 import {
   createRestoreSnapshotStore,
@@ -300,6 +303,54 @@ describe("T-ROS.C.1 #3: connector_test --wet", () => {
       server.close();
       stateDb.close();
     }
+  });
+});
+
+// ─── 3.5. heartbeat_check production data growth (T-V7C.C.6) ─────────────────
+
+describe("T-V7C.C.6: heartbeat_check production data growth", () => {
+  it("persists heartbeat_digest when auditStore + state + readModels are wired", async () => {
+    const stateDb = createStateDatabase(":memory:");
+    const observabilityDb = createObservabilityDatabase(":memory:");
+    const auditStore = new AppendOnlyAuditStore();
+    const readModels = createCliReadModels({ stateDb, observabilityDb });
+    const router = createOpsRouter({
+      runtimeAvailable: true,
+      readModels,
+      auditStore,
+      state: stateDb,
+    });
+    const result = (await router.dispatch("heartbeat_check", {
+      probeOnly: false,
+    })) as HeartbeatSurfaceResult;
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.surfaceMode, "workspace_full_runtime");
+    // Verify heartbeat_digest table received a row from digestOpts injection
+    const digestRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM heartbeat_digest");
+    assert.strictEqual(digestRows[0]!.values[0]![0], 1);
+    stateDb.close();
+    observabilityDb.close();
+  });
+
+  it("degrades digest generation gracefully when auditStore is missing", async () => {
+    const stateDb = createStateDatabase(":memory:");
+    const observabilityDb = createObservabilityDatabase(":memory:");
+    const readModels = createCliReadModels({ stateDb, observabilityDb });
+    const router = createOpsRouter({
+      runtimeAvailable: true,
+      readModels,
+      state: stateDb,
+    });
+    const result = (await router.dispatch("heartbeat_check", {
+      probeOnly: false,
+    })) as HeartbeatSurfaceResult;
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.surfaceMode, "workspace_full_runtime");
+    // No digest should be written because auditStore is absent
+    const digestRows = stateDb.sqlite.exec("SELECT COUNT(*) FROM heartbeat_digest");
+    assert.strictEqual(digestRows[0]!.values[0]![0], 0);
+    stateDb.close();
+    observabilityDb.close();
   });
 });
 

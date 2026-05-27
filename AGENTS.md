@@ -442,25 +442,23 @@ T-V7C.C.5
 **签入**: AUTO
 **code-reviewer**: 默认执行
 **状态**: 完成（2026-05-26）
-**产出**: 
-- `plugin/index.ts` — guidance_payload 加入 WORKSPACE_BRIDGE_COMMANDS whitelist
-- `plugin/openclaw.plugin.json` — manifest 描述更新（+ connector:run + guidance_payload）
-- `src/cli/ops/ops-router.ts` — connector_test ok 语义收紧（仅 "available" ⇒ ok=true）；restore snapshotId operator-friendly 参数兼容
-- `tests/integration/plugin/plugin-registration.test.ts` — V7_COMMANDS 扩展 + whitelist 测试
-- `tests/integration/runtime-ops/commands.test.ts` — 4 新增测试（connector_test degraded, restore snapshotId success/NotFound, guidance_payload impulse/atmosphere）
-**测试**: `pnpm build` ✅；`pnpm lint` ✅；plugin-registration 15/15 PASS；commands 31/31 PASS
-**审查报告**: `.anws/v7/wave-reviews/wave-76-review.md`（最高严重度：Low）
-**最高严重度**: Low（connector_test wet probe test duplication，非阻断）
+
+### 🌊 Wave 77 ✅ — 0.1.38 Real-host Closure: Production Data Growth Closure
+T-V7C.C.6
+**签入**: AUTO
+**code-reviewer**: 默认执行
+**状态**: 完成（2026-05-26）
+**产出**:
+- `src/cli/ops/heartbeat-surface.ts` — `HeartbeatCheckInput` 新增 `digestOpts` 和 `dreamSchedulePort`；透传至 `createWorkspaceHeartbeatRunner`
+- `src/cli/ops/ops-router.ts` — `heartbeat_check` dispatch 内联创建 `digestOpts`（auditStore + heartbeatDigestDeps）和 `dreamSchedulePort` adapter（state DB → `scheduleDream`）；`createOpsRouter.heartbeatCheck` 透传新字段
+- `src/cli/ops/workspace-heartbeat-runner.ts` — digest 生成后调用 `toStoreDigest` 桥接 + `createHistoryDigestStore.writeHeartbeatDigest` 持久化；修复生成结果被丢弃的断裂
+- `tests/integration/runtime-ops/commands.test.ts` — 2 新增集成测试（digest 持久化/降级）
+**测试**: `pnpm build` ✅；`pnpm lint` ✅；commands 33/33 PASS；heartbeat-surface-workspace 5/5 PASS；plugin-registration 15/15 PASS
+**审查报告**: 待生成
+**最高严重度**: 待生成
 **残留待跟进**: 无
-**E2E**: guide-only（`wave-reviews/wave-76-e2e.md`），实机 Claw 复测待回填
-**下一步**: Wave 77 — T-V7C.C.6 Production Data Growth Closure（依赖 T-V7C.C.5，现已就绪）
-**范围**:
-- 修复 Claw 中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路
-- 收口 `connector_test dryRun:false` 成功时 envelope `ok=false` 的 wrapper 语义
-- 为 `restore` 增加 `snapshotId` operator-friendly 参数兼容，同时保留 `restoreTarget/fromVersion/toVersion`
-- 同步 plugin bridge whitelist、host-safe router、simple parser、manifest 描述与 ops-router 真实命令集合
-**验证**: `tests/integration/plugin/plugin-registration.test.ts`、`tests/integration/runtime-ops/commands.test.ts`、Claw `0.1.38+` command JSON 复测
-**下一步**: `/forge` Wave 76 — T-V7C.C.5
+**E2E**: 待生成
+**下一步**: Wave 78 — T-V7C.C.7（如有）或 INT-V7C.R 回归门
 
 ### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
 T-V7C.C.4

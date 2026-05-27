@@ -1188,7 +1188,7 @@
 
 ---
 
-- [ ] **T-V7C.C.6** [REQ-003, REQ-005, REQ-009, REQ-010]: Production Data Growth Closure
+- [x] **T-V7C.C.6** [REQ-003, REQ-005, REQ-009, REQ-010]: Production Data Growth Closure
   - **描述**: 修复实机中 `life_evidence_index`、`tool_experience`、`dream_output_index`、`heartbeat_digest` 无增长的问题；区分“没有可执行 intent”的合理 defer/deny 与“生产写入链路没接上”的真实缺口。
   - **输入**: `01_PRD.md §3.1 G3/G5/G9/G10`、`04_SYSTEM_DESIGN/control-plane-system.md §4`、`04_SYSTEM_DESIGN/body-tool-system.md §4.3`、`04_SYSTEM_DESIGN/dream-quiet-system.md §4`、T-V7C.C.2、T-V7C.C.3、`C:\Users\11341\Downloads\sn-0.1.38-full-issues.md`
   - **输出**: 更新 heartbeat connector/evidence 写入路径、ToolExperience 生产注入、Quiet→Dream 实机触发或 explicit skip、heartbeat_digest 持久化/可观测路径、DB before/after 验证报告

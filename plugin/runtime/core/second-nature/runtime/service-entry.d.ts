@@ -13,6 +13,8 @@ export interface RuntimeServiceContext {
     workspaceRoot?: string;
     /** Plugin configuration overrides */
     config?: Record<string, unknown>;
+    /** Runtime version — supplied by the plugin entry from its package manifest */
+    version?: string;
 }
 export interface RuntimeServiceHandle {
     /** Service is ready and accepting requests */
