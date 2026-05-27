@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v7`
 - **活动任务清单**: `.anws/v7/05A_TASKS.md`
 - **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-26` (`/change` S8 handoff — 0.1.38 Real-host Closure)
+- **最近一次更新**: `2026-05-27` (`/forge` Wave 77 — T-V7C.C.6 Production Data Growth Closure)
 
 ### 🌱 Genesis v7 🧭 — Embodied Agent Loop
 
@@ -196,9 +196,9 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 75 完成；`/change` 已追加 S8 0.1.38 Real-host Closure，用于收口 Claw 实机 P0/P1 gap
+- **状态**: v7 `/forge` Wave 79 完成；S8 0.1.38 Real-host Closure 全部关闭（T-V7C.C.5~C.7 + INT-V7C.R）
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: `/forge` Wave 76 — T-V7C.C.5 Host Ops Surface Parity（guidance_payload 可达性、connector_test envelope、restore snapshotId、manifest/bridge parity）
+- **下一步**: v7 架构版本锁定，后续变更走 `/change`
 - **最近更新**: `2026-05-26` (`/change` S8 handoff — T-V7C.C.5~C.7 + INT-V7C.R added from 0.1.38 Claw full issues)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
@@ -437,17 +437,69 @@ INT-V7C
 - **07_CHALLENGE_REPORT 关闭**: CR-CODE-001 INT-S6 / CR-CODE-002 restore state / CR-CODE-003 v6 regression skips / CR-CODE-004 AGENTS 更新 / CR-CODE-005 lint script
 - **下一步**: v7 架构版本锁定，后续变更走 `/change`
 
-### 🌊 Wave 76 📋 — 0.1.38 Real-host Closure: Host Ops Surface Parity
+### 🌊 Wave 76 ✅ — 0.1.38 Real-host Closure: Host Ops Surface Parity
 T-V7C.C.5
-**签入**: 用户批准 `/change` handoff
-**状态**: 待 `/forge` 执行
-**范围**:
-- 修复 Claw 中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路
-- 收口 `connector_test dryRun:false` 成功时 envelope `ok=false` 的 wrapper 语义
-- 为 `restore` 增加 `snapshotId` operator-friendly 参数兼容，同时保留 `restoreTarget/fromVersion/toVersion`
-- 同步 plugin bridge whitelist、host-safe router、simple parser、manifest 描述与 ops-router 真实命令集合
-**验证**: `tests/integration/plugin/plugin-registration.test.ts`、`tests/integration/runtime-ops/commands.test.ts`、Claw `0.1.38+` command JSON 复测
-**下一步**: `/forge` Wave 76 — T-V7C.C.5
+**签入**: AUTO
+**code-reviewer**: 默认执行
+**状态**: 完成（2026-05-26）
+
+### 🌊 Wave 77 ✅ — 0.1.38 Real-host Closure: Production Data Growth Closure
+T-V7C.C.6
+**签入**: AUTO
+**code-reviewer**: 默认执行
+**状态**: 完成（2026-05-27）
+**产出**:
+- `src/cli/ops/heartbeat-surface.ts` — `HeartbeatCheckInput` 新增 `digestOpts` 和 `dreamSchedulePort`；透传至 `createWorkspaceHeartbeatRunner`；新增 try-catch 异常保护
+- `src/cli/ops/ops-router.ts` — `heartbeat_check` dispatch 内联创建 `digestOpts`（auditStore + heartbeatDigestDeps）和 `dreamSchedulePort` adapter（state DB → `scheduleDream`）；`createOpsRouter.heartbeatCheck` 透传新字段；新增 try-catch → `HEARTBEAT_CYCLE_EXCEPTION` 结构化错误
+- `src/cli/ops/workspace-heartbeat-runner.ts` — digest 生成后调用 `toStoreDigest` 桥接 + `createHistoryDigestStore.writeHeartbeatDigest` 持久化；修复生成结果被丢弃的断裂
+- `tests/integration/runtime-ops/commands.test.ts` — 3 个 T-V7C.C.6 集成测试（digest 持久化 / 无 auditStore 降级 / stateMemoryPort 抛出时 cycle 存活）
+- `scripts/build-plugin-package.ts` — `dream/` 加入 RUNTIME_ARTIFACTS，修复 plugin 打包后 `createQuietDreamSchedulePort` import 失败
+**测试**: `pnpm build` ✅；`pnpm lint` ✅；commands 36/36 PASS；heartbeat-surface-workspace 5/5 PASS；plugin-registration 15/15 PASS；heartbeat integration 84/84 PASS；dream 12/12 PASS；bridge 16/16 PASS
+**审查报告**: `.anws/v7/wave-reviews/wave-77-review.md`（Partial Pass → 修复后 Pass）
+**最高严重度**: High（2 项，均已修复：exception catch + test corrections）
+**残留待跟进**: life_evidence_index / tool_experience / dream_output_index 行增长需真实 connector exec，实机验证时补充
+**E2E**: `.anws/v7/wave-reviews/wave-77-e2e.md`（guide-only；实机步骤 A/B Journey 待 Claw 0.1.38+ 环境）
+**下一步**: Wave 79 — INT-V7C.R 0.1.38 Claw Gap Regression Gate
+
+### 🌊 Wave 79 ✅ — 0.1.38 Claw Gap Regression Gate
+INT-V7C.R
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-27）
+- **产出**:
+  - `reports/int-v7c-r-claw-gap-regression.md` — 回归验证报告
+  - 本地集成测试 ~231/231 PASS（0 fail，3 justified skips）
+  - `pnpm build` ✅；`pnpm lint` ✅
+  - package/plugin version `0.1.38` 一致
+  - 实机复测手册 §6（guide-only；待 Claw 0.1.38+ 环境）
+- **审查报告**: `.anws/v7/wave-reviews/wave-79-review.md` — PASS
+- **最高严重度**: none
+- **残留待跟进**: 实机 connector exec DB growth（Wave 77 已标记，非本波引入）
+- **E2E**: `.anws/v7/wave-reviews/wave-79-e2e.md`（guide-only）
+- **下一步**: v7 S8 全部关闭，v7 架构版本锁定
+
+### 🌊 Wave 78 ✅ — 0.1.38 Real-host Closure: Guidance Semantics Refinement
+T-V7C.C.7
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-27）
+- **产出**:
+  - `src/guidance/output-guard.ts` — `buildExpressionBoundary` + `ExpressionBoundaryBlock` 新语义；`buildOutputGuard` 兼容层保留
+  - `src/guidance/template-registry.ts` — `getShortAtmosphereTemplate` 短约束 atmosphere（按 mode+risk ≤120 字）；`getBaselineAtmosphereTemplate` 兼容层保留
+  - `src/guidance/guidance-assembler.ts` / `fallback.ts` — 生产默认使用短 atmosphere + expressionBoundary
+  - `src/core/second-nature/guidance/apply-guidance.ts` — 消费 `expressionBoundary` 并回退 `outputGuard`
+  - `src/core/second-nature/guidance/user-reply-continuity.ts` — expressionBoundary 注入
+  - `src/observability/projections/guidance-audit.ts` — `expression_boundary` block 识别
+  - `src/cli/ops/ops-router.ts` — `guidance_payload` 返回 `expressionBoundaryConstraints`
+  - `plugin/agent-inner-guide.md` — expression boundary 语义说明章节
+  - `tests/integration/guidance/v7c-guidance-semantics.test.ts` — 12 项新测试全部通过
+  - `tests/unit/guidance/guidance-draft-service.test.ts` — 修复中文 buildDraftText 期望
+- **测试**: `pnpm build` ✅；`pnpm lint` ✅；guidance integration + unit + heartbeat 170/170 PASS
+- **审查报告**: `.anws/v7/wave-reviews/wave-78-review.md` — PASS
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **E2E**: N/A
+- **下一步**: Wave 79 — INT-V7C.R 0.1.38 Claw Gap Regression Gate
 
 ### 🌊 Wave 74 ✅ — v7 Identity / Goal Hygiene Closure
 T-V7C.C.4

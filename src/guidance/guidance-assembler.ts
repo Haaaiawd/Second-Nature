@@ -1,7 +1,7 @@
 import { buildMinimalGuidanceFallback } from "./fallback.js";
-import { buildOutputGuard } from "./output-guard.js";
+import { buildOutputGuard, buildExpressionBoundary } from "./output-guard.js";
 import { selectPersonaSnippets } from "./persona-selection.js";
-import { getBaselineAtmosphereTemplate } from "./template-registry.js";
+import { getShortAtmosphereTemplate } from "./template-registry.js";
 import { assembleImpulse, type PlatformImpulsePort } from "./impulse-assembler.js";
 import type {
   AtmosphereBlock,
@@ -13,7 +13,7 @@ import type {
 } from "./types.js";
 
 async function buildAtmosphere(sceneContext: SceneContext): Promise<AtmosphereBlock> {
-  const template = getBaselineAtmosphereTemplate();
+  const template = getShortAtmosphereTemplate(sceneContext.mode, sceneContext.riskLevel);
   return {
     kind: "atmosphere",
     text: template.text,
@@ -80,6 +80,7 @@ export async function assembleGuidance(input: {
       impulses,
       personaReinforcement: personaDecision.snippets,
       outputGuard: buildOutputGuard(sceneContext.sceneType),
+      expressionBoundary: buildExpressionBoundary(sceneContext.sceneType),
     };
   } catch {
     if ((input.personaCandidates ?? []).length === 0) {
@@ -90,6 +91,7 @@ export async function assembleGuidance(input: {
         impulses: fallback.impulses,
         personaReinforcement: fallback.personaReinforcement,
         outputGuard: fallback.outputGuard,
+        expressionBoundary: fallback.expressionBoundary,
       };
     }
 

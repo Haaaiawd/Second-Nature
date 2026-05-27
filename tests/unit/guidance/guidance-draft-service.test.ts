@@ -114,13 +114,13 @@ test("T-GVS.C.1 generateGuidanceDraft uses inner-guide style per sceneKind", asy
   };
 
   const outreach = await generateGuidanceDraft(makeRequest({ sceneKind: "outreach" }), { evidencePort });
-  assert.ok(outreach.draft!.text.startsWith("Hi there"));
+  assert.ok(outreach.draft!.text.startsWith("有件事想跟你分享"));
 
   const followUp = await generateGuidanceDraft(makeRequest({ sceneKind: "follow_up" }), { evidencePort });
-  assert.ok(followUp.draft!.text.startsWith("Following up"));
+  assert.ok(followUp.draft!.text.startsWith("接着上次聊的说一下"));
 
   const reconnect = await generateGuidanceDraft(makeRequest({ sceneKind: "reconnect" }), { evidencePort });
-  assert.ok(reconnect.draft!.text.startsWith("It's been a while"));
+  assert.ok(reconnect.draft!.text.startsWith("好久不见"));
 });
 
 // ─── validateDraftSources ────────────────────────────────────────────────────

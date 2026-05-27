@@ -55,6 +55,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PLUGIN_VERSION: string = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8"),
+).version;
+
 import {
   startRuntimeService,
   type RuntimeServiceHandle,
@@ -220,8 +226,9 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "connector_test",
   "connector_behavior_add",
   "cycle:recent",
-  // v7 ops surface (T-ROS.C.1 / T-ROS.C.2 / T-ROS.C.3): self_health, tool_affordance, heartbeat_digest,
-  // narrative:diff, timeline, restore, runtime_secret_bootstrap, connector:run
+  // v7 ops surface (T-ROS.C.1 / T-ROS.C.2 / T-ROS.C.3 / T-V7C.C.5): self_health, tool_affordance,
+  // heartbeat_digest, snapshot:capture, narrative:diff, timeline, restore, runtime_secret_bootstrap,
+  // connector:run, guidance_payload
   "self_health",
   "tool_affordance",
   "heartbeat_digest",
@@ -231,6 +238,8 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "restore",
   "runtime_secret_bootstrap",
   "connector:run",
+  // T-V7C.C.5: host ops surface parity — guidance_payload must be whitelisted for Claw reachability
+  "guidance_payload",
 ]);
 
 function isWorkspaceBridgeCommand(
@@ -327,6 +336,7 @@ function syncWorkspaceRootFromTool(
   if (changed) {
     spine.runtimeHandle = startRuntimeService({
       workspaceRoot: next.runtimeRoot,
+      version: PLUGIN_VERSION,
     });
   }
 }
@@ -1238,6 +1248,7 @@ function createActivationSpine(): ActivationSpine {
     router: undefined as unknown as CommandRouter,
     runtimeHandle: startRuntimeService({
       workspaceRoot: workspaceRootContext.runtimeRoot,
+      version: PLUGIN_VERSION,
     }),
     lifecycleState: getLifecycleState(),
     serviceStartRecorded: false,
@@ -1298,6 +1309,7 @@ function refreshRegistrationState(): ActivationSpine {
   spine.workspaceRootContext = workspaceRootContext;
   spine.runtimeHandle = startRuntimeService({
     workspaceRoot: workspaceRootContext.runtimeRoot,
+    version: PLUGIN_VERSION,
   });
   spine.lifecycleState = recordRegistration();
   spine.serviceStartRecorded = false;

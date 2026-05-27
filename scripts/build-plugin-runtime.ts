@@ -47,6 +47,9 @@ const RUNTIME_ARTIFACTS = [
   // Connector system
   { src: "src/connectors/", dest: "connectors/" },
 
+  // Dream scheduler (required by ops-router.ts → createQuietDreamSchedulePort)
+  { src: "src/dream/", dest: "dream/" },
+
   // Shared types
   { src: "src/shared/", dest: "shared/" },
 

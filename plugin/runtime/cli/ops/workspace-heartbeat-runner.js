@@ -5,6 +5,7 @@ import { createNarrativeStateStore } from "../../storage/narrative/narrative-sta
 import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
 import { createIdentityProfileStore } from "../../storage/services/identity-profile-store.js";
 import { generateHeartbeatDigest, } from "../../observability/services/heartbeat-digest-assembler.js";
+import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
 export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, options = {}) {
     const status = await readModels.loadStatus();
     const mode = status.rhythm.mode === "unknown" ? "active" : status.rhythm.mode;
@@ -167,7 +168,8 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 // cycle outcome itself is still returned to the caller.
             }
         }
-        // v7 T-V7C.C.3: After each cycle, attempt HeartbeatDigest generation if configured.
+        // v7 T-V7C.C.3 / T-V7C.C.6: After each cycle, attempt HeartbeatDigest generation
+        // and persist to heartbeat_digest table so the digest index actually grows.
         // Only runs inside the designated UTC digest window hour, or on every cycle when
         // digestWindowHour is unset (test / always-on mode).
         if (options.digestOpts) {
@@ -177,15 +179,58 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
             if (inDigestWindow) {
                 try {
                     const date = new Date().toISOString().slice(0, 10);
-                    await generateHeartbeatDigest(date, assemblerDeps);
+                    const assembledDigest = await generateHeartbeatDigest(date, assemblerDeps);
+                    // v7 T-V7C.C.6: Persist assembled digest to heartbeat_digest table when state DB is wired.
+                    if (options.state) {
+                        const digestStore = createHistoryDigestStore(options.state);
+                        await digestStore.writeHeartbeatDigest(toStoreDigest(assembledDigest));
+                    }
                 }
                 catch (err) {
-                    // Digest generation must not break the heartbeat cycle response.
+                    // Digest generation / persistence must not break the heartbeat cycle response.
                     const msg = err instanceof Error ? err.message : String(err);
-                    console.warn(`[workspace-heartbeat-runner] Digest generation failed: ${msg}`);
+                    console.warn(`[workspace-heartbeat-runner] Digest generation/persistence failed: ${msg}`);
                 }
             }
         }
         return cycle;
+    };
+}
+/**
+ * Bridge: converts the assembler-facing HeartbeatDigest into the storage-facing
+ * HeartbeatDigest (shared/types/v7-entities.ts) so it can be written to heartbeat_digest.
+ *
+ * The two shapes diverge by design: assembler is an audit-aggregate rich view;
+ * store is a flattened day-keyed row. Mapping is lossy but sufficient for growth.
+ */
+function toStoreDigest(d) {
+    return {
+        digestId: `digest:${d.date}:${Date.now()}`,
+        day: d.date,
+        connectorSummary: d.connectorSummary.map((c) => ({
+            platformId: c.platformId,
+            status: c.blockedCount > 0
+                ? "blocked"
+                : c.circuitOpenCount > 0
+                    ? "blocked"
+                    : c.failureCount > 0
+                        ? "degraded"
+                        : "ok",
+            attemptCount: c.successCount + c.failureCount + c.blockedCount,
+        })),
+        goalSummary: [
+            { kind: "new", activeCount: d.goalSummary.newGoals },
+            { kind: "completed", activeCount: d.goalSummary.completedGoals },
+            { kind: "expired", activeCount: d.goalSummary.expiredGoals },
+            { kind: "replaced", activeCount: d.goalSummary.replacedGoals },
+            { kind: "active", activeCount: d.goalSummary.activeGoals },
+        ].filter((g) => g.activeCount > 0),
+        quietCount: d.quietDreamSummary.quietRuns,
+        dreamCount: d.quietDreamSummary.dreamRuns,
+        breakerSummary: d.healthSummary.circuitBreakerChanges > 0
+            ? [{ connectorId: "aggregate", state: "changed" }]
+            : [],
+        healthStatus: d.healthSummary.auditChainHealthy ? "ok" : "degraded",
+        createdAt: d.generatedAt,
     };
 }

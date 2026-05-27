@@ -113,6 +113,9 @@ const V7_COMMANDS = [
   "timeline",
   "restore",
   "runtime_secret_bootstrap",
+  // T-V7C.C.5: host ops surface parity
+  "connector:run",
+  "guidance_payload",
 ] as const;
 
 for (const cmd of V7_COMMANDS) {

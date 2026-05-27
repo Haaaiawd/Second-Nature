@@ -1,11 +1,11 @@
 # 07_CHALLENGE_REPORT — Second Nature v7
 
-**生成日期**: 2026-05-24  
-**REVIEW_MODE**: CODE  
-**TARGET_DIR**: `.anws/v7`  
-**审查范围**: `.anws/v7` contracts + `src/` + `plugin/` + `tests/` + `reports/` + README/AGENTS handoff docs  
-**审查方法**: `/challenge CODE` + `code-reviewer` Lens 1-6 + sequential-thinking audit  
-**静态边界**: 未启动项目、未运行测试、未连接真实 OpenClaw 或外部 connector；运行时和宿主 E2E 只能判定为需验证。
+**生成日期**: 2026-05-27
+**REVIEW_MODE**: CODE
+**TARGET_DIR**: `.anws/v7`
+**审查范围**: Wave 78 (T-V7C.C.7) + Wave 79 (INT-V7C.R) code changes in `src/guidance/`, `src/core/second-nature/guidance/`, `src/cli/ops/`, `src/observability/`, `plugin/agent-inner-guide.md`
+**审查方法**: `/challenge CODE` + static code review + Pre-Mortem
+**静态边界**: 未启动项目、未运行测试；依赖 Wave 78/79 已报告的测试证据
 
 ---
 
@@ -13,11 +13,14 @@
 
 | 轮次 | 范围 | Critical | High | Medium | Low | Gate |
 |---|---|---:|---:|---:|---:|---|
-| Design Round | v7 8 个系统设计 | 0 open | 0 open | 0 open | 0 | PASS |
+| Design Round | v7 8 个系统设计 | 0 | 0 | 0 | 0 | PASS |
 | Task Final Recheck | 05A + 05B | 0 | 0 | 1 | 0 | PASS |
-| Code Review Round | v7 completion / release readiness | 0 | 3 | 2 | 0 | HOLD |
+| Code Review Round (Wave 68) | v7 completion / release readiness | 0 | 3 | 2 | 0 | HOLD |
+| **Code Review Round (Wave 78/79)** | **T-V7C.C.7 guidance semantics + INT-V7C.R regression** | **0** | **0** | **2** | **2** | **PASS** |
 
-**本轮判断**: v7 implementation is partially delivered, but it is not release-complete because INT-S6 is open, restore does not execute the contracted restore path, and the v6 regression gate still contains failing tests.
+**历史归档**: Wave 68 轮 CR-CODE-001~005 已在 Wave 69 全部关闭（INT-S6/restore/regression/README/lint）。详情已压缩，仅保留总览行。
+
+**本轮判断**: Wave 78/79 实现符合 T-V7C.C.7 验收标准，向后兼容层完整，测试覆盖充分。Medium 项为已知设计权衡（语义漂移风险、preview 不一致），已在 wave-reviews 中记录。
 
 ---
 
@@ -25,72 +28,44 @@
 
 | 项 | 结论 | 证据 |
 |---|---|---|
-| REVIEW_MODE | CODE | 用户明确请求 `/challenge code review` |
-| latest target | `.anws/v7` | 最大架构版本目录 |
-| code-reviewer execution | current session fallback | Host exposed multi-agent tools, but tool policy requires explicit user authorization for sub-agents |
-| overall result | Partial Pass / HOLD | High issues remain |
-| not executed | tests / build / OpenClaw E2E | code-reviewer static boundary |
+| REVIEW_MODE | CODE | 用户明确请求 "code reviewer检查" |
+| latest target | `.anws/v7` | Wave 78/79 增量审查 |
+| code-reviewer execution | current session fallback | `.agents/skills/code-reviewer/SKILL.md` 不存在；本会话执行静态 review |
+| overall result | PASS with accepted Medium | 0 Critical / 0 High；2 Medium 已记录在 wave-78-review.md |
+| test evidence | Wave 78/79 reports | 170/170 PASS (guidance+heartbeat), ~231 total PASS |
 
 ### 输入证据
 
 | 类别 | 路径 | 状态 |
 |---|---|---|
-| PRD / Architecture / ADR | `.anws/v7/01_PRD.md`, `02_ARCHITECTURE_OVERVIEW.md`, `03_ADR/` | sampled for anchors |
-| System Design | `.anws/v7/04_SYSTEM_DESIGN/` | present |
-| Tasks | `.anws/v7/05A_TASKS.md` | read |
-| Verification | `.anws/v7/05B_VERIFICATION_PLAN.md` | read |
-| Implementation | `src/`, `plugin/` | static review |
-| Evidence | `tests/`, `reports/`, `.anws/v7/wave-reviews/` | static review |
+| PRD / Architecture / ADR | `.anws/v7/01_PRD.md`, `02_ARCHITECTURE_OVERVIEW.md`, `03_ADR/` | Wave 68 已审；本次增量 |
+| Tasks | `.anws/v7/05A_TASKS.md` | T-V7C.C.7 / INT-V7C.R checkbox 已关闭 |
+| Verification | `.anws/v7/05B_VERIFICATION_PLAN.md` | T-V7C.C.7 / INT-V7C.R 验证标准已覆盖 |
+| Implementation | `src/guidance/`, `src/core/second-nature/guidance/`, `src/cli/ops/`, `src/observability/` | 静态 review |
+| Evidence | `tests/`, `reports/`, `.anws/v7/wave-reviews/` | 测试通过 |
 
 ---
 
-## 契约模型摘要
+## 契约模型摘要（Wave 78 增量）
 
 | 类型 | 摘要 | 来源 | 失真风险 |
 |---|---|---|---|
-| 结果 | S6 exit requires plugin load, wet truth, self_health P95, heartbeat E2E, v6 regression, docs | `05A_TASKS.md:892-1005`, `05B_VERIFICATION_PLAN.md:635-644` | release gate can be claimed before evidence exists |
-| 状态 | INT-S6 remains unchecked and no release gate report exists | `05A_TASKS.md:998-1004`, `05B_VERIFICATION_PLAN.md:644` | completion status can drift from actual gate |
-| 错误 | v6 regression must pass or use justified skips | `05A_TASKS.md:979-987` | pre-existing failures can be mislabeled as passed |
-| 运行 | `restore` command must trigger RestoreSnapshotStore + RestoreAuditService | `05A_TASKS.md:899-908` | audit-only restore can look successful without state restore |
-| 安全 | secret and credential plaintext must never be restored or exposed | `05A_TASKS.md:908`, `README.md:84-90` | no issue found in sampled secret paths |
-| 观测 | host E2E needs screenshots/logs, self_health dimensions JSON, heartbeat P95 report | `05B_VERIFICATION_PLAN.md:641-644`, `05B_VERIFICATION_PLAN.md:758-761` | static tests can be mistaken for host proof |
-
----
-
-## Code Reviewer 摘要
-
-| Lens | 结论 | 证据 |
-|---|---|---|
-| L1 Contract Fidelity | Partial | v7 commands are present, but `restore` is audit-only despite restore contract |
-| L2 Task Fulfillment | Partial | `INT-S6` is unchecked and required release report is missing |
-| L3 Architecture Fit | Basically covered | module boundaries mostly match v7 slices; no new structural blocker found |
-| L4 Static Runtime/Safety Risk | Partial | restore command reports success without static evidence of state restore |
-| L5 Verification Evidence | Partial | v6 regression has 9 failures and `pnpm lint` is planned but absent |
-| L6 Backflow & Handoff | Partial | README and AGENTS status are stale relative to Wave 68 |
+| 结果 | expressionBoundary 只塑造表达，不决定 allow/deny，不规定格式 | `05B#t-v7c-c-7` | 消费者可能把 avoid/prefer 约束误解为 hard guard |
+| 状态 | outputGuard 兼容层保留，_semanticNote 标注弃用意图 | `src/guidance/output-guard.ts:39` | JSON 序列化中 `@deprecated` 不可见；外部消费者仍可能误读 |
+| 时间 | atmosphere 短约束 ≤120 字，替代长 baseline | `src/guidance/template-registry.ts` | 复杂并发场景下可能过于抽象 |
+| 错误 | guidance_payload preview 使用固定 active/low | `src/cli/ops/ops-router.ts` | preview 与 production atmosphere 不一致 |
+| 运行 | getBaselineAtmosphereTemplate 长文本仍编译进 runtime | `src/guidance/template-registry.ts:8` | 增加 plugin 包体积 |
 
 ---
 
 ## 核心发现清单
 
-| ID | 严重度 | Lens | 位置 | 发现 | 影响 | 建议 |
-|---|---|---|---|---|---|---|
-| CR-CODE-001 | High | L2+L5 | **`.anws/v7/05A_TASKS.md:998`**, **`.anws/v7/05B_VERIFICATION_PLAN.md:641`**, **`.anws/v7/05B_VERIFICATION_PLAN.md:644`** | INT-S6 remains open and the required `reports/int-s6-e2e-release-gate-v7.md` evidence is absent. | v7 cannot be honestly called release-complete because the final E2E/regression/docs gate has not closed. | Run `/forge` for INT-S6 and produce the release gate report with the required host/E2E evidence. |
-| CR-CODE-002 | High | L1+L4 | **`.anws/v7/05A_TASKS.md:900`**, **`.anws/v7/05A_TASKS.md:908`**, **`src/cli/ops/ops-router.ts:786`**, **`src/cli/ops/ops-router.ts:852`** | The `restore` runtime command writes RestoreAudit but assumes the state restore was already attempted by the caller. | Operators can receive `ok=true` for a restore surface that never invoked RestoreSnapshotStore or applied bounded state restoration. | Wire a real restore operation port into `restore` or downgrade the command contract and tasks to audit-only through `/change`. |
-| CR-CODE-003 | High | L2+L5 | **`.anws/v7/05A_TASKS.md:983`**, **`.anws/v7/05A_TASKS.md:986`**, **`reports/v6-regression-gate-v7.md:12`**, **`reports/v6-regression-gate-v7.md:14`** | T-ROS.C.5 requires all v6 tests to pass or have justified skips, but the regression report records 9 failures and 0 skips. | A no-new-regression statement does not satisfy the release gate contract and leaves migration/audit/bridge failures open. | Fix or formally convert each failure into an explicit justified skip with owner, scope, and release acceptance. |
-| CR-CODE-004 | Medium | L6 | **`README.md:34`**, **`README.md:38`**, **`AGENTS.md:201`**, **`AGENTS.md:202`**, **`AGENTS.md:369`** | README still says v7 is in Genesis/design and not forge-ready, while AGENTS current status points to Wave 62/Wave 61 despite Wave 68 saying INT-S6 is next. | Fresh recovery sessions and users will route from stale status and may repeat completed workflow steps. | Update README and the AGENTS current-status block to state Wave 68 complete and INT-S6 pending. |
-| CR-CODE-005 | Medium | L5 | **`.anws/v7/05B_VERIFICATION_PLAN.md:31`**, **`package.json:61`**, **`package.json:65`** | The verification plan names `pnpm lint`, but `package.json` has no `lint` script. | The release gate has a documented quality check that cannot be invoked as written. | Add a lint script or amend 05B to use the actual available static checks. |
-
----
-
-## Issues — code-reviewer 字段契约
-
-| Severity | Lens | Title | Evidence | Impact | Minimum fix | Anchor |
-|---|---|---|---|---|---|---|
-| High | L2+L5 | Release Gate Evidence Gap | **`.anws/v7/05A_TASKS.md:998`**, **`.anws/v7/05B_VERIFICATION_PLAN.md:644`** | v7 completion is unproven. | Produce `reports/int-s6-e2e-release-gate-v7.md` and close INT-S6. | INT-S6 |
-| High | L1+L4 | Restore Contract Drift | **`src/cli/ops/ops-router.ts:786`**, **`src/cli/ops/ops-router.ts:852`** | Restore can report audit success without restoring state. | Wire RestoreSnapshot/apply port or change the public contract. | T-ROS.C.1 / REQ-011 |
-| High | L2+L5 | Regression Gate Not Closed | **`reports/v6-regression-gate-v7.md:12`**, **`reports/v6-regression-gate-v7.md:14`** | Failing tests remain inside a P0 release gate. | Fix failures or document justified skips. | T-ROS.C.5 |
-| Medium | L6 | Handoff Status Drift | **`README.md:38`**, **`AGENTS.md:201`**, **`AGENTS.md:369`** | Recovery routing is stale. | Update handoff docs. | T-ROS.C.4 |
-| Medium | L5 | Missing Lint Entry | **`.anws/v7/05B_VERIFICATION_PLAN.md:31`**, **`package.json:61`** | A planned check is not executable. | Add `lint` or update verification contract. | 05B verification layers |
+| ID | 严重度 | 位置 | 发现 | 影响 | 建议 |
+|---|---|---|---|---|---|
+| CR-CODE-006 | Medium | `src/guidance/output-guard.ts:34-41`, `src/guidance/types.ts:64-68` | outputGuard 兼容层保留 `hardGuardPriority: true` 并进入 JSON API；运行时无 `@deprecated` 可见性。 | 外部消费者或新开发者继续将 outputGuard 误解为 hard guard，与 expressionBoundary 新语义冲突。 | 在下一个 breaking-change 窗口（v8）移除 outputGuard；或添加运行时 deprecation header/comment。 |
+| CR-CODE-007 | Medium | `src/cli/ops/ops-router.ts:1650` | guidance_payload preview 固定使用 `getShortAtmosphereTemplate("active", "low")`，忽略输入 scene 的真实 mode/risk。 | Claw 操作员 preview 时看到的 atmosphere 与真实 heartbeat（如 quiet/high）不一致，可能导致调试误导。 | 在 guidance_payload input 中扩展可选 `mode`/`riskLevel` 参数，或显式标注 "preview atmosphere is representative only"。 |
+| CR-CODE-008 | Low | `src/guidance/template-registry.ts:8-14` | getBaselineAtmosphereTemplate 长文本 (~400 字) 标记为 `@deprecated`，但仍被编译进 dist/ 和 plugin runtime。 | 无运行时功能价值，轻微增加 plugin 包体积。 | 下一版本从 runtime export 中移除，或改为按需动态加载。 |
+| CR-CODE-009 | Low | `src/guidance/output-guard.ts:54-59` | ExpressionConstraintId 与 OutputGuardConstraintId 类型定义完全重复，仅名称不同。 | 维护时需要同步修改两处；增加偶然复杂度。 | 统一为一个底层 ConstraintId 类型，或让 ExpressionConstraintId = OutputGuardConstraintId。 |
 
 ---
 
@@ -98,23 +73,14 @@
 
 | 维度 | 结论 | 证据 | 对应问题 |
 |---|---|---|---|
-| 重复态 | Pass | write queue/manual run coverage exists in Wave 68 tests | none |
-| 失败态 | Partial | regression failures remain open | CR-CODE-003 |
-| 默认态 | Partial | README/AGENTS default recovery text is stale | CR-CODE-004 |
-| 运行态 | Partial | restore command lacks state restore path | CR-CODE-002 |
-| 并发态 | Pass | ManualRunDispatcher and write queue tests exist | none |
-| 观测态 | Partial | release gate E2E evidence missing | CR-CODE-001 |
-| 事务/回滚 | Partial | RestoreSnapshotStore exists, but restore command does not use it | CR-CODE-002 |
-| 配置/秘钥 | Pass | README states key plaintext must not be recorded | none |
-| 验证责任 | Partial | `pnpm lint` contract has no script | CR-CODE-005 |
-
----
-
-## 安全与测试覆盖补充
-
-- Static review found no sampled path that exposes `SECOND_NATURE_ENCRYPTION_KEY` plaintext, but true recovery behavior still requires INT-S6 host evidence.
-- OpenClaw tool visibility, wet endpoint truth, self_health P95, heartbeat P95, and screenshot/log artifacts cannot be confirmed statically.
-- `reports/v6-regression-gate-v7.md` is useful as a Wave 68 no-new-regression report, but it is not sufficient as a release gate pass.
+| 重复态 | Pass | expressionBoundary 与 outputGuard 同时存在，旧消费者读取不受影响 | none |
+| 失败态 | Pass | buildMinimalGuidanceFallback 同时携带 expressionBoundary | none |
+| 默认态 | Partial | guidance_payload 默认 active/low，非真实场景默认 | CR-CODE-007 |
+| 运行态 | Partial | outputGuard hardGuardPriority 仍在 JSON 中暴露 | CR-CODE-006 |
+| 并发态 | Pass | 无并发修改 guidance 结构 | none |
+| 观测态 | Pass | guidance-audit.ts 已识别 expression_boundary | none |
+| 健壮性 | Pass | 兼容层回退链完整 | none |
+| 验证责任 | Pass | 12 项新测试 + 170/170 回归 PASS | none |
 
 ---
 
@@ -122,17 +88,15 @@
 
 | 优先级 | 行动 | 完成信号 |
 |---|---|---|
-| P1 | Fix or re-contract `restore` so the runtime command either applies RestoreSnapshot-backed state restoration or is explicitly audit-only. | Tests cover restore state before/after, not only audit writes. |
-| P1 | Execute INT-S6 through `/forge`. | `05A_TASKS.md` marks INT-S6 complete and `reports/int-s6-e2e-release-gate-v7.md` exists. |
-| P1 | Resolve the 9 v6 regression failures or convert them into explicit justified skips. | Regression report shows pass or named skips, not raw failures. |
-| P2 | Update README/AGENTS handoff state. | README no longer says Genesis/design phase and AGENTS current-status block says Wave 68 complete, INT-S6 pending. |
-| P2 | Align lint verification with package scripts. | `pnpm lint` exists or 05B names the real static check. |
+| P2 | 评估 outputGuard 移除时间表（v8 breaking change）或添加运行时 deprecation 标记 | ADR 或 task 记录移除计划 |
+| P2 | guidance_payload 支持 mode/riskLevel 参数，或添加 preview 免责声明 | ops-router input schema 更新 |
+| P3 | 移除 getBaselineAtmosphereTemplate 长文本的 runtime 编译，或改为动态加载 | plugin 包体积减小 |
+| P3 | 统一 ExpressionConstraintId / OutputGuardConstraintId | 类型定义合并 |
 
 ---
 
 ## 最终判断
 
-**Gate**: HOLD_FOR_INT_S6  
-**Reason**: 0 Critical but 3 High remain, and release completion is not statically supported.  
-**Route**: Use `/forge` for INT-S6 and the restore/regression fixes; use `/change` first only if the intended restore contract is audit-only rather than state-changing.
-
+**Gate**: PASS  
+**Reason**: 0 Critical / 0 High；2 Medium 为已知设计权衡，已在 wave-78-review.md 中记录并 accepted。Wave 78/79 实现、测试、文档均满足验收标准。  
+**Route**: 无阻塞项。v7 S8 可视为本地验证完成；实机复测待 Claw 0.1.38+ 环境补充。

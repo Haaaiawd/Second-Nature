@@ -1,6 +1,7 @@
 import { buildMinimalGuidanceFallback } from "../../../guidance/fallback.js";
+import { buildExpressionBoundary } from "../../../guidance/output-guard.js";
 import { selectPersonaSnippets } from "../../../guidance/persona-selection.js";
-import { getBaselineAtmosphereTemplate } from "../../../guidance/template-registry.js";
+import { getShortAtmosphereTemplate } from "../../../guidance/template-registry.js";
 /**
  * Scene context for user reply - uses a distinct scene type
  * to avoid confusion with platform reply scene.
@@ -13,7 +14,7 @@ export const USER_REPLY_SCENE_TYPE = "user_reply";
  * - Light atmosphere (continuity-focused)
  * - NO impulses (unlike platform reply scene)
  * - Optional persona reinforcement (1-2 snippets max)
- * - Minimal output guard (tone consistency only)
+ * - Minimal expression boundary (tone consistency only)
  */
 export async function buildLightReplyContinuity(input) {
     const sceneContext = {
@@ -23,8 +24,8 @@ export async function buildLightReplyContinuity(input) {
         sceneSummary: "direct user reply continuity",
     };
     try {
-        // Light atmosphere - continuity focused
-        const atmosphereTemplate = getBaselineAtmosphereTemplate();
+        // Light atmosphere - continuity focused (T-V7C.C.7: short constraint style)
+        const atmosphereTemplate = getShortAtmosphereTemplate(sceneContext.mode, sceneContext.riskLevel);
         const atmosphere = {
             kind: "atmosphere",
             text: `保持同一个人的语气。${input.replyContext.recentTone ? `最近语气参考：${input.replyContext.recentTone}` : "延续既有连续感。"}`,
@@ -43,7 +44,7 @@ export async function buildLightReplyContinuity(input) {
             });
             personaReinforcement = personaDecision.snippets;
         }
-        // Minimal output guard - tone consistency only
+        // Minimal expression boundary - tone consistency only (T-V7C.C.7)
         const outputGuard = {
             kind: "output_guard",
             constraints: [
@@ -51,13 +52,21 @@ export async function buildLightReplyContinuity(input) {
                 "延续同一个人格连续性",
             ],
             hardGuardPriority: true,
+            _semanticNote: "output_guard_only_shapes_expression",
         };
+        const expressionBoundary = buildExpressionBoundary(sceneContext.sceneType);
+        // Override with user-reply-specific constraints
+        expressionBoundary.constraints = [
+            "保持对话语气，不要用帖子回复腔",
+            "延续同一个人格连续性",
+        ];
         return {
             scene: sceneContext,
             atmosphere,
             impulses,
             personaReinforcement,
             outputGuard,
+            expressionBoundary,
         };
     }
     catch {

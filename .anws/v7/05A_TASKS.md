@@ -1167,7 +1167,7 @@
 
 ---
 
-- [ ] **T-V7C.C.5** [REQ-006, REQ-007, REQ-009, REQ-011]: Host Ops Surface Parity
+- [x] **T-V7C.C.5** [REQ-006, REQ-007, REQ-009, REQ-011]: Host Ops Surface Parity
   - **描述**: 修复 0.1.38 实机中 `guidance_payload` 仍为 `unknown_command` 的插件层入口断路，并收口 `connector_test` 成功 wrapper、`restore snapshotId` 参数兼容与 manifest/host-safe command 描述漂移。
   - **输入**: `01_PRD.md §3.1 G6/G7/G9/G11`、`04_SYSTEM_DESIGN/runtime-ops-system.md §5`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4`、T-ROS.C.1、T-ROS.C.2、T-V7C.C.1R、T-V7C.C.4R、`C:\Users\11341\Downloads\sn-0.1.38-full-issues.md`
   - **输出**: 更新 `plugin/index.ts` workspace bridge whitelist / host-safe router / simple CLI parser、`plugin/openclaw.plugin.json` 描述、`src/cli/ops/ops-router.ts` response/restore 参数兼容、相关 plugin runtime 产物与回归测试
@@ -1188,7 +1188,7 @@
 
 ---
 
-- [ ] **T-V7C.C.6** [REQ-003, REQ-005, REQ-009, REQ-010]: Production Data Growth Closure
+- [x] **T-V7C.C.6** [REQ-003, REQ-005, REQ-009, REQ-010]: Production Data Growth Closure
   - **描述**: 修复实机中 `life_evidence_index`、`tool_experience`、`dream_output_index`、`heartbeat_digest` 无增长的问题；区分“没有可执行 intent”的合理 defer/deny 与“生产写入链路没接上”的真实缺口。
   - **输入**: `01_PRD.md §3.1 G3/G5/G9/G10`、`04_SYSTEM_DESIGN/control-plane-system.md §4`、`04_SYSTEM_DESIGN/body-tool-system.md §4.3`、`04_SYSTEM_DESIGN/dream-quiet-system.md §4`、T-V7C.C.2、T-V7C.C.3、`C:\Users\11341\Downloads\sn-0.1.38-full-issues.md`
   - **输出**: 更新 heartbeat connector/evidence 写入路径、ToolExperience 生产注入、Quiet→Dream 实机触发或 explicit skip、heartbeat_digest 持久化/可观测路径、DB before/after 验证报告
@@ -1209,7 +1209,7 @@
 
 ---
 
-- [ ] **T-V7C.C.7** [REQ-006, REQ-008]: Guidance Semantics Refinement
+- [x] **T-V7C.C.7** [REQ-006, REQ-008]: Guidance Semantics Refinement
   - **描述**: 将 guidance payload 从“可预览字段”收敛为“引导而非程序”的表达协议：`outputGuard` 不再被误解为最终格式规范或 hard guard；`atmosphere` 压缩为低频状态约束；`impulse/persona/expression boundary` 必须能进入真实生成上下文或明确标记为 preview-only。
   - **输入**: `01_PRD.md §3.1 G6/G8`、`04_SYSTEM_DESIGN/guidance-voice-system.md §4`、ADR-006、T-GVS.C.1、T-GVS.C.3、T-V7C.C.4R、用户关于“引导而非程序”的确认
   - **输出**: 更新 `src/guidance/output-guard.ts` 命名/兼容层、`src/guidance/template-registry.ts` atmosphere 文本策略、guidance assembly/apply 语义、agent-inner-guide 说明与测试 fixtures
@@ -1230,7 +1230,7 @@
 
 ---
 
-- [ ] **INT-V7C.R** [MILESTONE]: 0.1.38 Claw Gap Regression Gate
+- [x] **INT-V7C.R** [MILESTONE]: 0.1.38 Claw Gap Regression Gate
   - **描述**: 以 `sn-0.1.38-full-issues.md` 为回归基线，验证 host ops 可达、生产数据增长、Dream/digest、guidance 语义与发布包版本在 Claw 实机中闭合。
   - **输入**: T-V7C.C.5、T-V7C.C.6、T-V7C.C.7 全部产出
   - **输出**: `reports/int-v7c-r-claw-gap-regression.md`

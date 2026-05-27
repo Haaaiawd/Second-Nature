@@ -65,6 +65,17 @@ export interface GuardBlock {
   kind: "output_guard";
   constraints: string[];
   hardGuardPriority: true;
+  /** @deprecated Use ExpressionBoundaryBlock via buildExpressionBoundary. Kept for backward compatibility. */
+  _semanticNote?: "output_guard_only_shapes_expression";
+}
+
+export interface ExpressionBoundaryBlock {
+  kind: "expression_boundary";
+  constraints: string[];
+  /** Avoid/prefer style constraints; never format specs or hard guard verdicts. */
+  style: "avoid_prefer";
+  /** Explicitly marks this block as shaping expression only, not action allow/deny. */
+  ownership: "behavioral_guidance_system";
 }
 
 export interface PersonaInjectionBudget {
@@ -77,7 +88,9 @@ export interface GuidancePayload {
   atmosphere?: AtmosphereBlock;
   impulses: ImpulseBlock[];
   personaReinforcement: PersonaSnippet[];
+  /** @deprecated Use expressionBoundary. Kept for backward compatibility. */
   outputGuard?: GuardBlock;
+  expressionBoundary?: ExpressionBoundaryBlock;
 }
 
 export interface GuidanceUnavailable {
@@ -90,7 +103,9 @@ export interface GuidanceFallback {
   atmosphere?: AtmosphereBlock;
   impulses: ImpulseBlock[];
   personaReinforcement: [];
+  /** @deprecated Use expressionBoundary. Kept for backward compatibility. */
   outputGuard: GuardBlock;
+  expressionBoundary?: ExpressionBoundaryBlock;
   minimal: true;
 }
 

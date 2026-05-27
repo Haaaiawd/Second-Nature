@@ -30,9 +30,53 @@ import { createExperienceWriter } from "../../core/second-nature/body/tool-exper
 import { createCapabilityProbeResultStore, createToolExperienceStore, } from "../../storage/services/tool-experience-store.js";
 import { createWetProbeRunner } from "../../connectors/base/wet-probe-runner.js";
 import { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.js";
+// v7 T-V7C.C.6: Dream scheduling deps for heartbeat_check quiet→dream auto-trigger
+import { scheduleDream } from "../../dream/dream-scheduler.js";
+import { createDreamInputLoader } from "../../dream/dream-input-loader.js";
+import { createDiaryDreamStore } from "../../storage/services/diary-dream-store.js";
 function coerceProbeOnlyFlag(input) {
     const v = input?.probeOnly;
     return v === true || v === "true" || v === 1 || v === "1";
+}
+/**
+ * v7 T-V7C.C.6: Build a minimal QuietDreamSchedulePort backed by the state DB.
+ * When a source-backed Quiet write completes, this port triggers Dream scheduling
+ * via the standard scheduleDream path (rules-only mode when no model port).
+ */
+function createQuietDreamSchedulePort(state) {
+    return {
+        async scheduleDream({ triggerKind, runId, traceId }) {
+            const dreamStore = createDiaryDreamStore(state);
+            const inputLoader = createDreamInputLoader({ database: state });
+            const statePort = {
+                async loadDreamInputs(query) {
+                    return inputLoader.loadDreamInputs(query);
+                },
+                async writeDreamOutput(output) {
+                    // Bridge: dream-engine emits dream/types DreamOutput; diary-dream-store expects shared/types.
+                    // Structures are identical at runtime; TS strictness requires the cast.
+                    await dreamStore.appendDreamOutput(output);
+                    return { outputId: output.outputId, status: "acknowledged" };
+                },
+                async markDreamOutputLifecycle(input) {
+                    // transitionDreamOutputLifecycle only accepts accepted|archived.
+                    if (input.newStatus !== "accepted" && input.newStatus !== "archived") {
+                        return { outputId: input.outputId, status: "degraded" };
+                    }
+                    await dreamStore.transitionDreamOutputLifecycle(input.outputId, input.newStatus);
+                    return { outputId: input.outputId, status: "acknowledged" };
+                },
+            };
+            const result = await scheduleDream({
+                triggerKind,
+                runId,
+                traceId,
+                statePort,
+                windowKey: "quiet_completion",
+            });
+            return { status: result.status, reason: result.reason };
+        },
+    };
 }
 const SNAPSHOT_TABLE_BY_KIND = {
     identity_profile: "identity_profile",
@@ -278,6 +322,8 @@ export function createOpsRouter(deps) {
             connectorExecutor: input.connectorExecutor ?? deps.connectorExecutor,
             connectorRegistry: input
                 ?.connectorRegistry ?? deps.connectorRegistry,
+            digestOpts: input.digestOpts,
+            dreamSchedulePort: input.dreamSchedulePort,
         }),
         async dispatch(command, input) {
             if (command === "heartbeat_check") {
@@ -298,61 +344,98 @@ export function createOpsRouter(deps) {
                 if (deps.state) {
                     experienceWriter = createExperienceWriter(createToolExperienceStore(deps.state));
                 }
-                const result = await heartbeatCheck({
-                    probeOnly: coerceProbeOnlyFlag(input),
-                    runtimeAvailable,
-                    fakeControlPlanePassthrough: input?.fakeControlPlanePassthrough &&
-                        typeof input.fakeControlPlanePassthrough === "object"
-                        ? input.fakeControlPlanePassthrough
-                        : undefined,
-                    readModels: input?.readModels ??
-                        deps.readModels,
-                    runtimeRecorder: input
-                        ?.runtimeRecorder ?? deps.runtimeRecorder,
-                    state: input?.state ??
-                        deps.state,
-                    workspaceRoot: input
-                        ?.workspaceRoot ?? deps.workspaceRoot,
-                    timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
-                    sessionContext: typeof input?.sessionContext === "string"
-                        ? input.sessionContext
-                        : undefined,
-                    scopeHint: input?.scopeHint,
-                    connectorExecutor: input
-                        ?.connectorExecutor ?? deps.connectorExecutor,
-                    connectorRegistry: input
-                        ?.connectorRegistry ?? deps.connectorRegistry,
-                    affordanceMap,
-                    experienceWriter,
-                });
-                if (result.ok &&
-                    result.surfaceMode === "workspace_full_runtime" &&
-                    !coerceProbeOnlyFlag(input) &&
-                    deps.state &&
-                    deps.restoreSnapshotStore) {
-                    try {
-                        const capture = await captureRuntimeSnapshot(deps, {
-                            snapshotId: `heartbeat:${result.decisionId ?? "cycle"}:${Date.now()}`,
-                            subjectId: result.decisionId ?? "heartbeat_check",
-                            reasonCode: "heartbeat_check",
-                            summaryText: `Heartbeat ${result.status} captured bounded restore snapshot`,
-                            focus: result.status,
-                            progress: result.reasons.join(",") || "heartbeat_completed",
-                            nextIntent: "continue_runtime_loop",
-                            sourceRefs: result.decisionId
-                                ? [`heartbeat:${result.decisionId}`]
-                                : ["heartbeat:runtime"],
-                        });
-                        if (capture.ok) {
-                            result.reasons = [...result.reasons, "restore_snapshot_captured"];
+                // v7 T-V7C.C.6: assemble digest opts when auditStore is wired.
+                let digestOpts;
+                if (deps.auditStore) {
+                    digestOpts = {
+                        assemblerDeps: {
+                            auditStore: deps.auditStore,
+                            ...deps.heartbeatDigestDeps,
+                        },
+                    };
+                }
+                // v7 T-V7C.C.6: assemble dream schedule port when state DB is wired.
+                let dreamSchedulePort;
+                if (deps.state) {
+                    dreamSchedulePort = createQuietDreamSchedulePort(deps.state);
+                }
+                try {
+                    const result = await heartbeatCheck({
+                        probeOnly: coerceProbeOnlyFlag(input),
+                        runtimeAvailable,
+                        fakeControlPlanePassthrough: input?.fakeControlPlanePassthrough &&
+                            typeof input.fakeControlPlanePassthrough === "object"
+                            ? input.fakeControlPlanePassthrough
+                            : undefined,
+                        readModels: input?.readModels ??
+                            deps.readModels,
+                        runtimeRecorder: input
+                            ?.runtimeRecorder ?? deps.runtimeRecorder,
+                        state: input?.state ??
+                            deps.state,
+                        workspaceRoot: input
+                            ?.workspaceRoot ?? deps.workspaceRoot,
+                        timestamp: typeof input?.timestamp === "string" ? input.timestamp : undefined,
+                        sessionContext: typeof input?.sessionContext === "string"
+                            ? input.sessionContext
+                            : undefined,
+                        scopeHint: input?.scopeHint,
+                        connectorExecutor: input
+                            ?.connectorExecutor ?? deps.connectorExecutor,
+                        connectorRegistry: input
+                            ?.connectorRegistry ?? deps.connectorRegistry,
+                        affordanceMap,
+                        experienceWriter,
+                        digestOpts,
+                        dreamSchedulePort,
+                    });
+                    if (result.ok &&
+                        result.surfaceMode === "workspace_full_runtime" &&
+                        !coerceProbeOnlyFlag(input) &&
+                        deps.state &&
+                        deps.restoreSnapshotStore) {
+                        try {
+                            const capture = await captureRuntimeSnapshot(deps, {
+                                snapshotId: `heartbeat:${result.decisionId ?? "cycle"}:${Date.now()}`,
+                                subjectId: result.decisionId ?? "heartbeat_check",
+                                reasonCode: "heartbeat_check",
+                                summaryText: `Heartbeat ${result.status} captured bounded restore snapshot`,
+                                focus: result.status,
+                                progress: result.reasons.join(",") || "heartbeat_completed",
+                                nextIntent: "continue_runtime_loop",
+                                sourceRefs: result.decisionId
+                                    ? [`heartbeat:${result.decisionId}`]
+                                    : ["heartbeat:runtime"],
+                            });
+                            if (capture.ok) {
+                                result.reasons = [...result.reasons, "restore_snapshot_captured"];
+                            }
+                        }
+                        catch (err) {
+                            const msg = err instanceof Error ? err.message : String(err);
+                            result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
                         }
                     }
-                    catch (err) {
-                        const msg = err instanceof Error ? err.message : String(err);
-                        result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
-                    }
+                    return result;
                 }
-                return result;
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const envelope = {
+                        ok: false,
+                        command: "heartbeat_check",
+                        runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt: new Date().toISOString(),
+                        error: {
+                            code: "HEARTBEAT_CYCLE_EXCEPTION",
+                            message: `heartbeat_check cycle threw unexpectedly: ${msg.slice(0, 200)}`,
+                            nextStep: "check_logs_and_report",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
             }
             if (command === "fallback") {
                 const ref = typeof input?.ref === "string" ? input.ref.trim() : "";
@@ -569,7 +652,9 @@ export function createOpsRouter(deps) {
                     warnings.push("state_db_unavailable:capability_probe_result_not_persisted");
                 }
                 return {
-                    ok: wetResult.probeResult.actualStatus !== "unavailable",
+                    // T-V7C.C.5: only "available" (HTTP 200-299) counts as success;
+                    // "degraded" (429/503) and "unavailable" both result in ok=false.
+                    ok: wetResult.probeResult.actualStatus === "available",
                     command: "connector_test",
                     data: {
                         ...data,
@@ -1047,29 +1132,84 @@ export function createOpsRouter(deps) {
                     };
                     return envelope;
                 }
-                const missingFields = [];
-                if (typeof input?.restoreTarget !== "string")
-                    missingFields.push("restoreTarget");
-                if (typeof input?.fromVersion !== "string")
-                    missingFields.push("fromVersion");
-                if (typeof input?.toVersion !== "string")
-                    missingFields.push("toVersion");
-                if (missingFields.length > 0) {
-                    const envelope = {
-                        ok: false,
-                        command: "restore",
-                        runtimeMode: "workspace_full_runtime",
-                        surfaceMode: "cli",
-                        generatedAt,
-                        error: {
-                            code: "MISSING_RESTORE_FIELDS",
-                            message: `restore requires: ${missingFields.join(", ")}`,
-                            nextStep: "reinvoke_with_required_fields",
-                        },
-                        warnings: [],
-                        sourceRefs: [],
-                    };
-                    return envelope;
+                let restoreTarget;
+                let fromVersion;
+                let toVersion;
+                // T-V7C.C.5: snapshotId operator-friendly parameter takes precedence over legacy fields.
+                // When snapshotId is provided, resolve restoreTarget/fromVersion/toVersion from the
+                // matching snapshot row; otherwise fall back to explicit legacy parameters.
+                const snapshotId = textInput(input, "snapshotId");
+                if (snapshotId) {
+                    if (!deps.restoreSnapshotStore) {
+                        const envelope = {
+                            ok: false,
+                            command: "restore",
+                            runtimeMode: "unavailable",
+                            surfaceMode: "cli",
+                            generatedAt,
+                            error: {
+                                code: "RESTORE_SNAPSHOT_STORE_UNAVAILABLE",
+                                message: "snapshotId restore requires restoreSnapshotStore in OpsRouterDeps",
+                                nextStep: "wire_restore_snapshot_store_into_ops_router",
+                            },
+                            warnings: [],
+                            sourceRefs: [],
+                        };
+                        return envelope;
+                    }
+                    const snapshots = await deps.restoreSnapshotStore.listSnapshots();
+                    const match = snapshots.find((s) => s.snapshotId === snapshotId);
+                    if (match) {
+                        restoreTarget = snapshotId;
+                        fromVersion = match.capturedAt;
+                        toVersion = snapshotId;
+                    }
+                    else {
+                        const envelope = {
+                            ok: false,
+                            command: "restore",
+                            runtimeMode: "workspace_full_runtime",
+                            surfaceMode: "cli",
+                            generatedAt,
+                            error: {
+                                code: "SNAPSHOT_NOT_FOUND",
+                                message: `snapshotId ${snapshotId} not found in restore_snapshot table`,
+                                nextStep: "list_available_snapshots_or_verify_snapshotId",
+                            },
+                            warnings: [],
+                            sourceRefs: [],
+                        };
+                        return envelope;
+                    }
+                }
+                else {
+                    const missingFields = [];
+                    if (typeof input?.restoreTarget !== "string")
+                        missingFields.push("restoreTarget");
+                    if (typeof input?.fromVersion !== "string")
+                        missingFields.push("fromVersion");
+                    if (typeof input?.toVersion !== "string")
+                        missingFields.push("toVersion");
+                    if (missingFields.length > 0) {
+                        const envelope = {
+                            ok: false,
+                            command: "restore",
+                            runtimeMode: "workspace_full_runtime",
+                            surfaceMode: "cli",
+                            generatedAt,
+                            error: {
+                                code: "MISSING_RESTORE_FIELDS",
+                                message: `restore requires: ${missingFields.join(", ")}`,
+                                nextStep: "reinvoke_with_required_fields",
+                            },
+                            warnings: [],
+                            sourceRefs: [],
+                        };
+                        return envelope;
+                    }
+                    restoreTarget = input.restoreTarget;
+                    fromVersion = input.fromVersion;
+                    toVersion = input.toVersion;
                 }
                 // [NEW] Invoke bounded restore via RestoreSnapshotStore when wired
                 let restoreResult = {
@@ -1080,16 +1220,16 @@ export function createOpsRouter(deps) {
                 };
                 if (deps.restoreSnapshotStore) {
                     restoreResult = await deps.restoreSnapshotStore.applyBoundedRestore({
-                        restoreTarget: input.restoreTarget,
-                        fromVersion: input.fromVersion,
-                        toVersion: input.toVersion,
+                        restoreTarget: restoreTarget,
+                        fromVersion: fromVersion,
+                        toVersion: toVersion,
                     });
                 }
                 const event = {
                     id: `restore-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                    restoreTarget: input.restoreTarget,
-                    fromVersion: input.fromVersion,
-                    toVersion: input.toVersion,
+                    restoreTarget: restoreTarget,
+                    fromVersion: fromVersion,
+                    toVersion: toVersion,
                     triggeredBy: input?.triggeredBy ?? "operator",
                     reason: typeof input?.reason === "string" ? input.reason : "manual_restore",
                     completedEntities: restoreResult.completedEntities,
@@ -1241,7 +1381,10 @@ export function createOpsRouter(deps) {
                     capabilityIntent,
                     platformId,
                 });
-                const atmosphere = getBaselineAtmosphereTemplate();
+                const { buildExpressionBoundary } = await import("../../guidance/output-guard.js");
+                const { getShortAtmosphereTemplate } = await import("../../guidance/template-registry.js");
+                const atmosphere = getShortAtmosphereTemplate("active", "low");
+                const expressionBoundary = buildExpressionBoundary(sceneType);
                 const envelope = {
                     ok: true,
                     command: "guidance_payload",
@@ -1258,6 +1401,8 @@ export function createOpsRouter(deps) {
                         impulseReviewStatus: impulseResult.impulse?.reviewStatus ?? null,
                         atmosphereText: atmosphere.text,
                         atmosphereReviewStatus: atmosphere.reviewStatus,
+                        expressionBoundaryConstraints: expressionBoundary.constraints,
+                        expressionBoundaryStyle: expressionBoundary.style,
                     },
                     warnings: impulseResult.source === "none"
                         ? ["no_impulse_available_for_this_scene_and_capability"]
@@ -1266,6 +1411,7 @@ export function createOpsRouter(deps) {
                         "guidance/capability-class.ts",
                         "guidance/impulse-assembler.ts",
                         "guidance/template-registry.ts",
+                        "guidance/output-guard.ts",
                     ],
                 };
                 return envelope;

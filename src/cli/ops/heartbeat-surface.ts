@@ -17,6 +17,8 @@ import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/ef
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 import type { AffordanceMap } from "../../shared/types/v7-entities.js";
 import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
+import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
+import type { HeartbeatDigestAssemblerDeps } from "../../observability/services/heartbeat-digest-assembler.js";
 
 export type HeartbeatSurfaceStatus =
   | "heartbeat_ok"
@@ -69,6 +71,19 @@ export interface HeartbeatCheckInput {
   affordanceMap?: AffordanceMap;
   /** v7 T-V7C.C.2: experience writer for heartbeat connector attempts. */
   experienceWriter?: ExperienceWriter;
+  /**
+   * v7 T-V7C.C.6: when present, a successful Quiet write auto-triggers Dream scheduling.
+   * Fixes the production-data gap where dream_output_index does not grow after Quiet.
+   */
+  dreamSchedulePort?: QuietDreamSchedulePort;
+  /**
+   * v7 T-V7C.C.6: when present, generates a HeartbeatDigest after each cycle.
+   * Fixes the production-data gap where heartbeat_digest does not grow.
+   */
+  digestOpts?: {
+    assemblerDeps: HeartbeatDigestAssemblerDeps;
+    digestWindowHour?: number;
+  };
 }
 
 function mapCycleToSurface(
@@ -164,7 +179,20 @@ export async function heartbeatCheck(
     connectorRegistry: input.connectorRegistry,
     affordanceMap: input.affordanceMap,
     experienceWriter: input.experienceWriter,
+    dreamSchedulePort: input.dreamSchedulePort,
+    digestOpts: input.digestOpts,
   });
-  const cycle = await run(signal);
-  return mapCycleToSurface(cycle, "workspace_full_runtime");
+  try {
+    const cycle = await run(signal);
+    return mapCycleToSurface(cycle, "workspace_full_runtime");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      status: "denied",
+      surfaceMode: "workspace_full_runtime",
+      reasons: [`heartbeat_cycle_exception:${msg.slice(0, 120)}`],
+      livedExperienceLoopClaimed: false,
+    };
+  }
 }

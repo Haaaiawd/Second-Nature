@@ -31,7 +31,9 @@ function summarizePayloadBlocks(payload: GuidancePayload | GuidanceUnavailable):
   if (payload.personaReinforcement.length > 0) {
     blocks.push(`persona:${payload.personaReinforcement.length}`);
   }
-  if (payload.outputGuard) {
+  if (payload.expressionBoundary) {
+    blocks.push("expression_boundary");
+  } else if (payload.outputGuard) {
     blocks.push("output_guard");
   }
   return blocks;

@@ -26,7 +26,7 @@ export type UserReplySceneType = typeof USER_REPLY_SCENE_TYPE;
  * - Light atmosphere (continuity-focused)
  * - NO impulses (unlike platform reply scene)
  * - Optional persona reinforcement (1-2 snippets max)
- * - Minimal output guard (tone consistency only)
+ * - Minimal expression boundary (tone consistency only)
  */
 export declare function buildLightReplyContinuity(input: {
     replyContext: {

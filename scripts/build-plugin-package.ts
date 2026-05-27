@@ -77,6 +77,8 @@ const RUNTIME_ARTIFACTS = [
   { src: "src/core/second-nature/", dest: "core/second-nature/" },
   { src: "src/guidance/", dest: "guidance/" },
   { src: "src/connectors/", dest: "connectors/" },
+  // Dream scheduler (required by ops-router.ts → createQuietDreamSchedulePort)
+  { src: "src/dream/", dest: "dream/" },
   { src: "src/shared/", dest: "shared/" },
 ];
 

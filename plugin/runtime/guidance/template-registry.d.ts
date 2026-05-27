@@ -1,6 +1,10 @@
-import type { AtmosphereBlock, GuidanceSceneType, ImpulseBlock, ImpulseKind } from "./types.js";
+import type { AtmosphereBlock, GuidanceSceneType, ImpulseBlock, ImpulseKind, GuidanceMode, GuidanceRiskLevel } from "./types.js";
+export declare function getShortAtmosphereText(mode: GuidanceMode, riskLevel: GuidanceRiskLevel | undefined): string;
 type CoreSceneKind = Exclude<GuidanceSceneType, "explain" | "user_reply">;
+/** @deprecated Use getShortAtmosphereTemplate for production contexts. Kept for compatibility. */
 export declare function getBaselineAtmosphereTemplate(): Pick<AtmosphereBlock, "kind" | "text" | "reviewStatus">;
+/** T-V7C.C.7: Short constraint atmosphere (production default). */
+export declare function getShortAtmosphereTemplate(mode: GuidanceMode, riskLevel: GuidanceRiskLevel | undefined): Pick<AtmosphereBlock, "kind" | "text" | "reviewStatus">;
 export declare function getImpulseTemplate(sceneType: CoreSceneKind): ImpulseBlock;
 /**
  * Get impulse template for capability-class-derived ImpulseKinds (explore / work).
