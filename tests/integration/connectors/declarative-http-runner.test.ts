@@ -29,8 +29,12 @@ async function seedCredential(stateDb: ReturnType<typeof createStateDatabase>, p
   });
 }
 
-function createTestServer(responseData: unknown): { server: http.Server; port: number; url: string } {
+function createTestServer(
+  responseData: unknown,
+  onRequest?: (req: http.IncomingMessage) => void,
+): { server: http.Server; port: number; url: string } {
   const server = http.createServer((req, res) => {
+    onRequest?.(req);
     res.writeHead(200, { "Content-Type": "application/json" });
     const baseResponse = { path: req.url, method: req.method };
     const merged = typeof responseData === "object" && responseData !== null
@@ -58,6 +62,66 @@ function tempWorkspaceWithConnector(manifestContent: string): string {
 
 test.beforeEach(() => {
   process.env.SECOND_NATURE_ENCRYPTION_KEY = "x".repeat(32);
+});
+
+test("W83: declarative_http connector with credentials: [] executes without Authorization header", async () => {
+  let authHeader: string | undefined;
+  const { server, url } = createTestServer(
+    { ok: true },
+    (req) => {
+      authHeader = req.headers.authorization;
+    },
+  );
+
+  try {
+    const manifest = `schemaVersion: sn.connector.v1
+platformId: public-api
+displayName: Public API
+family: custom
+capabilities:
+  - id: feed.read
+    description: Read public feed
+runner:
+  kind: declarative_http
+  entrypoint: ""
+  config:
+    baseUrl: ${url}
+credentials: []
+sourceRefPolicy:
+  minSourceRefs: 1
+  rejectInlineSensitivePayload: true
+trust:
+  status: declarative_trusted
+`;
+    const workspaceRoot = tempWorkspaceWithConnector(manifest);
+
+    try {
+      const stateDb = createStateDatabase(":memory:");
+      const observabilityDb = createObservabilityDatabase(":memory:");
+
+      const executor = createConnectorExecutorAdapter({
+        stateDb,
+        observabilityDb,
+        workspaceRoot,
+      });
+
+      const result = await executor.executeEffect({
+        intent: "feed.read",
+        platformId: "public-api",
+        payload: {},
+        decisionId: "dec-w83-public",
+        intentId: "intent-w83-public",
+        idempotencyKey: "w83-public-api",
+      });
+
+      assert.equal(result.status, "success", `should succeed without credential: ${JSON.stringify(result)}`);
+      assert.equal(authHeader, undefined, "public connector must not send Authorization header");
+    } finally {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
+  } finally {
+    server.close();
+  }
 });
 
 test.afterEach(() => {

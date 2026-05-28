@@ -22,7 +22,7 @@
 ## 2. 环境
 
 - **项目**: Second Nature v7
-- **版本**: `0.1.39`
+- **版本**: `0.1.40`
 - **Runtime**: Node.js 22.16.0 + TypeScript 5.x
 - **存储**: SQLite/sql.js (`:memory:` for tests)
 - **测试框架**: node:test
@@ -78,6 +78,7 @@
 | W83-T3 | `declarative_a2a` / `declarative_mcp` 也生成 `declarative_trusted` | ✅ PASS |
 | W83-T4 | 自定义 declarative_http connector 被通用 runner 执行，GET `/feed/read` | ✅ PASS |
 | W83-T5 | 自定义 declarative_http connector POST `/post/publish` | ✅ PASS |
+| W83-T6 | `credentials: []` 的 declarative_http connector 无 credential 也能执行，且不发送 Authorization header | ✅ PASS |
 
 **证据**:
 - `tests/unit/cli/connector-init-manifest.test.ts`
@@ -99,7 +100,7 @@
 | `tests/integration/connectors/moltbook-mock-runner.test.ts` | 新增 | 2 集成测试 |
 | `tests/integration/control-plane/v7c-heartbeat-unlock-e2e.test.ts` | 新增 | 1 E2E 测试 |
 | `tests/unit/cli/connector-init-manifest.test.ts` | 新增 | 3 单元测试 |
-| `tests/integration/connectors/declarative-http-runner.test.ts` | 新增 | 2 集成测试 |
+| `tests/integration/connectors/declarative-http-runner.test.ts` | 新增 | 3 集成测试 |
 
 ---
 
@@ -107,7 +108,7 @@
 
 ```
 核心回归: 364 tests, 361 pass, 0 fail, 3 justified skips
-Wave 83 新增: 5 tests, 5 pass, 0 fail
+Wave 83 新增: 6 tests, 6 pass, 0 fail
 ```
 
 `pnpm build` ✅  

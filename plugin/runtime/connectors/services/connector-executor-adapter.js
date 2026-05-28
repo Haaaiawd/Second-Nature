@@ -196,12 +196,15 @@ function createDeclarativeHttpRunner(manifest, credential) {
             const httpPath = resolveDeclarativeHttpPath(request.intent);
             const method = resolveDeclarativeHttpMethod(request.intent);
             try {
+                const headers = {
+                    "Content-Type": "application/json",
+                };
+                if (credential?.encryptedValue) {
+                    headers.Authorization = `Bearer ${credential.encryptedValue}`;
+                }
                 const resp = await fetch(`${baseUrl.replace(/\/+$/, "")}${httpPath}`, {
                     method,
-                    headers: {
-                        "Authorization": `Bearer ${credential.encryptedValue}`,
-                        "Content-Type": "application/json",
-                    },
+                    headers,
                     body: method !== "GET" && request.payload ? JSON.stringify(request.payload) : undefined,
                 });
                 if (!resp.ok) {
@@ -249,10 +252,19 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
         async run(_plan, request) {
             const platformId = request.platformId;
             const started = Date.now();
-            const credential = await vault.loadCredentialContext(platformId);
-            if (!credential ||
-                credential.status !== "active" ||
-                !credential.encryptedValue) {
+            const workspaceManifest = findWorkspaceManifest(platformId, workspaceRoot);
+            const isBuiltInPlatform = platformId === "moltbook" ||
+                platformId === "evomap" ||
+                platformId === "agent-world";
+            const requiresCredential = isBuiltInPlatform ||
+                Boolean(workspaceManifest?.credentials.some((credential) => credential.required !== false));
+            const credential = requiresCredential
+                ? await vault.loadCredentialContext(platformId)
+                : undefined;
+            if (requiresCredential &&
+                (!credential ||
+                    credential.status !== "active" ||
+                    !credential.encryptedValue)) {
                 return {
                     platformId,
                     channel: request.preferredChannel ?? "api_rest",
@@ -264,12 +276,15 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                     },
                 };
             }
+            const activeCredential = credential?.status === "active" && credential.encryptedValue
+                ? { encryptedValue: credential.encryptedValue }
+                : undefined;
             if (platformId === "moltbook") {
                 const baseUrl = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
                 if (baseUrl) {
                     const apiClient = createMoltbookApiClient({
                         baseUrl,
-                        accessToken: credential.encryptedValue,
+                        accessToken: activeCredential.encryptedValue,
                         timeoutMs: 10000,
                     });
                     const runner = createMoltbookRunner({
@@ -316,7 +331,7 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                     };
                 }
                 const runner = createAgentWorldRunner({
-                    apiKey: credential.encryptedValue,
+                    apiKey: activeCredential.encryptedValue,
                     apiClient: {
                         async readFeed(payload, _apiKey) {
                             const username = resolveAgentWorldUsername(payload, "feed");
@@ -358,9 +373,8 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                 return runner.run(_plan, request);
             }
             // Wave 83: workspace declarative_http connector fallback
-            const workspaceManifest = findWorkspaceManifest(platformId, workspaceRoot);
             if (workspaceManifest && workspaceManifest.runner.kind === "declarative_http") {
-                const httpRunner = createDeclarativeHttpRunner(workspaceManifest, { encryptedValue: credential.encryptedValue });
+                const httpRunner = createDeclarativeHttpRunner(workspaceManifest, activeCredential);
                 return httpRunner.run(_plan, request);
             }
             return {

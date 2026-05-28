@@ -488,7 +488,7 @@ Wave 83 (T-V7C.C.8, T-V7C.C.9, INT-V7C.U 补全)
   - `src/connectors/services/connector-executor-adapter.ts` — 通用 HTTP runner (`createDeclarativeHttpRunner`) + workspace manifest 动态加载
   - `reports/int-v7c-u-heartbeat-unlock.md` — 全链路验证报告
   - 5 新测试（3 单元 + 2 集成）
-- **测试**: 核心回归 364/364（361 pass + 3 justified skips）；Wave 83 5/5 PASS；`pnpm build` ✅；`pnpm lint` ✅
+- **测试**: 核心回归 364/364（361 pass + 3 justified skips）；Wave 83 6/6 PASS；`pnpm build` ✅；`pnpm lint` ✅
 - **审查报告**: `.anws/v7/wave-reviews/wave-83-review.md`（待生成，本波产出）
 - **最高严重度**: none
 - **残留待跟进**: evomap 仍 `not_implemented`；agent-world 仍需要 env var；通用 HTTP runner 路径映射为约定式（`/{capabilityId}`）

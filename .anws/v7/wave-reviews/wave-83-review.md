@@ -15,7 +15,7 @@
 | `src/connectors/services/connector-executor-adapter.ts` | 修改 | `createDeclarativeHttpRunner` 通用 HTTP runner + `findWorkspaceManifest` + workspace connector fallback |
 | `reports/int-v7c-u-heartbeat-unlock.md` | 新增 | 全链路验证报告 |
 | `tests/unit/cli/connector-init-manifest.test.ts` | 新增 | 3 单元测试 |
-| `tests/integration/connectors/declarative-http-runner.test.ts` | 新增 | 2 集成测试（GET + POST） |
+| `tests/integration/connectors/declarative-http-runner.test.ts` | 新增 | 3 集成测试（public no-auth GET + credentialed GET + POST） |
 
 ---
 
@@ -39,10 +39,10 @@ if (workspaceManifest && workspaceManifest.runner.kind === "declarative_http") {
 | 测试文件 | 类型 | 通过 | 失败 |
 |---------|------|------|------|
 | `connector-init-manifest.test.ts` | 单元 | 3 | 0 |
-| `declarative-http-runner.test.ts` | 集成 | 2 | 0 |
+| `declarative-http-runner.test.ts` | 集成 | 3 | 0 |
 | Wave 80-82 既有测试 | 混合 | 20 | 0 |
 
-**总计**: 25 pass / 0 fail
+**总计**: 26 pass / 0 fail
 
 ---
 
