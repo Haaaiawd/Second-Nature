@@ -192,14 +192,14 @@ src/
 - ADR-008: Probe Truth, History Browser, and Bounded Rollback
 
 ### 当前任务状态
-- 执行主清单: `.anws/v7/05A_TASKS.md`（50 个任务 + 8 个 INT 里程碑）
+- 执行主清单: `.anws/v7/05A_TASKS.md`（50 个任务 + 8 个 INT 里程碑 + S8 3 项）
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 79 完成；S8 0.1.38 Real-host Closure 全部关闭（T-V7C.C.5~C.7 + INT-V7C.R）
+- **状态**: v7 `/forge` Wave 83 完成；S8 Heartbeat Unlock + 自定义 Connector 执行全部打通
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: v7 架构版本锁定，后续变更走 `/change`
-- **最近更新**: `2026-05-26` (`/change` S8 handoff — T-V7C.C.5~C.7 + INT-V7C.R added from 0.1.38 Claw full issues)
+- **下一步**: 提交 Wave 80-83 改动；或继续 evomap 真实 runner / agent-world mock
+- **最近更新**: `2026-05-27` (`/forge` Wave 83 — declarative HTTP runner + 自定义 connector 执行)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -477,6 +477,41 @@ INT-V7C.R
 - **残留待跟进**: 实机 connector exec DB growth（Wave 77 已标记，非本波引入）
 - **E2E**: `.anws/v7/wave-reviews/wave-79-e2e.md`（guide-only）
 - **下一步**: v7 S8 全部关闭，v7 架构版本锁定
+
+### 🌊 Wave 83 ✅ — v7 Declarative HTTP Runner + 自定义 Connector 执行解锁
+Wave 83 (T-V7C.C.8, T-V7C.C.9, INT-V7C.U 补全)
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-27）
+- **产出**:
+  - `src/cli/commands/connector-init.ts` — `declarative_http` → `declarative_trusted`；`baseUrl` → `runner.config.baseUrl`
+  - `src/connectors/services/connector-executor-adapter.ts` — 通用 HTTP runner (`createDeclarativeHttpRunner`) + workspace manifest 动态加载
+  - `reports/int-v7c-u-heartbeat-unlock.md` — 全链路验证报告
+  - 5 新测试（3 单元 + 2 集成）
+- **测试**: 核心回归 364/364（361 pass + 3 justified skips）；Wave 83 5/5 PASS；`pnpm build` ✅；`pnpm lint` ✅
+- **审查报告**: `.anws/v7/wave-reviews/wave-83-review.md`（待生成，本波产出）
+- **最高严重度**: none
+- **残留待跟进**: evomap 仍 `not_implemented`；agent-world 仍需要 env var；通用 HTTP runner 路径映射为约定式（`/{capabilityId}`）
+- **E2E**: `tests/integration/connectors/declarative-http-runner.test.ts` — 自定义 connector 全链路 PASS
+- **下一步**: 提交 Wave 80-83 改动；或继续 evomap/agent-world mock
+
+### 🌊 Wave 80-82 ✅ — v7 Heartbeat Unlock: SourceRefs / Affordance / Execution 因果链修复
+T-V7C.C.8, T-V7C.C.9, INT-V7C.U
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-27）
+- **产出**:
+  - `src/core/second-nature/orchestrator/intent-planner.ts` — sourceRefs goal fallback + capabilityIntent
+  - `src/cli/index.ts` — affordance assembler built-in `needs_auth` posture
+  - `src/connectors/services/connector-executor-adapter.ts` — moltbook mock runner
+  - `.second-nature/mock/moltbook-feed.json` — mock 数据模板
+  - 10 新测试（6 单元 + 2 集成 + 1 E2E + 1 扩展）
+- **测试**: 核心回归 364/364（361 pass + 3 justified skips）；`pnpm build` ✅；`pnpm lint` ✅
+- **审查报告**: `.anws/v7/wave-reviews/wave-80-82-review.md`
+- **最高严重度**: none
+- **残留待跟进**: 已补全（Wave 83）
+- **E2E**: `tests/integration/control-plane/v7c-heartbeat-unlock-e2e.test.ts` — 全链路 PASS
+- **下一步**: Wave 83
 
 ### 🌊 Wave 78 ✅ — 0.1.38 Real-host Closure: Guidance Semantics Refinement
 T-V7C.C.7

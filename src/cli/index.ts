@@ -171,7 +171,12 @@ function createWorkspaceAffordanceAssembler(
         return undefined;
       },
     },
-    credentialRequired: () => false,
+    // W80: built-in connectors without probe history should posture as
+    // "needs_auth" (guard allows) rather than "unavailable" (guard defers).
+    credentialRequired: (platformId) => {
+      const builtInPlatforms = new Set(["moltbook", "evomap", "agent-world", "instreet"]);
+      return builtInPlatforms.has(platformId);
+    },
   });
 }
 

@@ -266,4 +266,30 @@ describe("AffordanceAssembler", () => {
       }
     }
   });
+
+  it("built-in platforms without probe → needs_auth (not unavailable)", async () => {
+    const reg = new CapabilityContractRegistryV7();
+    reg.register({
+      platformId: "moltbook",
+      capabilities: [
+        { capabilityId: "feed.read", intent: "feed.read", probeConfig: { safeEndpoint: "connector://moltbook/feed.read", idempotencyClass: "read_only" } },
+      ],
+      channelPriority: ["api_rest"],
+      credentialTypes: ["api_key"],
+    });
+
+    const assembler = createAffordanceAssembler({
+      registry: reg,
+      probeReader: { getLatestProbeResult: () => undefined },
+      credentialRequired: (platformId) =>
+        ["moltbook", "evomap", "agent-world", "instreet"].includes(platformId),
+    });
+
+    const map = await assembler.assembleAffordanceMap({
+      allowedStatuses: ["safe", "exploratory", "needs_auth"],
+    });
+    const items = map["moltbook"] ?? [];
+    assert(items.length > 0, "moltbook should appear in affordance map");
+    assert.strictEqual(items[0]!.status, "needs_auth", "built-in without probe should posture as needs_auth");
+  });
 });

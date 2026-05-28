@@ -1241,6 +1241,57 @@
 
 ---
 
+## S8 Heartbeat Unlock — SourceRefs / Affordance / Execution 因果链修复
+
+> **背景**: 用户分析确认心跳失败的三步因果链 — (1) sourceRefs 为空 → (2) guard 拦截 (missing_source_refs + affordance_unavailable) → (3) execution 从未到达。本 Sprint 分三层解锁。
+
+- [x] **T-V7C.C.8** [REQ-003, REQ-009]: Guard Pass — SourceRefs Goal-Bound Fallback + Affordance Default Posture
+  - **描述**: 修复 planCandidateIntents 的 sourceRefs 生成逻辑（空 evidence 时回退到 goal-based refs）；修复 affordance assembler 使 built-in connectors 默认 `needs_auth` 而非 `unavailable`，让 hard guard 放行。
+  - **输入**: `src/core/second-nature/orchestrator/intent-planner.ts`、`src/cli/index.ts` affordance 组装、`src/core/second-nature/orchestrator/hard-guard-evaluator.ts`
+  - **输出**: 更新 intent-planner sourceRefs 回退逻辑、affordance assembler credentialRequired 策略、单元测试
+  - **契约承接**: exploration/social/outreach/reflection intent 在无 lifeEvidence 时仍能有非空 sourceRefs；affordance 对无 probe 的 built-in connector 标记为 `needs_auth`（guard 不拦截）而非 `unavailable`（guard 拦截）
+  - **参考**: ADR-003、ADR-008、REQ-003、REQ-009
+  - **验收标准**:
+    - Given heartbeat runtime 无 lifeEvidence 但有 accepted goals / When planCandidateIntents 生成 exploration/social/outreach / Then sourceRefs 非空且指向 goal uri
+    - Given affordance assembler 无 probe 历史 / When 组装 affordance map / Then built-in connectors (moltbook/evomap/agent-world) 状态为 `needs_auth` 而非 `unavailable`
+    - Given exploration intent 有 goal sourceRefs + affordance needs_auth / When evaluateHardGuards / Then verdict=`allow`（无 missing_source_refs 或 affordance_unavailable）
+  - **验证类型**: 单元测试 | 集成测试
+  - **验证摘要**: sourceRefs fallback；affordance default posture；guard pass
+  - **估时**: 4h
+  - **依赖**: INT-V7C.R
+  - **优先级**: P0
+
+- [x] **T-V7C.C.9** [REQ-003, REQ-009]: Execution Unlock — Moltbook Mock Runner
+  - **描述**: 在 connector-executor-adapter 中为 moltbook 添加 mock/demo 执行路径：当 `SECOND_NATURE_MOLTBOOK_BASE_URL` 缺失时，读取 workspace mock JSON 返回模拟 feed 数据，让心跳链路完整跑通到 evidence 写入。
+  - **输入**: `src/connectors/services/connector-executor-adapter.ts`、T-V7C.C.8
+  - **输出**: moltbook mock runner 内联逻辑 + workspace mock 数据模板 + 集成测试
+  - **契约承接**: mock 数据必须产生有效的 ConnectorResult，能被 policy layer 正常处理并生成 life evidence；mock 路径必须显式标记为 `demo/mock` 来源，不冒充真实平台数据
+  - **参考**: ADR-003、REQ-003
+  - **验收标准**:
+    - Given `SECOND_NATURE_MOLTBOOK_BASE_URL` 未设置且 workspace 存在 mock 数据 / When 执行 moltbook feed.read / Then 返回成功结果且结果标记 `source: "mock"`
+    - Given mock 执行成功 / When heartbeat 后续处理 / Then `life_evidence_index` 或 `tool_experience` 有写入记录
+    - Given mock 数据不存在 / When 执行 moltbook / Then 仍返回 `configuration_missing`（不降级为静默失败）
+  - **验证类型**: 集成测试 | 手动验证
+  - **验证摘要**: mock runner；evidence generation；heartbeat e2e
+  - **估时**: 4h
+  - **依赖**: T-V7C.C.8
+  - **优先级**: P0
+
+- [x] **INT-V7C.U** [MILESTONE]: Heartbeat Unlock Integration Verification
+  - **描述**: 验证 T-V7C.C.8 + T-V7C.C.9 + Wave 83 后，心跳能完整跑通 intent → guard pass → connector execute → life evidence → narrative update；同时验证通用自定义 connector (declarative_http) 可被 executor 执行。
+  - **输出**: `reports/int-v7c-u-heartbeat-unlock.md`
+  - **验收标准**: Given 本地无真实 API credential / When 触发完整心跳周期 / Then 至少一个 connector intent 经历完整链路并产生 evidence row；Given `connector init --baseUrl` / When 执行 declarative_http connector / Then 通用 HTTP runner 发送请求到配置域名
+  - **验证说明**: 5 项新测试全部 PASS；核心回归 364/364（361 pass + 3 skips）
+  - **估时**: 2h
+  - **依赖**: T-V7C.C.9
+  - **输入**: T-V7C.C.8、T-V7C.C.9
+  - **输出**: `reports/int-v7c-u-heartbeat-unlock.md`
+  - **验收标准**: Given 本地无真实 API credential / When 触发完整心跳周期 / Then 至少一个 connector intent 经历完整链路并产生 evidence row
+  - **估时**: 2h
+  - **依赖**: T-V7C.C.9
+
+---
+
 ## 附录：优先级速查
 
 | 优先级 | 任务数 | 代表任务 |
