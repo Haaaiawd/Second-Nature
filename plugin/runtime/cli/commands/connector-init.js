@@ -11,23 +11,30 @@ function generateManifestYaml(input) {
     const displayName = input.displayName ?? platformId;
     const family = input.family ?? "custom";
     const runnerKind = input.runnerKind ?? "declarative_http";
-    const baseUrlLine = input.baseUrl ? `\nbaseUrl: ${input.baseUrl}` : "";
+    const trustStatus = runnerKind === "declarative_http" ||
+        runnerKind === "declarative_a2a" ||
+        runnerKind === "declarative_mcp"
+        ? "declarative_trusted"
+        : "custom_adapter_pending_trust";
+    const configBlock = input.baseUrl
+        ? `\n  config:\n    baseUrl: ${input.baseUrl}`
+        : "";
     return `schemaVersion: sn.connector.v1
 platformId: ${platformId}
 displayName: ${displayName}
-family: ${family}${baseUrlLine}
+family: ${family}
 capabilities:
   - id: ${platformId}.placeholder
     description: Placeholder capability — replace with real capability declarations
 runner:
   kind: ${runnerKind}
-  entrypoint: ""
+  entrypoint: ""${configBlock}
 credentials: []
 sourceRefPolicy:
   minSourceRefs: 1
   rejectInlineSensitivePayload: true
 trust:
-  status: custom_adapter_pending_trust
+  status: ${trustStatus}
   reason: generated_by_connector_init
 `;
 }

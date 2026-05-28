@@ -120,6 +120,11 @@ export function planIntentWithKind(kind, basePriority, runtime, context, registr
         }));
     }
     const refs = kind === "work" ? [...OBLIGATION_SOURCE] : evidenceRefsForConnector(runtime);
+    const capabilityIntent = kind === "exploration" ? "feed.read"
+        : kind === "social" ? "comment.reply"
+            : kind === "work" ? "work.discover"
+                : kind === "outreach" ? "message.send"
+                    : undefined;
     return [
         {
             id: platformId ? `${config.idPrefix}-${platformId}` : config.idPrefix,
@@ -134,6 +139,7 @@ export function planIntentWithKind(kind, basePriority, runtime, context, registr
                 ? `${config.idempotencyPrefix}:${platformId}`
                 : `${config.idempotencyPrefix}:${config.summary(undefined)}`,
             goalInfluenceRefs: [],
+            ...(capabilityIntent ? { capabilityIntent } : {}),
         },
     ];
 }
@@ -241,6 +247,15 @@ export function planCandidateIntents(runtime, options) {
         const related = acceptedGoals.filter((g) => isGoalRelatedToCandidate(g, intent));
         if (related.length > 0) {
             intent.goalInfluenceRefs = related.map((g) => g.goalId);
+        }
+        // W80: sourceRefs fallback — when lifeEvidence is empty, bind accepted goals
+        // as source refs so hard guard (isSourceBacked) does not deny/defer.
+        if (intent.sourceRefs.length === 0 && related.length > 0) {
+            intent.sourceRefs = related.slice(0, 4).map((g) => ({
+                id: g.goalId,
+                kind: "workspace_artifact",
+                uri: `goal://${g.goalId}`,
+            }));
         }
     }
     // CR-02: apply narrative-focus bias globally across all candidate kinds.

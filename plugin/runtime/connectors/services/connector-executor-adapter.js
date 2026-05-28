@@ -14,6 +14,8 @@ import { createCredentialVault } from "../../storage/services/credential-vault.j
 import { createCredentialRouteContextPort } from "./credential-route-context.js";
 import { scanConnectorManifests } from "../registry/manifest-scanner.js";
 import { parseConnectorManifestV6 } from "../manifest/manifest-parser.js";
+import fs from "node:fs";
+import path from "node:path";
 const DEFAULT_AGENT_WORLD_USERNAME = "nyx_ha";
 const DEFAULT_AGENT_WORLD_PROFILE_PATH_TEMPLATE = "/api/agents/profile/{username}";
 function readString(value) {
@@ -101,25 +103,152 @@ async function fetchAgentWorldJson(input) {
     }
     return resp.json();
 }
-function createAdaptiveExecutionRunner(vault) {
+function createMoltbookMockRunner(workspaceRoot) {
     return {
         async run(_plan, request) {
-            const platformId = request.platformId;
             const started = Date.now();
-            if (platformId !== "moltbook" &&
-                platformId !== "evomap" &&
-                platformId !== "agent-world") {
+            const mockPath = workspaceRoot
+                ? path.join(workspaceRoot, ".second-nature", "mock", "moltbook-feed.json")
+                : undefined;
+            if (!mockPath || !fs.existsSync(mockPath)) {
                 return {
-                    platformId,
+                    platformId: request.platformId,
                     channel: request.preferredChannel ?? "api_rest",
                     latencyMs: Date.now() - started,
                     success: false,
                     error: {
-                        code: "unknown_platform",
-                        detail: `no execution runner for ${platformId}`,
+                        code: "configuration_missing",
+                        detail: "SECOND_NATURE_MOLTBOOK_BASE_URL not set and no mock data found",
                     },
                 };
             }
+            try {
+                const raw = fs.readFileSync(mockPath, "utf-8");
+                const data = JSON.parse(raw);
+                return {
+                    platformId: request.platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    degraded: true,
+                    success: true,
+                    payload: {
+                        capability: request.intent,
+                        channel: request.preferredChannel ?? "api_rest",
+                        data: {
+                            source: "mock",
+                            items: Array.isArray(data.items) ? data.items : [],
+                        },
+                    },
+                };
+            }
+            catch (err) {
+                return {
+                    platformId: request.platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "mock_read_error",
+                        detail: String(err),
+                    },
+                };
+            }
+        },
+    };
+}
+function findWorkspaceManifest(platformId, workspaceRoot) {
+    if (!workspaceRoot)
+        return undefined;
+    for (const file of scanConnectorManifests(workspaceRoot)) {
+        const parsed = parseConnectorManifestV6(file.content, file.path);
+        if (parsed.ok && parsed.manifest.platformId === platformId) {
+            return parsed.manifest;
+        }
+    }
+    return undefined;
+}
+function resolveDeclarativeHttpPath(capabilityId) {
+    return `/${capabilityId.replace(/\./g, "/")}`;
+}
+function resolveDeclarativeHttpMethod(capabilityId) {
+    const readOps = ["read", "list", "discover", "get", "heartbeat", "fetch"];
+    if (readOps.some((op) => capabilityId.includes(op)))
+        return "GET";
+    return "POST";
+}
+function createDeclarativeHttpRunner(manifest, credential) {
+    return {
+        async run(plan, request) {
+            const started = Date.now();
+            const baseUrl = manifest.runner.config?.baseUrl ?? "";
+            if (!baseUrl) {
+                return {
+                    platformId: request.platformId,
+                    channel: plan.channel,
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "configuration_missing",
+                        detail: "runner.config.baseUrl not set for declarative_http connector",
+                    },
+                };
+            }
+            const httpPath = resolveDeclarativeHttpPath(request.intent);
+            const method = resolveDeclarativeHttpMethod(request.intent);
+            try {
+                const resp = await fetch(`${baseUrl.replace(/\/+$/, "")}${httpPath}`, {
+                    method,
+                    headers: {
+                        "Authorization": `Bearer ${credential.encryptedValue}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: method !== "GET" && request.payload ? JSON.stringify(request.payload) : undefined,
+                });
+                if (!resp.ok) {
+                    return {
+                        platformId: request.platformId,
+                        channel: plan.channel,
+                        latencyMs: Date.now() - started,
+                        success: false,
+                        error: {
+                            code: "api_error",
+                            detail: `HTTP ${resp.status}: ${await resp.text().catch(() => "")}`,
+                        },
+                    };
+                }
+                const data = await resp.json();
+                return {
+                    platformId: request.platformId,
+                    channel: plan.channel,
+                    latencyMs: Date.now() - started,
+                    success: true,
+                    payload: {
+                        capability: request.intent,
+                        channel: plan.channel,
+                        data,
+                    },
+                };
+            }
+            catch (err) {
+                return {
+                    platformId: request.platformId,
+                    channel: plan.channel,
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "network_error",
+                        detail: String(err),
+                    },
+                };
+            }
+        },
+    };
+}
+function createAdaptiveExecutionRunner(vault, workspaceRoot) {
+    return {
+        async run(_plan, request) {
+            const platformId = request.platformId;
+            const started = Date.now();
             const credential = await vault.loadCredentialContext(platformId);
             if (!credential ||
                 credential.status !== "active" ||
@@ -137,35 +266,28 @@ function createAdaptiveExecutionRunner(vault) {
             }
             if (platformId === "moltbook") {
                 const baseUrl = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
-                if (!baseUrl) {
-                    return {
-                        platformId,
-                        channel: request.preferredChannel ?? "api_rest",
-                        latencyMs: Date.now() - started,
-                        success: false,
-                        error: {
-                            code: "configuration_missing",
-                            detail: "SECOND_NATURE_MOLTBOOK_BASE_URL not set",
+                if (baseUrl) {
+                    const apiClient = createMoltbookApiClient({
+                        baseUrl,
+                        accessToken: credential.encryptedValue,
+                        timeoutMs: 10000,
+                    });
+                    const runner = createMoltbookRunner({
+                        apiClient,
+                        skillRunner: {
+                            run: async () => {
+                                throw {
+                                    code: "protocol_mismatch",
+                                    detail: "moltbook_skill_runner_not_configured",
+                                };
+                            },
                         },
-                    };
+                    });
+                    return runner.run(_plan, request);
                 }
-                const apiClient = createMoltbookApiClient({
-                    baseUrl,
-                    accessToken: credential.encryptedValue,
-                    timeoutMs: 10000,
-                });
-                const runner = createMoltbookRunner({
-                    apiClient,
-                    skillRunner: {
-                        run: async () => {
-                            throw {
-                                code: "protocol_mismatch",
-                                detail: "moltbook_skill_runner_not_configured",
-                            };
-                        },
-                    },
-                });
-                return runner.run(_plan, request);
+                // Mock fallback when real API is not configured
+                const mockRunner = createMoltbookMockRunner(workspaceRoot);
+                return mockRunner.run(_plan, request);
             }
             if (platformId === "evomap") {
                 return {
@@ -235,7 +357,22 @@ function createAdaptiveExecutionRunner(vault) {
                 });
                 return runner.run(_plan, request);
             }
-            throw new Error(`unreachable_connector_platform:${platformId}`);
+            // Wave 83: workspace declarative_http connector fallback
+            const workspaceManifest = findWorkspaceManifest(platformId, workspaceRoot);
+            if (workspaceManifest && workspaceManifest.runner.kind === "declarative_http") {
+                const httpRunner = createDeclarativeHttpRunner(workspaceManifest, { encryptedValue: credential.encryptedValue });
+                return httpRunner.run(_plan, request);
+            }
+            return {
+                platformId,
+                channel: request.preferredChannel ?? "api_rest",
+                latencyMs: Date.now() - started,
+                success: false,
+                error: {
+                    code: "unknown_platform",
+                    detail: `no execution runner for ${platformId}`,
+                },
+            };
         },
     };
 }
@@ -249,7 +386,7 @@ export function createConnectorExecutorAdapter(options) {
     const routeContextPort = createCredentialRouteContextPort(vault);
     const routePlanner = new ConnectorRoutePlanner(registry, routeContextPort, new ChannelHealthStore());
     const telemetry = new ExecutionTelemetry(options.observabilityDb);
-    const executionRunner = createAdaptiveExecutionRunner(vault);
+    const executionRunner = createAdaptiveExecutionRunner(vault, options.workspaceRoot);
     const policy = createConnectorPolicyLayer({
         routePlanner,
         executionRunner,
