@@ -1,6 +1,6 @@
 {
   "name": "@haaaiawd/second-nature",
-  "version": "0.1.40",
+  "version": "0.1.41",
   "description": "OpenClaw native plugin with synchronous registration, a packaged runtime artifact, and operator-facing status/explain flows.",
   "keywords": [
     "openclaw",

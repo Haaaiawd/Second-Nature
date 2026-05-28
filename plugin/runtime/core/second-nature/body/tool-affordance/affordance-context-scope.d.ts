@@ -5,7 +5,7 @@
  * - platformIds whitelist (empty = all platforms)
  * - goalKind trust-tier filtering (task_completion prefers write/claim;
  *   passive_sensing exposes only read-only)
- * - allowedStatuses defaults to safe subset; blocked/pending_trust always excluded
+ * - allowedStatuses defaults to heartbeat-usable statuses; blocked/pending_trust always excluded
  * - Credential-bearing items never enter affordance (ADR-003)
  *
  * Dependencies:

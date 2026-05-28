@@ -2,7 +2,7 @@
  * AffordanceContextScope tests — T-BTS.C.2
  *
  * Coverage:
- * - default allowedStatuses filters to safe + exploratory
+ * - default allowedStatuses filters to safe + exploratory + needs_auth
  * - blocked (unavailable) always excluded even if in allowedStatuses
  * - platformIds whitelist
  * - goalKind passive_sensing only exposes read-only intents
@@ -30,11 +30,11 @@ const baseItems: AffordanceItem[] = [
 ];
 
 describe("applyAffordanceContextScope", () => {
-  it("default allowedStatuses keeps safe + exploratory", () => {
+  it("default allowedStatuses keeps safe + exploratory + needs_auth", () => {
     const result = applyAffordanceContextScope(baseItems);
     assert.deepStrictEqual(
       result.map((i) => i.capabilityId),
-      ["cap-1", "cap-2", "cap-3", "cap-6"],
+      ["cap-1", "cap-2", "cap-3", "cap-6", "cap-7"],
     );
   });
 
@@ -52,17 +52,20 @@ describe("applyAffordanceContextScope", () => {
     const result = applyAffordanceContextScope(baseItems, {
       platformIds: ["github"],
     });
-    assert.strictEqual(result.length, 1);
-    assert.strictEqual(result[0]!.platformId, "github");
-    assert.strictEqual(result[0]!.capabilityId, "cap-6");
+    assert.strictEqual(result.length, 2);
+    assert(result.every((item) => item.platformId === "github"));
+    assert.deepStrictEqual(
+      result.map((item) => item.capabilityId),
+      ["cap-6", "cap-7"],
+    );
   });
 
   it("empty platformIds allows all platforms", () => {
     const result = applyAffordanceContextScope(baseItems, {
       platformIds: [],
     });
-    // Default filter still applies (safe + exploratory)
-    assert.strictEqual(result.length, 4);
+    // Default filter still applies (safe + exploratory + needs_auth)
+    assert.strictEqual(result.length, 5);
   });
 
   it("goalKind passive_sensing only exposes read-only intents", () => {

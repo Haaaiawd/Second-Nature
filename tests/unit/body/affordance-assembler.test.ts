@@ -115,8 +115,17 @@ describe("AffordanceAssembler", () => {
     });
 
     const map = await assembler.assembleAffordanceMap();
-    // unavailable is filtered by default scope
-    assert.strictEqual(map["platform-0"], undefined);
+    // unavailable capability is filtered by default scope, while same-platform
+    // needs_auth capabilities remain available to heartbeat.
+    const items = map["platform-0"] ?? [];
+    assert.strictEqual(
+      items.some((i) => i.capabilityId === "cap-0-read"),
+      false,
+    );
+    assert(
+      items.some((i) => i.status === "needs_auth"),
+      "default scope should retain needs_auth capabilities",
+    );
   });
 
   it("no probe + credential required → needs_auth", async () => {
@@ -128,10 +137,7 @@ describe("AffordanceAssembler", () => {
       credentialRequired: () => true,
     });
 
-    // Default scope filters out needs_auth, so use custom scope
-    const map = await assembler.assembleAffordanceMap({
-      allowedStatuses: ["safe", "exploratory", "needs_auth"],
-    });
+    const map = await assembler.assembleAffordanceMap();
     const items = map["platform-0"] ?? [];
     assert(items.length > 0);
     assert(items.every((i) => i.status === "needs_auth"));

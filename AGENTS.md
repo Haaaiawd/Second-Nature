@@ -196,10 +196,10 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 83 完成；S8 Heartbeat Unlock + 自定义 Connector 执行全部打通
+- **状态**: v7 `/forge` Wave 84 hotfix 完成；heartbeat 默认 affordance scope 已包含 `needs_auth`
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: 提交 Wave 80-83 改动；或继续 evomap 真实 runner / agent-world mock
-- **最近更新**: `2026-05-27` (`/forge` Wave 83 — declarative HTTP runner + 自定义 connector 执行)
+- **下一步**: Claw 实机复测 v0.1.41；或继续 evomap 真实 runner / agent-world mock
+- **最近更新**: `2026-05-28` (`/forge` Wave 84 hotfix — heartbeat affordance needs_auth default)
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1
@@ -494,6 +494,19 @@ Wave 83 (T-V7C.C.8, T-V7C.C.9, INT-V7C.U 补全)
 - **残留待跟进**: evomap 仍 `not_implemented`；agent-world 仍需要 env var；通用 HTTP runner 路径映射为约定式（`/{capabilityId}`）
 - **E2E**: `tests/integration/connectors/declarative-http-runner.test.ts` — 自定义 connector 全链路 PASS
 - **下一步**: 提交 Wave 80-83 改动；或继续 evomap/agent-world mock
+
+### 🌊 Wave 84 ✅ — 0.1.41 Heartbeat Affordance Default Hotfix
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-28）
+- **产出**:
+  - `src/core/second-nature/body/tool-affordance/affordance-context-scope.ts` — 默认 `allowedStatuses` 纳入 `needs_auth`
+  - `tests/unit/body/affordance-context-scope.test.ts` / `tests/unit/body/affordance-assembler.test.ts` — 覆盖默认 scope 保留 `needs_auth`
+  - package/plugin/openclaw version bump `0.1.41`
+  - plugin runtime 重建
+- **测试**: `pnpm build` ✅；`pnpm lint` ✅；affordance + heartbeat unlock + declarative HTTP 22/22 PASS；`cd plugin && npm pack --dry-run` ✅ (`@haaaiawd/second-nature@0.1.41`)
+- **最高严重度**: none
+- **残留待跟进**: Claw 实机复测；`delivery_target_none` 仍需配置输出通道；真实 evidence pipeline 仍需 connector 数据增长
 
 ### 🌊 Wave 80-82 ✅ — v7 Heartbeat Unlock: SourceRefs / Affordance / Execution 因果链修复
 T-V7C.C.8, T-V7C.C.9, INT-V7C.U
