@@ -692,8 +692,8 @@
 - **断言**: error.code = "configuration_missing" when base URL missing；HTTP fetch 被调用 when base URL set；saveNodeSecret 后 loadNodeSecret 返回相同值。
 - **证据**: `tests/unit/connectors/evomap-runner.test.ts`、`tests/integration/connectors/evomap-secret-port.test.ts`。
 
-<a id="t-ros-c-5"></a>
-### T-ROS.C.5
+<a id="t-ros-c-6"></a>
+### T-ROS.C.6
 - **关联需求**: REQ-006, REQ-007
 - **关联契约**: checkDeliveryTarget() 返回语义（available/unavailable，非 unknown）；evidenceRefs 非空要求
 - **风险类别**: delivery target 永为 unknown → outreach 流程判断链路短路 → message.send 永不触发
@@ -733,7 +733,7 @@
 - **关联需求**: REQ-003, REQ-006, REQ-007, REQ-009
 - **关联契约**: S9 全部任务产出契约
 - **风险类别**: S9 局部通过但集成断点残留 / life evidence 链路仍阻断
-- **单元测试覆盖**: 汇总 T-CS.C.7~C.12、T-ROS.C.5 单元测试。
+- **单元测试覆盖**: 汇总 T-CS.C.7~C.12、T-ROS.C.6 单元测试。
 - **API接口功能测试覆盖**: checkDeliveryTarget、instreet resolveCapability、evomap configuration_missing。
 - **集成/E2E/冒烟覆盖**: life_evidence_index DB before/after（moltbook mock runner）；pnpm lint && pnpm typecheck 全量通过。
 - **前置数据**: S9 所有任务完成。
@@ -915,7 +915,7 @@
 || life_evidence_index 写入（端到端） | 持久化契约 | T-CS.C.8 | T-CS.C.8 集成测试 DB before/after | Planned |
 || instreet platform_unavailable 语义 | 错误语义 | T-CS.C.9 | T-CS.C.9 单元测试 | Planned |
 || evomap configuration_missing 语义 + EvoMapSecretPort | connector operation + 持久化契约 | T-CS.C.10 | T-CS.C.10 单元 + 集成 | Planned |
-|| checkDeliveryTarget available/unavailable（非 unknown） | 探测契约 | T-ROS.C.5 | T-ROS.C.5 单元 + API接口功能测试 | Planned |
+|| checkDeliveryTarget available/unavailable（非 unknown） | 探测契约 | T-ROS.C.6 | T-ROS.C.6 单元 + API接口功能测试 | Planned |
 || scriptable_node runner kind + 脚本接口契约 | 配置契约 + 操作契约 | T-CS.C.11 | T-CS.C.11 单元 + 编译检查 | Planned |
 || scriptable_node 端到端执行 + life evidence 联动 | 集成契约 | T-CS.C.12 | T-CS.C.12 集成测试 | Planned |
 | RuntimeSurfaceRouter v7 commands | CLI/ops API | T-ROS.C.1 | T-ROS.C.1 API接口功能测试 + 集成；前置依赖显式覆盖 S5/body/connector/recovery | Planned |
@@ -932,7 +932,7 @@
 | 测试责任 | 风险类别 | 覆盖方法 | 任务承接 | 测试材料 | 状态 |
 |---|---|---|---|---|---|
 | TypeScript entity contracts | 类型/数据模型 | 编译检查 + 类型测试 | T-SMS.F.1 | `tests/unit/shared/v7-entities.test.ts` | Planned |
-| SQLite migration and old data compatibility | 持久化/migration | 单元 + 集成 fixtures | T-SMS.F.2, T-ROS.C.5 | `tests/integration/storage/schema-migration.test.ts` | Planned |
+| SQLite migration and old data compatibility | 持久化/migration | 单元 + 集成 fixtures | T-SMS.F.2, T-ROS.C.6 | `tests/integration/storage/schema-migration.test.ts` | Planned |
 | Write queue concurrency | 并发/一致性 | 单元 + concurrent integration | T-SMS.F.3, T-ROS.C.3 | `tests/unit/storage/write-queue.test.ts` | Planned |
 | WriteValidationGate sensitive rejection | 安全/redaction | 单元 + before-after API test | T-SMS.C.1 | `tests/unit/storage/write-validation-gate.test.ts` | Planned |
 | Goal lifecycle and replacement | 状态机 | 表驱动单元 + integration | T-SMS.C.3, T-CP.C.3 | `tests/integration/state/goal-lifecycle.test.ts` | Planned |
@@ -957,12 +957,12 @@
 || T-CS.C.8 | 集成测试 | life evidence 写入端到端 DB before/after | `tests/integration/connectors/life-evidence-chain.test.ts` | Planned |
 || T-CS.C.9 | 单元测试 + 编译检查 | instreet 注册 + platform_unavailable | `tests/unit/connectors/instreet-registration.test.ts` | Planned |
 || T-CS.C.10 | 单元测试 + 集成测试 | evomap runner + node_secret 持久化 | `tests/unit/connectors/evomap-runner.test.ts`、`tests/integration/connectors/evomap-secret-port.test.ts` | Planned |
-|| T-ROS.C.5 | 单元测试 + API接口功能测试 | delivery target 三态探测 | `tests/unit/cli/delivery-target-probe.test.ts` | Planned |
+|| T-ROS.C.6 | 单元测试 + API接口功能测试 | delivery target 三态探测 | `tests/unit/cli/delivery-target-probe.test.ts` | Planned |
 || T-CS.C.11 | 单元测试 + 编译检查 | scriptable_node runner 四错误分支 | `tests/unit/connectors/scriptable-node-runner.test.ts` | Planned |
 || T-CS.C.12 | 集成测试 + Lint + 编译检查 | scriptable_node 端到端 + life evidence | `tests/integration/connectors/scriptable-node-e2e.test.ts` | Planned |
 || INT-S9 | 冒烟测试 | S9 全量退出标准 | `reports/int-s9-connector-chain.md` | Planned |
 | Plugin host registration | host E2E | integration + manual screenshot | T-ROS.C.2, INT-S6 | `tests/integration/plugin/plugin-registration.test.ts` | Planned |
-| v6 regression gate | compatibility | full regression suite | T-ROS.C.5, INT-S6 | `reports/v6-regression-gate-v7.md` | Planned |
+| v6 regression gate | compatibility | full regression suite | T-ROS.C.6, INT-S6 | `reports/v6-regression-gate-v7.md` | Planned |
 | Claw host ops parity regression | host E2E/API drift | plugin integration + Claw command JSON | T-V7C.C.5, INT-V7C.R | `reports/claw-0.1.38-gap-regression.md` | Planned |
 | Production growth before/after | real data lifecycle | integration + DB row-count assertions | T-V7C.C.6, INT-V7C.R | `reports/claw-0.1.38-db-growth.md` | Planned |
 | Guidance semantics review | expression quality/boundary | fixture tests + manual output review | T-V7C.C.7, INT-V7C.R | `tests/integration/guidance/v7c-guidance-semantics.test.ts` | Planned |
@@ -1001,7 +1001,7 @@
 || life_evidence_index 写入端到端 | T-CS.C.8 | 集成测试 | life-evidence-chain.test.ts | DB before/after 行数断言 | Planned |
 || instreet platform_unavailable 语义 | T-CS.C.9 | 单元测试 | instreet-registration.test.ts | error.code 断言 | Planned |
 || evomap configuration_missing + node_secret 持久化 | T-CS.C.10 | 单元 + 集成 | evomap-runner.test.ts + evomap-secret-port.test.ts | error.code + node_secret before/after | Planned |
-|| checkDeliveryTarget available/unavailable | T-ROS.C.5 | 单元 + API | delivery-target-probe.test.ts | status ≠ unknown + evidenceRefs 非空 | Planned |
+|| checkDeliveryTarget available/unavailable | T-ROS.C.6 | 单元 + API | delivery-target-probe.test.ts | status ≠ unknown + evidenceRefs 非空 | Planned |
 || scriptable_node runner 四错误分支 | T-CS.C.11 | 单元 + 编译 | scriptable-node-runner.test.ts | error.code 四分支 + TS 编译 | Planned |
 || scriptable_node 端到端 + life evidence | T-CS.C.12 | 集成 + Lint | scriptable-node-e2e.test.ts | success=true + life evidence 行数 | Planned |
 || S9 全量退出标准 | INT-S9 | 冒烟 | reports/int-s9-connector-chain.md | 全部 PASS + lint/typecheck | Planned |

@@ -1370,7 +1370,7 @@
   - **依赖**: T-CS.C.9
   - **优先级**: P1
 
-- [ ] **T-ROS.C.5** [REQ-006, REQ-007]: P1 — Delivery Target 真实探测（替换硬编码 unknown）
+- [ ] **T-ROS.C.6** [REQ-006, REQ-007]: P1 — Delivery Target 真实探测（替换硬编码 unknown）
   - **描述**: 修复 `ops-router.ts` 中 `createStaticHostCapabilityAdapter` 的 `checkDeliveryTarget`：当前 static probe 路径硬编码 `{status: "unknown", evidenceRefs: []}`，导致 outreach 流程永远无法判断 delivery 可用性。改为检查 workspace connector 是否注册有 `message.send`/`comment.reply` 能力的 manifest，返回 `available`/`unavailable` 状态和 evidenceRefs。无 workspace connector 时返回 `unavailable` + reason，不再使用 `unknown`。
   - **输入**: `src/cli/ops/ops-router.ts`（`createStaticHostCapabilityAdapter`）、`src/cli/host-capability/types.ts`、manifest scanner
   - **输出**: 更新后的 `checkDeliveryTarget` 实现 + 单元测试
@@ -1382,7 +1382,7 @@
     - Given static probe 路径无 plugin context / When `checkDeliveryTarget()` / Then 结构化返回（不抛异常）
   - **验证类型**: 单元测试 | API接口功能测试
   - **验证摘要**: delivery target 三态；evidenceRefs 非空断言；unavailable reason 明确
-  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-c-5`
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-c-6`
   - **证据产出**: `tests/unit/cli/delivery-target-probe.test.ts`
   - **估时**: 4h
   - **依赖**: T-CS.C.10
@@ -1405,7 +1405,7 @@
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-11`
   - **证据产出**: `tests/unit/connectors/scriptable-node-runner.test.ts`
   - **估时**: 5h
-  - **依赖**: T-ROS.C.5
+  - **依赖**: T-ROS.C.6
   - **优先级**: P2
 
 - [ ] **T-CS.C.12** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 集成验证
@@ -1428,10 +1428,10 @@
 
 - [ ] **INT-S9** [MILESTONE]: S9 Connector 因果链完整性验证
   - **描述**: 验证 S9 退出标准：life evidence 写入、connector 接线、delivery target 探测、scriptable runner 执行全部通过集成验证。
-  - **输入**: T-CS.C.7 ~ T-CS.C.12、T-ROS.C.5 全部产出
+  - **输入**: T-CS.C.7 ~ T-CS.C.12、T-ROS.C.6 全部产出
   - **输出**: `reports/int-s9-connector-chain.md`
   - **验收标准**:
-    - Given S9 所有任务已完成 / When 执行集成测试套件 / Then T-CS.C.7/C.8（life evidence）、T-CS.C.9（instreet registered）、T-CS.C.10（evomap runner）、T-ROS.C.5（delivery target）、T-CS.C.11/C.12（scriptable runner）全部 PASS
+    - Given S9 所有任务已完成 / When 执行集成测试套件 / Then T-CS.C.7/C.8（life evidence）、T-CS.C.9（instreet registered）、T-CS.C.10（evomap runner）、T-ROS.C.6（delivery target）、T-CS.C.11/C.12（scriptable runner）全部 PASS
     - Given `pnpm lint && pnpm typecheck` / When 运行 / Then 无错误
     - Given 单次 heartbeat 循环（moltbook mock runner）/ When feed.read 完成 / Then `life_evidence_index` 有新增记录（DB before/after）
   - **验证说明**: 按退出标准逐条执行，日志/DB 截图确认
@@ -1445,7 +1445,7 @@
 | 优先级 | 任务数 | 代表任务 |
 |--------|--------|---------|
 | P0 | 36 | Foundation schema、WriteValidationGate、CircuitBreaker、EmbodiedContext、Dream acceptance、audit chain、host ops parity、production data growth、**life evidence chain fix (T-CS.C.7/C.8)** |
-| P1 | 13 | RestoreSnapshot、BehaviorPromotion、ChannelFeedback、HeartbeatDigest delivery、NarrativeTimeline、SecretAnchorView、guidance semantics、**instreet registration (T-CS.C.9)、evomap runner (T-CS.C.10)、delivery target probe (T-ROS.C.5)** |
+| P1 | 13 | RestoreSnapshot、BehaviorPromotion、ChannelFeedback、HeartbeatDigest delivery、NarrativeTimeline、SecretAnchorView、guidance semantics、**instreet registration (T-CS.C.9)、evomap runner (T-CS.C.10)、delivery target probe (T-ROS.C.6)** |
 | P2 | 3 | OutreachStrategySelector、language quality lint、**scriptable runner framework (T-CS.C.11/C.12)** |
 
 ---
