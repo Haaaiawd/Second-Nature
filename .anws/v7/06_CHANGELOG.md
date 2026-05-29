@@ -291,3 +291,32 @@
 ### Guardrails
 - 本次 `/change` 不回填任何已完成 checkbox，不改 `[REQ-*]` 绑定，不改 ADR/PRD 核心前提。
 - 当前未归属代码修改（plugin runtime version 注入）不在本次文档回流范围内，后续 `/forge` 应先纳入工作区状态审计。
+
+---
+
+## /change — 2026-05-29 — S9 Connector 因果链完整性修复
+
+### Scope
+- [ADD] `T-CS.C.7` [REQ-003, REQ-009]: P0 — Life Evidence 链路修复：`extractSourceRefs` 新增 `posts`/`agents`/`nodes`/`results`/`entries` 等平台数组字段识别，解锁 moltbook/agent-world life evidence 写入。
+- [ADD] `T-CS.C.8` [REQ-003, REQ-009]: P0 — Life Evidence 端到端集成验证：moltbook mock runner → policy layer → mapLifeEvidence → life_evidence_index DB before/after 断言；含 policy-layer data 包裹层级修正。
+- [ADD] `T-CS.C.9` [REQ-009]: P1 — instreet connector 注册 + `platform_unavailable` 标记：instreetManifest 注册到 registry；执行分支返回结构化 platform_unavailable（非 unknown_platform）。
+- [ADD] `T-CS.C.10` [REQ-003, REQ-009]: P1 — evomap connector 真实 runner 接入：从 `not_implemented` 占位替换为 `createEvoMapRunner`；实现 `EvoMapSecretPort` SQLite 持久化 + HTTP fetch 函数；读取 `SECOND_NATURE_EVOMAP_BASE_URL`；未配置返回 `configuration_missing`。
+- [ADD] `T-ROS.C.5` [REQ-006, REQ-007]: P1 — Delivery Target 真实探测：`checkDeliveryTarget` 从硬编码 `unknown` 改为检查 workspace connector message.send 能力；返回 available/unavailable + evidenceRefs。
+- [ADD] `T-CS.C.11` [REQ-009]: P2 — Scriptable Runner 框架：manifest schema 新增 `scriptable_node` runner kind；`createScriptableNodeRunner` 通过动态 `import()` 加载脚本；四种错误分支（success/missing/error/timeout）结构化返回。
+- [ADD] `T-CS.C.12` [REQ-009]: P2 — Scriptable Runner 集成验证：真实 fixture .mjs → ConnectorResult → mapLifeEvidence 端到端；pnpm lint && pnpm typecheck 通过。
+- [ADD] `INT-S9` [MILESTONE]: S9 Connector 因果链完整性验证 — 以 `reports/int-s9-connector-chain.md` 收口。
+- [CHANGE] `05A_TASKS.md`: 新增 S9 章节（8 任务 + 1 INT），附录优先级速查更新（P0→36、P1→13、P2→3）。
+- [CHANGE] `05B_VERIFICATION_PLAN.md`: 新增 S9 Task-by-Task 验证条目（T-CS.C.7~C.12 + T-ROS.C.5 + INT-S9）；Contract Coverage / Testing Coverage / Traceability Matrix 追加 S9 行。
+
+### Rationale
+- 审计报告（2026-05-29）确认三条阻断 Q/D/C 全链的真实缺口：
+  - P0：`extractSourceRefs` 识别算法不完整 → moltbook `{posts:[...]}` / agent-world `{agents:[...]}` 均被忽略 → life evidence 永不写入。
+  - P1：instreet/evomap adapter 代码完整但执行层从未接线 → 两条平台连接成为死代码。
+  - P2：`checkDeliveryTarget` 硬编码 `unknown` → outreach 流程无法感知实际 delivery 能力。
+- Scriptable runner 补入 S9 是因为当前 Workspace connector 仅有 `declarative_http` 一种 runner 类型，Claw 无法用自定义脚本接入私有平台，是系统封闭的直接原因。
+- 所有任务均基于现有 adapter/manifest 代码，属于接线与修正，不引入新系统边界或 ADR 变更。
+
+### Guardrails
+- 本次 `/change` 不回填任何已完成 checkbox，不改 `[REQ-*]` 绑定，不改 ADR/PRD 核心前提。
+- instreet 执行分支标记 `platform_unavailable`（非废弃），保留未来 skill/browser 通道接线空间。
+- scriptable_node runner 使用动态 `import()`（ESM），不引入 `child_process.fork`，避免进程边界复杂度。

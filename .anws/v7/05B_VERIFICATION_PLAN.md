@@ -643,6 +643,103 @@
 - **断言**: 12 个 REQ 全覆盖；self_health dimensions JSON 含最小维度集；heartbeat P95 < 2s；端到端证据齐全；失败项进入 release gate Bug 清单。
 - **证据**: `reports/int-s6-e2e-release-gate-v7.md`。
 
+
+<a id="t-cs-c-7"></a>
+### T-CS.C.7
+- **关联需求**: REQ-003, REQ-009
+- **关联契约**: extractSourceRefs SourceRef 生成契约；mapLifeEvidence LifeEvidenceCandidate 返回契约
+- **风险类别**: 平台数组字段不被识别 → life evidence 永不写入 → Q/D/C 全链阻断
+- **单元测试覆盖**: `extractSourceRefs` 对 `posts`/`agents`/`nodes`/`results`/`entries` 数组字段的正向识别；深层嵌套 `{data: {posts: [...]}}` 递归穿透；回归 `sourceRefs`/`items` 原有分支不破坏；数组元素含 id/url 时生成正确 SourceRef kind=platform_item。
+- **API接口功能测试覆盖**: `mapLifeEvidence` 在 `feed.read` intent + 平台数组 data 时返回非 null candidate；`mapLifeEvidence` 在 `message.send` intent 时仍返回 null（不变）。
+- **集成/E2E/冒烟覆盖**: moltbook mock runner → policy layer → mapLifeEvidence 链路；agent-world runner → mapLifeEvidence 链路。
+- **前置数据**: moltbook mock data fixture（含 posts 数组）、agent-world mock data fixture（含 agents 数组）、深层嵌套 fixture。
+- **断言**: `extractSourceRefs(platformId, {posts: [{id:"p1", url:"u1"}]}, ts)` 返回长度 1 数组；`extractSourceRefs(platformId, {data: {agents: [{id:"a1"}]}}, ts)` 返回长度 1 数组；原 `sourceRefs`/`items` 测试全部通过。
+- **证据**: `tests/unit/connectors/map-life-evidence.test.ts`（扩展用例）。
+
+<a id="t-cs-c-8"></a>
+### T-CS.C.8
+- **关联需求**: REQ-003, REQ-009
+- **关联契约**: life_evidence_index 写入契约；policy-layer ConnectorResult.data 包裹契约
+- **风险类别**: policy-layer 包裹层级与 extractSourceRefs 递归不对齐 → life evidence 仍不写入
+- **单元测试覆盖**: policy-layer `executeWithPolicy` 成功路径下 `mapLifeEvidence` 被调用且入参 data 包含正确层级；`appendLifeEvidence` 被调用的 before/after stub 断言。
+- **API接口功能测试覆盖**: DB before/after 查询 `life_evidence_index` 行数；成功执行后行数增加断言。
+- **集成/E2E/冒烟覆盖**: moltbook mock runner feed.read → life_evidence_index 完整端到端；DB before/after。
+- **前置数据**: 配置了 mock runner 的 workspace fixture；SQLite in-memory 或临时 DB。
+- **断言**: life_evidence_index 行数在 moltbook feed.read 成功后 +1；candidate.evidenceType = "platform_browse"；candidate.sourceRefs.length > 0。
+- **证据**: `tests/integration/connectors/life-evidence-chain.test.ts`。
+
+<a id="t-cs-c-9"></a>
+### T-CS.C.9
+- **关联需求**: REQ-009
+- **关联契约**: instreet CapabilityContractRegistry 注册契约；StructuredUnavailableReason platform_unavailable 语义
+- **风险类别**: instreet 未注册 → affordance assembler 不感知 instreet → 用户无法看到 instreet 能力
+- **单元测试覆盖**: `resolveCapability("instreet", "notification.list")` 返回 ResolvedConnectorCapability（非 not_registered error）；executor instreet 分支返回 `{success: false, error: {code: "platform_unavailable"}}`（非 "unknown_platform"）。
+- **API接口功能测试覆盖**: instreet 执行请求返回结构化 unavailable（非 unknown_platform）；registry 包含 instreet platform ID。
+- **集成/E2E/冒烟覆盖**: 编译检查（instreet manifest import 无 TS 错误）。
+- **前置数据**: instreetManifest fixture。
+- **断言**: resolveCapability 返回类型为 ResolvedConnectorCapability；executor 返回 error.code = "platform_unavailable" 且 detail 包含 "instreet"。
+- **证据**: `tests/unit/connectors/instreet-registration.test.ts`。
+
+<a id="t-cs-c-10"></a>
+### T-CS.C.10
+- **关联需求**: REQ-003, REQ-009
+- **关联契约**: evomap configuration_missing 返回语义；EvoMapSecretPort 持久化契约；真实 HTTP 执行契约
+- **风险类别**: evomap 永远返回 not_implemented → agent 无法连接 evomap 平台
+- **单元测试覆盖**: `SECOND_NATURE_EVOMAP_BASE_URL` 未设置时返回 `configuration_missing`（非 `not_implemented`）；mock fetch 下 `agent.heartbeat` 发送 HTTP 请求；`saveNodeSecret` + `loadNodeSecret` 持久化循环。
+- **API接口功能测试覆盖**: evomap executor 在 base URL 未配置时返回结构化 configuration_missing；node_secret DB before/after。
+- **集成/E2E/冒烟覆盖**: EvoMapSecretPort SQLite 实现；node_secret 跨调用持久化。
+- **前置数据**: SECOND_NATURE_EVOMAP_BASE_URL 环境变量（测试时 mock 或 noop）；node_secret fixture。
+- **断言**: error.code = "configuration_missing" when base URL missing；HTTP fetch 被调用 when base URL set；saveNodeSecret 后 loadNodeSecret 返回相同值。
+- **证据**: `tests/unit/connectors/evomap-runner.test.ts`、`tests/integration/connectors/evomap-secret-port.test.ts`。
+
+<a id="t-ros-c-5"></a>
+### T-ROS.C.5
+- **关联需求**: REQ-006, REQ-007
+- **关联契约**: checkDeliveryTarget() 返回语义（available/unavailable，非 unknown）；evidenceRefs 非空要求
+- **风险类别**: delivery target 永为 unknown → outreach 流程判断链路短路 → message.send 永不触发
+- **单元测试覆盖**: workspace 有 message.send 能力时返回 available；workspace 无配置时返回 unavailable + reason；不抛异常断言（try-catch 覆盖）。
+- **API接口功能测试覆盖**: checkDeliveryTarget 在 available 路径下 evidenceRefs 非空；在 unavailable 路径下有 reason 字段。
+- **集成/E2E/冒烟覆盖**: ops-router static probe 路径完整调用链。
+- **前置数据**: workspace fixture（含 message.send connector）；空 workspace fixture。
+- **断言**: status ≠ "unknown"；available 时 evidenceRefs.length > 0；unavailable 时 reason 非空字符串。
+- **证据**: `tests/unit/cli/delivery-target-probe.test.ts`。
+
+<a id="t-cs-c-11"></a>
+### T-CS.C.11
+- **关联需求**: REQ-009
+- **关联契约**: manifest schema scriptable_node runner kind；脚本接口契约（入参/出参 JSON）；四种错误分支语义
+- **风险类别**: scriptable_node runner 类型未识别 → workspace 自定义脚本无法执行
+- **单元测试覆盖**: manifest 声明 scriptable_node 时 executor 识别并尝试 import；脚本缺失返回 configuration_missing；脚本抛出返回 script_error；超时返回 timeout；成功返回 data。
+- **API接口功能测试覆盖**: manifest schema 包含 scriptable_node kind 的 Zod 校验通过；TS 类型检查通过。
+- **集成/E2E/冒烟覆盖**: 编译检查（新增 manifest kind 无 TS 错误）。
+- **前置数据**: scriptable_node manifest fixture；mock import 替代真实 dynamic import。
+- **断言**: error.code = "configuration_missing" when missing；error.code = "script_error" when throws；error.code = "timeout" when times out；success = true when returns {success: true, data: ...}。
+- **证据**: `tests/unit/connectors/scriptable-node-runner.test.ts`。
+
+<a id="t-cs-c-12"></a>
+### T-CS.C.12
+- **关联需求**: REQ-009
+- **关联契约**: scriptable_node 端到端执行契约；与 life evidence 联动契约；quality gate 通过
+- **风险类别**: scriptable_node runner 框架存在但集成链路断裂 → 用户脚本无法产生 evidence
+- **单元测试覆盖**: 汇总 T-CS.C.11 单元测试。
+- **API接口功能测试覆盖**: 无（集成测试覆盖）。
+- **集成/E2E/冒烟覆盖**: workspace manifest + fixture runner.mjs → executor → ConnectorResult → mapLifeEvidence → life evidence；pnpm lint && pnpm typecheck 通过。
+- **前置数据**: fixture runner.mjs（返回含 posts 数组的 data）；scriptable_node manifest。
+- **断言**: ConnectorResult.success = true；data 来自脚本返回值；life_evidence_index 有新增记录；lint 0 errors；typecheck 0 errors。
+- **证据**: `tests/integration/connectors/scriptable-node-e2e.test.ts`。
+
+<a id="int-s9"></a>
+### INT-S9
+- **关联需求**: REQ-003, REQ-006, REQ-007, REQ-009
+- **关联契约**: S9 全部任务产出契约
+- **风险类别**: S9 局部通过但集成断点残留 / life evidence 链路仍阻断
+- **单元测试覆盖**: 汇总 T-CS.C.7~C.12、T-ROS.C.5 单元测试。
+- **API接口功能测试覆盖**: checkDeliveryTarget、instreet resolveCapability、evomap configuration_missing。
+- **集成/E2E/冒烟覆盖**: life_evidence_index DB before/after（moltbook mock runner）；pnpm lint && pnpm typecheck 全量通过。
+- **前置数据**: S9 所有任务完成。
+- **断言**: 所有 S9 任务 PASS；life_evidence_index 有新增记录；lint 0 errors；typecheck 0 errors。
+- **证据**: `reports/int-s9-connector-chain.md`。
+
 ---
 
 <a id="t-v7c-c-1"></a>
@@ -814,6 +911,13 @@
 | HeartbeatDigest | dashboard proof | T-OBS.C.3, T-OBS.C.4 | T-OBS.C.3/T-OBS.C.4 单元 + 集成 | Planned |
 | NarrativeTimeline / RestoreAudit | recovery observability | T-OBS.C.5, T-OBS.C.6 | T-OBS.C.5/T-OBS.C.6 单元 + API接口功能测试 | Planned |
 | RuntimeSecretAnchorView | recovery surface | T-OBS.C.7 | T-OBS.C.7 单元 + API接口功能测试 | Planned |
+|| extractSourceRefs 平台数组识别 | 算法契约 | T-CS.C.7 | T-CS.C.7 单元测试 | Planned |
+|| life_evidence_index 写入（端到端） | 持久化契约 | T-CS.C.8 | T-CS.C.8 集成测试 DB before/after | Planned |
+|| instreet platform_unavailable 语义 | 错误语义 | T-CS.C.9 | T-CS.C.9 单元测试 | Planned |
+|| evomap configuration_missing 语义 + EvoMapSecretPort | connector operation + 持久化契约 | T-CS.C.10 | T-CS.C.10 单元 + 集成 | Planned |
+|| checkDeliveryTarget available/unavailable（非 unknown） | 探测契约 | T-ROS.C.5 | T-ROS.C.5 单元 + API接口功能测试 | Planned |
+|| scriptable_node runner kind + 脚本接口契约 | 配置契约 + 操作契约 | T-CS.C.11 | T-CS.C.11 单元 + 编译检查 | Planned |
+|| scriptable_node 端到端执行 + life evidence 联动 | 集成契约 | T-CS.C.12 | T-CS.C.12 集成测试 | Planned |
 | RuntimeSurfaceRouter v7 commands | CLI/ops API | T-ROS.C.1 | T-ROS.C.1 API接口功能测试 + 集成；前置依赖显式覆盖 S5/body/connector/recovery | Planned |
 | OpenClaw plugin / WorkspaceOpsBridge | host integration | T-ROS.C.2 | T-ROS.C.2 集成 + 手动验证 | Planned |
 | ManualRunDispatcher | runtime operation | T-ROS.C.3 | T-ROS.C.3 单元 + 集成 | Planned |
@@ -849,6 +953,14 @@
 | SelfHealth dynamic dimensions and degraded output | diagnostics | unit + command API test | T-OBS.C.2, T-ROS.C.1 | `tests/unit/observability/self-health-snapshot.test.ts` | Planned |
 | Digest/timeline/restore read surfaces | ops read model | unit + API接口功能测试 | T-OBS.C.3~C.6, T-ROS.C.1 | `tests/integration/runtime-ops/commands.test.ts` | Planned |
 | Runtime secret recovery | secret recovery | unit + API接口功能测试 + doc review | T-OBS.C.7, T-ROS.C.4 | `tests/unit/observability/runtime-secret-anchor-view.test.ts` | Planned |
+|| T-CS.C.7 | 单元测试 | extractSourceRefs 平台数组分支 4 用例 + 回归 | `tests/unit/connectors/map-life-evidence.test.ts` | Planned |
+|| T-CS.C.8 | 集成测试 | life evidence 写入端到端 DB before/after | `tests/integration/connectors/life-evidence-chain.test.ts` | Planned |
+|| T-CS.C.9 | 单元测试 + 编译检查 | instreet 注册 + platform_unavailable | `tests/unit/connectors/instreet-registration.test.ts` | Planned |
+|| T-CS.C.10 | 单元测试 + 集成测试 | evomap runner + node_secret 持久化 | `tests/unit/connectors/evomap-runner.test.ts`、`tests/integration/connectors/evomap-secret-port.test.ts` | Planned |
+|| T-ROS.C.5 | 单元测试 + API接口功能测试 | delivery target 三态探测 | `tests/unit/cli/delivery-target-probe.test.ts` | Planned |
+|| T-CS.C.11 | 单元测试 + 编译检查 | scriptable_node runner 四错误分支 | `tests/unit/connectors/scriptable-node-runner.test.ts` | Planned |
+|| T-CS.C.12 | 集成测试 + Lint + 编译检查 | scriptable_node 端到端 + life evidence | `tests/integration/connectors/scriptable-node-e2e.test.ts` | Planned |
+|| INT-S9 | 冒烟测试 | S9 全量退出标准 | `reports/int-s9-connector-chain.md` | Planned |
 | Plugin host registration | host E2E | integration + manual screenshot | T-ROS.C.2, INT-S6 | `tests/integration/plugin/plugin-registration.test.ts` | Planned |
 | v6 regression gate | compatibility | full regression suite | T-ROS.C.5, INT-S6 | `reports/v6-regression-gate-v7.md` | Planned |
 | Claw host ops parity regression | host E2E/API drift | plugin integration + Claw command JSON | T-V7C.C.5, INT-V7C.R | `reports/claw-0.1.38-gap-regression.md` | Planned |
@@ -885,6 +997,14 @@
 | S3 Body Tool + Heartbeat exit | INT-S3 | 冒烟测试 | S3 verification report | `reports/int-s3-body-heartbeat-v7.md` | Planned |
 | S4 Dream/Quiet + Guidance exit | INT-S4 | 冒烟测试 | S4 verification report | `reports/int-s4-dream-quiet-guidance-v7.md` | Planned |
 | S5 Observability exit | INT-S5 | 冒烟测试 | S5 verification report | `reports/int-s5-observability-v7.md` | Planned |
+|| extractSourceRefs 平台数组识别 | T-CS.C.7 | 单元测试 | map-life-evidence.test.ts | extractSourceRefs 返回值非空断言 | Planned |
+|| life_evidence_index 写入端到端 | T-CS.C.8 | 集成测试 | life-evidence-chain.test.ts | DB before/after 行数断言 | Planned |
+|| instreet platform_unavailable 语义 | T-CS.C.9 | 单元测试 | instreet-registration.test.ts | error.code 断言 | Planned |
+|| evomap configuration_missing + node_secret 持久化 | T-CS.C.10 | 单元 + 集成 | evomap-runner.test.ts + evomap-secret-port.test.ts | error.code + node_secret before/after | Planned |
+|| checkDeliveryTarget available/unavailable | T-ROS.C.5 | 单元 + API | delivery-target-probe.test.ts | status ≠ unknown + evidenceRefs 非空 | Planned |
+|| scriptable_node runner 四错误分支 | T-CS.C.11 | 单元 + 编译 | scriptable-node-runner.test.ts | error.code 四分支 + TS 编译 | Planned |
+|| scriptable_node 端到端 + life evidence | T-CS.C.12 | 集成 + Lint | scriptable-node-e2e.test.ts | success=true + life evidence 行数 | Planned |
+|| S9 全量退出标准 | INT-S9 | 冒烟 | reports/int-s9-connector-chain.md | 全部 PASS + lint/typecheck | Planned |
 | S6 Release Gate | INT-S6 | E2E + 冒烟 + 回归 | release gate tests | `reports/int-s6-e2e-release-gate-v7.md` | Planned |
 | 0.1.38 host ops parity | T-V7C.C.5 | API接口功能测试 + plugin integration + Claw manual | runtime ops/plugin tests | `reports/claw-0.1.38-gap-regression.md` | Planned |
 | 0.1.38 production data growth | T-V7C.C.6 | integration + DB before/after E2E | heartbeat/dream/digest tests | `reports/claw-0.1.38-db-growth.md` | Planned |

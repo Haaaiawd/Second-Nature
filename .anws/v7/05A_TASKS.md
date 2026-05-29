@@ -1292,13 +1292,161 @@
 
 ---
 
+## S9 Connector 因果链完整性修复
+
+> **背景**: 审计报告（2026-05-29）确认三条阻断 Q/D/C 全链的缺口：(P0) Life Evidence 永不写入 — `extractSourceRefs` 不识别 `posts`/`agents` 等平台数组字段；(P1) instreet/evomap 有完整 adapter 但执行层未接线；(P2) delivery target 硬编码 `unknown` 阻断 outreach 流。同时补齐声明式 runner 框架（Scriptable runner），使 Workspace connector 可通过自定义脚本执行，不依赖 `declarative_http`。
+
+- [ ] **T-CS.C.7** [REQ-003, REQ-009]: P0 — Life Evidence 链路修复：extractSourceRefs 平台数组识别
+  - **描述**: 修复 `extractSourceRefs`（`src/connectors/base/map-life-evidence.ts`），使其能识别平台返回的 `posts`/`nodes`/`agents`/`edges`/`results`/`entries` 等通用数组字段，并从中生成有效 SourceRef。修复后 moltbook feed.read（返回 `{posts: [...]}`）和 agent-world feed.read（返回 `{agents: [...]}`）均能产生非空 sourceRefs，解锁 life evidence 写入。
+  - **输入**: `src/connectors/base/map-life-evidence.ts`、moltbook mock runner 产出、agent-world adapter 产出
+  - **输出**: 更新后的 `map-life-evidence.ts`（新增平台数组识别分支）+ 单元测试
+  - **契约承接**: `ConnectorResult.data` 携带 `posts`/`agents` 等平台数组时，`extractSourceRefs` 返回非空 SourceRef 列表；`mapLifeEvidence` 对 feed.read / work.discover intent 返回非 null 的 `LifeEvidenceCandidate`
+  - **参考**: ADR-003、ADR-008、REQ-003、REQ-009
+  - **验收标准**:
+    - Given moltbook feed.read 返回 `{posts: [{id, url}]}` / When `extractSourceRefs` 处理 / Then 返回 SourceRef 数组且长度 > 0
+    - Given agent-world feed.read 返回 `{agents: [{id}]}` / When `extractSourceRefs` 处理 / Then 返回 SourceRef 数组且长度 > 0
+    - Given 深层嵌套 `{data: {posts: [...]}}` / When `extractSourceRefs` 递归 / Then 正确穿透并识别 posts 数组
+    - Given 已有 sourceRefs/items 字段 / When 处理 / Then 不破坏原有分支逻辑（回归）
+  - **验证类型**: 单元测试 | 集成测试
+  - **验证摘要**: extractSourceRefs 平台数组分支覆盖；mapLifeEvidence 端到端返回值验证；回归原有 sourceRefs/items 路径
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-7`
+  - **证据产出**: `tests/unit/connectors/map-life-evidence.test.ts`（扩展）
+  - **估时**: 3h
+  - **依赖**: INT-V7C.U
+  - **优先级**: P0
+
+- [ ] **T-CS.C.8** [REQ-003, REQ-009]: P0 — Life Evidence 链路修复：端到端写入集成验证
+  - **描述**: 以 T-CS.C.7 修复为基础，验证完整链路：moltbook mock runner 执行 → policy layer 处理 ConnectorResult → `mapLifeEvidence` 返回非 null candidate → `appendLifeEvidence` 写入 `life_evidence_index`。确认 policy-layer 的 `payload` 包裹方式（`{capability, channel, data: <platform_data>}`）与 `extractSourceRefs` 递归匹配；如不匹配，在 policy-layer 侧修正包裹层级。
+  - **输入**: T-CS.C.7 产出、`src/connectors/base/policy-layer.ts`、`src/storage/life-evidence/append-life-evidence.ts`
+  - **输出**: 集成测试（heartbeat → evidence 端到端）+ 必要的 policy-layer 修复
+  - **契约承接**: heartbeat 单次执行后 `life_evidence_index` 至少有一条新记录；DB before/after 断言可客观验证
+  - **参考**: ADR-003、REQ-003
+  - **验收标准**:
+    - Given moltbook mock runner 已配置 / When 触发 feed.read 执行 / Then `life_evidence_index` 行数在执行后增加（DB before/after）
+    - Given policy layer 包裹 ConnectorResult.data / When extractSourceRefs 递归 / Then 识别内层平台数组
+    - Given `feed.read` intent 成功 / When `mapLifeEvidence` 处理 / Then 返回 `evidenceType: "platform_browse"` 的非 null candidate
+  - **验证类型**: 集成测试 | 手动验证
+  - **验证摘要**: life evidence 写入端到端；policy-layer data 包裹与 extractSourceRefs 对齐；heartbeat DB growth
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-8`
+  - **证据产出**: `tests/integration/connectors/life-evidence-chain.test.ts`
+  - **估时**: 3h
+  - **依赖**: T-CS.C.7
+  - **优先级**: P0
+
+- [ ] **T-CS.C.9** [REQ-009]: P1 — instreet connector 接线：注册 + platform_unavailable 标记
+  - **描述**: 在 `createConnectorExecutorAdapter` 的 registry 注册 `instreetManifest`；在 `createAdaptiveExecutionRunner` 增加 instreet 执行分支，返回结构化 `platform_unavailable` reason（instreet 的验证流程依赖 skill/browser 宿主通道，纯 api_rest 下当前不可用）。不实例化完整 runner，但确保 affordance assembler 能感知 instreet 已注册，生成 `needs_auth` 而非因 `unknown_platform` 静默失败。
+  - **输入**: `src/connectors/services/connector-executor-adapter.ts`、`src/connectors/social-community/instreet/manifest.ts`
+  - **输出**: 更新后的 `connector-executor-adapter.ts` + 编译检查
+  - **契约承接**: `resolveCapability("instreet", *)` 返回已注册能力而非 `not_registered`；instreet 执行返回 `{success: false, error: {code: "platform_unavailable", detail: "instreet_requires_skill_browser_channel"}}` 而非 `"unknown_platform"`
+  - **参考**: ADR-008、REQ-009
+  - **验收标准**:
+    - Given instreet 已注册 / When `resolveCapability("instreet", "notification.list")` / Then 返回 ResolvedConnectorCapability（非 not_registered）
+    - Given instreet 执行分支触发 / When executor 处理 instreet 请求 / Then 返回 `success: false, error.code: "platform_unavailable"`
+    - Given `pnpm typecheck` / When 编译 / Then 无新增类型错误
+  - **验证类型**: 编译检查 | 单元测试
+  - **验证摘要**: instreet registry 注册；执行分支结构化返回；不引入 unknown_platform 语义混淆
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-9`
+  - **证据产出**: `tests/unit/connectors/instreet-registration.test.ts`
+  - **估时**: 2h
+  - **依赖**: T-CS.C.8
+  - **优先级**: P1
+
+- [ ] **T-CS.C.10** [REQ-003, REQ-009]: P1 — evomap connector 接线：真实 runner 接入
+  - **描述**: 修复 `createAdaptiveExecutionRunner` 中 evomap 执行分支——从 `not_implemented` 占位替换为真实的 `createEvoMapRunner` 调用。需要：① 实现 `EvoMapSecretPort` 的持久化版本（复用 credential vault KV 模式存储 node_secret）；② 实现 `EvoMapApiClient` / `EvoMapA2AClient` 的 HTTP fetch 函数（参照 `fetchAgentWorldJson` 模式）；③ 读取环境变量 `SECOND_NATURE_EVOMAP_BASE_URL`；④ 未配置时返回 `configuration_missing`（非 `not_implemented`）。
+  - **输入**: `src/connectors/services/connector-executor-adapter.ts`、`src/connectors/agent-network/evomap/adapter.ts`、credential vault 实现
+  - **输出**: 更新后的 `connector-executor-adapter.ts`（evomap 真实 runner）+ `EvoMapSecretPort` 实现 + HTTP fetch 函数 + 单元测试
+  - **契约承接**: `SECOND_NATURE_EVOMAP_BASE_URL` 未设置时返回 `configuration_missing`；已设置且 node_secret 存在时向配置 URL 发送真实 HTTP；`saveNodeSecret` 持久化后 `loadNodeSecret` 可读
+  - **参考**: ADR-003、ADR-008、REQ-003、REQ-009
+  - **验收标准**:
+    - Given `SECOND_NATURE_EVOMAP_BASE_URL` 未设置 / When 执行 evomap 任意 intent / Then 返回 `error.code: "configuration_missing"`（非 `"not_implemented"`）
+    - Given base URL 已设置且 node_secret 已存在 / When 执行 `agent.heartbeat` / Then 向配置 URL 发送真实 HTTP 请求
+    - Given `agent.register` 成功 / When `saveNodeSecret` 后 / Then `loadNodeSecret` 可读回 node_secret
+    - Given `pnpm typecheck` / When 编译 / Then 无新增类型错误
+  - **验证类型**: 单元测试 | 集成测试
+  - **验证摘要**: evomap configuration_missing 语义；真实 runner 接线；node_secret 持久化
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-10`
+  - **证据产出**: `tests/unit/connectors/evomap-runner.test.ts`、`tests/integration/connectors/evomap-secret-port.test.ts`
+  - **估时**: 5h
+  - **依赖**: T-CS.C.9
+  - **优先级**: P1
+
+- [ ] **T-ROS.C.5** [REQ-006, REQ-007]: P1 — Delivery Target 真实探测（替换硬编码 unknown）
+  - **描述**: 修复 `ops-router.ts` 中 `createStaticHostCapabilityAdapter` 的 `checkDeliveryTarget`：当前 static probe 路径硬编码 `{status: "unknown", evidenceRefs: []}`，导致 outreach 流程永远无法判断 delivery 可用性。改为检查 workspace connector 是否注册有 `message.send`/`comment.reply` 能力的 manifest，返回 `available`/`unavailable` 状态和 evidenceRefs。无 workspace connector 时返回 `unavailable` + reason，不再使用 `unknown`。
+  - **输入**: `src/cli/ops/ops-router.ts`（`createStaticHostCapabilityAdapter`）、`src/cli/host-capability/types.ts`、manifest scanner
+  - **输出**: 更新后的 `checkDeliveryTarget` 实现 + 单元测试
+  - **契约承接**: workspace connector 有 `message.send` 能力时返回 `available`；无配置时返回 `unavailable` + reason；不抛异常；不再硬编码 `"unknown"`
+  - **参考**: ADR-006、REQ-006、REQ-007
+  - **验收标准**:
+    - Given workspace 有 message.send 能力的 connector manifest / When `checkDeliveryTarget()` / Then 返回 `status: "available"` 且 evidenceRefs 非空
+    - Given workspace 无 delivery connector / When `checkDeliveryTarget()` / Then 返回 `status: "unavailable"` 且有 reason（非 unknown）
+    - Given static probe 路径无 plugin context / When `checkDeliveryTarget()` / Then 结构化返回（不抛异常）
+  - **验证类型**: 单元测试 | API接口功能测试
+  - **验证摘要**: delivery target 三态；evidenceRefs 非空断言；unavailable reason 明确
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-c-5`
+  - **证据产出**: `tests/unit/cli/delivery-target-probe.test.ts`
+  - **估时**: 4h
+  - **依赖**: T-CS.C.10
+  - **优先级**: P1
+
+- [ ] **T-CS.C.11** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 框架
+  - **描述**: 为 workspace connector manifest 新增 `scriptable_node` runner 类型。`runner.json` 声明 `kind: "scriptable_node", entry: "runner.mjs"`（相对于 manifest 目录）。`createAdaptiveExecutionRunner` 识别此类型后用动态 `import()` 加载脚本，以 `{intent, payload, credential}` 为入参，期待脚本导出默认函数返回 `{success: boolean, data?: unknown, error?: {code: string, detail: string}}`。超时（默认 10s）、脚本缺失、运行时抛出分别返回 `timeout`/`configuration_missing`/`script_error`。
+  - **输入**: `src/connectors/services/connector-executor-adapter.ts`、`src/connectors/manifest/manifest-schema.ts`（新增 runner kind）、`src/connectors/registry/manifest-scanner.ts`
+  - **输出**: 更新后的 manifest schema + `createScriptableNodeRunner` 函数 + executor 分支 + 单元测试
+  - **契约承接**: manifest 声明 `runner.kind: "scriptable_node"` 时 executor 加载脚本；脚本接口契约固定；四种错误分支均有结构化返回
+  - **参考**: ADR-001、REQ-009
+  - **验收标准**:
+    - Given manifest 声明 `scriptable_node` / When 执行对应 platformId / Then executor 加载并调用 runner.mjs 导出函数
+    - Given runner.mjs 不存在 / When 执行 / Then 返回 `error.code: "configuration_missing"` 含脚本路径
+    - Given runner.mjs 抛出错误 / When 执行 / Then 返回 `error.code: "script_error"` 含错误信息
+    - Given runner.mjs 超时 / When 执行 / Then 返回 `error.code: "timeout"`
+    - Given `pnpm typecheck` / When 编译 / Then manifest schema 新增 kind 无类型错误
+  - **验证类型**: 单元测试 | 编译检查
+  - **验证摘要**: scriptable_node runner 加载与执行；四种错误分支；manifest schema 类型正确
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-11`
+  - **证据产出**: `tests/unit/connectors/scriptable-node-runner.test.ts`
+  - **估时**: 5h
+  - **依赖**: T-ROS.C.5
+  - **优先级**: P2
+
+- [ ] **T-CS.C.12** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 集成验证
+  - **描述**: 基于 T-CS.C.11，编写集成测试验证完整链路：workspace manifest 注册 scriptable_node → scanner 识别 → executor 加载真实 fixture .mjs → ConnectorResult 返回 → mapLifeEvidence 处理生成 evidence。同时以 inline 注释补充脚本接口规范（入参/出参结构、timeout 约定、credential 传递方式）。
+  - **输入**: T-CS.C.11 产出、manifest scanner、fixture runner.mjs（测试用）
+  - **输出**: 集成测试（使用真实 .mjs fixture）+ 脚本接口规范注释
+  - **契约承接**: scriptable_node connector 端到端执行链路有测试证据；脚本接口契约（输入/输出 JSON）明确且文档化
+  - **参考**: ADR-001、REQ-009
+  - **验收标准**:
+    - Given workspace 有完整 scriptable_node connector（manifest + runner.mjs fixture）/ When executor 执行 / Then ConnectorResult.success = true 且 data 来自脚本返回值
+    - Given 脚本返回 data 含 items/posts 数组 / When mapLifeEvidence 处理 / Then 生成 life evidence
+    - Given `pnpm lint && pnpm typecheck` / When 运行 / Then 通过
+  - **验证类型**: 集成测试 | Lint检查 | 编译检查
+  - **验证摘要**: scriptable_node 端到端执行；与 life evidence 联动；quality gate 通过
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-12`
+  - **证据产出**: `tests/integration/connectors/scriptable-node-e2e.test.ts`
+  - **估时**: 4h
+  - **依赖**: T-CS.C.11
+  - **优先级**: P2
+
+- [ ] **INT-S9** [MILESTONE]: S9 Connector 因果链完整性验证
+  - **描述**: 验证 S9 退出标准：life evidence 写入、connector 接线、delivery target 探测、scriptable runner 执行全部通过集成验证。
+  - **输入**: T-CS.C.7 ~ T-CS.C.12、T-ROS.C.5 全部产出
+  - **输出**: `reports/int-s9-connector-chain.md`
+  - **验收标准**:
+    - Given S9 所有任务已完成 / When 执行集成测试套件 / Then T-CS.C.7/C.8（life evidence）、T-CS.C.9（instreet registered）、T-CS.C.10（evomap runner）、T-ROS.C.5（delivery target）、T-CS.C.11/C.12（scriptable runner）全部 PASS
+    - Given `pnpm lint && pnpm typecheck` / When 运行 / Then 无错误
+    - Given 单次 heartbeat 循环（moltbook mock runner）/ When feed.read 完成 / Then `life_evidence_index` 有新增记录（DB before/after）
+  - **验证说明**: 按退出标准逐条执行，日志/DB 截图确认
+  - **估时**: 2h
+  - **依赖**: T-CS.C.12
+
+---
+
 ## 附录：优先级速查
 
 | 优先级 | 任务数 | 代表任务 |
 |--------|--------|---------|
-| P0 | 34 | Foundation schema、WriteValidationGate、CircuitBreaker、EmbodiedContext、Dream acceptance、audit chain、host ops parity、production data growth |
-| P1 | 10 | RestoreSnapshot、BehaviorPromotion、ChannelFeedback、HeartbeatDigest delivery、NarrativeTimeline、SecretAnchorView、guidance semantics |
-| P2 | 1 | OutreachStrategySelector、language quality lint 等 |
+| P0 | 36 | Foundation schema、WriteValidationGate、CircuitBreaker、EmbodiedContext、Dream acceptance、audit chain、host ops parity、production data growth、**life evidence chain fix (T-CS.C.7/C.8)** |
+| P1 | 13 | RestoreSnapshot、BehaviorPromotion、ChannelFeedback、HeartbeatDigest delivery、NarrativeTimeline、SecretAnchorView、guidance semantics、**instreet registration (T-CS.C.9)、evomap runner (T-CS.C.10)、delivery target probe (T-ROS.C.5)** |
+| P2 | 3 | OutreachStrategySelector、language quality lint、**scriptable runner framework (T-CS.C.11/C.12)** |
 
 ---
 
