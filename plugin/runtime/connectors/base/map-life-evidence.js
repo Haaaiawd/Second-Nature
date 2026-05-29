@@ -1,3 +1,53 @@
+const PLATFORM_ARRAY_KEYS = [
+    "posts",
+    "nodes",
+    "agents",
+    "edges",
+    "results",
+    "entries",
+];
+function tryExtractId(item) {
+    if (item && typeof item === "object" && "id" in item) {
+        const id = item.id;
+        if (id !== undefined && id !== null)
+            return String(id);
+    }
+    return undefined;
+}
+function tryExtractUri(item, platformId, fallbackId) {
+    if (item && typeof item === "object") {
+        const record = item;
+        for (const key of ["url", "uri", "link"]) {
+            const value = record[key];
+            if (typeof value === "string" && value.trim().length > 0) {
+                return value;
+            }
+        }
+    }
+    return `platform://${platformId}/item/${encodeURIComponent(fallbackId)}`;
+}
+function extractFromPlatformArray(platformId, record, observedAt) {
+    for (const key of PLATFORM_ARRAY_KEYS) {
+        const arr = record[key];
+        if (Array.isArray(arr) && arr.length > 0) {
+            const out = [];
+            for (let index = 0; index < arr.length; index += 1) {
+                const item = arr[index];
+                const id = tryExtractId(item) ?? `${platformId}-${key}-${index}`;
+                const uri = tryExtractUri(item, platformId, id);
+                out.push({
+                    id,
+                    kind: "platform_item",
+                    uri,
+                    observedAt,
+                });
+            }
+            if (out.length > 0)
+                return out;
+        }
+    }
+    return undefined;
+}
 function extractSourceRefs(platformId, data, observedAt) {
     if (data && typeof data === "object") {
         const record = data;
@@ -36,6 +86,9 @@ function extractSourceRefs(platformId, data, observedAt) {
                 };
             });
         }
+        const platformRefs = extractFromPlatformArray(platformId, record, observedAt);
+        if (platformRefs)
+            return platformRefs;
     }
     return [];
 }

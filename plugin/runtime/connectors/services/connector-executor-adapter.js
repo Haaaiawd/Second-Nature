@@ -4,11 +4,13 @@ import { ChannelHealthStore } from "../base/channel-health.js";
 import { createConnectorPolicyLayer } from "../base/policy-layer.js";
 import { InMemoryEffectCommitLedger } from "../base/execution-policy.js";
 import { moltbookManifest } from "../social-community/moltbook/manifest.js";
+import { instreetManifest } from "../social-community/instreet/manifest.js";
 import { evomapManifest } from "../agent-network/evomap/manifest.js";
 import { agentWorldManifest } from "../agent-network/agent-world/manifest.js";
 import { createMoltbookApiClient } from "../social-community/moltbook/api-client.js";
 import { createMoltbookRunner } from "../social-community/moltbook/adapter.js";
 import { createAgentWorldRunner } from "../agent-network/agent-world/adapter.js";
+import { createEvoMapRunner } from "../agent-network/evomap/adapter.js";
 import { ExecutionTelemetry } from "../../observability/services/execution-telemetry.js";
 import { createCredentialVault } from "../../storage/services/credential-vault.js";
 import { createCredentialRouteContextPort } from "./credential-route-context.js";
@@ -16,6 +18,7 @@ import { scanConnectorManifests } from "../registry/manifest-scanner.js";
 import { parseConnectorManifestV6 } from "../manifest/manifest-parser.js";
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 const DEFAULT_AGENT_WORLD_USERNAME = "nyx_ha";
 const DEFAULT_AGENT_WORLD_PROFILE_PATH_TEMPLATE = "/api/agents/profile/{username}";
 function readString(value) {
@@ -60,7 +63,9 @@ function registerWorkspaceManifests(registry, workspaceRoot) {
                 platformId: manifest.platformId,
                 supportedCapabilities: manifest.capabilities.map((capability) => capability.id),
                 channelPriority: channelPriorityForRunner(manifest),
-                credentialTypes: manifest.credentials.map((credential) => credential.type),
+                credentialTypes: manifest.credentials
+                    .filter((credential) => credential.required !== false)
+                    .map((credential) => credential.type),
                 sourceRefPolicy: manifest.sourceRefPolicy,
             });
         }
@@ -100,6 +105,49 @@ async function fetchAgentWorldJson(input) {
     });
     if (!resp.ok) {
         throw { code: "api_error", detail: `agent-world ${input.label}: ${resp.status}` };
+    }
+    return resp.json();
+}
+export function createEvoMapSecretPort(vault) {
+    const NODE_SECRET_KEY = "evomap_node_secret";
+    return {
+        async loadNodeSecret(_platformId) {
+            const ctx = await vault.loadCredentialContext(NODE_SECRET_KEY);
+            if (!ctx || ctx.status !== "active" || !ctx.encryptedValue)
+                return null;
+            // CredentialVault.loadCredentialContext already decrypts at rest;
+            // encryptedValue here is the plaintext.
+            return ctx.encryptedValue;
+        },
+        async saveNodeSecret(_platformId, nodeSecret) {
+            await vault.saveCredentialContext({
+                platformId: NODE_SECRET_KEY,
+                credentialType: "node_secret",
+                encryptedValue: nodeSecret,
+                status: "active",
+            });
+        },
+    };
+}
+function joinEvoMapUrl(baseUrl, path) {
+    if (/^https?:\/\//i.test(path))
+        return path;
+    return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+async function fetchEvoMapJson(input) {
+    const headers = {
+        "Content-Type": "application/json",
+    };
+    if (input.nodeSecret) {
+        headers["Authorization"] = `Bearer ${input.nodeSecret}`;
+    }
+    const resp = await fetch(joinEvoMapUrl(input.baseUrl, input.path), {
+        method: input.method ?? "GET",
+        headers,
+        body: input.body === undefined ? undefined : JSON.stringify(input.body),
+    });
+    if (!resp.ok) {
+        throw { code: "api_error", detail: `evomap ${input.label}: ${resp.status}` };
     }
     return resp.json();
 }
@@ -162,7 +210,7 @@ function findWorkspaceManifest(platformId, workspaceRoot) {
     for (const file of scanConnectorManifests(workspaceRoot)) {
         const parsed = parseConnectorManifestV6(file.content, file.path);
         if (parsed.ok && parsed.manifest.platformId === platformId) {
-            return parsed.manifest;
+            return { manifest: parsed.manifest, manifestDir: path.dirname(file.path) };
         }
     }
     return undefined;
@@ -247,12 +295,125 @@ function createDeclarativeHttpRunner(manifest, credential) {
         },
     };
 }
+/**
+ * Scriptable Node Runner — workspace connector execution via dynamic ES Module import.
+ *
+ * Contract (runner.mjs default export):
+ *   Input:  { intent: string, payload: unknown, credential?: string }
+ *   Output: { success: boolean, data?: unknown, error?: { code: string, detail: string } }
+ *
+ * Timeout: default 10s, overridable via manifest.runner.config.timeoutMs.
+ * Credential: passed as plain string when manifest.credentials required and vault has active entry.
+ * Error mapping:
+ *   - missing entrypoint file        → configuration_missing
+ *   - default export is not function → script_error
+ *   - runner throws                  → script_error (detail includes error message)
+ *   - Promise.race timeout           → timeout
+ */
+function createScriptableNodeRunner(manifest, manifestDir, activeCredential) {
+    const entryPath = manifest.runner.entrypoint ?? "runner.mjs";
+    const absoluteEntryPath = path.resolve(manifestDir, entryPath);
+    const DEFAULT_TIMEOUT_MS = 10000;
+    const timeoutMs = typeof manifest.runner.config?.timeoutMs === "number" &&
+        Number.isFinite(manifest.runner.config.timeoutMs) &&
+        manifest.runner.config.timeoutMs > 0
+        ? manifest.runner.config.timeoutMs
+        : DEFAULT_TIMEOUT_MS;
+    return {
+        async run(_plan, request) {
+            const started = Date.now();
+            if (!fs.existsSync(absoluteEntryPath)) {
+                return {
+                    platformId: request.platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "configuration_missing",
+                        detail: `scriptable_node runner not found: ${absoluteEntryPath}`,
+                    },
+                };
+            }
+            try {
+                const module = await import(pathToFileURL(absoluteEntryPath).href);
+                const handler = module.default;
+                if (typeof handler !== "function") {
+                    return {
+                        platformId: request.platformId,
+                        channel: request.preferredChannel ?? "api_rest",
+                        latencyMs: Date.now() - started,
+                        success: false,
+                        error: {
+                            code: "script_error",
+                            detail: `scriptable_node runner must export a default function from ${absoluteEntryPath}`,
+                        },
+                    };
+                }
+                const result = await Promise.race([
+                    handler({
+                        intent: request.intent,
+                        payload: request.payload,
+                        credential: activeCredential?.encryptedValue,
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("scriptable_node_timeout")), timeoutMs)),
+                ]);
+                if (result && typeof result === "object" && "success" in result) {
+                    return {
+                        platformId: request.platformId,
+                        channel: request.preferredChannel ?? "api_rest",
+                        latencyMs: Date.now() - started,
+                        success: Boolean(result.success),
+                        payload: result.success
+                            ? {
+                                capability: request.intent,
+                                channel: request.preferredChannel ?? "api_rest",
+                                data: result.data,
+                            }
+                            : undefined,
+                        error: !result.success
+                            ? {
+                                code: result.error?.code ?? "script_error",
+                                detail: result.error?.detail ?? "scriptable_node_runner_returned_failure",
+                            }
+                            : undefined,
+                    };
+                }
+                return {
+                    platformId: request.platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "script_error",
+                        detail: `scriptable_node runner returned invalid shape from ${absoluteEntryPath}`,
+                    },
+                };
+            }
+            catch (err) {
+                const isTimeout = err instanceof Error && err.message === "scriptable_node_timeout";
+                return {
+                    platformId: request.platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: isTimeout ? "timeout" : "script_error",
+                        detail: isTimeout
+                            ? `scriptable_node runner exceeded ${timeoutMs}ms timeout`
+                            : String(err),
+                    },
+                };
+            }
+        },
+    };
+}
 function createAdaptiveExecutionRunner(vault, workspaceRoot) {
     return {
         async run(_plan, request) {
             const platformId = request.platformId;
             const started = Date.now();
-            const workspaceManifest = findWorkspaceManifest(platformId, workspaceRoot);
+            const workspaceManifestResult = findWorkspaceManifest(platformId, workspaceRoot);
+            const workspaceManifest = workspaceManifestResult?.manifest;
             const isBuiltInPlatform = platformId === "moltbook" ||
                 platformId === "evomap" ||
                 platformId === "agent-world";
@@ -305,16 +466,44 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                 return mockRunner.run(_plan, request);
             }
             if (platformId === "evomap") {
-                return {
-                    platformId,
-                    channel: request.preferredChannel ?? "api_rest",
-                    latencyMs: Date.now() - started,
-                    success: false,
-                    error: {
-                        code: "not_implemented",
-                        detail: "evomap_execution_runner_not_yet_implemented",
+                const baseUrl = process.env.SECOND_NATURE_EVOMAP_BASE_URL;
+                if (!baseUrl) {
+                    return {
+                        platformId,
+                        channel: request.preferredChannel ?? "api_rest",
+                        latencyMs: Date.now() - started,
+                        success: false,
+                        error: {
+                            code: "configuration_missing",
+                            detail: "SECOND_NATURE_EVOMAP_BASE_URL not set. This connector requires the evomap node base URL to be configured via environment variable.",
+                        },
+                    };
+                }
+                const secretPort = createEvoMapSecretPort(vault);
+                const runner = createEvoMapRunner({
+                    apiClient: {
+                        async heartbeat(payload, nodeSecret) {
+                            const path = readString(payload.heartbeatPath) ?? "/api/heartbeat";
+                            return fetchEvoMapJson({ baseUrl, path, nodeSecret, method: "POST", body: payload, label: "heartbeat" });
+                        },
+                        async claimTask(payload, nodeSecret) {
+                            const path = readString(payload.claimPath) ?? "/api/tasks/claim";
+                            return fetchEvoMapJson({ baseUrl, path, nodeSecret, method: "POST", body: payload, label: "claim" });
+                        },
                     },
-                };
+                    a2aClient: {
+                        async helloOrRegister(payload) {
+                            const path = readString(payload.registerPath) ?? "/a2a/hello";
+                            return fetchEvoMapJson({ baseUrl, path, method: "POST", body: payload, label: "register" });
+                        },
+                        async discoverWork(payload, nodeSecret) {
+                            const path = readString(payload.discoverPath) ?? "/a2a/discover";
+                            return fetchEvoMapJson({ baseUrl, path, nodeSecret, method: "POST", body: payload, label: "discover" });
+                        },
+                    },
+                    secretPort,
+                });
+                return runner.run(_plan, request);
             }
             if (platformId === "agent-world") {
                 const baseUrl = process.env.SECOND_NATURE_AGENT_WORLD_BASE_URL;
@@ -326,7 +515,7 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                         success: false,
                         error: {
                             code: "configuration_missing",
-                            detail: "SECOND_NATURE_AGENT_WORLD_BASE_URL not set",
+                            detail: "SECOND_NATURE_AGENT_WORLD_BASE_URL not set. This connector requires the agent-world node base URL to be configured via environment variable.",
                         },
                     };
                 }
@@ -372,10 +561,41 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                 });
                 return runner.run(_plan, request);
             }
+            // T-CS.C.9: instreet is registered but requires skill/browser channel;
+            // pure api_rest execution returns platform_unavailable.
+            if (platformId === "instreet") {
+                return {
+                    platformId,
+                    channel: request.preferredChannel ?? "api_rest",
+                    latencyMs: Date.now() - started,
+                    success: false,
+                    error: {
+                        code: "platform_unavailable",
+                        detail: "instreet_requires_skill_browser_channel",
+                    },
+                };
+            }
             // Wave 83: workspace declarative_http connector fallback
             if (workspaceManifest && workspaceManifest.runner.kind === "declarative_http") {
                 const httpRunner = createDeclarativeHttpRunner(workspaceManifest, activeCredential);
                 return httpRunner.run(_plan, request);
+            }
+            // Wave 90: workspace scriptable_node connector
+            if (workspaceManifest && workspaceManifest.runner.kind === "scriptable_node") {
+                if (!workspaceManifestResult) {
+                    return {
+                        platformId,
+                        channel: request.preferredChannel ?? "api_rest",
+                        latencyMs: Date.now() - started,
+                        success: false,
+                        error: {
+                            code: "configuration_missing",
+                            detail: "scriptable_node requires workspace manifest with manifestDir",
+                        },
+                    };
+                }
+                const scriptRunner = createScriptableNodeRunner(workspaceManifest, workspaceManifestResult.manifestDir, activeCredential);
+                return scriptRunner.run(_plan, request);
             }
             return {
                 platformId,
@@ -396,6 +616,7 @@ export function createConnectorExecutorAdapter(options) {
     registry.register({ ...moltbookManifest });
     registry.register({ ...evomapManifest });
     registry.register({ ...agentWorldManifest });
+    registry.register({ ...instreetManifest });
     registerWorkspaceManifests(registry, options.workspaceRoot);
     const routeContextPort = createCredentialRouteContextPort(vault);
     const routePlanner = new ConnectorRoutePlanner(registry, routeContextPort, new ChannelHealthStore());

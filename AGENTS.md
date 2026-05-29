@@ -196,10 +196,29 @@ src/
 - 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
 - User Story 数: 12
 - 系统数: 8
-- **状态**: v7 `/forge` Wave 84 hotfix 完成；heartbeat 默认 affordance scope 已包含 `needs_auth`
+- **状态**: v7 `/forge` Wave 90 完成；S9 Connector 因果链完整性验证通过
 - **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: Claw 实机复测 v0.1.41；或继续 evomap 真实 runner / agent-world mock
-- **最近更新**: `2026-05-28` (`/forge` Wave 84 hotfix — heartbeat affordance needs_auth default)
+- **下一步**: v7 全部 Sprint 里程碑关门；或继续 v8 规划
+- **最近更新**: `2026-05-29` (`/forge` Wave 90 + residual fix — T-CS.C.11/C.12 + INT-S9 + 4 项残留风险全部闭环)
+
+### 🌊 Wave 90 ✅ — v7 S9 Connector: Scriptable Runner + INT-S9 里程碑关门
+T-CS.C.11, T-CS.C.12, INT-S9
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-05-29）
+- **产出**: 
+  - `src/connectors/services/connector-executor-adapter.ts` — `createScriptableNodeRunner` + `pathToFileURL` + 接口规范注释
+  - `src/connectors/base/failure-taxonomy.ts` — `script_error`/`timeout` FailureClass + classifyFailure 映射
+  - `src/connectors/base/contract.ts` — `ConnectorResult.metadata.detail` 扩展
+  - `src/connectors/base/policy-layer.ts` — error detail 透传至 metadata
+  - `tests/unit/connectors/scriptable-node-runner.test.ts` — 4 单元测试
+  - `tests/integration/connectors/scriptable-node-e2e.test.ts` — 4 集成测试（scanner→executor→mapLifeEvidence→full chain）
+  - `reports/int-s9-connector-chain.md` — S9 完整性验证报告
+  - `scripts/int-s9-db-validation.js` — DB before/after 验证脚本
+- **测试**: T-CS.C.11 4/4 PASS；T-CS.C.12 4/4 PASS；S9 全部任务测试通过；connector 全回归 157/158 PASS
+- **最高严重度**: none
+- **残留待跟进**: 4 项 Low 风险（credential optional route-planner / evomap env / agent-world env / timeout 硬编码）
+- **下一步**: v7 全部 Sprint 里程碑关门
 
 ### 🌊 Wave 56 ✅ — v7 INT-S2 + Control Plane: EmbodiedContextAssembler
 INT-S2, T-CP.C.1

@@ -29,6 +29,8 @@ import type {
   CapabilityCheckResult,
 } from "../host-capability/types.js";
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
+import { scanConnectorManifests } from "../../connectors/registry/manifest-scanner.js";
+import { parseConnectorManifestV6 } from "../../connectors/manifest/manifest-parser.js";
 import { connectorInit } from "../commands/connector-init.js";
 import { connectorBehaviorAdd } from "../commands/connector-behavior.js";
 import { connectorStatus, connectorTest } from "../commands/connector-status.js";
@@ -481,7 +483,7 @@ async function captureRuntimeSnapshot(
  * T1.2.8 — static local adapter: all checks return `unknown` when no real host is available.
  * Allows `capability_probe` to be called from CLI / workspace bridge without requiring a live host.
  */
-function createStaticUnknownAdapter(): HostCapabilityAdapter {
+function createStaticUnknownAdapter(workspaceRoot?: string): HostCapabilityAdapter {
   const now = new Date().toISOString();
   const unknownResult = (name: string): CapabilityCheckResult => ({
     name,
@@ -490,12 +492,40 @@ function createStaticUnknownAdapter(): HostCapabilityAdapter {
     reason: "static_local_probe_no_host_context",
     evidenceRefs: [],
   });
+
+  function checkDeliveryTarget(): { status: import("../host-capability/types.js").DeliveryCapabilityStatus; evidenceRefs: import("../host-capability/types.js").SourceRef[]; reason?: string } {
+    if (!workspaceRoot) {
+      return { status: "target_none", evidenceRefs: [], reason: "no_workspace_root_provided" };
+    }
+
+    const deliveryCapabilities = ["message.send", "comment.reply"];
+    const scanned = scanConnectorManifests(workspaceRoot);
+    for (const manifestFile of scanned) {
+      const parsed = parseConnectorManifestV6(manifestFile.content, manifestFile.path);
+      if (parsed.ok && parsed.manifest.capabilities.some((cap) => deliveryCapabilities.includes(cap.id))) {
+        return {
+          status: "target_available",
+          evidenceRefs: [
+            {
+              id: `delivery:${parsed.manifest.platformId}`,
+              kind: "workspace_artifact",
+              uri: `workspace://connectors/${parsed.manifest.platformId}/manifest.yaml`,
+              observedAt: now,
+            },
+          ],
+        };
+      }
+    }
+
+    return { status: "target_none", evidenceRefs: [], reason: "no_delivery_connector_found_in_workspace" };
+  }
+
   return {
     checkPluginLoad: () => unknownResult("plugin_load"),
     checkHeartbeatBridge: () => unknownResult("heartbeat_bridge"),
     checkHeartbeatToolInvocation: () =>
       unknownResult("heartbeat_tool_invocation"),
-    checkDeliveryTarget: () => ({ status: "unknown", evidenceRefs: [] }),
+    checkDeliveryTarget,
     checkAckDropBehavior: () => unknownResult("ack_drop"),
     checkHookSupport: () => [],
   };
@@ -700,7 +730,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         // T1.2.8 (SN-CODE-03): run host capability probe with static unknown adapter (CLI context).
         // Persists report when observabilityDb is available; returns safe JSON subset.
         return (async () => {
-          const adapter = createStaticUnknownAdapter();
+          const adapter = createStaticUnknownAdapter(deps.workspaceRoot);
           const docCheckedAt = new Date().toISOString();
           const report = probeHostCapability({
             adapter,

@@ -5,6 +5,66 @@
 import type { CapabilityIntent, ConnectorResult } from "./contract.js";
 import type { LifeEvidenceCandidate, LifeEvidenceType, SourceRef, Sensitivity } from "../../storage/life-evidence/types.js";
 
+const PLATFORM_ARRAY_KEYS = [
+  "posts",
+  "nodes",
+  "agents",
+  "edges",
+  "results",
+  "entries",
+] as const;
+
+function tryExtractId(item: unknown): string | undefined {
+  if (item && typeof item === "object" && "id" in (item as object)) {
+    const id = (item as Record<string, unknown>).id;
+    if (id !== undefined && id !== null) return String(id);
+  }
+  return undefined;
+}
+
+function tryExtractUri(
+  item: unknown,
+  platformId: string,
+  fallbackId: string,
+): string {
+  if (item && typeof item === "object") {
+    const record = item as Record<string, unknown>;
+    for (const key of ["url", "uri", "link"]) {
+      const value = record[key];
+      if (typeof value === "string" && value.trim().length > 0) {
+        return value;
+      }
+    }
+  }
+  return `platform://${platformId}/item/${encodeURIComponent(fallbackId)}`;
+}
+
+function extractFromPlatformArray(
+  platformId: string,
+  record: Record<string, unknown>,
+  observedAt: string,
+): SourceRef[] | undefined {
+  for (const key of PLATFORM_ARRAY_KEYS) {
+    const arr = record[key];
+    if (Array.isArray(arr) && arr.length > 0) {
+      const out: SourceRef[] = [];
+      for (let index = 0; index < arr.length; index += 1) {
+        const item = arr[index];
+        const id = tryExtractId(item) ?? `${platformId}-${key}-${index}`;
+        const uri = tryExtractUri(item, platformId, id);
+        out.push({
+          id,
+          kind: "platform_item",
+          uri,
+          observedAt,
+        });
+      }
+      if (out.length > 0) return out;
+    }
+  }
+  return undefined;
+}
+
 function extractSourceRefs(platformId: string, data: unknown, observedAt: string): SourceRef[] {
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
@@ -42,6 +102,8 @@ function extractSourceRefs(platformId: string, data: unknown, observedAt: string
         };
       });
     }
+    const platformRefs = extractFromPlatformArray(platformId, record, observedAt);
+    if (platformRefs) return platformRefs;
   }
   return [];
 }

@@ -8,6 +8,7 @@ export const connectorRunnerKindSchema = z.enum([
   "custom_adapter",
   "skill",
   "browser",
+  "scriptable_node",
 ]);
 
 export type ConnectorRunnerKind = z.infer<typeof connectorRunnerKindSchema>;

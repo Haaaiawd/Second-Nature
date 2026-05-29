@@ -71,7 +71,7 @@ test("connector executor adapter loads workspace-defined behavior and fails clos
     });
 
     assert.equal(result.status, "terminal_failure");
-    assert.equal(result.failureClass, "unknown_platform_change");
+    assert.equal(result.failureClass, "configuration_missing");
     assert.equal(result.metadata.platformId, "github");
   } finally {
     stateDb.close();

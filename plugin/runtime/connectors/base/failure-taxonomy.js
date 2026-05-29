@@ -11,6 +11,10 @@ export const FAILURE_CLASSES = [
     "idempotency_conflict",
     "concurrency_conflict",
     "permanent_input_error",
+    "platform_unavailable",
+    "configuration_missing",
+    "script_error",
+    "timeout",
     "unknown_platform_change",
 ];
 const RETRYABLE_BY_CLASS = {
@@ -26,6 +30,10 @@ const RETRYABLE_BY_CLASS = {
     idempotency_conflict: false,
     concurrency_conflict: true,
     permanent_input_error: false,
+    platform_unavailable: false,
+    configuration_missing: false,
+    script_error: false,
+    timeout: true,
     unknown_platform_change: false,
 };
 export class ConnectorPolicyError extends Error {
@@ -117,6 +125,26 @@ export function classifyFailure(error) {
                 return {
                     class: "permanent_input_error",
                     retryable: RETRYABLE_BY_CLASS.permanent_input_error,
+                };
+            if (code === "platform_unavailable")
+                return {
+                    class: "platform_unavailable",
+                    retryable: RETRYABLE_BY_CLASS.platform_unavailable,
+                };
+            if (code === "configuration_missing")
+                return {
+                    class: "configuration_missing",
+                    retryable: RETRYABLE_BY_CLASS.configuration_missing,
+                };
+            if (code === "script_error")
+                return {
+                    class: "script_error",
+                    retryable: RETRYABLE_BY_CLASS.script_error,
+                };
+            if (code === "timeout")
+                return {
+                    class: "timeout",
+                    retryable: RETRYABLE_BY_CLASS.timeout,
                 };
             if (code === "unknown_platform" || code === "unknown_platform_change")
                 return {

@@ -166,6 +166,9 @@ export function createConnectorPolicyLayer(ctx) {
                     await ctx.cooldownPort.markFailure(request.platformId, intent, classified.class, classified.retryAfterMs);
                 }
                 const isRetryable = classified.retryable;
+                const errorDetail = raw.error && typeof raw.error === "object" && "detail" in raw.error
+                    ? String(raw.error.detail)
+                    : undefined;
                 if (!isRetryable || attempt >= retryPolicy.maxRetries) {
                     return {
                         status: "terminal_failure",
@@ -176,6 +179,7 @@ export function createConnectorPolicyLayer(ctx) {
                             channel: raw.channel,
                             latencyMs: raw.latencyMs,
                             degraded: raw.degraded,
+                            detail: errorDetail,
                         },
                     };
                 }

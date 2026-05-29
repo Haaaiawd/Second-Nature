@@ -103,3 +103,109 @@ test("T3.3.1 missing sourceRefs returns null", () => {
   });
   assert.equal(candidate, null);
 });
+
+// ── T-CS.C.7 Platform array recognition (Wave 85) ──
+
+test("T-CS.C.7 moltbook posts array generates sourceRefs", () => {
+  const result: ConnectorResult<unknown> = {
+    status: "success",
+    data: {
+      posts: [
+        { id: "post-a", title: "Hello", url: "https://moltbook.example/p/post-a" },
+        { id: "post-b", title: "World" },
+      ],
+    },
+    metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 1 },
+  };
+  const candidate = mapLifeEvidence({
+    platformId: "moltbook",
+    intent: "feed.read",
+    result,
+    observedAt: "2026-05-02T00:00:00.000Z",
+  });
+  assert.ok(candidate);
+  assert.equal(candidate!.sourceRefs.length, 2);
+  assert.equal(candidate!.sourceRefs[0]!.id, "post-a");
+  assert.equal(candidate!.sourceRefs[0]!.uri, "https://moltbook.example/p/post-a");
+  assert.equal(candidate!.sourceRefs[1]!.id, "post-b");
+  assert.equal(candidate!.sourceRefs[1]!.uri, "platform://moltbook/item/post-b");
+});
+
+test("T-CS.C.7 agent-world agents array generates sourceRefs", () => {
+  const result: ConnectorResult<unknown> = {
+    status: "success",
+    data: {
+      agents: [{ id: "agent-1" }, { id: "agent-2" }],
+    },
+    metadata: { platformId: "agent-world", channel: "api_rest", latencyMs: 1 },
+  };
+  const candidate = mapLifeEvidence({
+    platformId: "agent-world",
+    intent: "feed.read",
+    result,
+    observedAt: "2026-05-02T00:00:00.000Z",
+  });
+  assert.ok(candidate);
+  assert.equal(candidate!.sourceRefs.length, 2);
+  assert.equal(candidate!.sourceRefs[0]!.id, "agent-1");
+  assert.equal(candidate!.sourceRefs[1]!.id, "agent-2");
+});
+
+test("T-CS.C.7 deeply nested data posts array is reached through recursion", () => {
+  const result: ConnectorResult<unknown> = {
+    status: "success",
+    data: {
+      capability: "feed.read",
+      channel: "api_rest",
+      data: {
+        posts: [{ id: "deep-1", url: "https://example.com/1" }],
+      },
+    },
+    metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 1 },
+  };
+  const candidate = mapLifeEvidence({
+    platformId: "moltbook",
+    intent: "feed.read",
+    result,
+    observedAt: "2026-05-02T00:00:00.000Z",
+  });
+  assert.ok(candidate);
+  assert.equal(candidate!.sourceRefs.length, 1);
+  assert.equal(candidate!.sourceRefs[0]!.id, "deep-1");
+});
+
+test("T-CS.C.7 legacy sourceRefs path still works (regression)", () => {
+  const result: ConnectorResult<unknown> = {
+    status: "success",
+    data: {
+      sourceRefs: [
+        { id: "legacy-1", kind: "platform_item", uri: "platform://legacy/item/1" },
+      ],
+    },
+    metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 1 },
+  };
+  const candidate = mapLifeEvidence({
+    platformId: "moltbook",
+    intent: "feed.read",
+    result,
+    observedAt: "2026-05-02T00:00:00.000Z",
+  });
+  assert.ok(candidate);
+  assert.equal(candidate!.sourceRefs[0]!.id, "legacy-1");
+});
+
+test("T-CS.C.7 legacy items path still works (regression)", () => {
+  const result: ConnectorResult<unknown> = {
+    status: "success",
+    data: { items: [{ id: "item-1" }] },
+    metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 1 },
+  };
+  const candidate = mapLifeEvidence({
+    platformId: "moltbook",
+    intent: "feed.read",
+    result,
+    observedAt: "2026-05-02T00:00:00.000Z",
+  });
+  assert.ok(candidate);
+  assert.equal(candidate!.sourceRefs[0]!.id, "item-1");
+});

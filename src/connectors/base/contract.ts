@@ -80,6 +80,7 @@ export interface ConnectorResult<T> {
     channel: ChannelType;
     latencyMs: number;
     degraded?: boolean;
+    detail?: string;
   };
 }
 
