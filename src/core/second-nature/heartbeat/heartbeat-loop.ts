@@ -53,6 +53,9 @@ import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
 import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
+import type { GoalLifecyclePolicy, GoalTransitionRequest } from "./goal-lifecycle-policy.js";
+import type { IdleCuriosityPolicy } from "./idle-curiosity-policy.js";
+import type { CircuitBreakerManager } from "../body/circuit-breaker/circuit-breaker-manager.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -91,7 +94,13 @@ export async function resolveAllowedIntentResult(
   signal: HeartbeatSignal,
   deps: Pick<
     HeartbeatDeps,
-    "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter"
+    | "outreachDispatch"
+    | "quietWorkflow"
+    | "connectorExecutor"
+    | "state"
+    | "workspaceRoot"
+    | "experienceWriter"
+    | "circuitBreakerManager"
   >,
 ): Promise<HeartbeatCycleResult> {
   const day =
@@ -210,6 +219,20 @@ export async function resolveAllowedIntentResult(
       }
     }
 
+    // v7 T-BTS.C.5: update circuit breaker state after connector execution.
+    if (deps.circuitBreakerManager && intent.platformId && intent.capabilityIntent) {
+      try {
+        if (result.status === "success") {
+          await deps.circuitBreakerManager.evaluateSuccess(intent.platformId, intent.capabilityIntent);
+        } else {
+          await deps.circuitBreakerManager.evaluateFailure(intent.platformId, intent.capabilityIntent);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.warn(`[heartbeat] CircuitBreaker update failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
+      }
+    }
+
     const base: HeartbeatCycleResult = {
       scope: "rhythm",
       status: "intent_selected",
@@ -264,6 +287,12 @@ export interface HeartbeatDeps {
   connectorRegistry?: CapabilityContractRegistry;
   /** v7 T-V7C.C.2: when present, connector attempts write ToolExperience with triggerSource="heartbeat". */
   experienceWriter?: ExperienceWriter;
+  /** v7 T-CP.C.3: when present, evaluates goal lifecycle transitions before candidate planning. */
+  goalLifecyclePolicy?: GoalLifecyclePolicy;
+  /** v7 T-CP.C.3: when present, selects read-only sensing intent when no active goals exist. */
+  idleCuriosityPolicy?: IdleCuriosityPolicy;
+  /** v7 T-BTS.C.5: when present, updates breaker state after connector execution. */
+  circuitBreakerManager?: CircuitBreakerManager;
 }
 
 /**
@@ -355,20 +384,77 @@ export async function ingestRhythmSignal(
   const snapshot = buildContinuitySnapshot(inputs);
   const timestamp = signal.payload.timestamp;
   const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
+
+  // v7 T-CP.C.3: evaluate goal lifecycle transitions before candidate planning.
+  let goalTransitions: GoalTransitionRequest[] = [];
+  if (deps.goalLifecyclePolicy && inputs.acceptedGoals) {
+    try {
+      const policyResult = deps.goalLifecyclePolicy.evaluate(inputs.acceptedGoals);
+      goalTransitions = policyResult.transitionRequests;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[heartbeat] Goal lifecycle evaluation failed: ${msg}`);
+    }
+  }
+
   const rawCandidates = planCandidateIntents(runtime, {
     acceptedGoals: inputs.acceptedGoals,
     connectorRegistry: deps.connectorRegistry,
     narrativeState: runtime.narrativeState,
     relationshipMemory: runtime.relationshipMemory,
   });
-  const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
+
+  // v7 T-CP.C.3: when no active goals and no connector candidates, use idle curiosity.
+  let allCandidates = rawCandidates;
+  if (deps.idleCuriosityPolicy && runtime.affordanceMap) {
+    const hasActiveGoals = (inputs.acceptedGoals ?? []).some((g) => g.status === "accepted");
+    const hasConnectorCandidates = rawCandidates.some(
+      (c) => c.effectClass === "connector_action" || c.effectClass === "external_platform_action",
+    );
+    if (!hasActiveGoals && !hasConnectorCandidates) {
+      try {
+        const idleResult = deps.idleCuriosityPolicy.select(runtime.affordanceMap, []);
+        if (idleResult.candidate) {
+          const idleIntent: CandidateIntent = {
+            id: `intent-idle-${idleResult.candidate.platformId}-${idleResult.candidate.capabilityId}`,
+            kind: "exploration",
+            priority: 30,
+            source: "tick",
+            platformId: idleResult.candidate.platformId,
+            summary: `idle curiosity: ${idleResult.candidate.intent}`,
+            effectClass: "connector_action",
+            capabilityIntent: idleResult.candidate.capabilityId,
+            sourceRefs: [
+              {
+                id: "idle_curiosity",
+                kind: "workspace_artifact",
+                uri: `idle://${idleResult.candidate.platformId}`,
+              },
+            ],
+            idempotencyKey: `idle:${idleResult.candidate.platformId}:${idleResult.candidate.capabilityId}`,
+            goalInfluenceRefs: [],
+          };
+          allCandidates = [...rawCandidates, idleIntent];
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`[heartbeat] Idle curiosity selection failed: ${msg}`);
+      }
+    }
+  }
+
+  const { candidates } = applyGoalPriority(allCandidates, inputs.acceptedGoals);
 
   const emitTrace = async (result: HeartbeatCycleResult): Promise<void> => {
     if (!deps.recordDecisionTrace) return;
+    const traceReasons = [...result.reasons];
+    if (goalTransitions.length > 0) {
+      traceReasons.push(`goal_transitions:${goalTransitions.length}`);
+    }
     await deps.recordDecisionTrace({
       scope: result.scope,
       status: result.status,
-      reasons: result.reasons,
+      reasons: traceReasons,
       selectedIntentId: result.selectedIntentId,
       rhythmWindowId: runtime.rhythmWindow.windowId,
       allowedIntentKinds: [...runtime.rhythmWindow.allowedIntentKinds],

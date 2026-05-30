@@ -106,26 +106,44 @@ export function resolvePlatformForIntent(kind, context, registry) {
     }
     // Deduplicate while preserving order
     const ordered = [...new Set(candidates)];
-    if (ordered.length === 0) {
-        return undefined;
-    }
     if (ordered.length > 1) {
         // Ambiguous: multiple platforms inferred → do not guess, return undefined.
         // Guard layer will deny with "ambiguous_platform" reason.
         return undefined;
     }
-    const single = ordered[0];
-    if (registry) {
-        if (validatePlatformCapability(single, kind, registry)) {
-            return single;
+    if (ordered.length === 1) {
+        const single = ordered[0];
+        if (registry) {
+            if (validatePlatformCapability(single, kind, registry)) {
+                return single;
+            }
+            // Registry says unsupported → undefined (guard layer will deny)
+            return undefined;
         }
-        // Registry says unsupported → undefined (guard layer will deny)
-        return undefined;
+        // No registry: keep legacy platform-name fallback, but do not invent an
+        // unsupported platform/capability pair that later fails as protocol_mismatch.
+        if (!fallbackPlatformSupportsCapability(single, kind)) {
+            return undefined;
+        }
+        return single;
     }
-    // No registry: keep legacy platform-name fallback, but do not invent an
-    // unsupported platform/capability pair that later fails as protocol_mismatch.
-    if (!fallbackPlatformSupportsCapability(single, kind)) {
-        return undefined;
+    // No candidates inferred from goals/evidence → fallback to a supported platform.
+    // Sort alphabetically so different capabilities map to different platforms over time,
+    // preventing a single platform (e.g. moltbook) from monopolising all connector traffic.
+    if (registry) {
+        const supported = platformIds
+            .filter((pid) => validatePlatformCapability(pid, kind, registry))
+            .sort();
+        if (supported.length > 0) {
+            return supported[0];
+        }
     }
-    return single;
+    // No registry: use fallback capability mapping
+    const supportedFallback = platformIds
+        .filter((pid) => fallbackPlatformSupportsCapability(pid, kind))
+        .sort();
+    if (supportedFallback.length > 0) {
+        return supportedFallback[0];
+    }
+    return undefined;
 }

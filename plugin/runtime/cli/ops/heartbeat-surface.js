@@ -79,6 +79,9 @@ export async function heartbeatCheck(input) {
         experienceWriter: input.experienceWriter,
         dreamSchedulePort: input.dreamSchedulePort,
         digestOpts: input.digestOpts,
+        goalLifecyclePolicy: input.goalLifecyclePolicy,
+        idleCuriosityPolicy: input.idleCuriosityPolicy,
+        circuitBreakerManager: input.circuitBreakerManager,
     });
     try {
         const cycle = await run(signal);

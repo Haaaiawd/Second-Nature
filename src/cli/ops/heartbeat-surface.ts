@@ -19,6 +19,9 @@ import type { AffordanceMap } from "../../shared/types/v7-entities.js";
 import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
 import type { HeartbeatDigestAssemblerDeps } from "../../observability/services/heartbeat-digest-assembler.js";
+import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
+import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
+import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
 
 export type HeartbeatSurfaceStatus =
   | "heartbeat_ok"
@@ -84,6 +87,12 @@ export interface HeartbeatCheckInput {
     assemblerDeps: HeartbeatDigestAssemblerDeps;
     digestWindowHour?: number;
   };
+  /** v7 T-CP.C.3: goal lifecycle policy for evaluating goal transitions. */
+  goalLifecyclePolicy?: GoalLifecyclePolicy;
+  /** v7 T-CP.C.3: idle curiosity policy for read-only sensing when no active goals. */
+  idleCuriosityPolicy?: IdleCuriosityPolicy;
+  /** v7 T-BTS.C.5: circuit breaker manager for connector execution health. */
+  circuitBreakerManager?: CircuitBreakerManager;
 }
 
 function mapCycleToSurface(
@@ -181,6 +190,9 @@ export async function heartbeatCheck(
     experienceWriter: input.experienceWriter,
     dreamSchedulePort: input.dreamSchedulePort,
     digestOpts: input.digestOpts,
+    goalLifecyclePolicy: input.goalLifecyclePolicy,
+    idleCuriosityPolicy: input.idleCuriosityPolicy,
+    circuitBreakerManager: input.circuitBreakerManager,
   });
   try {
     const cycle = await run(signal);

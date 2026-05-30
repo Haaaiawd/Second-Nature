@@ -85,6 +85,11 @@ import { scheduleDream } from "../../dream/dream-scheduler.js";
 import { createDreamInputLoader } from "../../dream/dream-input-loader.js";
 import { createDiaryDreamStore } from "../../storage/services/diary-dream-store.js";
 import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
+// v7 T-CP.C.3 / T-BTS.C.5: heartbeat loop policies and breaker
+import { createGoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
+import { createIdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
+import { createCircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
+import { createProbeSignalAdapter } from "../../core/second-nature/body/probe-signal-adapter.js";
 
 // ─── RuntimeOpsEnvelope (T-ROS.C.1 / [G1]) ───────────────────────────────────
 
@@ -594,6 +599,28 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           dreamSchedulePort = createQuietDreamSchedulePort(deps.state);
         }
 
+        // v7 T-CP.C.3: assemble goal lifecycle and idle curiosity policies.
+        const goalLifecyclePolicy = createGoalLifecyclePolicy();
+        const idleCuriosityPolicy = createIdleCuriosityPolicy();
+
+        // v7 T-BTS.C.5: assemble circuit breaker manager when state DB is wired.
+        let circuitBreakerManager: import("../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js").CircuitBreakerManager | undefined;
+        if (deps.state) {
+          const probeResultStore = createCapabilityProbeResultStore(deps.state);
+          const toolExpStore = createToolExperienceStore(deps.state);
+          const probeAdapter = createProbeSignalAdapter({
+            wetProbeRunner: createWetProbeRunner(),
+            probeResultStore,
+            toolExperienceStore: toolExpStore,
+          });
+          const registryV7 = new CapabilityContractRegistryV7();
+          circuitBreakerManager = createCircuitBreakerManager({
+            database: deps.state,
+            probeAdapter,
+            registry: registryV7,
+          });
+        }
+
         try {
           const result = await heartbeatCheck({
             probeOnly: coerceProbeOnlyFlag(input),
@@ -632,6 +659,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             experienceWriter,
             digestOpts,
             dreamSchedulePort,
+            goalLifecyclePolicy,
+            idleCuriosityPolicy,
+            circuitBreakerManager,
           });
           if (
             result.ok &&

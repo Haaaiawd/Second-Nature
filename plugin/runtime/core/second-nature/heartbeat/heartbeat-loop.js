@@ -121,6 +121,21 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
                 console.warn(`[heartbeat] ToolExperience record failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
             }
         }
+        // v7 T-BTS.C.5: update circuit breaker state after connector execution.
+        if (deps.circuitBreakerManager && intent.platformId && intent.capabilityIntent) {
+            try {
+                if (result.status === "success") {
+                    await deps.circuitBreakerManager.evaluateSuccess(intent.platformId, intent.capabilityIntent);
+                }
+                else {
+                    await deps.circuitBreakerManager.evaluateFailure(intent.platformId, intent.capabilityIntent);
+                }
+            }
+            catch (err) {
+                const errorMessage = err instanceof Error ? err.message : String(err);
+                console.warn(`[heartbeat] CircuitBreaker update failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
+            }
+        }
         const base = {
             scope: "rhythm",
             status: "intent_selected",
@@ -224,20 +239,73 @@ export async function ingestRhythmSignal(signal, deps) {
     const snapshot = buildContinuitySnapshot(inputs);
     const timestamp = signal.payload.timestamp;
     const runtime = buildHeartbeatRuntimeSnapshot(timestamp, inputs, snapshot);
+    // v7 T-CP.C.3: evaluate goal lifecycle transitions before candidate planning.
+    let goalTransitions = [];
+    if (deps.goalLifecyclePolicy && inputs.acceptedGoals) {
+        try {
+            const policyResult = deps.goalLifecyclePolicy.evaluate(inputs.acceptedGoals);
+            goalTransitions = policyResult.transitionRequests;
+        }
+        catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[heartbeat] Goal lifecycle evaluation failed: ${msg}`);
+        }
+    }
     const rawCandidates = planCandidateIntents(runtime, {
         acceptedGoals: inputs.acceptedGoals,
         connectorRegistry: deps.connectorRegistry,
         narrativeState: runtime.narrativeState,
         relationshipMemory: runtime.relationshipMemory,
     });
-    const { candidates } = applyGoalPriority(rawCandidates, inputs.acceptedGoals);
+    // v7 T-CP.C.3: when no active goals and no connector candidates, use idle curiosity.
+    let allCandidates = rawCandidates;
+    if (deps.idleCuriosityPolicy && runtime.affordanceMap) {
+        const hasActiveGoals = (inputs.acceptedGoals ?? []).some((g) => g.status === "accepted");
+        const hasConnectorCandidates = rawCandidates.some((c) => c.effectClass === "connector_action" || c.effectClass === "external_platform_action");
+        if (!hasActiveGoals && !hasConnectorCandidates) {
+            try {
+                const idleResult = deps.idleCuriosityPolicy.select(runtime.affordanceMap, []);
+                if (idleResult.candidate) {
+                    const idleIntent = {
+                        id: `intent-idle-${idleResult.candidate.platformId}-${idleResult.candidate.capabilityId}`,
+                        kind: "exploration",
+                        priority: 30,
+                        source: "tick",
+                        platformId: idleResult.candidate.platformId,
+                        summary: `idle curiosity: ${idleResult.candidate.intent}`,
+                        effectClass: "connector_action",
+                        capabilityIntent: idleResult.candidate.capabilityId,
+                        sourceRefs: [
+                            {
+                                id: "idle_curiosity",
+                                kind: "workspace_artifact",
+                                uri: `idle://${idleResult.candidate.platformId}`,
+                            },
+                        ],
+                        idempotencyKey: `idle:${idleResult.candidate.platformId}:${idleResult.candidate.capabilityId}`,
+                        goalInfluenceRefs: [],
+                    };
+                    allCandidates = [...rawCandidates, idleIntent];
+                }
+            }
+            catch (err) {
+                const msg = err instanceof Error ? err.message : String(err);
+                console.warn(`[heartbeat] Idle curiosity selection failed: ${msg}`);
+            }
+        }
+    }
+    const { candidates } = applyGoalPriority(allCandidates, inputs.acceptedGoals);
     const emitTrace = async (result) => {
         if (!deps.recordDecisionTrace)
             return;
+        const traceReasons = [...result.reasons];
+        if (goalTransitions.length > 0) {
+            traceReasons.push(`goal_transitions:${goalTransitions.length}`);
+        }
         await deps.recordDecisionTrace({
             scope: result.scope,
             status: result.status,
-            reasons: result.reasons,
+            reasons: traceReasons,
             selectedIntentId: result.selectedIntentId,
             rhythmWindowId: runtime.rhythmWindow.windowId,
             allowedIntentKinds: [...runtime.rhythmWindow.allowedIntentKinds],
