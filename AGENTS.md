@@ -794,6 +794,19 @@ S5 Waves 36-39 测试增量明细：
 
 修复：executor adapter 现在扫描 workspace manifests 并把新增 capability 注册到 `CapabilityContractRegistry`，未知平台在 runner 边界诚实返回 `unknown_platform_change`；无 credential manifest 可路由到 runner fail-closed，而不是被 route planner 卡成 auth failure。`connector_behavior_add` 改用 JSON schema YAML 解析，写入前后做 v6 manifest schema 校验，并要求 `description` 或 `sourceRefs`，支持 `observedCount`。Quiet 对 sensitive source refs 直接 denied，不落盘；`empty_state` 使用确定性 `empty_state.json`，并从 source-backed report/sourceCount 中剥离，仅通过 `emptyStateCount` 暴露。插件 runtime 已重建。
 
+### 🌊 Wave 90 ✅ — Scriptable Runner + INT-S9 Closure
+**T-CS.C.11**：新增 `scriptable_node` runner 类型，`createScriptableNodeRunner` 用动态 `import()` 加载 `runner.mjs`，入参 `{intent, payload, credential}`，期待默认函数返回 `{success, data, error}`。四种错误分支：`timeout`（默认 10s，可配置）/`configuration_missing`/`script_error`/invalid shape。manifest schema 新增 `scriptable_node` kind。
+
+**T-CS.C.12**：集成测试验证完整链路：manifest → scanner → executor → fixture .mjs → ConnectorResult → mapLifeEvidence → evidence。脚本接口规范以 inline 注释补充。
+
+**INT-S9 关门**：S9 全部 7 个任务（T-CS.C.7~C.12 + T-ROS.C.6）通过集成验证。全量测试 1290 tests, 1281 pass, **0 fail**。发现并修复 6 个回归：
+- T2.4.1-D/F ×3：platform fallback 返回 `agent-world` 而非 `undefined` → 更新测试期望
+- rhythm-intent-guard：`idempotencyKey` 与 `intentHash` 不匹配 → 测试改用 `intent.idempotencyKey`
+- INT-S3：`cbe3b06` 将 `needs_auth` 加入默认 scope → 更新断言
+- INT-S5：`makeDeps` 未传 `createdAt` 导致日期漂移 → 固定 `createdAt`
+
+三 commit：`2e4f41f` (Wave 90 主体) + `c7a4e1a` (回归修复) + `1d95ccc` (任务状态更新) + `a8c7da6` (INT-S9 报告更新)。05A_TASKS.md 勾选 T-CS.C.11/C.12/INT-S9。`reports/int-s9-connector-chain.md` 已更新。
+
 <!-- AUTO:END -->
 
 ---
