@@ -1,6 +1,6 @@
 # INT-S9 — S9 Connector 因果链完整性验证报告
 
-**日期**: 2026-05-29  
+**日期**: 2026-05-30  
 **架构版本**: v7  
 **验证范围**: T-CS.C.7 ~ T-CS.C.12 + T-ROS.C.6  
 **执行环境**: Node.js v22.16.0, TypeScript 6.0.3, pnpm, Windows  
@@ -195,13 +195,38 @@ workspace manifest (scriptable_node)
 
 ---
 
-## 12. 结论
+## 12. 全量回归验证（2026-05-30 补充）
+
+**命令**: `pnpm test -- --run`
+
+| 指标 | 数值 |
+|------|------|
+| 总测试数 | 1290 |
+| 通过 | 1281 |
+| 失败 | **0** |
+| 跳过 | 9 |
+| 耗时 | ~115s |
+
+**本次修复的 6 个回归**:
+
+| 测试 | 根因 | 修复 |
+|------|------|------|
+| rhythm-intent-guard duplicate_intent | `platformId` fallback 后 `idempotencyKey` 变了，测试 `intentHash` 未同步 | 测试改用 `social.idempotencyKey` |
+| T2.4.1-D (no goals/evidence) | fallback 返回 `agent-world` 而非 `undefined` | 更新测试期望为 `"agent-world"` |
+| T2.4.1-D (unknown platform) | fallback 返回 `agent-world` | 同上 |
+| T2.4.1-F (no registry) | fallback 返回 `agent-world` | 同上 |
+| INT-S3 affordance 5-status | `cbe3b06` 将 `needs_auth` 加入默认 scope，集成测试未同步 | 断言 `needs_auth` 存在改为 `true` |
+| INT-S5 per-platform counts | `makeDeps` 未传 `createdAt`，日期漂移导致事件被过滤 | 固定 `createdAt` 为 `DATE` |
+
+---
+
+## 13. 结论
 
 **S9 退出标准全部满足**:
-- ✅ 全部 6 个任务（T-CS.C.7~C.12 + T-ROS.C.6）的测试通过
+- ✅ 全部 7 个任务（T-CS.C.7~C.12 + T-ROS.C.6）的测试通过
 - ✅ 4 项残留风险全部闭环（2 项代码修复 + 2 项评审定性）
 - ✅ `pnpm lint && pnpm typecheck` 无错误
+- ✅ 全量测试 1290 tests, **0 failures**
 - ✅ DB before/after 验证确认 connector 执行链可产生 life evidence 数据增长
-- ✅ 无新引入的回归失败（connector 全回归 161/162 PASS）
 
 **状态**: S9 里程碑关门。v7 架构版本保持锁定。
