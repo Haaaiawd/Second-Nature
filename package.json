@@ -1,6 +1,6 @@
 {
-  "name": "second-nature",
-  "version": "0.1.43",
+  "name": "@haaaiawd/second-nature",
+  "version": "0.1.51",
   "description": "Agent Self Layer with Dream memory, heartbeat decision loop, dynamic connector ecosystem, and source-backed outreach — an OpenClaw-native runtime.",
   "keywords": [
     "openclaw",
@@ -51,6 +51,7 @@
   },
   "files": [
     "dist/",
+    "plugin/",
     "README.md",
     "README.zh-CN.md",
     "HEARTBEAT.md",
