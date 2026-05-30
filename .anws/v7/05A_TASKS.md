@@ -1388,7 +1388,7 @@
   - **依赖**: T-CS.C.10
   - **优先级**: P1
 
-- [ ] **T-CS.C.11** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 框架
+- [x] **T-CS.C.11** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 框架
   - **描述**: 为 workspace connector manifest 新增 `scriptable_node` runner 类型。`runner.json` 声明 `kind: "scriptable_node", entry: "runner.mjs"`（相对于 manifest 目录）。`createAdaptiveExecutionRunner` 识别此类型后用动态 `import()` 加载脚本，以 `{intent, payload, credential}` 为入参，期待脚本导出默认函数返回 `{success: boolean, data?: unknown, error?: {code: string, detail: string}}`。超时（默认 10s）、脚本缺失、运行时抛出分别返回 `timeout`/`configuration_missing`/`script_error`。
   - **输入**: `src/connectors/services/connector-executor-adapter.ts`、`src/connectors/manifest/manifest-schema.ts`（新增 runner kind）、`src/connectors/registry/manifest-scanner.ts`
   - **输出**: 更新后的 manifest schema + `createScriptableNodeRunner` 函数 + executor 分支 + 单元测试
@@ -1408,7 +1408,7 @@
   - **依赖**: T-ROS.C.6
   - **优先级**: P2
 
-- [ ] **T-CS.C.12** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 集成验证
+- [x] **T-CS.C.12** [REQ-009]: P2 — 声明式 Workspace Connector：Scriptable Runner 集成验证
   - **描述**: 基于 T-CS.C.11，编写集成测试验证完整链路：workspace manifest 注册 scriptable_node → scanner 识别 → executor 加载真实 fixture .mjs → ConnectorResult 返回 → mapLifeEvidence 处理生成 evidence。同时以 inline 注释补充脚本接口规范（入参/出参结构、timeout 约定、credential 传递方式）。
   - **输入**: T-CS.C.11 产出、manifest scanner、fixture runner.mjs（测试用）
   - **输出**: 集成测试（使用真实 .mjs fixture）+ 脚本接口规范注释
@@ -1426,7 +1426,7 @@
   - **依赖**: T-CS.C.11
   - **优先级**: P2
 
-- [ ] **INT-S9** [MILESTONE]: S9 Connector 因果链完整性验证
+- [x] **INT-S9** [MILESTONE]: S9 Connector 因果链完整性验证
   - **描述**: 验证 S9 退出标准：life evidence 写入、connector 接线、delivery target 探测、scriptable runner 执行全部通过集成验证。
   - **输入**: T-CS.C.7 ~ T-CS.C.12、T-ROS.C.6 全部产出
   - **输出**: `reports/int-s9-connector-chain.md`
