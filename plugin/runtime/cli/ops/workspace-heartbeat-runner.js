@@ -156,6 +156,12 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 connectorRegistry: options.connectorRegistry,
                 // v7 T-V7C.C.2: pass experience writer for heartbeat connector attempts.
                 experienceWriter: options.experienceWriter,
+                // v7 T-CP.C.3: pass goal lifecycle policy for pre-planning goal evaluation.
+                goalLifecyclePolicy: options.goalLifecyclePolicy,
+                // v7 T-CP.C.3: pass idle curiosity policy for goal-less exploration.
+                idleCuriosityPolicy: options.idleCuriosityPolicy,
+                // v7 T-BTS.C.5: pass circuit breaker manager for execution health tracking.
+                circuitBreakerManager: options.circuitBreakerManager,
             },
         });
         if (options.runtimeRecorder) {

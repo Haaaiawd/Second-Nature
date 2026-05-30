@@ -17,8 +17,8 @@ export function createGoalLifecyclePolicy() {
             for (const [key, list] of groups) {
                 // Sort by updatedAt desc, keep newest as active
                 const sorted = [...list].sort((a, b) => {
-                    const aTime = new Date(a.updatedAt).getTime();
-                    const bTime = new Date(b.updatedAt).getTime();
+                    const aTime = new Date(a.updatedAt ?? 0).getTime();
+                    const bTime = new Date(b.updatedAt ?? 0).getTime();
                     if (isNaN(aTime) || isNaN(bTime))
                         return 0;
                     return bTime - aTime;

@@ -23,6 +23,9 @@ import type { AffordanceMap } from "../../shared/types/v7-entities.js";
 import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../../core/second-nature/quiet/run-source-backed-quiet.js";
 import { type HeartbeatDigestAssemblerDeps } from "../../observability/services/heartbeat-digest-assembler.js";
+import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
+import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
+import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
 export interface WorkspaceHeartbeatRunnerOptions {
     /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
     runtimeRecorder?: RuntimeDecisionRecorder;
@@ -54,6 +57,12 @@ export interface WorkspaceHeartbeatRunnerOptions {
     experienceWriter?: ExperienceWriter;
     /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
     dreamSchedulePort?: QuietDreamSchedulePort;
+    /** v7 T-CP.C.3: goal lifecycle policy for evaluating goal transitions before planning. */
+    goalLifecyclePolicy?: GoalLifecyclePolicy;
+    /** v7 T-CP.C.3: idle curiosity policy for read-only sensing when no active goals exist. */
+    idleCuriosityPolicy?: IdleCuriosityPolicy;
+    /** v7 T-BTS.C.5: circuit breaker manager for tracking connector execution health. */
+    circuitBreakerManager?: CircuitBreakerManager;
     /**
      * v7 T-V7C.C.3: when present, generates a HeartbeatDigest after each cycle
      * (inside the digest window hour, if specified) and attempts delivery.

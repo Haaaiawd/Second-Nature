@@ -95,7 +95,7 @@ test("guard layer applies duplicate budget quiet awaiting_user guards", () => {
     ...baseSnapshot,
     mode: "quiet",
     budgets: { socialUsed: 10, socialLimit: 10 },
-    deniedIntents: [{ intentHash: `${social!.kind}:${social!.summary}`, reason: "duplicate_intent", at: "now" }],
+    deniedIntents: [{ intentHash: social!.idempotencyKey ?? `${social!.kind}:${social!.summary}`, reason: "duplicate_intent", at: "now" }],
     awaitingUserInput: true,
   });
 

@@ -7,6 +7,7 @@ export const connectorRunnerKindSchema = z.enum([
     "custom_adapter",
     "skill",
     "browser",
+    "scriptable_node",
 ]);
 export const connectorTrustStatusSchema = z.enum([
     "declarative_trusted",

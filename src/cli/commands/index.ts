@@ -387,6 +387,10 @@ export function createCliCommands(
       "runtime_secret_bootstrap",
       "T-ROS.C.1 — inspect runtime secret anchor health without exposing plaintext",
     ),
+    opsCommand(
+      "guidance_payload",
+      "T-V7C.C.4R — assemble impulse + atmosphere for a scene context",
+    ),
     {
       name: "goal",
       description:

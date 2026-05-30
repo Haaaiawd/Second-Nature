@@ -28,25 +28,35 @@ export interface GoalTransitionRequest {
   updatedAt: string;
 }
 
+/** Minimal goal shape required by the lifecycle policy evaluator. */
+export interface EvaluableGoal {
+  goalId: string;
+  kind?: string;
+  scope?: string;
+  status: string;
+  updatedAt?: string;
+  expiresAt?: string;
+}
+
 export interface GoalLifecyclePolicyResult {
-  activeGoals: AgentGoal[];
+  activeGoals: EvaluableGoal[];
   transitionRequests: GoalTransitionRequest[];
   evaluatedAt: string;
 }
 
 export interface GoalLifecyclePolicy {
-  evaluate(goals: AgentGoal[]): GoalLifecyclePolicyResult;
+  evaluate(goals: EvaluableGoal[]): GoalLifecyclePolicyResult;
 }
 
 export function createGoalLifecyclePolicy(): GoalLifecyclePolicy {
   return {
     evaluate(goals) {
       const now = new Date().toISOString();
-      const activeGoals: AgentGoal[] = [];
+      const activeGoals: EvaluableGoal[] = [];
       const transitionRequests: GoalTransitionRequest[] = [];
 
       // Group by kind+scope to detect duplicates among accepted goals
-      const groups = new Map<string, AgentGoal[]>();
+      const groups = new Map<string, EvaluableGoal[]>();
       for (const goal of goals) {
         if (goal.status !== "accepted") continue;
         const key = `${goal.kind}:${goal.scope ?? "global"}`;
@@ -58,8 +68,8 @@ export function createGoalLifecyclePolicy(): GoalLifecyclePolicy {
       for (const [key, list] of groups) {
         // Sort by updatedAt desc, keep newest as active
         const sorted = [...list].sort((a, b) => {
-          const aTime = new Date(a.updatedAt).getTime();
-          const bTime = new Date(b.updatedAt).getTime();
+          const aTime = new Date(a.updatedAt ?? 0).getTime();
+          const bTime = new Date(b.updatedAt ?? 0).getTime();
           if (isNaN(aTime) || isNaN(bTime)) return 0;
           return bTime - aTime;
         });

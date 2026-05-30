@@ -187,10 +187,10 @@ describe("INT-S3: S3 Body Tool + Heartbeat integration smoke", () => {
     assert.strictEqual(needsAuthItems.length, 1);
     assert.strictEqual(needsAuthItems[0]!.capabilityId, "notify-list");
 
-    // Verify default heartbeat scope excludes needs_auth (DEFAULT_ALLOWED_STATUSES)
+    // Verify default heartbeat scope includes needs_auth (cbe3b06: heartbeat-usable statuses)
     const defaultMap = await assembler.assembleAffordanceMap();
     const defaultItems = Object.values(defaultMap).flat();
-    assert.strictEqual(defaultItems.some((i) => i.status === "needs_auth"), false);
+    assert.strictEqual(defaultItems.some((i) => i.status === "needs_auth"), true);
 
     // Verify unavailable is mapped correctly at assembler level (even if scope filters it)
     // Build raw map manually using the same logic as the assembler

@@ -7,6 +7,7 @@ export declare const connectorRunnerKindSchema: z.ZodEnum<{
     declarative_mcp: "declarative_mcp";
     cli_descriptor: "cli_descriptor";
     custom_adapter: "custom_adapter";
+    scriptable_node: "scriptable_node";
 }>;
 export type ConnectorRunnerKind = z.infer<typeof connectorRunnerKindSchema>;
 export declare const connectorTrustStatusSchema: z.ZodEnum<{
@@ -33,6 +34,7 @@ export declare const runnerDeclarationSchema: z.ZodObject<{
         declarative_mcp: "declarative_mcp";
         cli_descriptor: "cli_descriptor";
         custom_adapter: "custom_adapter";
+        scriptable_node: "scriptable_node";
     }>;
     entrypoint: z.ZodOptional<z.ZodString>;
     config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -86,6 +88,7 @@ export declare const connectorManifestV6Schema: z.ZodObject<{
             declarative_mcp: "declarative_mcp";
             cli_descriptor: "cli_descriptor";
             custom_adapter: "custom_adapter";
+            scriptable_node: "scriptable_node";
         }>;
         entrypoint: z.ZodOptional<z.ZodString>;
         config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;

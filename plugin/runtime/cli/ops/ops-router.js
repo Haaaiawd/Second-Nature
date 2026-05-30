@@ -13,6 +13,8 @@ import { showOperatorFallback, OperatorFallbackNotFoundError, } from "./show-ope
 import { probeHostCapability } from "../host-capability/probe-host-capability.js";
 import { recordHostCapability } from "../host-capability/record-host-capability.js";
 import { runNearRealConnectorSmoke } from "../../connectors/near-real/near-real-connector-smoke.js";
+import { scanConnectorManifests } from "../../connectors/registry/manifest-scanner.js";
+import { parseConnectorManifestV6 } from "../../connectors/manifest/manifest-parser.js";
 import { connectorInit } from "../commands/connector-init.js";
 import { connectorBehaviorAdd } from "../commands/connector-behavior.js";
 import { connectorStatus, connectorTest } from "../commands/connector-status.js";
@@ -34,6 +36,11 @@ import { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.
 import { scheduleDream } from "../../dream/dream-scheduler.js";
 import { createDreamInputLoader } from "../../dream/dream-input-loader.js";
 import { createDiaryDreamStore } from "../../storage/services/diary-dream-store.js";
+// v7 T-CP.C.3 / T-BTS.C.5: heartbeat loop policies and breaker
+import { createGoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
+import { createIdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
+import { createCircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
+import { createProbeSignalAdapter } from "../../core/second-nature/body/probe-signal-adapter.js";
 function coerceProbeOnlyFlag(input) {
     const v = input?.probeOnly;
     return v === true || v === "true" || v === 1 || v === "1";
@@ -292,7 +299,7 @@ async function captureRuntimeSnapshot(deps, input) {
  * T1.2.8 — static local adapter: all checks return `unknown` when no real host is available.
  * Allows `capability_probe` to be called from CLI / workspace bridge without requiring a live host.
  */
-function createStaticUnknownAdapter() {
+function createStaticUnknownAdapter(workspaceRoot) {
     const now = new Date().toISOString();
     const unknownResult = (name) => ({
         name,
@@ -301,11 +308,35 @@ function createStaticUnknownAdapter() {
         reason: "static_local_probe_no_host_context",
         evidenceRefs: [],
     });
+    function checkDeliveryTarget() {
+        if (!workspaceRoot) {
+            return { status: "target_none", evidenceRefs: [], reason: "no_workspace_root_provided" };
+        }
+        const deliveryCapabilities = ["message.send", "comment.reply"];
+        const scanned = scanConnectorManifests(workspaceRoot);
+        for (const manifestFile of scanned) {
+            const parsed = parseConnectorManifestV6(manifestFile.content, manifestFile.path);
+            if (parsed.ok && parsed.manifest.capabilities.some((cap) => deliveryCapabilities.includes(cap.id))) {
+                return {
+                    status: "target_available",
+                    evidenceRefs: [
+                        {
+                            id: `delivery:${parsed.manifest.platformId}`,
+                            kind: "workspace_artifact",
+                            uri: `workspace://connectors/${parsed.manifest.platformId}/manifest.yaml`,
+                            observedAt: now,
+                        },
+                    ],
+                };
+            }
+        }
+        return { status: "target_none", evidenceRefs: [], reason: "no_delivery_connector_found_in_workspace" };
+    }
     return {
         checkPluginLoad: () => unknownResult("plugin_load"),
         checkHeartbeatBridge: () => unknownResult("heartbeat_bridge"),
         checkHeartbeatToolInvocation: () => unknownResult("heartbeat_tool_invocation"),
-        checkDeliveryTarget: () => ({ status: "unknown", evidenceRefs: [] }),
+        checkDeliveryTarget,
         checkAckDropBehavior: () => unknownResult("ack_drop"),
         checkHookSupport: () => [],
     };
@@ -359,6 +390,26 @@ export function createOpsRouter(deps) {
                 if (deps.state) {
                     dreamSchedulePort = createQuietDreamSchedulePort(deps.state);
                 }
+                // v7 T-CP.C.3: assemble goal lifecycle and idle curiosity policies.
+                const goalLifecyclePolicy = createGoalLifecyclePolicy();
+                const idleCuriosityPolicy = createIdleCuriosityPolicy();
+                // v7 T-BTS.C.5: assemble circuit breaker manager when state DB is wired.
+                let circuitBreakerManager;
+                if (deps.state) {
+                    const probeResultStore = createCapabilityProbeResultStore(deps.state);
+                    const toolExpStore = createToolExperienceStore(deps.state);
+                    const probeAdapter = createProbeSignalAdapter({
+                        wetProbeRunner: createWetProbeRunner(),
+                        probeResultStore,
+                        toolExperienceStore: toolExpStore,
+                    });
+                    const registryV7 = new CapabilityContractRegistryV7();
+                    circuitBreakerManager = createCircuitBreakerManager({
+                        database: deps.state,
+                        probeAdapter,
+                        registry: registryV7,
+                    });
+                }
                 try {
                     const result = await heartbeatCheck({
                         probeOnly: coerceProbeOnlyFlag(input),
@@ -388,6 +439,9 @@ export function createOpsRouter(deps) {
                         experienceWriter,
                         digestOpts,
                         dreamSchedulePort,
+                        goalLifecyclePolicy,
+                        idleCuriosityPolicy,
+                        circuitBreakerManager,
                     });
                     if (result.ok &&
                         result.surfaceMode === "workspace_full_runtime" &&
@@ -487,7 +541,7 @@ export function createOpsRouter(deps) {
                 // T1.2.8 (SN-CODE-03): run host capability probe with static unknown adapter (CLI context).
                 // Persists report when observabilityDb is available; returns safe JSON subset.
                 return (async () => {
-                    const adapter = createStaticUnknownAdapter();
+                    const adapter = createStaticUnknownAdapter(deps.workspaceRoot);
                     const docCheckedAt = new Date().toISOString();
                     const report = probeHostCapability({
                         adapter,

@@ -203,6 +203,7 @@ describe("INT-S5 #3: HeartbeatDigest per-platform counts + nothing_significant (
         plane: "governance",
         traceId: `trace-hb-${idx}`,
         sequence: idx + 1,
+        createdAt: `${DATE}T00:00:00.000Z`,
         payload: { platformId: a.platformId, capability: a.capability, outcome: a.outcome },
         previousHash,
       });

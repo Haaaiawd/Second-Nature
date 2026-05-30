@@ -25,6 +25,9 @@ import type { NarrativeStateStore } from "../../../storage/narrative/narrative-s
 import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
+import type { GoalLifecyclePolicy } from "./goal-lifecycle-policy.js";
+import type { IdleCuriosityPolicy } from "./idle-curiosity-policy.js";
+import type { CircuitBreakerManager } from "../body/circuit-breaker/circuit-breaker-manager.js";
 export interface HeartbeatDecisionTracePayload {
     scope: RuntimeScope;
     status: HeartbeatCycleStatus;
@@ -52,7 +55,7 @@ export interface HeartbeatQuietWorkflowDeps {
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
  */
-export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter">): Promise<HeartbeatCycleResult>;
+export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter" | "circuitBreakerManager">): Promise<HeartbeatCycleResult>;
 export interface HeartbeatDeps {
     /** Load snapshot inputs from state-system */
     loadSnapshotInputs: () => Promise<SnapshotInputs>;
@@ -77,6 +80,12 @@ export interface HeartbeatDeps {
     connectorRegistry?: CapabilityContractRegistry;
     /** v7 T-V7C.C.2: when present, connector attempts write ToolExperience with triggerSource="heartbeat". */
     experienceWriter?: ExperienceWriter;
+    /** v7 T-CP.C.3: when present, evaluates goal lifecycle transitions before candidate planning. */
+    goalLifecyclePolicy?: GoalLifecyclePolicy;
+    /** v7 T-CP.C.3: when present, selects read-only sensing intent when no active goals exist. */
+    idleCuriosityPolicy?: IdleCuriosityPolicy;
+    /** v7 T-BTS.C.5: when present, updates breaker state after connector execution. */
+    circuitBreakerManager?: CircuitBreakerManager;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

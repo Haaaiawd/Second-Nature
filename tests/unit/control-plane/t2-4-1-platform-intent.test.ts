@@ -116,16 +116,16 @@ test("T2.4.1-C: registry validates supported capability → returns validated pl
   assert.equal(platformId, "moltbook");
 });
 
-test("T2.4.1-D: no goals, no evidence → platformId undefined", () => {
+test("T2.4.1-D: no goals, no evidence → fallback to first supported platform", () => {
   const platformId = resolvePlatformForIntent("exploration", {});
-  assert.equal(platformId, undefined);
+  assert.equal(platformId, "agent-world");
 });
 
-test("T2.4.1-D: goal mentions unknown platform → platformId undefined", () => {
+test("T2.4.1-D: goal mentions unknown platform → fallback to first supported platform", () => {
   const platformId = resolvePlatformForIntent("exploration", {
     acceptedGoals: [makeGoal("Explore new opportunities on unknownplatform")],
   });
-  assert.equal(platformId, undefined);
+  assert.equal(platformId, "agent-world");
 });
 
 test("T2.4.1-D: goal and evidence point to different platforms → ambiguous, returns undefined", () => {
@@ -162,12 +162,12 @@ test("T2.4.1-E: dynamic registry includes new platform → resolves new platform
   assert.equal(platformId, "agentworld");
 });
 
-test("T2.4.1-F: no registry, unknown platform → undefined (not in built-in fallback)", () => {
+test("T2.4.1-F: no registry, unknown platform → fallback to first supported platform", () => {
   const platformId = resolvePlatformForIntent("exploration", {
     acceptedGoals: [makeGoal("Explore agentworld")],
   });
-  // Without registry, built-in fallback only knows packaged connector ids.
-  assert.equal(platformId, undefined);
+  // Fallback returns first alphabetically-sorted platform supporting the capability.
+  assert.equal(platformId, "agent-world");
 });
 
 test("T2.4.1-F: no registry still rejects unsupported fallback capability", () => {
