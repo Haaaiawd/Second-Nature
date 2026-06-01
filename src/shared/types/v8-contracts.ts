@@ -148,6 +148,7 @@ export interface LoopStageEvent {
   redactionClass: RedactionClass;
   occurredAt: string;
   expectedDownstreamByCycle?: number;
+  payloadJson?: string;
 }
 
 // ───────────────────────────────────────────────────────────────
