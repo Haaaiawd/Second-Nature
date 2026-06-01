@@ -82,14 +82,14 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v7`
-- **活动任务清单**: `.anws/v7/05A_TASKS.md`
-- **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-27` (`/forge` Wave 77 — T-V7C.C.6 Production Data Growth Closure)
+- **最新架构版本**: `.anws/v8`
+- **活动任务清单**: `.anws/v8/05A_TASKS.md`
+- **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
+- **最近一次更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
-### 🌱 Genesis v7 🧭 — Embodied Agent Loop
+### 🌱 Genesis v8 🧭 — Living Perception Loop
 
-v7 将 Second Nature 从 Agent Self Layer 推进为具身闭环：LLM 是头脑，Second Nature 是身体和生活环境。新增 IdentityProfile、EmbodiedContext、ToolAffordance、ToolExperience、connector wet probe、CircuitBreaker、Quiet DailyDiary、Dream auto-schedule、HeartbeatDigest、NarrativeTimeline、RestoreSnapshot 与 RuntimeSecretAnchor。
+v8 将 Second Nature 从“能收集证据的身体”推进为“能自然行动并形成长期记忆的生活闭环”。新增 EvidenceItem、PerceptionCard、JudgmentVerdict、ActionProposal、ActionPolicyDecision、ActionClosureRecord、Quiet Daily Review、Dream-backed long-term memory projection 与 causal loop health。长期记忆只由 Quiet/Dream 日回顾形成；实时层负责 perception / judgment / action closure。
 
 ---
 
@@ -120,25 +120,37 @@ src/
 └── shared/
 
 .anws/
-└── v7/
+└── v8/
    ├── 00_MANIFEST.md
+   ├── 00_DEEPWIKI_MECHANISM_AUDIT.md
    ├── 01_PRD.md
    ├── 02_ARCHITECTURE_OVERVIEW.md
    ├── 03_ADR/
    │   ├── ADR_001_TECH_STACK.md
-   │   ├── ADR_002_EMBODIED_AGENT_LOOP.md
-   │   ├── ADR_003_TOOL_AFFORDANCE_AND_EXPERIENCE.md
-   │   ├── ADR_004_GOAL_LIFECYCLE_AND_IDLE_CURIOSITY.md
-   │   ├── ADR_005_DREAM_QUIET_PROJECTION.md
-   │   ├── ADR_006_CHANNEL_FEEDBACK_AND_SELF_HEALTH.md
-   │   ├── ADR_007_IDENTITY_DIGEST_AND_RECOVERY.md
-   │   └── ADR_008_CONNECTOR_PROBE_CIRCUIT_BREAKER_AND_ROLLBACK.md
+   │   ├── ADR_002_LIVING_PERCEPTION_LOOP.md
+   │   ├── ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md
+   │   ├── ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md
+   │   └── ADR_005_CAUSAL_LOOP_HEALTH.md
    ├── 04_SYSTEM_DESIGN/
-   │   └── README.md
+   │   ├── shared-v8-contracts.md
+   │   ├── runtime-ops-system.md
+   │   ├── control-plane-system.md
+   │   ├── perception-judgment-system.md
+   │   ├── perception-judgment-system.detail.md
+   │   ├── action-closure-policy-system.md
+   │   ├── action-closure-policy-system.detail.md
+   │   ├── state-memory-system.md
+   │   ├── body-tool-system.md
+   │   ├── connector-system.md
+   │   ├── dream-quiet-memory-system.md
+   │   ├── dream-quiet-memory-system.detail.md
+   │   ├── guidance-voice-system.md
+   │   ├── observability-health-system.md
+   │   └── observability-health-system.detail.md
    ├── 05A_TASKS.md
    ├── 05B_VERIFICATION_PLAN.md
-   ├── 06_CHANGELOG.md
    ├── 07_CHALLENGE_REPORT.md
+   ├── 06_CHANGELOG.md
    └── concept_model.json
 ```
 
@@ -148,13 +160,13 @@ src/
 
 > **注意**: 此部分由 `/genesis` 维护。
 
-- **架构总览**: `.anws/v7/02_ARCHITECTURE_OVERVIEW.md`
-- **PRD**: `.anws/v7/01_PRD.md`
-- **ADR**: `.anws/v7/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: `.anws/v7/04_SYSTEM_DESIGN/`；索引见 `.anws/v7/04_SYSTEM_DESIGN/README.md`
-- **执行主清单**: `.anws/v7/05A_TASKS.md`
-- **验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **质疑报告**: `.anws/v7/07_CHALLENGE_REPORT.md`
+- **架构总览**: `.anws/v8/02_ARCHITECTURE_OVERVIEW.md`
+- **PRD**: `.anws/v8/01_PRD.md`
+- **ADR**: `.anws/v8/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: `.anws/v8/04_SYSTEM_DESIGN/`
+- **执行主清单**: `.anws/v8/05A_TASKS.md`
+- **验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
+- **质疑报告**: `.anws/v8/07_CHALLENGE_REPORT.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
@@ -172,34 +184,45 @@ src/
 - Runtime secret: `SECOND_NATURE_ENCRYPTION_KEY` 必须由宿主稳定持久化；AGENTS/README/self_health 只记录管理位置与恢复原则，不记录 key 明文
 
 ### 系统边界
-- `runtime-ops-system`: plugin/CLI/bridge/manual run、`connector_test --wet`、digest、timeline、restore 与 secret recovery surface — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/runtime-ops-system.md`
-- `control-plane-system`: heartbeat、EmbodiedContext、GoalLifecycle、IdleCuriosity 与 outreach/Quiet/Dream 编排 — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/control-plane-system.md`
-- `state-memory-system`: IdentityProfile、AgentGoal、ToolExperience、DailyDiary、DreamOutput、NarrativeTimeline、RestoreSnapshot — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/state-memory-system.md`
-- `body-tool-system`: ToolAffordanceMap、ToolExperienceLog、ConnectorCircuitBreaker 与 behavior promotion — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/body-tool-system.md`
-- `connector-system`: manifest/registry/trust/credential execution、auto-probe、actualCapabilities 与 endpoint mapping — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/connector-system.md`
-- `dream-quiet-system`: Quiet DailyDiary、QuietClaim、Dream auto-schedule、candidate/accepted projection — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/dream-quiet-system.md`
-- `guidance-voice-system`: source-backed draft、朋友式但有来处的表达、channel-safe copy — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/guidance-voice-system.md`
-- `observability-health-system`: SelfHealth、HeartbeatDigest、NarrativeTimeline、restore audit、redaction 与 explain — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/observability-health-system.md`
+- `runtime-ops-system`: OpenClaw plugin / CLI / ops surface / `loop_status` — 详见 `.anws/v8/04_SYSTEM_DESIGN/runtime-ops-system.md`
+- `control-plane-system`: heartbeat 主循环、EmbodiedContext assembly、跨系统编排 — 详见 `.anws/v8/04_SYSTEM_DESIGN/control-plane-system.md`
+- `perception-judgment-system`: EvidenceItem → PerceptionCard → JudgmentVerdict，区分 public technical 与 credential-shaped risk — 详见 `.anws/v8/04_SYSTEM_DESIGN/perception-judgment-system.md`
+- `action-closure-policy-system`: ActionProposal、ActionPolicyDecision、ActionClosureRecord 与 no-action reason — 详见 `.anws/v8/04_SYSTEM_DESIGN/action-closure-policy-system.md`
+- `state-memory-system`: Evidence / perception / judgment / closure / Quiet / Dream / projection 的 bounded state 与 read models — 详见 `.anws/v8/04_SYSTEM_DESIGN/state-memory-system.md`
+- `body-tool-system`: ToolAffordance、ToolExperience、CircuitBreaker；回答“能不能做”，不回答“该不该做” — 详见 `.anws/v8/04_SYSTEM_DESIGN/body-tool-system.md`
+- `connector-system`: manifest/trust/credential-gated execution；执行能力但不拥有 agent 判断 — 详见 `.anws/v8/04_SYSTEM_DESIGN/connector-system.md`
+- `dream-quiet-memory-system`: Quiet Daily Review、Dream Consolidation、accepted long-term memory projection — 详见 `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
+- `guidance-voice-system`: source-backed draft / notify / reply / publish 文案生成，不拥有投递权 — 详见 `.anws/v8/04_SYSTEM_DESIGN/guidance-voice-system.md`
+- `observability-health-system`: causal loop health、audit、redaction、trace、digest 与 stall reason — 详见 `.anws/v8/04_SYSTEM_DESIGN/observability-health-system.md`
 
 ### 活跃 ADR
-- ADR-001: Continue TypeScript / Node / OpenClaw Plugin Runtime
-- ADR-002: Embodied Agent Loop Guides the Mind Without Scripted Control
-- ADR-003: Tool Affordance and Tool Experience Form the Agent Body
-- ADR-004: Goals Give Direction, IdleCuriosity Gives Natural Observation
-- ADR-005: Quiet Writes Diary, Dream Continues Sleep Consolidation
-- ADR-006: Delivery, Channel Feedback, and Self Health Must Be Truthful
-- ADR-007: Identity, Digest, and Runtime Secret Recovery Are First-Class Body Signals
-- ADR-008: Probe Truth, History Browser, and Bounded Rollback
+- ADR-001: Continue TypeScript / Node / OpenClaw Runtime
+- ADR-002: Introduce the Living Perception Loop
+- ADR-003: Long-Term Memory Must Be Formed by Quiet and Dream
+- ADR-004: Use Platform-Neutral Autonomy Policy
+- ADR-005: Add Causal Loop Health
 
 ### 当前任务状态
-- 执行主清单: `.anws/v7/05A_TASKS.md`（50 个任务 + 8 个 INT 里程碑 + S8 3 项）
-- 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- User Story 数: 12
-- 系统数: 8
-- **状态**: v7 `/forge` Wave 90 完成；S9 Connector 因果链完整性验证通过
-- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: v7 全部 Sprint 里程碑关门；或继续 v8 规划
-- **最近更新**: `2026-05-29` (`/forge` Wave 90 + residual fix — T-CS.C.11/C.12 + INT-S9 + 4 项残留风险全部闭环)
+- 执行主清单: `.anws/v8/05A_TASKS.md`
+- 验证计划: `.anws/v8/05B_VERIFICATION_PLAN.md`
+- User Story 数: 9
+- 系统数: 10
+- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
+- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
+- **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
+- **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
+
+### 🌊 Wave 91 ✅ — v8 S1 Contract Spine: Shared Contracts
+T-SH.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/shared/types/v8-contracts.ts` — PlatformNeutralActionKind + ACTION_KIND_REGISTRY + SourceRef + HeartbeatCycleTrace + LoopStageEvent + MemoryReviewCandidateClosure + DegradedOperationResult + V8ReasonCode
+  - `tests/unit/contracts/v8-shared-contracts.test.ts` — 21 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；`node --test dist/tests/unit/contracts/v8-shared-contracts.test.js` — 21/21 PASS
+- **最高严重度**: none
+- **下一步**: Wave 92 — T-SMS.C.1 (State Stores) + T-OBS.C.1 (Loop Stage Event Sink)
 
 ### 🌊 Wave 90 ✅ — v7 S9 Connector: Scriptable Runner + INT-S9 里程碑关门
 T-CS.C.11, T-CS.C.12, INT-S9
