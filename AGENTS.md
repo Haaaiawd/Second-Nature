@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 98 ✅ — v8 S3 Action Proposal + Policy Evaluator
+T-AC.C.1, T-AC.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/action/action-proposal-builder.ts` — buildActionProposal from JudgmentVerdict, with no-action/remember-for-review/proposal branches, MemoryReviewCandidateClosure emission, batch builder
+  - `src/core/second-nature/action/autonomy-policy-evaluator.ts` — evaluateActionPolicy with table-driven allow/defer/downgrade/deny decisions (source refs, risk posture, breaker, permission, owner preference)
+  - `src/storage/v8-state-stores.ts` — added readJudgmentVerdictById
+  - `tests/unit/action/action-proposal-builder.test.ts` — 3 单元测试（0 失败）
+  - `tests/unit/action/autonomy-policy-evaluator.test.ts` — 9 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；action-proposal-builder 3/3 PASS；autonomy-policy-evaluator 9/9 PASS
+- **最高严重度**: none
+- **下一步**: Wave 99 — T-AC.C.3 (Policy-bound Dispatch) + T-AC.C.4 (ActionClosureRecord)
+
 ### 🌊 Wave 96 ✅ — v8 S2 Judgment Engine + Heartbeat Orchestrator
 T-PJ.C.3, T-CP.C.1
 **签入**: AUTO

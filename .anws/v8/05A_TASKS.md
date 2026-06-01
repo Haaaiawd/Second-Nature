@@ -369,7 +369,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-AC.C.1** [REQ-003, REQ-004, REQ-009]: Build ActionProposal and memory-review closure input
+- [x] **T-AC.C.1** [REQ-003, REQ-004, REQ-009]: Build ActionProposal and memory-review closure input
   - **描述**: Convert actionable JudgmentVerdict into ActionProposal, and convert `remember` into `MemoryReviewCandidateClosure` without direct projection.
   - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.1`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §4`, T-PJ.C.3 output
   - **输出**: proposal builder and memory-review candidate mapper.
@@ -388,7 +388,7 @@ graph TD
   - **依赖**: T-PJ.C.3
   - **优先级**: P0
 
-- [ ] **T-AC.C.2** [REQ-004]: Implement autonomy policy evaluator
+- [x] **T-AC.C.2** [REQ-004]: Implement autonomy policy evaluator
   - **描述**: Evaluate ActionProposal with side-effect class, platform policy, owner preference, source refs, risk posture, and affordance.
   - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §1`, T-BT.C.1 output
   - **输出**: `ActionPolicyDecision` evaluator and reason-code mapping.

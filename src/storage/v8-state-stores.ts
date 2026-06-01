@@ -302,6 +302,28 @@ export async function readJudgmentVerdictsByCycle(
   }
 }
 
+export async function readJudgmentVerdictById(
+  db: StateDatabase,
+  id: string,
+): Promise<{ row?: JudgmentVerdictRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(judgmentVerdict)
+      .where(eq(judgmentVerdict.id, id))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "judgment",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
 // ───────────────────────────────────────────────────────────────
 // ActionClosureRecord store
 // ───────────────────────────────────────────────────────────────
