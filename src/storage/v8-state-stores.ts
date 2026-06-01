@@ -1,0 +1,642 @@
+/**
+ * v8 State Stores — Bounded write/read ports for Living Perception Loop entities.
+ *
+ * Core logic: Persist and retrieve EvidenceItem, PerceptionCard, JudgmentVerdict,
+ * ActionClosureRecord, QuietDailyReview, DreamConsolidationRun,
+ * LongTermMemoryProjection, HeartbeatCycleTrace, and LoopStageEvent.
+ *
+ * Design authority:
+ * - `.anws/v8/04_SYSTEM_DESIGN/state-memory-system.md`
+ * - `.anws/v8/04_SYSTEM_DESIGN/shared-v8-contracts.md`
+ *
+ * Dependencies:
+ * - drizzle-orm (SQLite)
+ * - `src/storage/db/schema/v8-entities.js`
+ * - `src/shared/types/v8-contracts.js` (SourceRef, DegradedOperationResult)
+ *
+ * Boundary:
+ * - Write validation: rejects missing source refs, checks redaction class.
+ * - Read models: bounded by family + status filters; no cross-family joins.
+ * - Degraded state: returns DegradedOperationResult on DB failure, never throws.
+ *
+ * Test coverage: tests/unit/storage/v8-state-stores.test.ts
+ */
+
+import { eq, and, desc } from "drizzle-orm";
+import type { StateDatabase } from "./db/index.js";
+import {
+  evidenceItem,
+  perceptionCard,
+  judgmentVerdict,
+  actionClosureRecord,
+  quietDailyReview,
+  dreamConsolidationRun,
+  longTermMemoryProjection,
+  heartbeatCycleTrace,
+  loopStageEvent,
+  type EvidenceItemRecord,
+  type NewEvidenceItemRecord,
+  type PerceptionCardRecord,
+  type NewPerceptionCardRecord,
+  type JudgmentVerdictRecord,
+  type NewJudgmentVerdictRecord,
+  type ActionClosureRecordSelect,
+  type ActionClosureRecordInsert,
+  type QuietDailyReviewRecord,
+  type NewQuietDailyReviewRecord,
+  type DreamConsolidationRunRecord,
+  type NewDreamConsolidationRunRecord,
+  type LongTermMemoryProjectionRecord,
+  type NewLongTermMemoryProjectionRecord,
+  type HeartbeatCycleTraceRecord,
+  type NewHeartbeatCycleTraceRecord,
+  type LoopStageEventRecord,
+  type NewLoopStageEventRecord,
+} from "./db/schema/v8-entities.js";
+
+import type {
+  SourceRef,
+  DegradedOperationResult,
+} from "../shared/types/v8-contracts.js";
+
+// ───────────────────────────────────────────────────────────────
+// Shared helpers
+// ───────────────────────────────────────────────────────────────
+
+function serializeSourceRefs(refs: SourceRef[]): string {
+  return JSON.stringify(refs);
+}
+
+function parseSourceRefs(json: string | null): SourceRef[] {
+  if (!json) return [];
+  try {
+    const parsed = JSON.parse(json);
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function makeDegraded(
+  reason: DegradedOperationResult["reason"],
+  ownerStage: DegradedOperationResult["ownerStage"],
+  operatorNextAction: string,
+  sourceRefs: SourceRef[] = [],
+): DegradedOperationResult {
+  return {
+    status: "degraded",
+    reason,
+    ownerStage,
+    sourceRefs,
+    operatorNextAction,
+    retryable: true,
+  };
+}
+
+// ───────────────────────────────────────────────────────────────
+// Write validation
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteValidationError {
+  ok: false;
+  degraded: DegradedOperationResult;
+}
+
+export interface WriteValidationOk<T> {
+  ok: true;
+  record: T;
+}
+
+export type WriteValidationResult<T> = WriteValidationOk<T> | WriteValidationError;
+
+function validateSourceRefs(
+  sourceRefs: SourceRef[] | undefined,
+  ownerStage: DegradedOperationResult["ownerStage"],
+): WriteValidationResult<SourceRef[]> {
+  if (!sourceRefs || sourceRefs.length === 0) {
+    return {
+      ok: false,
+      degraded: makeDegraded(
+        "source_refs_unresolved",
+        ownerStage,
+        "Ensure caller supplies at least one SourceRef",
+      ),
+    };
+  }
+  return { ok: true, record: sourceRefs };
+}
+
+// ───────────────────────────────────────────────────────────────
+// EvidenceItem store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeEvidenceItem(
+  db: StateDatabase,
+  row: Omit<NewEvidenceItemRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "ingestion");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewEvidenceItemRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(evidenceItem).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "ingestion",
+      "Retry evidence write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readEvidenceItemsByStatus(
+  db: StateDatabase,
+  lifecycleStatus: EvidenceItemRecord["lifecycleStatus"],
+): Promise<{ rows: EvidenceItemRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(evidenceItem)
+      .where(eq(evidenceItem.lifecycleStatus, lifecycleStatus))
+      .orderBy(desc(evidenceItem.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "ingestion",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// PerceptionCard store
+// ───────────────────────────────────────────────────────────────
+
+export async function writePerceptionCard(
+  db: StateDatabase,
+  row: Omit<NewPerceptionCardRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "perception");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewPerceptionCardRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(perceptionCard).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "perception",
+      "Retry perception write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readPerceptionCardsByCycle(
+  db: StateDatabase,
+  cycleId: string,
+): Promise<{ rows: PerceptionCardRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(perceptionCard)
+      .where(eq(perceptionCard.cycleId, cycleId))
+      .orderBy(desc(perceptionCard.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "perception",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// JudgmentVerdict store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeJudgmentVerdict(
+  db: StateDatabase,
+  row: Omit<NewJudgmentVerdictRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "judgment");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewJudgmentVerdictRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(judgmentVerdict).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "judgment",
+      "Retry judgment write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readJudgmentVerdictsByCycle(
+  db: StateDatabase,
+  cycleId: string,
+): Promise<{ rows: JudgmentVerdictRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(judgmentVerdict)
+      .where(eq(judgmentVerdict.cycleId, cycleId))
+      .orderBy(desc(judgmentVerdict.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "judgment",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// ActionClosureRecord store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeActionClosureRecord(
+  db: StateDatabase,
+  row: Omit<ActionClosureRecordInsert, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "closure");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: ActionClosureRecordInsert = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(actionClosureRecord).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "closure",
+      "Retry closure write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readActionClosuresByCycle(
+  db: StateDatabase,
+  cycleId: string,
+): Promise<{ rows: ActionClosureRecordSelect[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(actionClosureRecord)
+      .where(eq(actionClosureRecord.cycleId, cycleId))
+      .orderBy(desc(actionClosureRecord.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "closure",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// QuietDailyReview store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeQuietDailyReview(
+  db: StateDatabase,
+  row: Omit<NewQuietDailyReviewRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "quiet");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewQuietDailyReviewRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(quietDailyReview).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "quiet",
+      "Retry Quiet write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readQuietDailyReviewsByDay(
+  db: StateDatabase,
+  day: string,
+): Promise<{ rows: QuietDailyReviewRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(quietDailyReview)
+      .where(eq(quietDailyReview.day, day))
+      .orderBy(desc(quietDailyReview.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "quiet",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// DreamConsolidationRun store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeDreamConsolidationRun(
+  db: StateDatabase,
+  row: Omit<NewDreamConsolidationRunRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "dream");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewDreamConsolidationRunRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(dreamConsolidationRun).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "dream",
+      "Retry Dream write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readDreamConsolidationRunsByQuietId(
+  db: StateDatabase,
+  quietReviewId: string,
+): Promise<{ rows: DreamConsolidationRunRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(dreamConsolidationRun)
+      .where(eq(dreamConsolidationRun.quietReviewId, quietReviewId))
+      .orderBy(desc(dreamConsolidationRun.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "dream",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// LongTermMemoryProjection store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeLongTermMemoryProjection(
+  db: StateDatabase,
+  row: Omit<NewLongTermMemoryProjectionRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "projection");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewLongTermMemoryProjectionRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(longTermMemoryProjection).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "projection",
+      "Retry projection write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readMemoryProjectionsByStatus(
+  db: StateDatabase,
+  status: LongTermMemoryProjectionRecord["status"],
+): Promise<{ rows: LongTermMemoryProjectionRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(longTermMemoryProjection)
+      .where(eq(longTermMemoryProjection.status, status))
+      .orderBy(desc(longTermMemoryProjection.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "projection",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+export async function readMemoryProjectionsByTopic(
+  db: StateDatabase,
+  topicKey: string,
+): Promise<{ rows: LongTermMemoryProjectionRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(longTermMemoryProjection)
+      .where(eq(longTermMemoryProjection.topicKey, topicKey))
+      .orderBy(desc(longTermMemoryProjection.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "projection",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// HeartbeatCycleTrace store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeHeartbeatCycleTrace(
+  db: StateDatabase,
+  row: Omit<NewHeartbeatCycleTraceRecord, "sourceRefsJson"> & { sourceRefs?: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  try {
+    const record: NewHeartbeatCycleTraceRecord = {
+      ...row,
+      sourceRefsJson: row.sourceRefs ? serializeSourceRefs(row.sourceRefs) : "[]",
+    };
+    await db.db.insert(heartbeatCycleTrace).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "ingestion",
+      "Retry cycle trace write after DB recovery",
+    );
+  }
+}
+
+export async function readHeartbeatCycleTraces(
+  db: StateDatabase,
+  limit = 100,
+): Promise<{ rows: HeartbeatCycleTraceRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(heartbeatCycleTrace)
+      .orderBy(desc(heartbeatCycleTrace.cycleSequence))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "ingestion",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// LoopStageEvent store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeLoopStageEvent(
+  db: StateDatabase,
+  row: Omit<NewLoopStageEventRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const stage = row.stage as import("../shared/types/v8-contracts.js").LoopStage;
+  const validated = validateSourceRefs(row.sourceRefs, stage);
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewLoopStageEventRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.insert(loopStageEvent).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      stage,
+      "Retry stage event write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readLoopStageEventsByCycle(
+  db: StateDatabase,
+  cycleId: string,
+): Promise<{ rows: LoopStageEventRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(loopStageEvent)
+      .where(eq(loopStageEvent.cycleId, cycleId))
+      .orderBy(desc(loopStageEvent.occurredAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "closure",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+export async function readLoopStageEventsByStage(
+  db: StateDatabase,
+  stage: LoopStageEventRecord["stage"],
+  limit = 100,
+): Promise<{ rows: LoopStageEventRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(loopStageEvent)
+      .where(eq(loopStageEvent.stage, stage))
+      .orderBy(desc(loopStageEvent.occurredAt))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "closure",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// SourceRef round-trip helper (for tests and consumers)
+// ───────────────────────────────────────────────────────────────
+
+export function extractSourceRefs(row: {
+  sourceRefsJson: string | null;
+}): SourceRef[] {
+  return parseSourceRefs(row.sourceRefsJson);
+}
