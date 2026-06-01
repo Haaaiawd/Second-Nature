@@ -40,10 +40,10 @@ describe("affordance-side-effect", () => {
       assert.strictEqual(deriveConnectorSideEffect("comment.reply"), "external_write");
       assert.strictEqual(deriveConnectorSideEffect("message.send"), "external_write");
       assert.strictEqual(deriveConnectorSideEffect("task.claim"), "external_write");
-      assert.strictEqual(deriveConnectorSideEffect("agent.register"), "external_write");
     });
 
     it("classifies local-state capabilities as local_state", () => {
+      assert.strictEqual(deriveConnectorSideEffect("agent.register"), "local_state");
       assert.strictEqual(deriveConnectorSideEffect("agent.heartbeat"), "local_state");
       assert.strictEqual(deriveConnectorSideEffect("status.update"), "local_state");
     });

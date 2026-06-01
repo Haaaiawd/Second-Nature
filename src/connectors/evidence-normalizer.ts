@@ -132,6 +132,9 @@ export async function normalizeConnectorEvidence(
   const evidenceIds: string[] = [];
 
   for (const item of items) {
+    if (typeof item.content !== "string") {
+      continue;
+    }
     const contentHash = computeContentHash(item.content);
 
     // Deduplicate by content hash

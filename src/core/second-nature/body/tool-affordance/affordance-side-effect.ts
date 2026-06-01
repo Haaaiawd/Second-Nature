@@ -47,10 +47,10 @@ const WRITE_CAPABILITIES = new Set<string>([
   "comment.reply",
   "message.send",
   "task.claim",
-  "agent.register",
 ]);
 
 const LOCAL_STATE_CAPABILITIES = new Set<string>([
+  "agent.register",
   "agent.heartbeat",
   "status.update",
 ]);

@@ -149,7 +149,7 @@ export type NewDreamConsolidationRunRecord = typeof dreamConsolidationRun.$infer
 export const longTermMemoryProjection = sqliteTable("long_term_memory_projection", {
   id: text("id").primaryKey(),
   createdAt: text("created_at").notNull(),
-  candidateId: text("candidate_id"),
+  candidateId: text("candidate_id").notNull(),
   topicKey: text("topic_key").notNull(),
   status: text("status").notNull().default("candidate"),
   sourceRefsJson: text("source_refs_json").notNull(),

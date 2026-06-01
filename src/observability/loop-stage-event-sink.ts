@@ -197,7 +197,7 @@ export async function recordLoopStageEvents(
     if (result.ok) {
       succeeded.push(result.id);
     } else {
-      failed.push({ id: event.id, degraded: result.degraded });
+      failed.push({ id: event.id ?? "unknown", degraded: result.degraded });
     }
   }
 

@@ -191,7 +191,7 @@ function buildCardFromEvidence(
     sensitivityClass: evidence.sensitivityHint || "public_general",
     riskFlags: inferRiskFlags(evidence),
     confidence: 0.6,
-    evidenceRefs: sourceRefs.length > 0 ? (sourceRefs as [SourceRef, ...SourceRef[]]) : [],
+    evidenceRefs: sourceRefs,
     createdAt: now,
   };
 }
@@ -251,7 +251,7 @@ export async function buildPerceptionCards(
     cards.push(card);
 
     // Write card to state
-    await writePerceptionCard(db, {
+    const writeResult = await writePerceptionCard(db, {
       id: card.id,
       createdAt: now,
       cycleId: card.cycleId,
@@ -271,6 +271,14 @@ export async function buildPerceptionCards(
         sensitivityClass: card.sensitivityClass,
       }),
     });
+
+    if ("reason" in writeResult) {
+      return {
+        status: "degraded",
+        cards,
+        reason: writeResult.reason,
+      };
+    }
   }
 
   return {
