@@ -615,7 +615,7 @@ graph TD
   - **依赖**: T-OBS.C.2
   - **优先级**: P0
 
-- [ ] **INT-S5** [MILESTONE]: S5 集成验证 — Explain the Loop
+- [x] **INT-S5** [MILESTONE]: S5 集成验证 — Explain the Loop
   - **描述**: Verify causal loop health, loop_status ops surface, diagnostic attribution, and guidance proposal consumption.
   - **输入**: T-OBS.C.2, T-OBS.C.3, T-ROS.C.1, T-GVS.C.1 outputs
   - **输出**: `reports/int-s5-v8-explain-the-loop.md`
@@ -640,7 +640,7 @@ graph TD
 
 ### Phase I: Integration
 
-- [ ] **INT-V8** [MILESTONE]: v8 Living Perception Loop 集成验证
+- [x] **INT-V8** [MILESTONE]: v8 Living Perception Loop 集成验证
   - **描述**: Verify the full chain from connector read to accepted memory projection and next EmbodiedContext.
   - **输入**: INT-S1, INT-S2, INT-S3, INT-S4, INT-S5 outputs
   - **输出**: `reports/int-v8-living-perception-loop.md`
@@ -659,7 +659,7 @@ graph TD
   - **依赖**: INT-S1, INT-S2, INT-S3, INT-S4, INT-S5
   - **优先级**: P0
 
-- [ ] **T-REG.C.1** [REGRESSION]: v8 build/lint and v7 capability regression gate
+- [x] **T-REG.C.1** [REGRESSION]: v8 build/lint and v7 capability regression gate
   - **描述**: Run build, lint, targeted v7 regression suites, and package/plugin smoke after v8 integration.
   - **输入**: INT-V8 output and existing regression suites
   - **输出**: `reports/v8-regression-gate.md`
