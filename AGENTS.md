@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 104 ✅ — v8 S5 Closure: INT-S5 + INT-V8 + T-REG.C.1 Regression Gate
+INT-S5, INT-V8, T-REG.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `reports/int-s5-v8-explain-the-loop.md` — S5 集成验证报告
+  - `reports/int-v8-living-perception-loop.md` — v8 全链 Living Perception Loop 集成报告
+  - `reports/v8-regression-gate.md` — 回归门报告（1447/1456 pass, 0 fail）
+  - `tests/integration/v8/loop-status-integration.test.ts` — INT-S5 集成测试 2/2 PASS
+  - `tests/integration/v8/living-perception-loop.test.ts` — INT-V8 全链集成测试 12/12 PASS
+- **测试**: `pnpm build` ✅；`pnpm typecheck` ✅；全量回归 1447/1456 pass, 0 fail, 9 skipped（历史 justified skips）
+- **最高严重度**: none
+- **下一步**: v8 全部完成。所有 05A_TASKS.md 任务已勾选。
+
 ### 🌊 Wave 103 ✅ — v8 S5 Wave 1: loop_status + Diagnostic Redaction + Guidance Consumption
 T-ROS.C.1, T-OBS.C.3, T-GVS.C.1
 **签入**: AUTO
@@ -228,7 +243,7 @@ T-ROS.C.1, T-OBS.C.3, T-GVS.C.1
   - `tests/unit/guidance/guidance-proposal-consumer.test.ts` — 8 单元测试（0 失败）
 - **测试**: `pnpm build` ✅；loop-status 2/2 PASS；diagnostic-redaction 8/8 PASS；guidance-proposal-consumer 8/8 PASS
 - **最高严重度**: none
-- **下一步**: Wave 104 — INT-S5 (S5 Milestone) + T-REG.C.1 (Regression Gate) 或 INT-V8
+- **下一步**: Wave 104 — INT-S5 (S5 Milestone) + INT-V8 + T-REG.C.1 (Regression Gate)
 
 ### 🌊 Wave 102 ✅ — v8 S4 Milestone + CP Projection Loader + Loop Health
 INT-S4, T-CP.C.2, T-OBS.C.2
