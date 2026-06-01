@@ -237,7 +237,7 @@ graph TD
   - **依赖**: T-SH.C.1, T-CS.C.1
   - **优先级**: P0
 
-- [ ] **T-PJ.C.2** [REQ-002]: Build PerceptionCard generation
+- [x] **T-PJ.C.2** [REQ-002]: Build PerceptionCard generation
   - **描述**: Generate `PerceptionCard` records from EvidenceItem batches with topic, entities, novelty, relevance, summary, risk flags, confidence, and `reviewPriority`.
   - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.md §5`, `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §3.1`, T-PJ.C.1 output
   - **输出**: Perception builder and rules-only fallback path.

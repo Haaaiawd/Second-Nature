@@ -212,6 +212,18 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 95 ✅ — v8 S2 Perception Builder
+T-PJ.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/perception/perception-builder.ts` — buildPerceptionCards with topic/entities/novelty/relevance/summary/risk/priority inference, rules-only fallback, empty batch handling, truncation support
+  - `tests/unit/perception/perception-builder.test.ts` — 4 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；perception-builder 4/4 PASS
+- **最高严重度**: none
+- **下一步**: Wave 96 — T-PJ.C.3 (Judgment Engine) + T-CP.C.1 (Heartbeat Trace) 或 INT-S2
+
 ### 🌊 Wave 94 ✅ — v8 S1 Milestone INT-S1 + S2 Sensitivity Classifier
 INT-S1, T-PJ.C.1
 **签入**: AUTO
