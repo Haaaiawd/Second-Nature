@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 102 ✅ — v8 S4 Milestone + CP Projection Loader + Loop Health
+INT-S4, T-CP.C.2, T-OBS.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `reports/int-s4-v8-remember-by-quiet-dream.md` — S4 集成验证报告
+  - `src/core/second-nature/control-plane/accepted-projection-loader.ts` — loadAcceptedProjections with active/accepted-only filter, candidate exclusion, degraded handling
+  - `src/observability/causal-loop-health.ts` — assembleLoopStatus with stage freshness, stall detection by cycle-sequence gap
+  - `tests/unit/control-plane/accepted-projection-loader.test.ts` — 1 单元测试（0 失败）
+  - `tests/unit/observability/causal-loop-health.test.ts` — 1 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；accepted-projection-loader 1/1 PASS；causal-loop-health 1/1 PASS
+- **最高严重度**: none
+- **下一步**: Wave 103 — T-ROS.C.1 (loop_status) + T-OBS.C.3 (Diagnostic Redaction) + INT-S5
+
 ### 🌊 Wave 101 ✅ — v8 S4 Dream Consolidation + Memory Projection
 T-DQ.C.3, T-DQ.C.4
 **签入**: AUTO

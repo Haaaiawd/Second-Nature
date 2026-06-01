@@ -149,7 +149,7 @@ graph TD
   - **依赖**: T-SH.C.1, T-SMS.C.1
   - **优先级**: P0
 
-- [ ] **T-OBS.C.2** [REQ-008]: Implement causal loop health assembler
+- [x] **T-OBS.C.2** [REQ-008]: Implement causal loop health assembler
   - **描述**: Assemble `CausalLoopHealthSnapshot` from cycle traces, stage events, state counts, and freshness thresholds.
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.detail.md §3.2`, T-OBS.C.1 output, T-CP.C.1 output
   - **输出**: `assembleLoopStatus` service and staged stall classifier.
@@ -319,7 +319,7 @@ graph TD
   - **依赖**: T-SH.C.1, T-OBS.C.1, T-PJ.C.2
   - **优先级**: P0
 
-- [ ] **T-CP.C.2** [REQ-006]: Load accepted long-term memory projection into EmbodiedContext
+- [x] **T-CP.C.2** [REQ-006]: Load accepted long-term memory projection into EmbodiedContext
   - **描述**: Load only accepted/active long-term memory projections into EmbodiedContext and expose blocked/degraded reason when unavailable.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §5`, T-DQ.C.4 output, T-SMS.C.1 output
   - **输出**: EmbodiedContext projection loader update.
@@ -546,7 +546,7 @@ graph TD
   - **依赖**: T-DQ.C.3
   - **优先级**: P0
 
-- [ ] **INT-S4** [MILESTONE]: S4 集成验证 — Remember by Quiet/Dream
+- [x] **INT-S4** [MILESTONE]: S4 集成验证 — Remember by Quiet/Dream
   - **描述**: Verify action closure and memory-review candidates flow through Quiet, Dream, and accepted projection.
   - **输入**: T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-CP.C.2 outputs
   - **输出**: `reports/int-s4-v8-quiet-dream-memory.md`
