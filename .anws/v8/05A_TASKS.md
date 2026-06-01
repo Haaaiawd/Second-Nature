@@ -275,7 +275,7 @@ graph TD
   - **依赖**: T-PJ.C.2, T-BT.C.1
   - **优先级**: P0
 
-- [ ] **INT-S2** [MILESTONE]: S2 集成验证 — See and Judge
+- [x] **INT-S2** [MILESTONE]: S2 集成验证 — See and Judge
   - **描述**: Verify connector read evidence becomes perception and judgment with stage events.
   - **输入**: T-CS.C.1, T-PJ.C.1, T-PJ.C.2, T-PJ.C.3, T-CP.C.1 outputs
   - **输出**: `reports/int-s2-v8-see-and-judge.md`
