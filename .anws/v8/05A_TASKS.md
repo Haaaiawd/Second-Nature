@@ -407,7 +407,7 @@ graph TD
   - **依赖**: T-AC.C.1, T-BT.C.1
   - **优先级**: P0
 
-- [ ] **T-AC.C.3** [REQ-004, REQ-009]: Implement policy-bound dispatch ports
+- [x] **T-AC.C.3** [REQ-004, REQ-009]: Implement policy-bound dispatch ports
   - **描述**: Dispatch allowed connector requests and closure-safe downgraded guidance requests with policy proof, idempotency key, canonical source refs, and a no-guidance fallback.
   - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.3`, T-AC.C.2 output, connector existing ports, optional guidance port
   - **输出**: policy-bound connector dispatch adapter and downgraded dispatch result that can close even when guidance is unavailable.
@@ -426,7 +426,7 @@ graph TD
   - **依赖**: T-AC.C.2
   - **优先级**: P0
 
-- [ ] **T-AC.C.4** [REQ-009]: Implement ActionClosureRecord ledger
+- [x] **T-AC.C.4** [REQ-009]: Implement ActionClosureRecord ledger
   - **描述**: Write closure records for completed, no-action, denied, deferred, downgraded, and failed outcomes.
   - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.4`, T-AC.C.3 output including `guidance_unavailable` downgraded dispatch result, T-SMS.C.1 output
   - **输出**: action closure recorder and closure read model.

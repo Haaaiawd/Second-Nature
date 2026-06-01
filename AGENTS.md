@@ -212,6 +212,20 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 99 ✅ — v8 S3 Dispatch + Closure Recorder
+T-AC.C.3, T-AC.C.4
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/action/policy-bound-dispatch.ts` — dispatchAllowedAction with deny/defer/downgrade/allow routing, connector/guidance dispatch envelopes, guidance_unavailable fallback
+  - `src/core/second-nature/action/action-closure-recorder.ts` — recordNoActionClosure, recordRememberClosure, recordPolicyOutcomeClosure, recordExecutionClosure with idempotent semantics
+  - `tests/unit/action/policy-bound-dispatch.test.ts` — 7 单元测试（0 失败）
+  - `tests/unit/action/action-closure-recorder.test.ts` — 4 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；policy-bound-dispatch 7/7 PASS；action-closure-recorder 4/4 PASS
+- **最高严重度**: none
+- **下一步**: Wave 100 — INT-S3 (S3 Milestone) 或进入 S4 (Quiet/Dream/Projection)
+
 ### 🌊 Wave 98 ✅ — v8 S3 Action Proposal + Policy Evaluator
 T-AC.C.1, T-AC.C.2
 **签入**: AUTO
