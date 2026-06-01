@@ -229,6 +229,28 @@ export async function readPerceptionCardsByCycle(
   }
 }
 
+export async function readPerceptionCardById(
+  db: StateDatabase,
+  id: string,
+): Promise<{ row?: PerceptionCardRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(perceptionCard)
+      .where(eq(perceptionCard.id, id))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "perception",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
 // ───────────────────────────────────────────────────────────────
 // JudgmentVerdict store
 // ───────────────────────────────────────────────────────────────

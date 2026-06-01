@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 96 ✅ — v8 S2 Judgment Engine + Heartbeat Orchestrator
+T-PJ.C.3, T-CP.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/perception/judgment-engine.ts` — runAgentJudgment with rules-only decision tree (relevance/risk/confidence/source-refs thresholds), batch judgment, degraded handling
+  - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — runHeartbeatCycle with monotonic cycleSequence, perception/judgment port invocation, stage event recording, no semantic decision in control-plane
+  - `src/storage/v8-state-stores.ts` — added readPerceptionCardById
+  - `tests/unit/judgment/judgment-engine.test.ts` — 3 单元测试（0 失败）
+  - `tests/unit/control-plane/heartbeat-cycle-trace.test.ts` — 2 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；judgment-engine 3/3 PASS；heartbeat-orchestrator 2/2 PASS
+- **最高严重度**: none
+- **下一步**: Wave 97 — INT-S2 (S2 Milestone) 或 T-AC.C.1 (Action Proposal)
+
 ### 🌊 Wave 95 ✅ — v8 S2 Perception Builder
 T-PJ.C.2
 **签入**: AUTO

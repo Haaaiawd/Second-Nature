@@ -256,7 +256,7 @@ graph TD
   - **依赖**: T-PJ.C.1, T-SMS.C.1
   - **优先级**: P0
 
-- [ ] **T-PJ.C.3** [REQ-003]: Build JudgmentVerdict engine
+- [x] **T-PJ.C.3** [REQ-003]: Build JudgmentVerdict engine
   - **描述**: Produce source-backed `JudgmentVerdict` records from perception, goals, accepted memory projection, and affordance map.
   - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §3.3`, T-PJ.C.2 output, T-BT.C.1 output
   - **输出**: Judgment engine and verdict writer.
@@ -300,7 +300,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-CP.C.1** [REQ-002, REQ-003, REQ-008, REQ-009]: Wire heartbeat cycle trace and perception/judgment orchestration
+- [x] **T-CP.C.1** [REQ-002, REQ-003, REQ-008, REQ-009]: Wire heartbeat cycle trace and perception/judgment orchestration
   - **描述**: Emit ordered `HeartbeatCycleTrace`, call perception/judgment ports, and pass stage events without making semantic decisions in control-plane.
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §3`, T-OBS.C.1 output, T-PJ.C.2 output
   - **输出**: heartbeat orchestration updates and cycle trace writer.
