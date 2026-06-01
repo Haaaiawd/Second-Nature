@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 92 ✅ — v8 S1 State Stores + Body Tool Side Effects
+T-SMS.C.1, T-BT.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/storage/db/schema/v8-entities.ts` — 9 tables (evidence_item, perception_card, judgment_verdict, action_closure_record, quiet_daily_review, dream_consolidation_run, long_term_memory_projection, heartbeat_cycle_trace, loop_stage_event)
+  - `src/storage/v8-state-stores.ts` — write/read ports per family with source-ref validation, degraded response, lifecycle status round-trip
+  - `src/core/second-nature/body/tool-affordance/affordance-side-effect.ts` — deriveConnectorSideEffect + assembleCapabilityAffordancePosture + buildSideEffectAwareAffordanceMap + policy-facing helpers
+  - `tests/unit/storage/v8-state-stores.test.ts` — 13 单元测试（0 失败）
+  - `tests/unit/body/affordance-side-effect.test.ts` — 15 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；v8-state-stores 13/13 PASS；affordance-side-effect 15/15 PASS
+- **最高严重度**: none
+- **下一步**: Wave 93 — T-OBS.C.1 (Loop Stage Event Sink) + T-CS.C.1 (Evidence Normalization) 或 INT-S1
+
 ### 🌊 Wave 91 ✅ — v8 S1 Contract Spine: Shared Contracts
 T-SH.C.1
 **签入**: AUTO

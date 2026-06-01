@@ -105,7 +105,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-SMS.C.1** [REQ-001, REQ-002, REQ-003, REQ-005, REQ-008, REQ-009]: Add v8 living-loop stores and read models
+- [x] **T-SMS.C.1** [REQ-001, REQ-002, REQ-003, REQ-005, REQ-008, REQ-009]: Add v8 living-loop stores and read models
   - **描述**: Persist EvidenceItem, PerceptionCard, JudgmentVerdict, ActionClosureRecord, QuietDailyReview, DreamConsolidationRun, MemoryProjection, HeartbeatCycleTrace, and LoopStageEvent.
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 5`, `04_SYSTEM_DESIGN/shared-v8-contracts.md`, T-SH.C.1 output
   - **输出**: state store modules, migrations/schema entries, bounded read-model ports.
@@ -344,7 +344,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-BT.C.1** [REQ-004, REQ-009]: Expose connector capability side-effect and affordance posture
+- [x] **T-BT.C.1** [REQ-004, REQ-009]: Expose connector capability side-effect and affordance posture
   - **描述**: Extend affordance map so action policy can derive `external_read`, `external_write`, `local_state`, or `unknown` side effects for `run_connector`.
   - **输入**: `04_SYSTEM_DESIGN/shared-v8-contracts.md §1.2`, `02_ARCHITECTURE_OVERVIEW.md §System 6`
   - **输出**: side-effect-aware affordance read model.
