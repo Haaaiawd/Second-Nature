@@ -168,7 +168,7 @@ graph TD
   - **依赖**: T-OBS.C.1, T-CP.C.1
   - **优先级**: P0
 
-- [ ] **T-OBS.C.3** [REQ-007, REQ-008]: Implement diagnostic redaction and attribution
+- [x] **T-OBS.C.3** [REQ-007, REQ-008]: Implement diagnostic redaction and attribution
   - **描述**: Attribute sensitivity blocks to perception classifier, state write validation, Dream redaction, or policy denial.
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.detail.md §3.4`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §5`, T-OBS.C.1 output
   - **输出**: diagnostic redaction projector and attribution reason mapper.
@@ -571,7 +571,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-GVS.C.1** [REQ-003, REQ-004, REQ-009]: Consume policy-bound ActionProposal for draft/notify text
+- [x] **T-GVS.C.1** [REQ-003, REQ-004, REQ-009]: Consume policy-bound ActionProposal for draft/notify text
   - **描述**: Generate source-backed draft/notify/reply/publish text from policy-bound ActionProposal without owning external delivery.
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 9`, T-AC.C.2 output, T-PJ.C.3 output
   - **输出**: guidance request adapter and draft proof metadata.
@@ -596,7 +596,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-ROS.C.1** [REQ-006, REQ-008, REQ-009]: Expose v8 `loop_status` ops surface
+- [x] **T-ROS.C.1** [REQ-006, REQ-008, REQ-009]: Expose v8 `loop_status` ops surface
   - **描述**: Add CLI/OpenClaw `loop_status` surface that returns machine-readable causal health and human-readable next action.
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 1`, `04_SYSTEM_DESIGN/observability-health-system.md §12`, T-OBS.C.2 output
   - **输出**: runtime ops command and plugin bridge response shape.

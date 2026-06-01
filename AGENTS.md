@@ -212,6 +212,24 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 103 ✅ — v8 S5 Wave 1: loop_status + Diagnostic Redaction + Guidance Consumption
+T-ROS.C.1, T-OBS.C.3, T-GVS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/observability/loop-status.ts` — readLoopStatus with nextAction generation, operator-facing diagnostics
+  - `src/cli/ops/ops-router.ts` — loop_status command dispatch with degraded envelope handling
+  - `src/cli/commands/index.ts` — loop_status CLI registration
+  - `src/observability/diagnostic-redaction.ts` — projectDiagnosticRedaction with classifyDiagnosticAttribution (storage/dream/perception/policy)
+  - `src/core/second-nature/guidance/guidance-proposal-consumer.ts` — consumeGuidanceProposal with source validation, GuidanceOutput shape, degraded paths
+  - `tests/unit/observability/loop-status.test.ts` — 2 单元测试（0 失败）
+  - `tests/unit/observability/diagnostic-redaction.test.ts` — 8 单元测试（0 失败）
+  - `tests/unit/guidance/guidance-proposal-consumer.test.ts` — 8 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；loop-status 2/2 PASS；diagnostic-redaction 8/8 PASS；guidance-proposal-consumer 8/8 PASS
+- **最高严重度**: none
+- **下一步**: Wave 104 — INT-S5 (S5 Milestone) + T-REG.C.1 (Regression Gate) 或 INT-V8
+
 ### 🌊 Wave 102 ✅ — v8 S4 Milestone + CP Projection Loader + Loop Health
 INT-S4, T-CP.C.2, T-OBS.C.2
 **签入**: AUTO
