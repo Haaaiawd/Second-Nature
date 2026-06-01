@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 93 ✅ — v8 S1 Observability + Connector: Loop Stage Event + Evidence Normalization
+T-OBS.C.1, T-CS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/observability/loop-stage-event-sink.ts` — recordLoopStageEvent with validation, redaction, batch recording, malformed-event degraded response
+  - `src/connectors/evidence-normalizer.ts` — normalizeConnectorEvidence with dedup by content hash, sensitivity classification, empty/truncation/failure handling
+  - `src/shared/types/v8-contracts.ts` — added payloadJson to LoopStageEvent
+  - `tests/unit/observability/loop-stage-event-sink.test.ts` — 12 单元测试（0 失败）
+  - `tests/unit/connectors/evidence-normalizer.test.ts` — 14 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；loop-stage-event 12/12 PASS；evidence-normalizer 14/14 PASS
+- **最高严重度**: none
+- **下一步**: Wave 94 — T-PJ.C.1 (Sensitivity Classifier) + T-CP.C.1 (Heartbeat Trace) 或 INT-S1
+
 ### 🌊 Wave 92 ✅ — v8 S1 State Stores + Body Tool Side Effects
 T-SMS.C.1, T-BT.C.1
 **签入**: AUTO

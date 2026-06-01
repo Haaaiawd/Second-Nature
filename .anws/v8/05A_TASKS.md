@@ -130,7 +130,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-OBS.C.1** [REQ-008, REQ-009]: Implement loop stage event sink
+- [x] **T-OBS.C.1** [REQ-008, REQ-009]: Implement loop stage event sink
   - **描述**: Append redacted `LoopStageEvent` rows with `cycleSequence`, canonical reason codes, and structured `SourceRef[]`.
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §5`, `04_SYSTEM_DESIGN/observability-health-system.detail.md §3.1`, T-SH.C.1, T-SMS.C.1 outputs
   - **输出**: loop stage event sink and redacted audit projection.
@@ -193,7 +193,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-CS.C.1** [REQ-001]: Normalize connector read results into EvidenceItem
+- [x] **T-CS.C.1** [REQ-001]: Normalize connector read results into EvidenceItem
   - **描述**: Convert successful read-type ConnectorResult payloads into deduplicated `EvidenceItem` rows with structured `SourceRef`, content hash, platform id, observedAt, and sensitivity hint.
   - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 7`, T-SH.C.1, T-SMS.C.1 outputs
   - **输出**: evidence normalization adapter and connector result mapping updates.
