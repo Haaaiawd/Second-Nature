@@ -212,6 +212,21 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 101 ✅ — v8 S4 Dream Consolidation + Memory Projection
+T-DQ.C.3, T-DQ.C.4
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/quiet-dream/dream-consolidation-runner.ts` — runDreamConsolidation with rules-only candidate generation, redaction gate, validation, projection candidate write
+  - `src/core/second-nature/quiet-dream/memory-projection-lifecycle.ts` — acceptMemoryProjection with auto-supersede, rejectMemoryProjection, retireMemoryProjection
+  - `src/storage/v8-state-stores.ts` — added readDreamConsolidationRunById
+  - `tests/unit/dream/dream-consolidation-runner.test.ts` — 1 单元测试（0 失败）
+  - `tests/unit/dream/memory-projection-lifecycle.test.ts` — 4 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；dream-consolidation-runner 1/1 PASS；memory-projection-lifecycle 4/4 PASS
+- **最高严重度**: none
+- **下一步**: Wave 102 — INT-S4 (S4 Milestone) + T-CP.C.2 (Accepted Projection Loader) + T-OBS.C.2 (Loop Health)
+
 ### 🌊 Wave 100 ✅ — v8 S3 Milestone + S4 Quiet/Dream Bootstrap
 INT-S3, T-DQ.C.1, T-DQ.C.2
 **签入**: AUTO

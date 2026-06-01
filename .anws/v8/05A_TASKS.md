@@ -508,7 +508,7 @@ graph TD
   - **依赖**: T-DQ.C.1
   - **优先级**: P0
 
-- [ ] **T-DQ.C.3** [REQ-005, REQ-006, REQ-007]: Implement Dream consolidation candidate pipeline
+- [x] **T-DQ.C.3** [REQ-005, REQ-006, REQ-007]: Implement Dream consolidation candidate pipeline
   - **描述**: Generate Dream memory candidates from Quiet review with rules-only/model-assisted modes, redaction gate, validation, and blocked output.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.3`, T-DQ.C.2 output, T-OBS.C.3 output
   - **输出**: Dream consolidation runner and candidate validator.
@@ -527,7 +527,7 @@ graph TD
   - **依赖**: T-DQ.C.2, T-OBS.C.3
   - **优先级**: P0
 
-- [ ] **T-DQ.C.4** [REQ-005, REQ-006]: Implement long-term memory projection lifecycle
+- [x] **T-DQ.C.4** [REQ-005, REQ-006]: Implement long-term memory projection lifecycle
   - **描述**: Accept, activate, supersede, retire, and reject long-term memory projections derived only from validated Dream candidates.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.4`, T-DQ.C.3 output, T-SMS.C.1 output
   - **输出**: projection lifecycle manager and accepted projection read model.

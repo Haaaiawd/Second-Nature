@@ -499,6 +499,28 @@ export async function writeDreamConsolidationRun(
   }
 }
 
+export async function readDreamConsolidationRunById(
+  db: StateDatabase,
+  id: string,
+): Promise<{ row?: DreamConsolidationRunRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(dreamConsolidationRun)
+      .where(eq(dreamConsolidationRun.id, id))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "dream",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
 export async function readDreamConsolidationRunsByQuietId(
   db: StateDatabase,
   quietReviewId: string,
