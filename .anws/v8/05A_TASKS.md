@@ -80,7 +80,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **INT-S1** [MILESTONE]: S1 集成验证 — Contract Spine
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Contract Spine
   - **描述**: Verify shared contracts and state/event foundations are ready for downstream systems.
   - **输入**: T-SH.C.1, T-SMS.C.1, T-OBS.C.1 outputs
   - **输出**: `reports/int-s1-v8-contract-spine.md`
@@ -218,7 +218,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-PJ.C.1** [REQ-007]: Implement context-aware sensitivity classifier
+- [x] **T-PJ.C.1** [REQ-007]: Implement context-aware sensitivity classifier
   - **描述**: Classify evidence as public technical, public general, private context, or sensitive using field context, source context, value shape, and entropy signals.
   - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §3.2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`, T-CS.C.1 output
   - **输出**: `SensitivityClassifier` and public technical fixtures.

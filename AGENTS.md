@@ -212,6 +212,19 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 94 ✅ — v8 S1 Milestone INT-S1 + S2 Sensitivity Classifier
+INT-S1, T-PJ.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/perception/sensitivity-classifier.ts` — classifyEvidenceSensitivity with credential/private/public_technical/public_general signals + batch support
+  - `tests/unit/perception/sensitivity-classifier.test.ts` — 13 单元测试（0 失败）
+  - `reports/int-s1-v8-contract-spine.md` — S1 集成验证报告（88 测试全绿，schema 无漂移）
+- **测试**: `pnpm build` ✅；sensitivity-classifier 13/13 PASS
+- **最高严重度**: none
+- **下一步**: Wave 95 — T-PJ.C.2 (Perception Builder) + T-PJ.C.3 (Judgment Engine) 或 INT-S2
+
 ### 🌊 Wave 93 ✅ — v8 S1 Observability + Connector: Loop Stage Event + Evidence Normalization
 T-OBS.C.1, T-CS.C.1
 **签入**: AUTO
