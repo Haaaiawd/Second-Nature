@@ -212,6 +212,22 @@ src/
 - **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
 - **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
 
+### 🌊 Wave 100 ✅ — v8 S3 Milestone + S4 Quiet/Dream Bootstrap
+INT-S3, T-DQ.C.1, T-DQ.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `reports/int-s3-v8-act-and-close.md` — S3 集成验证报告
+  - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts` — buildQuietDailyReview from ActionClosureRecord by day, memory candidate extraction, summary generation
+  - `src/core/second-nature/quiet-dream/dream-scheduler.ts` — scheduleDreamAfterQuiet with scheduled/blocked lifecycle, scheduler unavailable handling
+  - `src/storage/v8-state-stores.ts` — added readActionClosuresByDay, readQuietDailyReviewById
+  - `tests/unit/quiet/quiet-daily-review-builder.test.ts` — 2 单元测试（0 失败）
+  - `tests/unit/dream/dream-scheduler-lifecycle.test.ts` — 2 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；quiet-daily-review-builder 2/2 PASS；dream-scheduler 2/2 PASS
+- **最高严重度**: none
+- **下一步**: Wave 101 — T-DQ.C.3 (Dream Consolidation) + T-DQ.C.4 (Memory Projection)
+
 ### 🌊 Wave 99 ✅ — v8 S3 Dispatch + Closure Recorder
 T-AC.C.3, T-AC.C.4
 **签入**: AUTO

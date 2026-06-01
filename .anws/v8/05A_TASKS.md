@@ -445,7 +445,7 @@ graph TD
   - **依赖**: T-AC.C.3
   - **优先级**: P0
 
-- [ ] **INT-S3** [MILESTONE]: S3 集成验证 — Act and Close
+- [x] **INT-S3** [MILESTONE]: S3 集成验证 — Act and Close
   - **描述**: Verify judgment becomes proposal, policy decision, dispatch result, and closure/no-action record.
   - **输入**: T-AC.C.1, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-BT.C.1 outputs
   - **输出**: `reports/int-s3-v8-act-and-close.md`
@@ -470,7 +470,7 @@ graph TD
 
 ### Phase C: Core
 
-- [ ] **T-DQ.C.1** [REQ-005, REQ-009]: Build Quiet Daily Review from closures and memory candidates
+- [x] **T-DQ.C.1** [REQ-005, REQ-009]: Build Quiet Daily Review from closures and memory candidates
   - **描述**: Generate QuietDailyReview from action closures, memory-review candidates, important perception, tool experience, and relationship signals.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1`, T-AC.C.4 output, T-PJ.C.2 output
   - **输出**: Quiet review builder and diary writer updates.
@@ -489,7 +489,7 @@ graph TD
   - **依赖**: T-AC.C.4
   - **优先级**: P0
 
-- [ ] **T-DQ.C.2** [REQ-006]: Implement Dream scheduler lifecycle trace
+- [x] **T-DQ.C.2** [REQ-006]: Implement Dream scheduler lifecycle trace
   - **描述**: Schedule Dream after Quiet completion and record scheduled, started, completed, failed, blocked, and scheduler-unavailable states.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §5`, T-DQ.C.1 output
   - **输出**: dream scheduler lifecycle writer and trace port.

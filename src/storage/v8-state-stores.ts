@@ -22,7 +22,7 @@
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, like } from "drizzle-orm";
 import type { StateDatabase } from "./db/index.js";
 import {
   evidenceItem,
@@ -375,6 +375,29 @@ export async function readActionClosuresByCycle(
   }
 }
 
+export async function readActionClosuresByDay(
+  db: StateDatabase,
+  day: string,
+): Promise<{ rows: ActionClosureRecordSelect[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(actionClosureRecord)
+      .where(like(actionClosureRecord.createdAt, `${day}%`))
+      .orderBy(desc(actionClosureRecord.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded(
+        "state_unreadable",
+        "closure",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
 // ───────────────────────────────────────────────────────────────
 // QuietDailyReview store
 // ───────────────────────────────────────────────────────────────
@@ -400,6 +423,28 @@ export async function writeQuietDailyReview(
       "Retry Quiet write after DB recovery",
       validated.record,
     );
+  }
+}
+
+export async function readQuietDailyReviewById(
+  db: StateDatabase,
+  id: string,
+): Promise<{ row?: QuietDailyReviewRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(quietDailyReview)
+      .where(eq(quietDailyReview.id, id))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "quiet",
+        "Check state database connectivity",
+      ),
+    };
   }
 }
 
