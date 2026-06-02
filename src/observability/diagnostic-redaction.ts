@@ -87,22 +87,22 @@ export function classifyDiagnosticAttribution(
   reasonCode?: V8ReasonCode,
 ): DiagnosticAttribution {
   // Storage validation blocks
-  if (sourceSystem === "storage" || reasonCode === "state_unreadable" || reasonCode === "quiet_validation_failed") {
+  if (reasonCode === "state_unreadable" || reasonCode === "quiet_validation_failed") {
     return "storage_validation_block";
   }
 
   // Dream redaction blocks
-  if (sourceSystem === "dream" || reasonCode === "dream_blocked_redaction") {
+  if (reasonCode === "dream_blocked_redaction") {
     return "dream_redaction_block";
   }
 
   // Perception risk blocks
-  if (sourceSystem === "perception" || reasonCode === "perception_rules_only" || reasonCode === "evidence_batch_truncated") {
+  if (reasonCode === "perception_rules_only" || reasonCode === "evidence_batch_truncated") {
     return "perception_risk_block";
   }
 
   // Policy denial
-  if (sourceSystem === "policy" || reasonCode?.startsWith("policy_denied") || reasonCode === "policy_downgraded_to_draft") {
+  if (reasonCode?.startsWith("policy_denied") || reasonCode === "policy_downgraded_to_draft") {
     return "policy_denial";
   }
 

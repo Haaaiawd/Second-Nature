@@ -83,6 +83,11 @@ describe("diagnostic-redaction", () => {
       const attr = classifyDiagnosticAttribution("unknown", undefined);
       assert.strictEqual(attr, "no_redaction_needed");
     });
+
+    it("does not attribute risk block when reasonCode is absent", () => {
+      const attr = classifyDiagnosticAttribution("perception", undefined);
+      assert.strictEqual(attr, "no_redaction_needed");
+    });
   });
 
   describe("source-system attribution in output", () => {
