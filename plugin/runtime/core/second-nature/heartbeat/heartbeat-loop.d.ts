@@ -25,6 +25,7 @@ import type { NarrativeStateStore } from "../../../storage/narrative/narrative-s
 import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
+import type { AppendOnlyAuditStore } from "../../../observability/audit/append-only-audit-store.js";
 import type { GoalLifecyclePolicy } from "./goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "./idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../body/circuit-breaker/circuit-breaker-manager.js";
@@ -50,12 +51,14 @@ export interface HeartbeatQuietWorkflowDeps {
     workspaceRoot: string;
     /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
     dreamSchedulePort?: QuietDreamSchedulePort;
+    /** T-OBS.R.1: audit sink for Quiet outcomes consumed by heartbeat_digest. */
+    auditStore?: AppendOnlyAuditStore;
 }
 /**
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
  */
-export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter" | "circuitBreakerManager">): Promise<HeartbeatCycleResult>;
+export declare function resolveAllowedIntentResult(intent: CandidateIntent, runtime: HeartbeatRuntimeSnapshot, inputs: SnapshotInputs, signal: HeartbeatSignal, deps: Pick<HeartbeatDeps, "outreachDispatch" | "quietWorkflow" | "connectorExecutor" | "state" | "workspaceRoot" | "experienceWriter" | "circuitBreakerManager" | "auditStore">): Promise<HeartbeatCycleResult>;
 export interface HeartbeatDeps {
     /** Load snapshot inputs from state-system */
     loadSnapshotInputs: () => Promise<SnapshotInputs>;
@@ -86,6 +89,8 @@ export interface HeartbeatDeps {
     idleCuriosityPolicy?: IdleCuriosityPolicy;
     /** v7 T-BTS.C.5: when present, updates breaker state after connector execution. */
     circuitBreakerManager?: CircuitBreakerManager;
+    /** T-OBS.R.1: shared audit sink for connector attempts consumed by heartbeat_digest. */
+    auditStore?: AppendOnlyAuditStore;
 }
 /**
  * Ingest a heartbeat rhythm signal and drive one full decision round.

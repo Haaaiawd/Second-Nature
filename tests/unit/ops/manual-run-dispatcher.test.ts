@@ -21,6 +21,7 @@ import type { ConnectorResult } from "../../../src/connectors/base/contract.js";
 import type { ExperienceWriter } from "../../../src/core/second-nature/body/tool-experience/experience-writer.js";
 import type { WetProbeRunner } from "../../../src/connectors/base/wet-probe-runner.js";
 import type { CapabilityContractRegistryV7 } from "../../../src/connectors/base/manifest-v7.js";
+import { AppendOnlyAuditStore } from "../../../src/observability/audit/append-only-audit-store.js";
 
 // ─── mocks ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,40 @@ test("T-ROS.C.3 AC-1 — runConnector records experience with triggerSource=manu
   assert.equal(mockWriter.calls[0]!.triggerSource, "manual_run");
   assert.equal(mockWriter.calls[0]!.connectorId, "plat1");
   assert.equal(mockWriter.calls[0]!.capabilityId, "cap1");
+});
+
+test("T-OBS.R.1 — runConnector writes connector.attempt audit for heartbeat_digest", async () => {
+  const connectorResult: ConnectorResult<unknown> = {
+    status: "success",
+    data: { ok: true, rawPayload: "should_not_be_aggregated" },
+    metadata: { platformId: "plat1", channel: "api_rest", latencyMs: 42, degraded: false },
+  };
+  const mockExecutor = makeMockConnectorExecutor(connectorResult);
+  const mockWriter = makeMockExperienceWriter();
+  const auditStore = new AppendOnlyAuditStore();
+  const deps: ManualRunDispatcherDeps = {
+    connectorExecutor: mockExecutor as unknown as ManualRunDispatcherDeps["connectorExecutor"],
+    experienceWriter: mockWriter as unknown as ExperienceWriter,
+    wetProbeRunner: makeMockWetProbeRunner() as unknown as WetProbeRunner,
+    registryV7: makeMockRegistryV7(),
+    auditStore,
+  };
+
+  const dispatcher = createManualRunDispatcher(deps);
+  await dispatcher.runConnector({
+    platformId: "plat1",
+    capabilityId: "feed.read",
+  });
+
+  const events = auditStore.list();
+  assert.equal(events.length, 1);
+  assert.equal(events[0]!.family, "connector.attempt");
+  const payload = events[0]!.payload as Record<string, unknown>;
+  assert.equal(payload.platformId, "plat1");
+  assert.equal(payload.capability, "feed.read");
+  assert.equal(payload.outcome, "success");
+  assert.equal(payload.triggerSource, "manual_run");
+  assert.equal("rawPayload" in payload, false);
 });
 
 test("T-ROS.C.3 AC-1 — runConnector records experience even on failure", async () => {

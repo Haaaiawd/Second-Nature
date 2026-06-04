@@ -20,7 +20,7 @@ import {
   createCliReadModels,
   type CliReadModels,
 } from "./read-models/index.js";
-import type { AppendOnlyAuditStore } from "../observability/audit/append-only-audit-store.js";
+import { AppendOnlyAuditStore } from "../observability/audit/append-only-audit-store.js";
 import { resolvePackagedRuntime } from "./runtime/runtime-artifact-boundary.js";
 import {
   createRestoreSnapshotStore,
@@ -322,6 +322,8 @@ export interface CliRuntimeDeps {
   secretAnchorDeps: SecretAnchorDeps;
   /** T-ROS.C.1 — bounded restore port used by runtime restore command. */
   restoreSnapshotStore: RestoreSnapshotStore;
+  /** T-OBS.R.1 — shared in-memory audit truth for read models and runtime ops. */
+  auditStore: AppendOnlyAuditStore;
 }
 
 export interface CreateCommandRouterOptions {
@@ -342,13 +344,15 @@ export function createCliRuntimeDeps(
   const observabilityDb =
     overrides.observabilityDb ?? createObservabilityDatabase();
   const stateApi = overrides.stateApi ?? createStateAPI(stateDb);
+  const auditStore =
+    overrides.auditStore ?? overrides.livedExperienceAuditStore ?? new AppendOnlyAuditStore();
   const readModels =
     overrides.readModels ??
     createCliReadModels({
       stateDb,
       observabilityDb,
       workspaceRoot,
-      livedExperienceAuditStore: overrides.livedExperienceAuditStore,
+      livedExperienceAuditStore: auditStore,
     });
   const actionBridge = overrides.actionBridge ?? createActionBridge(stateApi);
   const runtimeRecorder =
@@ -392,6 +396,7 @@ export function createCliRuntimeDeps(
     narrativeTimelineDeps,
     secretAnchorDeps,
     restoreSnapshotStore,
+    auditStore,
   };
 }
 
@@ -415,6 +420,7 @@ export function createCommandRouter(
     narrativeTimelineDeps: runtime.narrativeTimelineDeps,
     secretAnchorDeps: runtime.secretAnchorDeps,
     restoreSnapshotStore: runtime.restoreSnapshotStore,
+    auditStore: runtime.auditStore,
   });
   const commands = createCliCommands({
     readModels: runtime.readModels,

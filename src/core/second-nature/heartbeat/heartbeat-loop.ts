@@ -53,6 +53,8 @@ import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
 import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
+import type { AppendOnlyAuditStore } from "../../../observability/audit/append-only-audit-store.js";
+import { recordConnectorAttemptAudit } from "../../../observability/services/audit-closure-recorders.js";
 import type { GoalLifecyclePolicy, GoalTransitionRequest } from "./goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "./idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../body/circuit-breaker/circuit-breaker-manager.js";
@@ -81,6 +83,8 @@ export interface HeartbeatQuietWorkflowDeps {
   workspaceRoot: string;
   /** v7 T-V7C.C.3: when present, a successful Quiet write auto-triggers Dream scheduling. */
   dreamSchedulePort?: QuietDreamSchedulePort;
+  /** T-OBS.R.1: audit sink for Quiet outcomes consumed by heartbeat_digest. */
+  auditStore?: AppendOnlyAuditStore;
 }
 
 /**
@@ -101,6 +105,7 @@ export async function resolveAllowedIntentResult(
     | "workspaceRoot"
     | "experienceWriter"
     | "circuitBreakerManager"
+    | "auditStore"
   >,
 ): Promise<HeartbeatCycleResult> {
   const day =
@@ -131,6 +136,7 @@ export async function resolveAllowedIntentResult(
       workspaceRoot: deps.quietWorkflow.workspaceRoot,
       // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
       dreamSchedulePort: deps.quietWorkflow.dreamSchedulePort,
+      auditStore: deps.quietWorkflow.auditStore,
     });
     return quietRun.result;
   }
@@ -176,6 +182,15 @@ export async function resolveAllowedIntentResult(
             canonicalName: runtime.identity?.canonicalName,
           }
         : undefined,
+    });
+    recordConnectorAttemptAudit({
+      auditStore: deps.auditStore,
+      platformId: intent.platformId,
+      capability: toCapabilityIntent(intent),
+      result,
+      triggerSource: "heartbeat",
+      decisionId,
+      intentId: intent.id,
     });
 
     // T3.3.1: on success, map connector result to life evidence and append.
@@ -293,6 +308,8 @@ export interface HeartbeatDeps {
   idleCuriosityPolicy?: IdleCuriosityPolicy;
   /** v7 T-BTS.C.5: when present, updates breaker state after connector execution. */
   circuitBreakerManager?: CircuitBreakerManager;
+  /** T-OBS.R.1: shared audit sink for connector attempts consumed by heartbeat_digest. */
+  auditStore?: AppendOnlyAuditStore;
 }
 
 /**

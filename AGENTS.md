@@ -209,8 +209,23 @@ src/
 - 系统数: 10
 - **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
 - **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: 可进入 `/forge` 前最终确认；若继续保守流程，可对补齐后的 05A/05B 再跑一次快速 `/challenge`
-- **最近更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
+- **下一步**: v8 forge 完成；T-OBS.R.1 audit-backed digest repair 已闭合
+- **最近更新**: `2026-06-04` (`/change` + `/forge` repair — audit-backed digest closure)
+
+### 🌊 Wave 105 ✅ — v8 Repair: Audit-backed Connector/Quiet Digest Closure
+T-OBS.R.1
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-04）
+- **产出**:
+  - `src/observability/services/audit-closure-recorders.ts` — connector attempt and Quiet artifact audit recorders
+  - `src/observability/services/heartbeat-digest-assembler.ts` — audit fallback now counts Quiet source coverage events
+  - `src/cli/index.ts`, `src/cli/ops/heartbeat-surface.ts`, `src/cli/ops/ops-router.ts`, `src/cli/ops/workspace-heartbeat-runner.ts` — shared audit store wiring
+  - `src/cli/ops/manual-run-dispatcher.ts`, `src/core/second-nature/heartbeat/heartbeat-loop.ts`, `src/core/second-nature/quiet/run-source-backed-quiet.ts` — manual/heartbeat connector and Quiet audit emission
+  - `.anws/v8/wave-reviews/wave-105-review.md` — static code review report
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；targeted node tests 58/58 PASS；`pnpm build:plugin` ✅
+- **最高严重度**: none
+- **下一步**: 如需更保守，可跑全量 `pnpm test`；当前 targeted gate 已覆盖 T-OBS.R.1 验收
 
 ### 🌊 Wave 104 ✅ — v8 S5 Closure: INT-S5 + INT-V8 + T-REG.C.1 Regression Gate
 INT-S5, INT-V8, T-REG.C.1

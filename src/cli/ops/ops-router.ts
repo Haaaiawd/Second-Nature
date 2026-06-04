@@ -662,6 +662,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             experienceWriter,
             digestOpts,
             dreamSchedulePort,
+            auditStore: deps.auditStore,
             goalLifecyclePolicy,
             idleCuriosityPolicy,
             circuitBreakerManager,
@@ -1031,6 +1032,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           experienceWriter,
           wetProbeRunner,
           registryV7,
+          auditStore: deps.auditStore,
         });
         return dispatcher.runConnector({
           platformId,

@@ -306,3 +306,34 @@ describe("generateHeartbeatDigest — dream trace from audit", () => {
     assert.ok(digest.quietDreamSummary.dreamSkipReasons.includes("lock_held"));
   });
 });
+
+// ─── quiet source coverage in audit ──────────────────────────────────────────
+
+describe("generateHeartbeatDigest — quiet trace from audit", () => {
+  it("counts source-backed Quiet artifact events from source_coverage audit", async () => {
+    const store = makeStore();
+    appendEvent(store, "source_coverage", {
+      subjectType: "quiet_artifact",
+      subjectRef: "urn:second-nature:quiet:2026-05-23:daily_report:test",
+      status: "completed",
+      reasonCodes: ["quiet_artifact_written"],
+    });
+    appendEvent(store, "source_coverage", {
+      subjectType: "quiet_artifact",
+      subjectRef: "urn:second-nature:quiet:2026-05-23:empty_state:test",
+      status: "empty",
+      reasonCodes: ["quiet_empty_state"],
+    });
+    appendEvent(store, "source_coverage", {
+      subjectType: "outreach_draft",
+      subjectRef: "draft:test",
+      status: "completed",
+    });
+
+    const digest = await generateHeartbeatDigest(TODAY, makeDeps(store));
+
+    assert.equal(digest.quietDreamSummary.quietRuns, 2);
+    assert.equal(digest.quietDreamSummary.quietSucceeded, 2);
+    assert.equal(digest.isNothingSignificant, false);
+  });
+});

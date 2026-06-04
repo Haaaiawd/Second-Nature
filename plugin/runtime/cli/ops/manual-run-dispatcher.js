@@ -23,6 +23,7 @@
  * Test coverage: tests/unit/ops/manual-run-dispatcher.test.ts
  */
 import * as crypto from "node:crypto";
+import { recordConnectorAttemptAudit } from "../../observability/services/audit-closure-recorders.js";
 import { heartbeatCheck, } from "./heartbeat-surface.js";
 function buildManualContext(input) {
     return {
@@ -53,6 +54,15 @@ export function createManualRunDispatcher(deps) {
                 capabilityId: input.capabilityId,
                 result: connectorResult,
                 triggerSource: ctx.triggerSource,
+            });
+            recordConnectorAttemptAudit({
+                auditStore: deps.auditStore,
+                platformId: input.platformId,
+                capability: input.capabilityId,
+                result: connectorResult,
+                triggerSource: ctx.triggerSource,
+                decisionId,
+                intentId,
             });
             const runResult = {
                 connectorResult,

@@ -1,8 +1,8 @@
 # 05A_TASKS.md — 执行主清单
 
-> 版本: v8  
-> 产出自: /blueprint  
-> 最后更新: 2026-06-01  
+> 版本: v8
+> 产出自: /blueprint
+> 最后更新: 2026-06-01
 >
 > 验证计划: [05B_VERIFICATION_PLAN.md](./05B_VERIFICATION_PLAN.md)
 
@@ -186,6 +186,27 @@ graph TD
   - **估时**: 1d
   - **依赖**: T-OBS.C.1, T-PJ.C.1
   - **优先级**: P1
+
+- [x] **T-OBS.R.1** [REQ-006, REQ-008, REQ-009]: Repair audit-backed digest closure for connector and Quiet runs
+  - **描述**: Ensure manual connector runs, heartbeat connector runs, and source-backed Quiet outcomes write audit truth that `heartbeat_digest` can aggregate.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1`, T-OBS.C.1, T-ROS.C.1, T-DQ.C.1 outputs
+  - **输出**: shared connector-attempt audit recorder, Quiet audit emission, shared CLI/runtime audit store wiring, and digest audit fallback updates.
+  - **契约承接**: `connector.attempt` audit family, Quiet audit visibility in digest, `heartbeat_digest.connectorSummary`, `heartbeat_digest.quietDreamSummary`
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given `connector:run` executes a connector manually
+    - When `heartbeat_digest` is requested for the same UTC day
+    - Then `connectorSummary` includes the platform/capability attempt outcome without raw payload or credential leakage
+    - Given source-backed Quiet writes an artifact or returns an explicit empty/blocked outcome
+    - When `heartbeat_digest` is requested without a state-memory quiet port
+    - Then `quietDreamSummary` reflects the Quiet run or explicit reason from audit instead of hard-coded zero
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **验证摘要**: Cover audit write helpers, digest audit fallback aggregation, `connector:run` -> `heartbeat_digest` visibility, and shared audit store wiring.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-1`
+  - **证据产出**: `tests/unit/observability/heartbeat-digest-assembler.test.ts`, `tests/unit/ops/manual-run-dispatcher.test.ts`, `tests/integration/runtime-ops/commands.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-OBS.C.1, T-ROS.C.1, T-DQ.C.1
+  - **优先级**: P0
 
 ---
 
@@ -683,55 +704,55 @@ graph TD
 ## User Story Overlay
 
 ### US-001: Evidence Normalization [REQ-001]
-**涉及任务**: T-SH.C.1 -> T-SMS.C.1 -> T-CS.C.1 -> INT-S2  
-**关键路径**: T-CS.C.1 -> INT-S2  
-**独立可测**: S2 ends with connector read fixture producing EvidenceItem.  
+**涉及任务**: T-SH.C.1 -> T-SMS.C.1 -> T-CS.C.1 -> INT-S2
+**关键路径**: T-CS.C.1 -> INT-S2
+**独立可测**: S2 ends with connector read fixture producing EvidenceItem.
 **覆盖状态**: Complete
 
 ### US-002: Perception Card Generation [REQ-002]
-**涉及任务**: T-PJ.C.1 -> T-PJ.C.2 -> T-CP.C.1 -> INT-S2  
-**关键路径**: T-PJ.C.2 -> INT-S2  
-**独立可测**: S2 validates EvidenceItem -> PerceptionCard.  
+**涉及任务**: T-PJ.C.1 -> T-PJ.C.2 -> T-CP.C.1 -> INT-S2
+**关键路径**: T-PJ.C.2 -> INT-S2
+**独立可测**: S2 validates EvidenceItem -> PerceptionCard.
 **覆盖状态**: Complete
 
 ### US-003: Agent Judgment Verdict [REQ-003]
-**涉及任务**: T-PJ.C.3 -> T-AC.C.1 -> INT-S2 -> INT-S3  
-**关键路径**: T-PJ.C.3 -> T-AC.C.1  
-**独立可测**: S2 validates judgment; S3 validates proposal handoff.  
+**涉及任务**: T-PJ.C.3 -> T-AC.C.1 -> INT-S2 -> INT-S3
+**关键路径**: T-PJ.C.3 -> T-AC.C.1
+**独立可测**: S2 validates judgment; S3 validates proposal handoff.
 **覆盖状态**: Complete
 
 ### US-004: Common Autonomy Policy [REQ-004]
-**涉及任务**: T-BT.C.1 -> T-AC.C.2 -> T-AC.C.3 -> INT-S3  
-**关键路径**: T-AC.C.2 -> T-AC.C.3  
-**独立可测**: S3 validates allow/defer/downgrade/deny.  
+**涉及任务**: T-BT.C.1 -> T-AC.C.2 -> T-AC.C.3 -> INT-S3
+**关键路径**: T-AC.C.2 -> T-AC.C.3
+**独立可测**: S3 validates allow/defer/downgrade/deny.
 **覆盖状态**: Complete
 
 ### US-005: Quiet/Dream Long-Term Memory [REQ-005]
-**涉及任务**: T-AC.C.4 -> T-DQ.C.1 -> T-DQ.C.3 -> T-DQ.C.4 -> T-CP.C.2 -> INT-S4  
-**关键路径**: T-DQ.C.1 -> T-DQ.C.4 -> T-CP.C.2  
-**独立可测**: S4 validates projection and context loading.  
+**涉及任务**: T-AC.C.4 -> T-DQ.C.1 -> T-DQ.C.3 -> T-DQ.C.4 -> T-CP.C.2 -> INT-S4
+**关键路径**: T-DQ.C.1 -> T-DQ.C.4 -> T-CP.C.2
+**独立可测**: S4 validates projection and context loading.
 **覆盖状态**: Complete
 
 ### US-006: Dream/Quiet Closure Repair [REQ-006]
-**涉及任务**: T-DQ.C.2 -> T-DQ.C.3 -> T-DQ.C.4 -> T-OBS.C.2 -> INT-S4 -> INT-S5  
-**关键路径**: T-DQ.C.2 -> T-OBS.C.2  
-**独立可测**: S4/S5 validate Dream lifecycle diagnostics.  
+**涉及任务**: T-DQ.C.2 -> T-DQ.C.3 -> T-DQ.C.4 -> T-OBS.C.2 -> INT-S4 -> INT-S5
+**关键路径**: T-DQ.C.2 -> T-OBS.C.2
+**独立可测**: S4/S5 validate Dream lifecycle diagnostics.
 **覆盖状态**: Complete
 
 ### US-007: Context-Aware Sensitivity Classification [REQ-007]
-**涉及任务**: T-PJ.C.1 -> T-OBS.C.3 -> T-DQ.C.3  
-**关键路径**: T-PJ.C.1 -> T-OBS.C.3  
-**独立可测**: Classifier and Dream redaction fixtures.  
+**涉及任务**: T-PJ.C.1 -> T-OBS.C.3 -> T-DQ.C.3
+**关键路径**: T-PJ.C.1 -> T-OBS.C.3
+**独立可测**: Classifier and Dream redaction fixtures.
 **覆盖状态**: Complete
 
 ### US-008: Causal Loop Health [REQ-008]
-**涉及任务**: T-SH.C.1 -> T-OBS.C.1 -> T-CP.C.1 -> T-OBS.C.2 -> T-ROS.C.1 -> INT-S5  
-**关键路径**: T-OBS.C.2 -> T-ROS.C.1  
-**独立可测**: S5 validates `stalledAt` states.  
+**涉及任务**: T-SH.C.1 -> T-OBS.C.1 -> T-CP.C.1 -> T-OBS.C.2 -> T-ROS.C.1 -> INT-S5
+**关键路径**: T-OBS.C.2 -> T-ROS.C.1
+**独立可测**: S5 validates `stalledAt` states.
 **覆盖状态**: Complete
 
 ### US-009: Heartbeat Action Closure [REQ-009]
-**涉及任务**: T-AC.C.1 -> T-AC.C.2 -> T-AC.C.3 -> T-AC.C.4 -> T-DQ.C.1 -> INT-S3  
-**关键路径**: T-AC.C.4 -> INT-S3  
-**独立可测**: S3 validates closure/no-action ledger.  
+**涉及任务**: T-AC.C.1 -> T-AC.C.2 -> T-AC.C.3 -> T-AC.C.4 -> T-DQ.C.1 -> INT-S3
+**关键路径**: T-AC.C.4 -> INT-S3
+**独立可测**: S3 validates closure/no-action ledger.
 **覆盖状态**: Complete

@@ -26,6 +26,8 @@ import { queryNarrativeTimeline, queryNarrativeDiff, NarrativeVersionNotFoundErr
 import { viewSecretAnchor, } from "../../observability/services/runtime-secret-anchor-view.js";
 import { writeRestoreAudit, } from "../../observability/services/restore-audit-service.js";
 import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
+// v8 T-ROS.C.1: loop_status read model
+import { readLoopStatus } from "../../observability/loop-status.js";
 // T-ROS.C.3: ManualRunDispatcher and its deps
 import { createManualRunDispatcher, } from "./manual-run-dispatcher.js";
 import { createExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
@@ -439,6 +441,7 @@ export function createOpsRouter(deps) {
                         experienceWriter,
                         digestOpts,
                         dreamSchedulePort,
+                        auditStore: deps.auditStore,
                         goalLifecyclePolicy,
                         idleCuriosityPolicy,
                         circuitBreakerManager,
@@ -778,6 +781,7 @@ export function createOpsRouter(deps) {
                     experienceWriter,
                     wetProbeRunner,
                     registryV7,
+                    auditStore: deps.auditStore,
                 });
                 return dispatcher.runConnector({
                     platformId,
@@ -849,6 +853,77 @@ export function createOpsRouter(deps) {
                 const limit = typeof input?.limit === "number" ? input.limit : 5;
                 const data = await deps.readModels.loadCycleRecent(limit);
                 return { ok: true, data };
+            }
+            // ─── v8 commands (T-ROS.C.1) ─────────────────────────────────────────
+            /**
+             * [G1] loop_status — v8 causal loop health read model.
+             * Returns machine-readable overallStatus, stalledAt, stageSummaries,
+             * and human-readable nextAction for operator diagnosis.
+             */
+            if (command === "loop_status") {
+                const generatedAt = new Date().toISOString();
+                if (!deps.state) {
+                    const envelope = {
+                        ok: false,
+                        command: "loop_status",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: {
+                            code: "STATE_DB_UNAVAILABLE",
+                            message: "loop_status requires state database in OpsRouterDeps",
+                            nextStep: "wire_state_db_into_ops_router",
+                        },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                try {
+                    const result = await readLoopStatus(deps.state);
+                    if (!result.ok) {
+                        const envelope = {
+                            ok: false,
+                            command: "loop_status",
+                            runtimeMode: "workspace_full_runtime",
+                            surfaceMode: "cli",
+                            generatedAt,
+                            error: {
+                                code: "LOOP_STATUS_DEGRADED",
+                                message: result.degraded.operatorNextAction,
+                                nextStep: "check_state_db_and_retry",
+                            },
+                            warnings: [result.degraded.reason],
+                            sourceRefs: result.degraded.sourceRefs.map((r) => r.uri),
+                        };
+                        return envelope;
+                    }
+                    const envelope = {
+                        ok: true,
+                        command: "loop_status",
+                        runtimeMode: "workspace_full_runtime",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        data: result.status,
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
+                catch (err) {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    const envelope = {
+                        ok: false,
+                        command: "loop_status",
+                        runtimeMode: "unavailable",
+                        surfaceMode: "cli",
+                        generatedAt,
+                        error: { code: "LOOP_STATUS_EXCEPTION", message: msg },
+                        warnings: [],
+                        sourceRefs: [],
+                    };
+                    return envelope;
+                }
             }
             // ─── v7 commands (T-ROS.C.1) ─────────────────────────────────────────
             /** [G2] self_health — transparent pass-through from SelfHealthSnapshot (DR-042). */

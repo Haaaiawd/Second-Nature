@@ -2,6 +2,7 @@ import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import { writeQuietArtifact } from "../../../storage/quiet/quiet-artifact-writer.js";
 import { persistQuietArtifactToWorkspace } from "../../../storage/quiet/persist-quiet-artifact.js";
 import { buildEvidencePack, buildQuietNarrativeGuidance, selectInterestBasis } from "../../../guidance/evidence-guidance.js";
+import { recordQuietArtifactAudit } from "../../../observability/services/audit-closure-recorders.js";
 function toGuidanceRef(r) {
     return {
         id: r.id,
@@ -37,7 +38,7 @@ async function maybeScheduleDreamAfterQuiet(dreamSchedulePort, day) {
     }
 }
 export async function runSourceBackedQuiet(params) {
-    const { candidate, runtime, day, userInterestSnapshot, workspaceRoot, dreamSchedulePort } = params;
+    const { candidate, runtime, day, userInterestSnapshot, workspaceRoot, dreamSchedulePort, auditStore } = params;
     const empty = isLifeEvidenceSliceEmpty(runtime.lifeEvidence);
     if (empty) {
         const input = {
@@ -54,6 +55,15 @@ export async function runSourceBackedQuiet(params) {
             const p = await persistQuietArtifactToWorkspace(workspaceRoot, ack, input);
             persistedRelativePath = p.relativePath;
         }
+        recordQuietArtifactAudit({
+            auditStore,
+            day,
+            kind: "empty_state",
+            status: "empty",
+            reasons: ["quiet_empty_state", "no_fictional_narrative"],
+            artifactAck: ack,
+            persistedRelativePath,
+        });
         return {
             result: {
                 scope: "rhythm",
@@ -68,6 +78,13 @@ export async function runSourceBackedQuiet(params) {
     const guidanceRefs = runtime.lifeEvidence.evidenceRefs.map(toGuidanceRef);
     const ep = buildEvidencePack(guidanceRefs);
     if (!ep.ok) {
+        recordQuietArtifactAudit({
+            auditStore,
+            day,
+            kind: "daily_report",
+            status: "blocked",
+            reasons: ep.reasons,
+        });
         return {
             result: {
                 scope: "rhythm",
@@ -78,6 +95,13 @@ export async function runSourceBackedQuiet(params) {
         };
     }
     if (ep.pack.sensitiveBlocked) {
+        recordQuietArtifactAudit({
+            auditStore,
+            day,
+            kind: "daily_report",
+            status: "blocked",
+            reasons: ["quiet_guidance_sensitive_source_blocked"],
+        });
         return {
             result: {
                 scope: "rhythm",
@@ -128,6 +152,14 @@ export async function runSourceBackedQuiet(params) {
         outline: claims.map((c) => c.text),
     });
     if (gq.status === "unavailable") {
+        recordQuietArtifactAudit({
+            auditStore,
+            day,
+            kind: "daily_report",
+            status: "blocked",
+            reasons: gq.reasons,
+            artifactAck: ack,
+        });
         return {
             result: {
                 scope: "rhythm",
@@ -147,6 +179,15 @@ export async function runSourceBackedQuiet(params) {
     const reasons = ["quiet_artifact_written", ...gq.hints.slice(0, 2)];
     if (dreamReason)
         reasons.push(dreamReason);
+    recordQuietArtifactAudit({
+        auditStore,
+        day,
+        kind: "daily_report",
+        status: "completed",
+        reasons,
+        artifactAck: ack,
+        persistedRelativePath,
+    });
     return {
         result: {
             scope: "rhythm",

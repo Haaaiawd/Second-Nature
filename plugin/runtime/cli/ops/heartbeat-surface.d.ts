@@ -18,6 +18,7 @@ import type { HeartbeatDigestAssemblerDeps } from "../../observability/services/
 import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
+import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 export type HeartbeatSurfaceStatus = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export interface HeartbeatSurfaceResult {
     ok: boolean;
@@ -80,5 +81,7 @@ export interface HeartbeatCheckInput {
     idleCuriosityPolicy?: IdleCuriosityPolicy;
     /** v7 T-BTS.C.5: circuit breaker manager for connector execution health. */
     circuitBreakerManager?: CircuitBreakerManager;
+    /** T-OBS.R.1: shared audit sink for connector/Quiet events consumed by heartbeat_digest. */
+    auditStore?: AppendOnlyAuditStore;
 }
 export declare function heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;
