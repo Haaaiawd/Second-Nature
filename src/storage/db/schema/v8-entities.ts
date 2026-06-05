@@ -231,3 +231,23 @@ export const impulseContextArtifact = sqliteTable("impulse_context_artifact", {
 
 export type ImpulseContextArtifactRecord = typeof impulseContextArtifact.$inferSelect;
 export type NewImpulseContextArtifactRecord = typeof impulseContextArtifact.$inferInsert;
+
+// 11. DailyRhythmState
+// ───────────────────────────────────────────────────────────────
+
+export const dailyRhythmState = sqliteTable("daily_rhythm_state", {
+  id: text("id").primaryKey(),
+  day: text("day").notNull(),
+  quietStatus: text("quiet_status").notNull().default("not_due"),
+  dreamStatus: text("dream_status").notNull().default("not_due"),
+  quietReason: text("quiet_reason"),
+  dreamReason: text("dream_reason"),
+  quietCompletedAt: text("quiet_completed_at"),
+  dreamCompletedAt: text("dream_completed_at"),
+  sourceRefsJson: text("source_refs_json").notNull(),
+  payloadJson: text("payload_json"),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type DailyRhythmStateRecord = typeof dailyRhythmState.$inferSelect;
+export type NewDailyRhythmStateRecord = typeof dailyRhythmState.$inferInsert;

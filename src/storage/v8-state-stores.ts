@@ -35,6 +35,7 @@ import {
   heartbeatCycleTrace,
   loopStageEvent,
   impulseContextArtifact,
+  dailyRhythmState,
   type EvidenceItemRecord,
   type NewEvidenceItemRecord,
   type PerceptionCardRecord,
@@ -55,6 +56,8 @@ import {
   type NewLoopStageEventRecord,
   type ImpulseContextArtifactRecord,
   type NewImpulseContextArtifactRecord,
+  type DailyRhythmStateRecord,
+  type NewDailyRhythmStateRecord,
 } from "./db/schema/v8-entities.js";
 
 import type {
@@ -807,6 +810,58 @@ export async function readImpulseContextArtifact(
         "state_unreadable",
         "projection",
         "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// DailyRhythmState store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeDailyRhythmState(
+  db: StateDatabase,
+  row: Omit<NewDailyRhythmStateRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "dream");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewDailyRhythmStateRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.delete(dailyRhythmState).where(eq(dailyRhythmState.id, row.id));
+    await db.db.insert(dailyRhythmState).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "dream",
+      "Retry daily rhythm state write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readDailyRhythmStateByDay(
+  db: StateDatabase,
+  day: string,
+): Promise<{ row?: DailyRhythmStateRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(dailyRhythmState)
+      .where(eq(dailyRhythmState.day, day))
+      .orderBy(desc(dailyRhythmState.updatedAt))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "dream",
+        `Check state database connectivity for day=${day}`,
       ),
     };
   }

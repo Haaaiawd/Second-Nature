@@ -264,7 +264,7 @@ graph TD
   - **依赖**: T-SH.C.1, T-SMS.C.1
   - **优先级**: P0
 
-- [ ] **T-CS.R.1** [REQ-004, REQ-009]: Wire MoltBook write capabilities through policy proof and closure
+- [x] **T-CS.R.1** [REQ-004, REQ-009]: Wire MoltBook write capabilities through policy proof and closure
   - **描述**: Activate MoltBook `comment.reply` and `post.publish` only through policy-bound dispatch with payload validation, idempotency, dry-run/owner-confirm mode, connector result truth, and ActionClosureRecord output.
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md §2`, `04_SYSTEM_DESIGN/action-closure-policy-system.md §4.1`, `docs/validation/openclaw-plugin-classification.md §5`, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-CP.R.2 outputs
   - **输出**: MoltBook write request contract tests, policy-proof connector execution adapter path, dry-run/owner-confirm runtime surface, and closure integration fixture.

@@ -317,6 +317,19 @@ const STATE_SCHEMA_SQL = `
     payload_json TEXT,
     lifecycle_status TEXT NOT NULL DEFAULT 'active'
   );
+  CREATE TABLE IF NOT EXISTS daily_rhythm_state (
+    id TEXT PRIMARY KEY,
+    day TEXT NOT NULL,
+    quiet_status TEXT NOT NULL DEFAULT 'not_due',
+    dream_status TEXT NOT NULL DEFAULT 'not_due',
+    quiet_reason TEXT,
+    dream_reason TEXT,
+    quiet_completed_at TEXT,
+    dream_completed_at TEXT,
+    source_refs_json TEXT NOT NULL,
+    payload_json TEXT,
+    updated_at TEXT NOT NULL
+  );
 `;
 
 export interface StateDatabase {
