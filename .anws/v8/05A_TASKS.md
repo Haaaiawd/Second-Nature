@@ -661,7 +661,7 @@ graph TD
   - **依赖**: T-DQ.C.4, T-CP.C.2
   - **优先级**: P0
 
-- [ ] **T-DQ.R.2** [REQ-005, REQ-006, REQ-008, REQ-009]: Add independent Quiet/Dream cadence with absence reasons
+- [x] **T-DQ.R.2** [REQ-005, REQ-006, REQ-008, REQ-009]: Add independent Quiet/Dream cadence with absence reasons
   - **描述**: Decouple daily Quiet and Dream scheduling from opportunistic heartbeat candidate selection so the runtime records due/skipped/completed/blocked states for daily review, Dream scheduling, and projection attempts even when no quiet intent is selected by the fast heartbeat.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`, T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-CP.R.2 outputs
   - **输出**: rhythm scheduler read model, daily Quiet/Dream due-state recorder, absence-reason events, and runtime ops visibility.

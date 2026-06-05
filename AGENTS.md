@@ -216,7 +216,7 @@ src/
 T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
 **签入**: USER
 **code-reviewer**: 默认执行
-- **状态**: T-CP.R.2 ✅, T-GVS.R.1 ✅, T-CS.R.1 ✅；T-DQ.R.2, T-OBS.R.2, INT-R1 待 `/forge`
+- **状态**: T-CP.R.2 ✅, T-GVS.R.1 ✅, T-CS.R.1 ✅, T-DQ.R.2 ✅；T-OBS.R.2, INT-R1 待 `/forge`
 - **产出**:
   - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — extended with full action-closure spine (proposal → policy → dispatch → closure)
   - `src/core/second-nature/control-plane/real-runtime-spine.ts` — bridge module wrapping `runHeartbeatCycle`
