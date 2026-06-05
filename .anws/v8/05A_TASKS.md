@@ -708,7 +708,7 @@ graph TD
   - **依赖**: T-AC.C.2
   - **优先级**: P1
 
-- [ ] **T-GVS.R.1** [REQ-003, REQ-004, REQ-008, REQ-009]: Project impulse payload into agent-facing context
+- [x] **T-GVS.R.1** [REQ-003, REQ-004, REQ-008, REQ-009]: Project impulse payload into agent-facing context
   - **描述**: Turn scene/capability impulse assembly from a passive `guidance_payload` ops command into a bounded agent-facing context artifact that can be read during setup, heartbeat, and platform-scene entry without pretending the plugin is an OpenClaw context-engine.
   - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md §1`, `docs/validation/openclaw-plugin-classification.md §5`, `plugin/agent-inner-guide.md`, T-GVS.C.1, T-CP.R.2 outputs
   - **输出**: impulse context artifact writer/read model, setup/heartbeat response projection, freshness diagnostics, and no-context-engine safety tests.

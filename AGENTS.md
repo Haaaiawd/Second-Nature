@@ -216,7 +216,7 @@ src/
 T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
 **签入**: USER
 **code-reviewer**: 默认执行
-- **状态**: T-CP.R.2 完成（2026-06-05）；其余待 `/forge`
+- **状态**: T-CP.R.2 ✅, T-GVS.R.1 ✅；T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1 待 `/forge`
 - **产出**:
   - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — extended with full action-closure spine (proposal → policy → dispatch → closure)
   - `src/core/second-nature/control-plane/real-runtime-spine.ts` — bridge module wrapping `runHeartbeatCycle`
@@ -225,17 +225,24 @@ T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
   - `tests/unit/control-plane/real-runtime-spine.test.ts` — 4/4 PASS (no-action, full cycle, simulated dispatch, degraded events)
   - `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` — 3/3 PASS (wired, disabled, missing workspaceRoot)
   - `tests/integration/v8/real-runtime-living-loop.test.ts` — 2/2 PASS (full cycle, closure diagnostics)
-  - `.anws/v8/05A_TASKS.md` — T-CP.R.2 checked
-  - `.anws/v8/06_CHANGELOG.md` — T-CP.R.2 changelog entry
-- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；9/9 targeted tests PASS；`pnpm build:plugin` ✅
-- **最高严重度**: none (T-CP.R.2)
+  - `src/core/second-nature/guidance/impulse-context-reader.ts` — read persisted artifact with freshness diagnostics
+  - `src/core/second-nature/guidance/impulse-context-writer.ts` — persist assembled impulse + atmosphere as durable artifact
+  - `tests/unit/guidance/impulse-context-artifact.test.ts` — 4/4 PASS (write/read, missing, expired, overwrite)
+  - `tests/api/runtime-ops/guidance-context-command.test.ts` — 2/2 PASS (persisted read, missing reason)
+  - `.anws/v8/05A_TASKS.md` — T-CP.R.2, T-GVS.R.1 checked
+  - `.anws/v8/06_CHANGELOG.md` — T-CP.R.2, T-GVS.R.1 changelog entry
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；15/15 targeted tests PASS；`pnpm build:plugin` ✅
+- **最高严重度**: none (T-CP.R.2, T-GVS.R.1)
 - **代码审查要点**:
   - ✅ Split-brain 修复：早期返回路径（空证据、感知降级）现在写入 closure
   - ✅ Exactly-once：每个周期产生恰好一个 closure/no-action；idempotency 键防止重复
   - ✅ 降级可观测性：所有路径记录 canonical stage events（ingestion/perception/judgment/policy/closure）
   - ✅ 无真实外部写入：保守策略默认值（platformPermissionDeclared=false, ownerPreferenceAllowAuto=false）
   - ✅ 非烟雾测试：使用真实内存数据库验证持久化
-- **下一步**: `/forge` T-GVS.R.1 — impulse context projection
+  - ✅ Impulse context: guidance_payload 先读 persisted artifact，无则 fallback 到 real-time assembly
+  - ✅ Heartbeat surface: 暴露 impulse context read pointer，不注册 fake context-engine
+  - ✅ Freshness: 24h expiry，显式 missing reason（artifact_not_persisted / artifact_expired / state_unreadable）
+- **下一步**: `/forge` T-CS.R.1 (MoltBook write safety) + T-DQ.R.2 (independent Quiet/Dream cadence) 并行
 
 ### 🌊 Wave 105 ✅ — v8 Repair: Audit-backed Connector/Quiet Digest Closure
 T-OBS.R.1

@@ -46,6 +46,15 @@ export interface ConnectorRequestIdentity {
   canonicalName?: string;
 }
 
+export interface PolicyProof {
+  decisionId: string;
+  decision: "allow" | "defer" | "downgrade" | "deny";
+  ownerConfirmMode?: boolean;
+  ownerConfirmed?: boolean;
+  dryRun?: boolean;
+  reason?: string;
+}
+
 export interface ConnectorRequest {
   platformId: string;
   intent: CapabilityIntent;
@@ -57,6 +66,8 @@ export interface ConnectorRequest {
   intentId?: string;
   /** T-V7C.C.4: identity for connector request (readable, no credential). */
   identity?: ConnectorRequestIdentity;
+  /** T-CS.R.1: policy proof for write-side actions */
+  policyProof?: PolicyProof;
 }
 
 export interface ExecutionPlan {
