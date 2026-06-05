@@ -298,6 +298,25 @@ const STATE_SCHEMA_SQL = `
     payload_json TEXT,
     lifecycle_status TEXT NOT NULL DEFAULT 'started'
   );
+  CREATE TABLE IF NOT EXISTS impulse_context_artifact (
+    id TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    scene_type TEXT NOT NULL,
+    capability_intent TEXT,
+    platform_id TEXT,
+    capability_class TEXT,
+    impulse_source TEXT NOT NULL,
+    impulse_text TEXT,
+    atmosphere_text TEXT,
+    expression_boundary_constraints_json TEXT,
+    expression_boundary_style TEXT,
+    freshness_version INTEGER NOT NULL DEFAULT 1,
+    source_refs_json TEXT NOT NULL,
+    redaction_class TEXT NOT NULL DEFAULT 'none',
+    payload_json TEXT,
+    lifecycle_status TEXT NOT NULL DEFAULT 'active'
+  );
 `;
 
 export interface StateDatabase {

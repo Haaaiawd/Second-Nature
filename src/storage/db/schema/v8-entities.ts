@@ -204,3 +204,30 @@ export const loopStageEvent = sqliteTable("loop_stage_event", {
 
 export type LoopStageEventRecord = typeof loopStageEvent.$inferSelect;
 export type NewLoopStageEventRecord = typeof loopStageEvent.$inferInsert;
+
+// ───────────────────────────────────────────────────────────────
+// 10. ImpulseContextArtifact
+// ───────────────────────────────────────────────────────────────
+
+export const impulseContextArtifact = sqliteTable("impulse_context_artifact", {
+  id: text("id").primaryKey(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  sceneType: text("scene_type").notNull(),
+  capabilityIntent: text("capability_intent"),
+  platformId: text("platform_id"),
+  capabilityClass: text("capability_class"),
+  impulseSource: text("impulse_source").notNull(),
+  impulseText: text("impulse_text"),
+  atmosphereText: text("atmosphere_text"),
+  expressionBoundaryConstraintsJson: text("expression_boundary_constraints_json"),
+  expressionBoundaryStyle: text("expression_boundary_style"),
+  freshnessVersion: integer("freshness_version").notNull().default(1),
+  sourceRefsJson: text("source_refs_json").notNull(),
+  redactionClass: text("redaction_class").notNull().default("none"),
+  payloadJson: text("payload_json"),
+  lifecycleStatus: text("lifecycle_status").notNull().default("active"),
+});
+
+export type ImpulseContextArtifactRecord = typeof impulseContextArtifact.$inferSelect;
+export type NewImpulseContextArtifactRecord = typeof impulseContextArtifact.$inferInsert;

@@ -70,6 +70,7 @@ export type SourceRefFamily =
   | "quiet_review"
   | "dream_run"
   | "memory_projection"
+  | "projection"
   | "tool_experience"
   | "connector_result"
   | "audit";

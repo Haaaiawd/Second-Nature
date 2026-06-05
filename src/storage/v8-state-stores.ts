@@ -22,7 +22,7 @@
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
 
-import { eq, and, desc, like } from "drizzle-orm";
+import { eq, and, desc, like, isNull } from "drizzle-orm";
 import type { StateDatabase } from "./db/index.js";
 import {
   evidenceItem,
@@ -34,6 +34,7 @@ import {
   longTermMemoryProjection,
   heartbeatCycleTrace,
   loopStageEvent,
+  impulseContextArtifact,
   type EvidenceItemRecord,
   type NewEvidenceItemRecord,
   type PerceptionCardRecord,
@@ -52,6 +53,8 @@ import {
   type NewHeartbeatCycleTraceRecord,
   type LoopStageEventRecord,
   type NewLoopStageEventRecord,
+  type ImpulseContextArtifactRecord,
+  type NewImpulseContextArtifactRecord,
 } from "./db/schema/v8-entities.js";
 
 import type {
@@ -736,6 +739,73 @@ export async function readLoopStageEventsByStage(
       degraded: makeDegraded(
         "state_unreadable",
         "closure",
+        "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// ImpulseContextArtifact store
+// ───────────────────────────────────────────────────────────────
+
+export async function writeImpulseContextArtifact(
+  db: StateDatabase,
+  row: Omit<NewImpulseContextArtifactRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "projection");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewImpulseContextArtifactRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    // Upsert: delete existing then insert (SQLite primary-key conflict)
+    await db.db.delete(impulseContextArtifact).where(eq(impulseContextArtifact.id, row.id));
+    await db.db.insert(impulseContextArtifact).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "projection",
+      "Retry impulse context write after DB recovery",
+      validated.record,
+    );
+  }
+}
+
+export async function readImpulseContextArtifact(
+  db: StateDatabase,
+  sceneType: string,
+  capabilityIntent?: string,
+  platformId?: string,
+): Promise<{ row?: ImpulseContextArtifactRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const conditions = [eq(impulseContextArtifact.sceneType, sceneType)];
+    if (capabilityIntent) {
+      conditions.push(eq(impulseContextArtifact.capabilityIntent, capabilityIntent));
+    } else {
+      conditions.push(isNull(impulseContextArtifact.capabilityIntent));
+    }
+    if (platformId) {
+      conditions.push(eq(impulseContextArtifact.platformId, platformId));
+    } else {
+      conditions.push(isNull(impulseContextArtifact.platformId));
+    }
+
+    const rows = await db.db
+      .select()
+      .from(impulseContextArtifact)
+      .where(and(...conditions))
+      .orderBy(desc(impulseContextArtifact.updatedAt))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "projection",
         "Check state database connectivity",
       ),
     };
