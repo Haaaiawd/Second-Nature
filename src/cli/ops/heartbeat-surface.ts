@@ -23,6 +23,11 @@ import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goa
 import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
 import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+// T-CP.R.2: v8 real runtime spine bridge
+import {
+  runRealRuntimeHeartbeatCycle,
+  type RealRuntimeSpineResult,
+} from "../../core/second-nature/control-plane/real-runtime-spine.js";
 
 export type HeartbeatSurfaceStatus =
   | "heartbeat_ok"
@@ -45,6 +50,8 @@ export interface HeartbeatSurfaceResult {
   livedExperienceLoopClaimed: boolean;
   /** True when structured fields mirror a fake adapter for schema parity only */
   schemaParityOnly?: boolean;
+  /** T-CP.R.2: v8 real runtime spine result when state-backed action-closure spine ran */
+  v8Spine?: RealRuntimeSpineResult & { degradedReason?: string };
 }
 
 export interface HeartbeatCheckInput {
@@ -96,6 +103,11 @@ export interface HeartbeatCheckInput {
   circuitBreakerManager?: CircuitBreakerManager;
   /** T-OBS.R.1: shared audit sink for connector/Quiet events consumed by heartbeat_digest. */
   auditStore?: AppendOnlyAuditStore;
+  /**
+   * T-CP.R.2: when true and state DB is wired, runs the v8 real runtime action-closure spine
+   * in addition to the v7 heartbeat loop. Produces state-backed closure/no-action records.
+   */
+  v8SpineEnabled?: boolean;
 }
 
 function mapCycleToSurface(
@@ -200,7 +212,49 @@ export async function heartbeatCheck(
   });
   try {
     const cycle = await run(signal);
-    return mapCycleToSurface(cycle, "workspace_full_runtime");
+    const surfaceResult = mapCycleToSurface(cycle, "workspace_full_runtime");
+
+    // T-CP.R.2: run v8 real runtime spine when enabled and state is available
+    if (input.v8SpineEnabled && input.state && input.workspaceRoot) {
+      try {
+        const v8Result = await runRealRuntimeHeartbeatCycle({
+          workspaceRoot: input.workspaceRoot,
+          state: input.state,
+          requestedAt: timestamp,
+          trigger: "host",
+        });
+
+        if ("status" in v8Result && v8Result.status === "degraded") {
+          surfaceResult.v8Spine = {
+            cycleId: "",
+            cycleSequence: 0,
+            degradedReason: v8Result.reason,
+          };
+          surfaceResult.reasons = [
+            ...surfaceResult.reasons,
+            `v8_spine_degraded:${v8Result.reason}`,
+          ];
+        } else {
+          const spine = v8Result as RealRuntimeSpineResult;
+          surfaceResult.v8Spine = spine;
+          surfaceResult.reasons = [
+            ...surfaceResult.reasons,
+            `v8_spine_cycle:${spine.cycleId}`,
+            spine.closureRef
+              ? "v8_closure_recorded"
+              : `v8_no_action:${spine.noActionReason ?? "unknown"}`,
+          ];
+        }
+      } catch (v8Err) {
+        const v8Msg = v8Err instanceof Error ? v8Err.message : String(v8Err);
+        surfaceResult.reasons = [
+          ...surfaceResult.reasons,
+          `v8_spine_exception:${v8Msg.slice(0, 120)}`,
+        ];
+      }
+    }
+
+    return surfaceResult;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return {

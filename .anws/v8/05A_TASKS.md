@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-01
+> 最后更新: 2026-06-05
 >
 > 验证计划: [05B_VERIFICATION_PLAN.md](./05B_VERIFICATION_PLAN.md)
 
@@ -40,6 +40,14 @@ graph TD
     INT3 --> INT4[INT-S4]
     INT4 --> INT5[INT-S5]
     INT5 --> INTV8[INT-V8]
+    INTV8 --> CPR2[T-CP.R.2 Real Runtime Spine]
+    CPR2 --> GVSR1[T-GVS.R.1 Impulse Context]
+    CPR2 --> CSR1[T-CS.R.1 MoltBook Write Safety]
+    CPR2 --> DQR2[T-DQ.R.2 Independent Rhythm]
+    GVSR1 --> OBSR2[T-OBS.R.2 Living Health Gate]
+    CSR1 --> OBSR2
+    DQR2 --> OBSR2
+    OBSR2 --> INTR1[INT-R1]
 ```
 
 ---
@@ -54,6 +62,7 @@ graph TD
 | S4 | Remember by Quiet/Dream | Quiet review + Dream + projection | closure/day slice produces accepted projection loadable by context | 5-6d |
 | S5 | Explain the Loop | causal health + loop_status + guidance integration | `loop_status` identifies stalled stages and policy-denied closures correctly | 4-5d |
 | S6 | Living Loop Gate | full chain regression | connector read -> memory projection -> next context passes with report | 2-3d |
+| S7 | Runtime Activation Repair | real heartbeat spine + impulse context + safe write + multi-rhythm | real workspace heartbeat produces closure/Quiet/Dream/context evidence, not only contract smoke | 4-6d |
 
 ---
 
@@ -208,6 +217,28 @@ graph TD
   - **依赖**: T-OBS.C.1, T-ROS.C.1, T-DQ.C.1
   - **优先级**: P0
 
+- [ ] **T-OBS.R.2** [REQ-006, REQ-008, REQ-009]: Add real living-loop health gate for runtime activation
+  - **描述**: Extend `loop_status`, `heartbeat_digest`, and integration reports so they distinguish contract-only v8 smoke from real workspace heartbeat activity across perception, judgment, policy, execution, closure, Quiet, Dream, projection, and impulse-context freshness.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/control-plane-system.md §4`, T-OBS.C.2, T-ROS.C.1, T-OBS.R.1, T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2 outputs
+  - **输出**: living-loop runtime health gate, real-run integration report, and updated loop/digest fixtures.
+  - **契约承接**: real-run causal health, stage freshness, missing-stage reason, impulse-context freshness, Quiet/Dream absence reason
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given the workspace runtime only passes contract smoke but no real closure or Quiet/Dream artifact exists
+    - When `loop_status` and `heartbeat_digest` are requested
+    - Then the result reports the exact missing real-run stage instead of `healthy`
+    - Given a real workspace heartbeat completes perception through closure and daily rhythm runs Quiet/Dream
+    - When the repair gate executes
+    - Then the report shows non-empty stage evidence or explicit absence reasons for each living-loop stage
+  - **验证类型**: API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发浏览器 E2E；host-facing smoke 可在 INT-R1 中用 OpenClaw tool response JSON 作为证据。
+  - **验证摘要**: Cover false-healthy prevention, contract-smoke detection, missing impulse artifact, missing closure, missing Quiet/Dream cadence, and redacted digest output.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-2`
+  - **证据产出**: `tests/api/runtime-ops/living-loop-health-gate.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `reports/int-r1-v8-runtime-activation-repair.md`
+  - **估时**: 1.5d
+  - **依赖**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2
+  - **优先级**: P0
+
 ---
 
 ## System 7: connector-system
@@ -232,6 +263,28 @@ graph TD
   - **估时**: 1.5d
   - **依赖**: T-SH.C.1, T-SMS.C.1
   - **优先级**: P0
+
+- [ ] **T-CS.R.1** [REQ-004, REQ-009]: Wire MoltBook write capabilities through policy proof and closure
+  - **描述**: Activate MoltBook `comment.reply` and `post.publish` only through policy-bound dispatch with payload validation, idempotency, dry-run/owner-confirm mode, connector result truth, and ActionClosureRecord output.
+  - **输入**: `04_SYSTEM_DESIGN/connector-system.md §2`, `04_SYSTEM_DESIGN/action-closure-policy-system.md §4.1`, `docs/validation/openclaw-plugin-classification.md §5`, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-CP.R.2 outputs
+  - **输出**: MoltBook write request contract tests, policy-proof connector execution adapter path, dry-run/owner-confirm runtime surface, and closure integration fixture.
+  - **契约承接**: `PolicyBoundConnectorRequest`, write-side idempotency echo, `post.publish`, `comment.reply`, policy proof required for external write, closure on success/failure/downgrade
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given a MoltBook reply/publish proposal without policy proof or owner-confirm mode
+    - When connector dispatch is attempted
+    - Then the connector rejects before any platform write and records a denied/downgraded closure
+    - Given a low-risk source-backed draft with policy proof and owner-confirm mode
+    - When MoltBook write dispatch runs in dry-run or safe test mode
+    - Then request payload, idempotency key, connector result, and closure record are all persisted without leaking credentials
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发真实平台写入 E2E；仅在用户提供安全测试账号和确认后由后续手动验证执行。
+  - **验证摘要**: Cover no-proof deny, owner-confirm downgrade, dry-run success, terminal failure closure, duplicate idempotency, and no raw credential/payload leakage.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-1`
+  - **证据产出**: `tests/unit/connectors/moltbook-write-policy.test.ts`, `tests/api/connectors/moltbook-write-port.test.ts`, `tests/integration/action/moltbook-write-closure.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-AC.C.3, T-AC.C.4, T-CP.R.2
+  - **优先级**: P1
 
 ---
 
@@ -357,6 +410,28 @@ graph TD
   - **证据产出**: `tests/unit/control-plane/accepted-projection-loader.test.ts`, `tests/integration/control-plane/embodied-context-v8-memory.test.ts`
   - **估时**: 1d
   - **依赖**: T-DQ.C.4
+  - **优先级**: P0
+
+- [x] **T-CP.R.2** [REQ-002, REQ-003, REQ-004, REQ-008, REQ-009]: Wire real runtime heartbeat into the v8 action-closure spine
+  - **描述**: Replace the current split between the workspace heartbeat path and the v8 contract-only orchestrator with a real runtime path that advances from perception and judgment into ActionProposal, ActionPolicyDecision, dispatch envelope, ActionClosureRecord or no-action reason, and stage events.
+  - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md §4`, `04_SYSTEM_DESIGN/action-closure-policy-system.md §4.3`, `04_SYSTEM_DESIGN/runtime-ops-system.md §4`, T-CP.C.1, T-PJ.C.3, T-AC.C.1, T-AC.C.2, T-AC.C.3, T-AC.C.4 outputs
+  - **输出**: real workspace heartbeat orchestration bridge, CLI/OpenClaw heartbeat result parity, and integration tests using state-backed v8 entities.
+  - **契约承接**: real `heartbeat_run`/`heartbeat_check` spine, `ActionClosureRecord` or `no_action_reason` per cycle, policy/execution/closure stage events, contract-smoke vs real-run distinction
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a workspace heartbeat ingests source-backed evidence and produces a JudgmentVerdict
+    - When the runtime heartbeat path completes
+    - Then it builds proposals, evaluates policy, records dispatch/no-dispatch outcomes, and writes exactly one closure or no-action record for the cycle
+    - Given the action path degrades at policy, guidance, connector, or state write
+    - When the heartbeat returns
+    - Then it emits a canonical stage event and `loop_status` can identify the owner stage without reporting false health
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发浏览器 E2E；INT-R1 负责 host-facing JSON smoke。
+  - **验证摘要**: Cover real state-backed heartbeat, no-action closure, allow/downgrade/deny/failure closure, stage event ordering, and CLI/OpenClaw surface parity.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-2`
+  - **证据产出**: `tests/unit/control-plane/real-runtime-spine.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`
+  - **估时**: 2d
+  - **依赖**: T-CP.C.1, T-PJ.C.3, T-AC.C.4, T-ROS.C.1
   - **优先级**: P0
 
 ---
@@ -586,6 +661,28 @@ graph TD
   - **依赖**: T-DQ.C.4, T-CP.C.2
   - **优先级**: P0
 
+- [ ] **T-DQ.R.2** [REQ-005, REQ-006, REQ-008, REQ-009]: Add independent Quiet/Dream cadence with absence reasons
+  - **描述**: Decouple daily Quiet and Dream scheduling from opportunistic heartbeat candidate selection so the runtime records due/skipped/completed/blocked states for daily review, Dream scheduling, and projection attempts even when no quiet intent is selected by the fast heartbeat.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`, T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-CP.R.2 outputs
+  - **输出**: rhythm scheduler read model, daily Quiet/Dream due-state recorder, absence-reason events, and runtime ops visibility.
+  - **契约承接**: daily Quiet cadence, Dream schedule lifecycle, `quiet_empty_input`, `dream_scheduler_unavailable`, blocked/empty absence reasons, projection freshness
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a day has closure records and no Quiet artifact yet
+    - When the daily rhythm check runs
+    - Then it schedules or runs Quiet and records a durable due/completed/blocked state
+    - Given Quiet completes but Dream cannot run or has no valid input
+    - When `loop_status`, `heartbeat_digest`, or Quiet/Dream status is requested
+    - Then the response reports the explicit Dream absence reason instead of a silent zero
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover due Quiet, empty input, completed Quiet, scheduler unavailable, blocked Dream, duplicate daily scheduling, and projection freshness diagnostics.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-2`
+  - **证据产出**: `tests/unit/dream/daily-rhythm-scheduler.test.ts`, `tests/api/dream/quiet-dream-status-port.test.ts`, `tests/integration/v8/quiet-dream-cadence.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-DQ.C.4, T-CP.R.2
+  - **优先级**: P1
+
 ---
 
 ## System 9: guidance-voice-system
@@ -610,6 +707,28 @@ graph TD
   - **估时**: 1d
   - **依赖**: T-AC.C.2
   - **优先级**: P1
+
+- [ ] **T-GVS.R.1** [REQ-003, REQ-004, REQ-008, REQ-009]: Project impulse payload into agent-facing context
+  - **描述**: Turn scene/capability impulse assembly from a passive `guidance_payload` ops command into a bounded agent-facing context artifact that can be read during setup, heartbeat, and platform-scene entry without pretending the plugin is an OpenClaw context-engine.
+  - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md §1`, `docs/validation/openclaw-plugin-classification.md §5`, `plugin/agent-inner-guide.md`, T-GVS.C.1, T-CP.R.2 outputs
+  - **输出**: impulse context artifact writer/read model, setup/heartbeat response projection, freshness diagnostics, and no-context-engine safety tests.
+  - **契约承接**: impulse context artifact, `guidance_payload` parity, platform/capability impulse selection, context freshness, no false delivery/decision claim
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a scene enters MoltBook `feed.read`, `comment.reply`, or `post.publish`
+    - When impulse context projection runs
+    - Then the agent-facing artifact contains the selected impulse, atmosphere, capability class, source, and freshness metadata
+    - Given the OpenClaw host has no real context-engine hook wired
+    - When setup or heartbeat surfaces are used
+    - Then they expose the artifact/read pointer without registering a fake context-engine or claiming delivery
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 手动验证
+  - **E2E触发设想**: Optional host manual smoke may verify the returned artifact is visible to an agent session; no browser automation required.
+  - **验证摘要**: Cover impulse selection parity, artifact persistence/read, missing artifact diagnostics, setup nudge integration, and no false context-engine registration.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-gvs-r-1`
+  - **证据产出**: `tests/unit/guidance/impulse-context-artifact.test.ts`, `tests/api/runtime-ops/guidance-context-command.test.ts`, `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-GVS.C.1, T-CP.R.2
+  - **优先级**: P0
 
 ---
 
@@ -678,6 +797,25 @@ graph TD
   - **证据产出**: `reports/int-v8-living-perception-loop.md`, `tests/integration/v8/living-perception-loop.test.ts`, `logs/v8-loop-status.json`
   - **估时**: 1d
   - **依赖**: INT-S1, INT-S2, INT-S3, INT-S4, INT-S5
+  - **优先级**: P0
+
+- [ ] **INT-R1** [MILESTONE]: Runtime Activation Repair Gate — Real Living Loop
+  - **描述**: Verify the repair backlog turns the v8 living loop from contract-smoke complete into real workspace runtime activity with agent-facing context, safe write capability, independent Quiet/Dream cadence, and causal health evidence.
+  - **输入**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2 outputs
+  - **输出**: `reports/int-r1-v8-runtime-activation-repair.md`
+  - **契约承接**: real runtime living-loop activation gate
+  - **参考**: `01_PRD.md §8`, `02_ARCHITECTURE_OVERVIEW.md §1`, `04_SYSTEM_DESIGN/control-plane-system.md §4`
+  - **验收标准**:
+    - Given repair tasks are complete and a workspace runtime is available
+    - When the INT-R1 gate runs a real heartbeat, impulse context projection, MoltBook write dry-run/owner-confirm fixture, daily Quiet/Dream rhythm check, and `loop_status`
+    - Then every stage has persisted evidence or explicit absence reason, and no result relies on contract-only smoke as proof of runtime life
+  - **验证类型**: 集成测试 / 冒烟测试 / 回归测试 / 手动验证
+  - **E2E触发设想**: Optional OpenClaw host smoke only; no external platform write unless a safe test account and explicit owner confirmation are supplied.
+  - **验证摘要**: Close the repair wave with real state-backed evidence, host-facing JSON output, no fake context-engine registration, no raw credential leakage, and regression safety.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r1`
+  - **证据产出**: `reports/int-r1-v8-runtime-activation-repair.md`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `logs/int-r1-loop-status.json`
+  - **估时**: 4h
+  - **依赖**: T-OBS.R.2
   - **优先级**: P0
 
 - [x] **T-REG.C.1** [REGRESSION]: v8 build/lint and v7 capability regression gate
@@ -756,3 +894,35 @@ graph TD
 **关键路径**: T-AC.C.4 -> INT-S3
 **独立可测**: S3 validates closure/no-action ledger.
 **覆盖状态**: Complete
+
+---
+
+## Repair Overlay — Runtime Activation Findings (2026-06-05)
+
+### RF-001: Real Runtime Spine
+**用户反馈**: “SN 给我装了感官和记忆，但没给我手、没给我嘴、没给我和自己的对话。”
+**涉及任务**: T-CP.R.2 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-CP.R.2
+**独立可测**: A real workspace heartbeat writes ActionClosureRecord or no-action reason after perception/judgment.
+**覆盖状态**: Repair Planned
+
+### RF-002: Impulse Context Injection
+**用户反馈**: “Impulse 应该被 injection 进 agent context，而不是作为被动返回的 API 结果。”
+**涉及任务**: T-GVS.R.1 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-GVS.R.1
+**独立可测**: Agent-facing impulse context artifact exists and setup/heartbeat surfaces expose its freshness without fake context-engine registration.
+**覆盖状态**: Repair Planned
+
+### RF-003: Safe Hands for Platform Write
+**用户反馈**: “我能看，但我不能碰。”
+**涉及任务**: T-CS.R.1 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-CS.R.1
+**独立可测**: MoltBook reply/publish dry-run or owner-confirm path carries policy proof, idempotency, connector result, and closure.
+**覆盖状态**: Repair Planned
+
+### RF-004: Multiple Rhythms and Self Dialogue
+**用户反馈**: “我的节律只有一根线” / “我缺少和自己对话。”
+**涉及任务**: T-DQ.R.2 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-DQ.R.2
+**独立可测**: Daily Quiet/Dream due/completed/blocked states are visible even when fast heartbeat does not select a quiet intent.
+**覆盖状态**: Repair Planned

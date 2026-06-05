@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-01
+> 最后更新: 2026-06-05
 >
 > 执行主清单: [05A_TASKS.md](./05A_TASKS.md)
 
@@ -287,6 +287,61 @@
 - **断言**: manual and heartbeat connector attempts are visible in audit; Quiet run outcomes are visible in digest fallback; missing audit remains honest empty instead of fabricated activity.
 - **证据**: `tests/unit/observability/heartbeat-digest-assembler.test.ts`, `tests/unit/ops/manual-run-dispatcher.test.ts`, `tests/integration/runtime-ops/commands.test.ts`
 
+### T-CP.R.2
+- **关联需求**: REQ-002, REQ-003, REQ-004, REQ-008, REQ-009
+- **关联契约**: real workspace heartbeat spine, `ActionProposal`, `ActionPolicyDecision`, `ActionClosureRecord`, no-action reason, policy/execution/closure stage events
+- **风险类别**: split-brain heartbeat / contract-smoke false pass / closure loss / false healthy loop
+- **单元测试覆盖**: real-runtime spine coordinator branches for no-action, allow, downgrade, deny, connector failure, and state-write degraded output.
+- **API接口功能测试覆盖**: `heartbeat_run` or `heartbeat_check` returns cycle id, closure/no-action id, owner stage on degradation, and CLI/OpenClaw parity fields.
+- **集成/E2E/冒烟覆盖**: state-backed v8 runtime integration from evidence through closure; no browser E2E.
+- **前置数据**: SQLite/sql.js v8 state fixture with EvidenceItem, PerceptionCard, JudgmentVerdict, policy context, affordance map, and connector/guidance test doubles.
+- **断言**: every real heartbeat cycle writes exactly one closure or no-action reason; loop stage events identify missing policy/execution/closure; contract-only smoke cannot satisfy real-run gate.
+- **证据**: `tests/unit/control-plane/real-runtime-spine.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`
+
+### T-GVS.R.1
+- **关联需求**: REQ-003, REQ-004, REQ-008, REQ-009
+- **关联契约**: impulse context artifact, `guidance_payload` parity, platform/capability impulse selection, context freshness, no false context-engine registration
+- **风险类别**: passive guidance API / agent context invisibility / fake host capability / stale impulse
+- **单元测试覆盖**: impulse selection parity for scene kind, capability class, platform override absence, and artifact freshness classification.
+- **API接口功能测试覆盖**: setup/heartbeat/guidance context surfaces return artifact pointer, impulse text metadata, freshness status, and degraded reason when missing.
+- **集成/E2E/冒烟覆盖**: plugin bridge smoke confirms no context-engine registration and agent-facing setup/heartbeat response exposes the context artifact; optional host manual smoke only.
+- **前置数据**: guidance templates, MoltBook feed/reply/publish scene fixtures, workspace root with and without existing impulse artifact.
+- **断言**: artifact content matches `guidance_payload` assembly; no response claims external delivery or action decision; plugin manifest remains tool/service honest.
+- **证据**: `tests/unit/guidance/impulse-context-artifact.test.ts`, `tests/api/runtime-ops/guidance-context-command.test.ts`, `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`
+
+### T-CS.R.1
+- **关联需求**: REQ-004, REQ-009
+- **关联契约**: `PolicyBoundConnectorRequest`, MoltBook `post.publish`, MoltBook `comment.reply`, write idempotency, policy proof, closure on write outcome
+- **风险类别**: unsafe external write / missing permission / duplicate write / terminal failure without closure / credential leakage
+- **单元测试覆盖**: payload validation, missing policy proof rejection, dry-run request construction, idempotency key echo, and credential redaction.
+- **API接口功能测试覆盖**: connector write port normal/dry-run path and representative errors for missing content/postId, missing proof, owner-confirm absent, duplicate idempotency.
+- **集成/E2E/冒烟覆盖**: policy-bound MoltBook write fixture through dispatch -> connector result -> ActionClosureRecord; no real platform write by default.
+- **前置数据**: source-backed draft proposal, policy decision proof, MoltBook API mock, credential context fixture, duplicate idempotency fixture.
+- **断言**: no platform write occurs without proof and owner-confirm/dry-run posture; success/failure/downgrade all close; raw credential and raw private payload do not appear in output.
+- **证据**: `tests/unit/connectors/moltbook-write-policy.test.ts`, `tests/api/connectors/moltbook-write-port.test.ts`, `tests/integration/action/moltbook-write-closure.test.ts`
+
+### T-DQ.R.2
+- **关联需求**: REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: daily Quiet cadence, Dream schedule lifecycle, Quiet/Dream absence reasons, projection freshness
+- **风险类别**: single heartbeat rhythm / missed daily review / silent Dream absence / stale projection
+- **单元测试覆盖**: due-state calculation, duplicate daily schedule guard, quiet empty input, scheduler unavailable, blocked Dream, projection freshness classification.
+- **API接口功能测试覆盖**: Quiet/Dream status port returns due/completed/blocked/skipped states with canonical reason codes and before/after state assertions.
+- **集成/E2E/冒烟覆盖**: daily cadence integration from completed closures to Quiet review and Dream schedule/absence event; no browser E2E.
+- **前置数据**: one day with closures, one day empty, completed Quiet review, scheduler unavailable fixture, projection freshness fixture.
+- **断言**: daily Quiet is not dependent on fast heartbeat selecting a quiet intent; Dream absence is explicit; digest and loop_status reflect the same reason.
+- **证据**: `tests/unit/dream/daily-rhythm-scheduler.test.ts`, `tests/api/dream/quiet-dream-status-port.test.ts`, `tests/integration/v8/quiet-dream-cadence.test.ts`
+
+### T-OBS.R.2
+- **关联需求**: REQ-006, REQ-008, REQ-009
+- **关联契约**: real-run causal health, stage freshness, contract-smoke detection, impulse-context freshness, Quiet/Dream absence reason
+- **风险类别**: false healthy runtime / diagnostic drift / contract-only evidence accepted as life / redaction leak
+- **单元测试覆盖**: health gate classifiers for missing closure, missing impulse artifact, missing Quiet/Dream cadence, stale projection, and contract-smoke-only evidence.
+- **API接口功能测试覆盖**: `loop_status` and `heartbeat_digest` return real-run activation status, missing stage, next action, and redacted digest sections.
+- **集成/E2E/冒烟覆盖**: repair gate consumes outputs of T-CP.R.2, T-GVS.R.1, T-CS.R.1, and T-DQ.R.2; no broad E2E.
+- **前置数据**: real-run state fixture, contract-smoke-only fixture, missing impulse artifact fixture, missing Quiet/Dream fixture.
+- **断言**: status is not healthy until real runtime stages have persisted evidence or explicit absence reasons; raw platform payload and credential values are redacted.
+- **证据**: `tests/api/runtime-ops/living-loop-health-gate.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `reports/int-r1-v8-runtime-activation-repair.md`
+
 ### T-GVS.C.1
 - **关联需求**: REQ-003, REQ-004, REQ-009
 - **关联契约**: policy-bound draft/notify output
@@ -375,6 +430,17 @@
 - **断言**: every stage has output or explicit blocked reason; accepted projection appears in next context when valid.
 - **证据**: `reports/int-v8-living-perception-loop.md`, `tests/integration/v8/living-perception-loop.test.ts`, `logs/v8-loop-status.json`
 
+### INT-R1
+- **关联需求**: REQ-002 through REQ-009
+- **关联契约**: real runtime living-loop activation gate
+- **风险类别**: repair backlog incomplete / real runtime still passive / false closure / host visibility gap
+- **单元测试覆盖**: 不新增单元测试； consumes repair task unit evidence.
+- **API接口功能测试覆盖**: heartbeat, guidance context, MoltBook dry-run, Quiet/Dream status, loop_status, and digest surfaces.
+- **集成/E2E/冒烟覆盖**: state-backed real runtime integration plus optional OpenClaw host smoke; no real external platform write unless separately confirmed.
+- **前置数据**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2 completed.
+- **断言**: real workspace runtime produces persisted closure/no-action, impulse context, safe write dry-run/owner-confirm evidence, daily Quiet/Dream due or absence state, and non-false `loop_status`.
+- **证据**: `reports/int-r1-v8-runtime-activation-repair.md`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `logs/int-r1-loop-status.json`
+
 ### T-REG.C.1
 - **关联需求**: Definition of Done
 - **关联契约**: build/lint/regression gate
@@ -419,6 +485,12 @@
 | audit-backed digest closure | 可观测性 / read model | T-OBS.R.1 | T-OBS.R.1 单元 + API接口功能测试 + 集成 | ⬜ |
 | guidance proposal consumption | operation contract | T-GVS.C.1 | T-GVS.C.1 API接口功能测试 | ⬜ |
 | `loop_status` runtime command | CLI/OpenClaw API | T-ROS.C.1 | T-ROS.C.1 API接口功能测试 | ⬜ |
+| real runtime heartbeat spine | 操作契约 / runtime bridge | T-CP.R.2 | T-CP.R.2 单元 + API接口功能测试 + 集成 | ⬜ |
+| impulse context artifact | agent-facing context / guidance | T-GVS.R.1 | T-GVS.R.1 单元 + API接口功能测试 + 集成/手动 | ⬜ |
+| policy-bound MoltBook write | connector action / external write safety | T-CS.R.1 | T-CS.R.1 单元 + API接口功能测试 + 集成 | ⬜ |
+| independent Quiet/Dream cadence | rhythm / async lifecycle | T-DQ.R.2 | T-DQ.R.2 单元 + API接口功能测试 + 集成 | ⬜ |
+| real living-loop health gate | observability / read model | T-OBS.R.2 | T-OBS.R.2 API接口功能测试 + 集成 + report | ⬜ |
+| Runtime Activation Repair Gate | 集成契约 | INT-R1 | INT-R1 集成 + 冒烟 + 手动 | ⬜ |
 | Full living loop DoD | 集成契约 | INT-V8 | INT-V8 集成/E2E/冒烟 | ⬜ |
 
 ---
@@ -445,6 +517,11 @@
 | Dream redaction and candidate validation | security + memory | 单元 + API接口功能测试 | T-DQ.C.3 | `tests/api/dream/dream-consolidation-port.test.ts` | ⬜ |
 | Projection lifecycle supersession | long-term memory consistency | 单元 + API接口功能测试 | T-DQ.C.4 | `tests/api/dream/memory-projection-port.test.ts` | ⬜ |
 | loop_status stage diagnosis | observability | API接口功能测试 + integration | T-ROS.C.1, INT-S5 | `tests/api/runtime-ops/loop-status-command.test.ts` | ⬜ |
+| Real heartbeat writes closure/no-action | split-brain heartbeat | 单元 + API接口功能测试 + 集成 | T-CP.R.2 | `tests/integration/v8/real-runtime-living-loop.test.ts` | ⬜ |
+| Impulse context visible to agent surfaces | passive guidance API | 单元 + API接口功能测试 + plugin bridge | T-GVS.R.1 | `tests/api/runtime-ops/guidance-context-command.test.ts` | ⬜ |
+| MoltBook write remains policy-bound | unsafe external write | 单元 + API接口功能测试 + 集成 | T-CS.R.1 | `tests/integration/action/moltbook-write-closure.test.ts` | ⬜ |
+| Quiet/Dream due and absence states | single rhythm / silent Dream absence | 单元 + API接口功能测试 + 集成 | T-DQ.R.2 | `tests/integration/v8/quiet-dream-cadence.test.ts` | ⬜ |
+| Runtime activation false-health prevention | false healthy | API接口功能测试 + 集成 + report | T-OBS.R.2, INT-R1 | `reports/int-r1-v8-runtime-activation-repair.md` | ⬜ |
 | Full living loop | end-to-end value | integration + scoped E2E + smoke | INT-V8 | `tests/integration/v8/living-perception-loop.test.ts` | ⬜ |
 | Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ⬜ |
 
@@ -467,4 +544,9 @@
 | SourceRef grounding | T-SH.C.1, T-SMS.C.1, T-OBS.C.1 | 单元 + API接口功能测试 | `tests/api/storage/v8-state-port.test.ts` | state port report | ⬜ |
 | Heartbeat-count SLA | T-CP.C.1, T-OBS.C.2, T-ROS.C.1 | 单元 + API接口功能测试 | `tests/unit/observability/causal-loop-health.test.ts` | loop_status report | ⬜ |
 | Memory review closure | T-AC.C.1, T-AC.C.4, T-DQ.C.1 | 单元 + API接口功能测试 | `tests/api/action/action-closure-port.test.ts` | Quiet review report | ⬜ |
+| REQ-002..009 Runtime Activation Repair | T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/real-runtime-living-loop.test.ts` | `reports/int-r1-v8-runtime-activation-repair.md` | ⬜ |
+| Real heartbeat closure | T-CP.R.2, T-OBS.R.2 | 单元 + API接口功能测试 + 集成 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | real-runtime integration report | ⬜ |
+| Impulse context injection | T-GVS.R.1 | 单元 + API接口功能测试 + 集成/手动 | `tests/api/runtime-ops/guidance-context-command.test.ts` | plugin bridge smoke | ⬜ |
+| Policy-bound platform write | T-CS.R.1 | 单元 + API接口功能测试 + 集成 | `tests/api/connectors/moltbook-write-port.test.ts` | write closure integration report | ⬜ |
+| Independent Quiet/Dream cadence | T-DQ.R.2 | 单元 + API接口功能测试 + 集成 | `tests/api/dream/quiet-dream-status-port.test.ts` | cadence integration report | ⬜ |
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ⬜ |

@@ -1,4 +1,6 @@
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
+// T-CP.R.2: v8 real runtime spine bridge
+import { runRealRuntimeHeartbeatCycle, } from "../../core/second-nature/control-plane/real-runtime-spine.js";
 function mapCycleToSurface(cycle, surfaceMode) {
     const status = cycle.status === "runtime_carrier_only"
         ? "runtime_carrier_only"
@@ -86,7 +88,48 @@ export async function heartbeatCheck(input) {
     });
     try {
         const cycle = await run(signal);
-        return mapCycleToSurface(cycle, "workspace_full_runtime");
+        const surfaceResult = mapCycleToSurface(cycle, "workspace_full_runtime");
+        // T-CP.R.2: run v8 real runtime spine when enabled and state is available
+        if (input.v8SpineEnabled && input.state && input.workspaceRoot) {
+            try {
+                const v8Result = await runRealRuntimeHeartbeatCycle({
+                    workspaceRoot: input.workspaceRoot,
+                    state: input.state,
+                    requestedAt: timestamp,
+                    trigger: "host",
+                });
+                if ("status" in v8Result && v8Result.status === "degraded") {
+                    surfaceResult.v8Spine = {
+                        cycleId: "",
+                        cycleSequence: 0,
+                        degradedReason: v8Result.reason,
+                    };
+                    surfaceResult.reasons = [
+                        ...surfaceResult.reasons,
+                        `v8_spine_degraded:${v8Result.reason}`,
+                    ];
+                }
+                else {
+                    const spine = v8Result;
+                    surfaceResult.v8Spine = spine;
+                    surfaceResult.reasons = [
+                        ...surfaceResult.reasons,
+                        `v8_spine_cycle:${spine.cycleId}`,
+                        spine.closureRef
+                            ? "v8_closure_recorded"
+                            : `v8_no_action:${spine.noActionReason ?? "unknown"}`,
+                    ];
+                }
+            }
+            catch (v8Err) {
+                const v8Msg = v8Err instanceof Error ? v8Err.message : String(v8Err);
+                surfaceResult.reasons = [
+                    ...surfaceResult.reasons,
+                    `v8_spine_exception:${v8Msg.slice(0, 120)}`,
+                ];
+            }
+        }
+        return surfaceResult;
     }
     catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

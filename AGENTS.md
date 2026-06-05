@@ -85,7 +85,7 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-01` (`/blueprint` v8 — Living Perception Loop)
+- **最近一次更新**: `2026-06-05` (`/change` v8 — Runtime Activation Repair backlog)
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -209,8 +209,33 @@ src/
 - 系统数: 10
 - **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
 - **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: v8 forge 完成；T-OBS.R.1 audit-backed digest repair 已闭合
-- **最近更新**: `2026-06-04` (`/change` + `/forge` repair — audit-backed digest closure)
+- **下一步**: Wave 106 `/forge` repair，从 T-CP.R.2 real runtime spine 开始
+- **最近更新**: `2026-06-05` (`/change` repair backlog — runtime activation)
+
+### 🌊 Wave 106 🧭 — v8 Change: Runtime Activation Repair Backlog
+T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: T-CP.R.2 完成（2026-06-05）；其余待 `/forge`
+- **产出**:
+  - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — extended with full action-closure spine (proposal → policy → dispatch → closure)
+  - `src/core/second-nature/control-plane/real-runtime-spine.ts` — bridge module wrapping `runHeartbeatCycle`
+  - `src/cli/ops/heartbeat-surface.ts` — v8 spine result merged into heartbeat surface
+  - `src/cli/ops/ops-router.ts` — auto-enables v8 spine when state DB is wired
+  - `tests/unit/control-plane/real-runtime-spine.test.ts` — 4/4 PASS (no-action, full cycle, simulated dispatch, degraded events)
+  - `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` — 3/3 PASS (wired, disabled, missing workspaceRoot)
+  - `tests/integration/v8/real-runtime-living-loop.test.ts` — 2/2 PASS (full cycle, closure diagnostics)
+  - `.anws/v8/05A_TASKS.md` — T-CP.R.2 checked
+  - `.anws/v8/06_CHANGELOG.md` — T-CP.R.2 changelog entry
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；9/9 targeted tests PASS；`pnpm build:plugin` ✅
+- **最高严重度**: none (T-CP.R.2)
+- **代码审查要点**:
+  - ✅ Split-brain 修复：早期返回路径（空证据、感知降级）现在写入 closure
+  - ✅ Exactly-once：每个周期产生恰好一个 closure/no-action；idempotency 键防止重复
+  - ✅ 降级可观测性：所有路径记录 canonical stage events（ingestion/perception/judgment/policy/closure）
+  - ✅ 无真实外部写入：保守策略默认值（platformPermissionDeclared=false, ownerPreferenceAllowAuto=false）
+  - ✅ 非烟雾测试：使用真实内存数据库验证持久化
+- **下一步**: `/forge` T-GVS.R.1 — impulse context projection
 
 ### 🌊 Wave 105 ✅ — v8 Repair: Audit-backed Connector/Quiet Digest Closure
 T-OBS.R.1

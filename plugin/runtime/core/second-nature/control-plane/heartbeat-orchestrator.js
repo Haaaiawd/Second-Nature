@@ -25,6 +25,10 @@ import { writeHeartbeatCycleTrace, readHeartbeatCycleTraces, } from "../../../st
 import { recordLoopStageEvent } from "../../../observability/loop-stage-event-sink.js";
 import { buildPerceptionCards } from "../perception/perception-builder.js";
 import { runAgentJudgments } from "../perception/judgment-engine.js";
+import { buildActionProposal, } from "../action/action-proposal-builder.js";
+import { evaluateActionPolicy } from "../action/autonomy-policy-evaluator.js";
+import { dispatchAllowedAction } from "../action/policy-bound-dispatch.js";
+import { recordNoActionClosure, recordRememberClosure, recordPolicyOutcomeClosure, recordExecutionClosure, } from "../action/action-closure-recorder.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -45,6 +49,13 @@ export async function runHeartbeatCycle(db, request) {
     const now = request.requestedAt ?? new Date().toISOString();
     const cycleSequence = await nextCycleSequence(db);
     const cycleId = buildCycleId(cycleSequence, now);
+    const cycleRef = {
+        uri: `sn://heartbeat/${cycleId}`,
+        family: "audit",
+        id: cycleId,
+        redactionClass: "none",
+        resolveStatus: "resolvable",
+    };
     // Write cycle trace — started
     const traceResult = await writeHeartbeatCycleTrace(db, {
         id: cycleId,
@@ -53,22 +64,14 @@ export async function runHeartbeatCycle(db, request) {
         inputCount: 0,
         outputCount: 0,
         status: "started",
-        sourceRefs: [
-            {
-                uri: `sn://heartbeat/${cycleId}`,
-                family: "audit",
-                id: cycleId,
-                redactionClass: "none",
-                resolveStatus: "resolvable",
-            },
-        ],
+        sourceRefs: [cycleRef],
     });
     if ("reason" in traceResult) {
         return {
             status: "degraded",
             reason: "state_unreadable",
             ownerStage: "ingestion",
-            sourceRefs: [],
+            sourceRefs: [cycleRef],
             operatorNextAction: "Retry heartbeat after DB recovery",
             retryable: true,
         };
@@ -81,7 +84,7 @@ export async function runHeartbeatCycle(db, request) {
         stage: "ingestion",
         status: "started",
         occurredAt: now,
-        sourceRefs: [],
+        sourceRefs: [cycleRef],
     });
     // ── Perception stage ──
     const perceptionResult = await buildPerceptionCards(db, { cycleId, now });
@@ -98,18 +101,45 @@ export async function runHeartbeatCycle(db, request) {
         reason: perceptionDegraded
             ? perceptionResult.reason
             : undefined,
-        sourceRefs: [],
+        sourceRefs: [cycleRef],
     });
     if (perceptionDegraded || !("cards" in perceptionResult)) {
+        // Degraded path must still write a closure for observability
+        const degradedReason = perceptionDegraded
+            ? (perceptionResult.reason ?? "state_unreadable")
+            : "perception_failed";
+        const closureResult = await recordNoActionClosure(db, cycleId, degradedReason, { now });
+        let degradedClosureRef;
+        if ("closureId" in closureResult) {
+            degradedClosureRef = {
+                uri: `sn://closure/${closureResult.closureId}`,
+                family: "action_closure",
+                id: closureResult.closureId,
+                redactionClass: "none",
+                resolveStatus: "resolvable",
+            };
+        }
+        await recordLoopStageEvent(db, {
+            id: `evt_${cycleId}_closure`,
+            cycleId,
+            cycleSequence,
+            stage: "closure",
+            status: "failed",
+            occurredAt: new Date().toISOString(),
+            reason: degradedReason,
+            sourceRefs: degradedClosureRef ? [degradedClosureRef, cycleRef] : [cycleRef],
+        });
         return {
             cycleId,
             cycleSequence,
+            closureRef: degradedClosureRef,
+            noActionReason: degradedReason,
             degraded: perceptionDegraded
                 ? {
                     status: "degraded",
                     reason: perceptionResult.reason ?? "state_unreadable",
                     ownerStage: "perception",
-                    sourceRefs: [],
+                    sourceRefs: [cycleRef],
                     operatorNextAction: "Retry heartbeat after perception recovery",
                     retryable: true,
                 }
@@ -127,11 +157,34 @@ export async function runHeartbeatCycle(db, request) {
             status: "skipped",
             occurredAt: new Date().toISOString(),
             reason: "evidence_batch_empty",
-            sourceRefs: [],
+            sourceRefs: [cycleRef],
+        });
+        // Write no-action closure — every cycle must produce exactly one
+        const closureResult = await recordNoActionClosure(db, cycleId, "evidence_batch_empty", { now });
+        let emptyClosureRef;
+        if ("closureId" in closureResult) {
+            emptyClosureRef = {
+                uri: `sn://closure/${closureResult.closureId}`,
+                family: "action_closure",
+                id: closureResult.closureId,
+                redactionClass: "none",
+                resolveStatus: "resolvable",
+            };
+        }
+        await recordLoopStageEvent(db, {
+            id: `evt_${cycleId}_closure`,
+            cycleId,
+            cycleSequence,
+            stage: "closure",
+            status: "completed",
+            occurredAt: new Date().toISOString(),
+            reason: "evidence_batch_empty",
+            sourceRefs: emptyClosureRef ? [emptyClosureRef, cycleRef] : [cycleRef],
         });
         return {
             cycleId,
             cycleSequence,
+            closureRef: emptyClosureRef,
             noActionReason: "evidence_batch_empty",
         };
     }
@@ -145,21 +198,275 @@ export async function runHeartbeatCycle(db, request) {
         stage: "judgment",
         status: judgmentFailed ? "failed" : "completed",
         occurredAt: new Date().toISOString(),
-        sourceRefs: [],
+        sourceRefs: [cycleRef],
     });
-    // Return cycle result
+    // ── Action/Closure stage (T-CP.R.2) ──
+    // Every cycle must produce exactly one closure or no-action record.
+    let closureRef;
+    let noActionReason;
+    let closureDegraded;
+    // Record policy stage started
+    await recordLoopStageEvent(db, {
+        id: `evt_${cycleId}_policy`,
+        cycleId,
+        cycleSequence,
+        stage: "policy",
+        status: "started",
+        occurredAt: new Date().toISOString(),
+        sourceRefs: [cycleRef],
+    });
+    if (judgmentResult.succeeded.length === 0) {
+        // No actionable verdicts → no-action closure
+        const closureResult = await recordNoActionClosure(db, cycleId, "proposal_no_action", { now });
+        if ("closureId" in closureResult) {
+            closureRef = {
+                uri: `sn://closure/${closureResult.closureId}`,
+                family: "action_closure",
+                id: closureResult.closureId,
+                redactionClass: "none",
+                resolveStatus: "resolvable",
+            };
+        }
+        else if ("reason" in closureResult) {
+            closureDegraded = closureResult;
+        }
+        noActionReason = "proposal_no_action";
+    }
+    else {
+        // Find first actionable verdict (non-ignore, non-watch)
+        const actionableVerdict = judgmentResult.succeeded.find((v) => v.actionKind !== "ignore" && v.actionKind !== "watch");
+        if (!actionableVerdict) {
+            // All verdicts are ignore/watch → no-action
+            const closureResult = await recordNoActionClosure(db, cycleId, "proposal_no_action", { now });
+            if ("closureId" in closureResult) {
+                closureRef = {
+                    uri: `sn://closure/${closureResult.closureId}`,
+                    family: "action_closure",
+                    id: closureResult.closureId,
+                    redactionClass: "none",
+                    resolveStatus: "resolvable",
+                };
+            }
+            else if ("reason" in closureResult) {
+                closureDegraded = closureResult;
+            }
+            noActionReason = "proposal_no_action";
+        }
+        else {
+            // Build proposal for the actionable verdict
+            const proposalResult = await buildActionProposal(db, actionableVerdict.id, { now });
+            if ("status" in proposalResult && proposalResult.status === "degraded") {
+                // Proposal build failed — still need a closure
+                closureDegraded = proposalResult;
+                const closureResult = await recordNoActionClosure(db, cycleId, closureDegraded.reason, { now });
+                if ("closureId" in closureResult) {
+                    closureRef = {
+                        uri: `sn://closure/${closureResult.closureId}`,
+                        family: "action_closure",
+                        id: closureResult.closureId,
+                        redactionClass: "none",
+                        resolveStatus: "resolvable",
+                    };
+                }
+                noActionReason = closureDegraded.reason;
+                await recordLoopStageEvent(db, {
+                    id: `evt_${cycleId}_policy`,
+                    cycleId,
+                    cycleSequence,
+                    stage: "policy",
+                    status: "failed",
+                    occurredAt: new Date().toISOString(),
+                    reason: closureDegraded.reason,
+                    sourceRefs: closureDegraded.sourceRefs.length > 0 ? closureDegraded.sourceRefs : [cycleRef],
+                });
+            }
+            else if (proposalResult.status === "no_action") {
+                const noAction = proposalResult;
+                const closureResult = await recordNoActionClosure(db, cycleId, noAction.reason, { now });
+                if ("closureId" in closureResult) {
+                    closureRef = {
+                        uri: `sn://closure/${closureResult.closureId}`,
+                        family: "action_closure",
+                        id: closureResult.closureId,
+                        redactionClass: "none",
+                        resolveStatus: "resolvable",
+                    };
+                }
+                noActionReason = noAction.reason;
+            }
+            else if (proposalResult.status === "remember_for_review") {
+                const remember = proposalResult;
+                const closureResult = await recordRememberClosure(db, cycleId, remember.memoryReviewCandidate, { now });
+                if ("closureId" in closureResult) {
+                    closureRef = {
+                        uri: `sn://closure/${closureResult.closureId}`,
+                        family: "action_closure",
+                        id: closureResult.closureId,
+                        redactionClass: "none",
+                        resolveStatus: "resolvable",
+                    };
+                }
+                else if ("reason" in closureResult) {
+                    closureDegraded = closureResult;
+                }
+            }
+            else if (proposalResult.status === "proposal") {
+                const { proposal } = proposalResult;
+                // Evaluate policy — conservative defaults: no real platform permission, no auto-allow
+                const decision = evaluateActionPolicy(proposal, {
+                    breakerStatus: "closed",
+                    platformPermissionDeclared: false,
+                    ownerPreferenceAllowAuto: false,
+                }, { now });
+                await recordLoopStageEvent(db, {
+                    id: `evt_${cycleId}_policy`,
+                    cycleId,
+                    cycleSequence,
+                    stage: "policy",
+                    status: "completed",
+                    occurredAt: new Date().toISOString(),
+                    reason: decision.decisionReason,
+                    sourceRefs: decision.proofRefs,
+                });
+                // Record execution stage started
+                await recordLoopStageEvent(db, {
+                    id: `evt_${cycleId}_execution`,
+                    cycleId,
+                    cycleSequence,
+                    stage: "execution",
+                    status: "started",
+                    occurredAt: new Date().toISOString(),
+                    sourceRefs: decision.proofRefs,
+                });
+                // Dispatch — no real external write in T-CP.R.2
+                const dispatchResult = dispatchAllowedAction(proposal, decision, { guidanceAvailable: false });
+                // Record closure based on dispatch outcome
+                if (dispatchResult.type === "none") {
+                    const closureStatus = decision.decision === "deny" ? "denied" : "deferred";
+                    const closureResult = await recordPolicyOutcomeClosure(db, cycleId, closureStatus, decision.decisionReason, {
+                        proposalId: proposal.id,
+                        decisionId: decision.id,
+                        nextState: "await_next_cycle",
+                    }, { now });
+                    if ("closureId" in closureResult) {
+                        closureRef = {
+                            uri: `sn://closure/${closureResult.closureId}`,
+                            family: "action_closure",
+                            id: closureResult.closureId,
+                            redactionClass: "none",
+                            resolveStatus: "resolvable",
+                        };
+                    }
+                    else if ("reason" in closureResult) {
+                        closureDegraded = closureResult;
+                    }
+                }
+                else if (dispatchResult.type === "guidance_unavailable") {
+                    const closureResult = await recordPolicyOutcomeClosure(db, cycleId, "downgraded", "guidance_unavailable", {
+                        proposalId: proposal.id,
+                        decisionId: decision.id,
+                        downgradedActionKind: dispatchResult.downgradedActionKind,
+                        nextState: "await_guidance_recovery",
+                    }, { now });
+                    if ("closureId" in closureResult) {
+                        closureRef = {
+                            uri: `sn://closure/${closureResult.closureId}`,
+                            family: "action_closure",
+                            id: closureResult.closureId,
+                            redactionClass: "none",
+                            resolveStatus: "resolvable",
+                        };
+                    }
+                    else if ("reason" in closureResult) {
+                        closureDegraded = closureResult;
+                    }
+                }
+                else if (dispatchResult.type === "guidance") {
+                    // Guidance draft dispatch — no external write
+                    const closureResult = await recordExecutionClosure(db, cycleId, "completed", "policy_allowed", {
+                        proposalId: proposal.id,
+                        decisionId: decision.id,
+                        outputSummary: "Guidance draft dispatched (simulated)",
+                        nextState: "await_next_cycle",
+                    }, { now });
+                    if ("closureId" in closureResult) {
+                        closureRef = {
+                            uri: `sn://closure/${closureResult.closureId}`,
+                            family: "action_closure",
+                            id: closureResult.closureId,
+                            redactionClass: "none",
+                            resolveStatus: "resolvable",
+                        };
+                    }
+                    else if ("reason" in closureResult) {
+                        closureDegraded = closureResult;
+                    }
+                }
+                else if (dispatchResult.type === "connector") {
+                    // Connector dispatch — simulated, no real platform write (T-CP.R.2)
+                    const closureResult = await recordExecutionClosure(db, cycleId, "completed", "policy_allowed", {
+                        proposalId: proposal.id,
+                        decisionId: decision.id,
+                        outputSummary: "Connector dispatch prepared (simulated — T-CP.R.2)",
+                        nextState: "await_real_execution",
+                    }, { now });
+                    if ("closureId" in closureResult) {
+                        closureRef = {
+                            uri: `sn://closure/${closureResult.closureId}`,
+                            family: "action_closure",
+                            id: closureResult.closureId,
+                            redactionClass: "none",
+                            resolveStatus: "resolvable",
+                        };
+                    }
+                    else if ("reason" in closureResult) {
+                        closureDegraded = closureResult;
+                    }
+                }
+                // Record execution stage completed
+                await recordLoopStageEvent(db, {
+                    id: `evt_${cycleId}_execution`,
+                    cycleId,
+                    cycleSequence,
+                    stage: "execution",
+                    status: closureDegraded ? "failed" : "completed",
+                    occurredAt: new Date().toISOString(),
+                    reason: closureDegraded?.reason,
+                    sourceRefs: decision.proofRefs,
+                });
+            }
+        }
+    }
+    // Record closure stage event
+    await recordLoopStageEvent(db, {
+        id: `evt_${cycleId}_closure`,
+        cycleId,
+        cycleSequence,
+        stage: "closure",
+        status: closureDegraded ? "failed" : "completed",
+        occurredAt: new Date().toISOString(),
+        reason: closureDegraded?.reason ?? noActionReason,
+        sourceRefs: closureRef ? [closureRef, cycleRef] : [cycleRef],
+    });
+    // Final safety net: if somehow nothing was recorded, write a degraded no-action
+    if (!closureRef && !noActionReason && !closureDegraded) {
+        const fallback = await recordNoActionClosure(db, cycleId, "proposal_no_action", { now });
+        if ("closureId" in fallback) {
+            closureRef = {
+                uri: `sn://closure/${fallback.closureId}`,
+                family: "action_closure",
+                id: fallback.closureId,
+                redactionClass: "none",
+                resolveStatus: "resolvable",
+            };
+        }
+        noActionReason = "proposal_no_action";
+    }
     return {
         cycleId,
         cycleSequence,
-        closureRef: judgmentResult.succeeded.length > 0
-            ? {
-                uri: `sn://judgment/${cycleId}`,
-                family: "judgment",
-                id: cycleId,
-                redactionClass: "none",
-                resolveStatus: "resolvable",
-            }
-            : undefined,
-        noActionReason: judgmentResult.succeeded.length === 0 ? "proposal_no_action" : undefined,
+        closureRef,
+        noActionReason,
+        degraded: closureDegraded,
     };
 }

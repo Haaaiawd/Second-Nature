@@ -666,6 +666,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             goalLifecyclePolicy,
             idleCuriosityPolicy,
             circuitBreakerManager,
+            v8SpineEnabled:
+              (input as Partial<HeartbeatCheckInput> | undefined)
+                ?.v8SpineEnabled ?? (deps.state !== undefined),
           });
           if (
             result.ok &&

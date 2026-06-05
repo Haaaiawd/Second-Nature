@@ -445,6 +445,8 @@ export function createOpsRouter(deps) {
                         goalLifecyclePolicy,
                         idleCuriosityPolicy,
                         circuitBreakerManager,
+                        v8SpineEnabled: input
+                            ?.v8SpineEnabled ?? (deps.state !== undefined),
                     });
                     if (result.ok &&
                         result.surfaceMode === "workspace_full_runtime" &&
