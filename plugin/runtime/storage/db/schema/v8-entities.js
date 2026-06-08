@@ -158,3 +158,40 @@ export const loopStageEvent = sqliteTable("loop_stage_event", {
     payloadJson: text("payload_json"),
     lifecycleStatus: text("lifecycle_status").notNull().default("started"),
 });
+// ───────────────────────────────────────────────────────────────
+// 10. ImpulseContextArtifact
+// ───────────────────────────────────────────────────────────────
+export const impulseContextArtifact = sqliteTable("impulse_context_artifact", {
+    id: text("id").primaryKey(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+    sceneType: text("scene_type").notNull(),
+    capabilityIntent: text("capability_intent"),
+    platformId: text("platform_id"),
+    capabilityClass: text("capability_class"),
+    impulseSource: text("impulse_source").notNull(),
+    impulseText: text("impulse_text"),
+    atmosphereText: text("atmosphere_text"),
+    expressionBoundaryConstraintsJson: text("expression_boundary_constraints_json"),
+    expressionBoundaryStyle: text("expression_boundary_style"),
+    freshnessVersion: integer("freshness_version").notNull().default(1),
+    sourceRefsJson: text("source_refs_json").notNull(),
+    redactionClass: text("redaction_class").notNull().default("none"),
+    payloadJson: text("payload_json"),
+    lifecycleStatus: text("lifecycle_status").notNull().default("active"),
+});
+// 11. DailyRhythmState
+// ───────────────────────────────────────────────────────────────
+export const dailyRhythmState = sqliteTable("daily_rhythm_state", {
+    id: text("id").primaryKey(),
+    day: text("day").notNull(),
+    quietStatus: text("quiet_status").notNull().default("not_due"),
+    dreamStatus: text("dream_status").notNull().default("not_due"),
+    quietReason: text("quiet_reason"),
+    dreamReason: text("dream_reason"),
+    quietCompletedAt: text("quiet_completed_at"),
+    dreamCompletedAt: text("dream_completed_at"),
+    sourceRefsJson: text("source_refs_json").notNull(),
+    payloadJson: text("payload_json"),
+    updatedAt: text("updated_at").notNull(),
+});

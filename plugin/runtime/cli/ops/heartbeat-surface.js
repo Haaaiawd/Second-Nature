@@ -129,6 +129,34 @@ export async function heartbeatCheck(input) {
                 ];
             }
         }
+        // T-GVS.R.1: expose impulse context artifact when state is available
+        if (input.state) {
+            try {
+                const { readImpulseContext } = await import("../../core/second-nature/guidance/impulse-context-reader.js");
+                const ctx = await readImpulseContext(input.state, "social");
+                if (ctx.available) {
+                    surfaceResult.impulseContext = {
+                        available: true,
+                        sceneType: ctx.artifact.sceneType,
+                        capabilityClass: ctx.artifact.capabilityClass,
+                        impulseText: ctx.artifact.impulseText,
+                        atmosphereText: ctx.artifact.atmosphereText,
+                        freshnessMs: ctx.freshnessMs,
+                    };
+                    surfaceResult.reasons.push(`impulse_context:${ctx.artifact.id}`);
+                }
+                else {
+                    surfaceResult.impulseContext = {
+                        available: false,
+                        missingReason: ctx.reason,
+                    };
+                    surfaceResult.reasons.push(`impulse_context_missing:${ctx.reason}`);
+                }
+            }
+            catch {
+                // Non-fatal: impulse context is advisory
+            }
+        }
         return surfaceResult;
     }
     catch (err) {

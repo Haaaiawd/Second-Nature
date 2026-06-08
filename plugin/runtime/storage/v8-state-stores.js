@@ -21,8 +21,8 @@
  *
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
-import { eq, desc, like } from "drizzle-orm";
-import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, } from "./db/schema/v8-entities.js";
+import { eq, and, desc, like, isNull } from "drizzle-orm";
+import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, } from "./db/schema/v8-entities.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
@@ -480,6 +480,92 @@ export async function readLoopStageEventsByStage(db, stage, limit = 100) {
         return {
             rows: [],
             degraded: makeDegraded("state_unreadable", "closure", "Check state database connectivity"),
+        };
+    }
+}
+// ───────────────────────────────────────────────────────────────
+// ImpulseContextArtifact store
+// ───────────────────────────────────────────────────────────────
+export async function writeImpulseContextArtifact(db, row) {
+    const validated = validateSourceRefs(row.sourceRefs, "projection");
+    if (!validated.ok)
+        return validated.degraded;
+    try {
+        const record = {
+            ...row,
+            sourceRefsJson: serializeSourceRefs(validated.record),
+        };
+        // Upsert: delete existing then insert (SQLite primary-key conflict)
+        await db.db.delete(impulseContextArtifact).where(eq(impulseContextArtifact.id, row.id));
+        await db.db.insert(impulseContextArtifact).values(record);
+        return { id: row.id };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "projection", "Retry impulse context write after DB recovery", validated.record);
+    }
+}
+export async function readImpulseContextArtifact(db, sceneType, capabilityIntent, platformId) {
+    try {
+        const conditions = [eq(impulseContextArtifact.sceneType, sceneType)];
+        if (capabilityIntent) {
+            conditions.push(eq(impulseContextArtifact.capabilityIntent, capabilityIntent));
+        }
+        else {
+            conditions.push(isNull(impulseContextArtifact.capabilityIntent));
+        }
+        if (platformId) {
+            conditions.push(eq(impulseContextArtifact.platformId, platformId));
+        }
+        else {
+            conditions.push(isNull(impulseContextArtifact.platformId));
+        }
+        const rows = await db.db
+            .select()
+            .from(impulseContextArtifact)
+            .where(and(...conditions))
+            .orderBy(desc(impulseContextArtifact.updatedAt))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+// ───────────────────────────────────────────────────────────────
+// DailyRhythmState store
+// ───────────────────────────────────────────────────────────────
+export async function writeDailyRhythmState(db, row) {
+    const validated = validateSourceRefs(row.sourceRefs, "dream");
+    if (!validated.ok)
+        return validated.degraded;
+    try {
+        const record = {
+            ...row,
+            sourceRefsJson: serializeSourceRefs(validated.record),
+        };
+        await db.db.delete(dailyRhythmState).where(eq(dailyRhythmState.id, row.id));
+        await db.db.insert(dailyRhythmState).values(record);
+        return { id: row.id };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "dream", "Retry daily rhythm state write after DB recovery", validated.record);
+    }
+}
+export async function readDailyRhythmStateByDay(db, day) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(dailyRhythmState)
+            .where(eq(dailyRhythmState.day, day))
+            .orderBy(desc(dailyRhythmState.updatedAt))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "dream", `Check state database connectivity for day=${day}`),
         };
     }
 }

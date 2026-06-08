@@ -87,15 +87,19 @@ describe("impulse-context-artifact", () => {
   it("overwrites existing artifact for same scene/capability combo", async () => {
     const db = createStateDatabase(":memory:");
     try {
+      const now = new Date().toISOString();
       await writeImpulseContext(
         db,
         makeInput({ impulseResult: { impulse: { kind: "social", text: "v1", reviewStatus: "approved" }, source: "intent_kind", capabilityClass: null } }),
-        { now: "2026-06-05T10:00:00Z" },
+        { now },
       );
+      // Small delay to ensure different timestamp
+      await new Promise((r) => setTimeout(r, 10));
+      const now2 = new Date().toISOString();
       await writeImpulseContext(
         db,
         makeInput({ impulseResult: { impulse: { kind: "social", text: "v2", reviewStatus: "approved" }, source: "intent_kind", capabilityClass: null } }),
-        { now: "2026-06-05T11:00:00Z" },
+        { now: now2 },
       );
 
       const result = await readImpulseContext(db, "social");

@@ -22,7 +22,7 @@
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
 import type { StateDatabase } from "./db/index.js";
-import { type EvidenceItemRecord, type NewEvidenceItemRecord, type PerceptionCardRecord, type NewPerceptionCardRecord, type JudgmentVerdictRecord, type NewJudgmentVerdictRecord, type ActionClosureRecordSelect, type ActionClosureRecordInsert, type QuietDailyReviewRecord, type NewQuietDailyReviewRecord, type DreamConsolidationRunRecord, type NewDreamConsolidationRunRecord, type LongTermMemoryProjectionRecord, type NewLongTermMemoryProjectionRecord, type HeartbeatCycleTraceRecord, type NewHeartbeatCycleTraceRecord, type LoopStageEventRecord, type NewLoopStageEventRecord } from "./db/schema/v8-entities.js";
+import { type EvidenceItemRecord, type NewEvidenceItemRecord, type PerceptionCardRecord, type NewPerceptionCardRecord, type JudgmentVerdictRecord, type NewJudgmentVerdictRecord, type ActionClosureRecordSelect, type ActionClosureRecordInsert, type QuietDailyReviewRecord, type NewQuietDailyReviewRecord, type DreamConsolidationRunRecord, type NewDreamConsolidationRunRecord, type LongTermMemoryProjectionRecord, type NewLongTermMemoryProjectionRecord, type HeartbeatCycleTraceRecord, type NewHeartbeatCycleTraceRecord, type LoopStageEventRecord, type NewLoopStageEventRecord, type ImpulseContextArtifactRecord, type NewImpulseContextArtifactRecord, type DailyRhythmStateRecord, type NewDailyRhythmStateRecord } from "./db/schema/v8-entities.js";
 import type { SourceRef, DegradedOperationResult } from "../shared/types/v8-contracts.js";
 export interface WriteValidationError {
     ok: false;
@@ -140,6 +140,24 @@ export declare function readLoopStageEventsByCycle(db: StateDatabase, cycleId: s
 }>;
 export declare function readLoopStageEventsByStage(db: StateDatabase, stage: LoopStageEventRecord["stage"], limit?: number): Promise<{
     rows: LoopStageEventRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function writeImpulseContextArtifact(db: StateDatabase, row: Omit<NewImpulseContextArtifactRecord, "sourceRefsJson"> & {
+    sourceRefs: SourceRef[];
+}): Promise<{
+    id: string;
+} | DegradedOperationResult>;
+export declare function readImpulseContextArtifact(db: StateDatabase, sceneType: string, capabilityIntent?: string, platformId?: string): Promise<{
+    row?: ImpulseContextArtifactRecord;
+    degraded?: DegradedOperationResult;
+}>;
+export declare function writeDailyRhythmState(db: StateDatabase, row: Omit<NewDailyRhythmStateRecord, "sourceRefsJson"> & {
+    sourceRefs: SourceRef[];
+}): Promise<{
+    id: string;
+} | DegradedOperationResult>;
+export declare function readDailyRhythmStateByDay(db: StateDatabase, day: string): Promise<{
+    row?: DailyRhythmStateRecord;
     degraded?: DegradedOperationResult;
 }>;
 export declare function extractSourceRefs(row: {

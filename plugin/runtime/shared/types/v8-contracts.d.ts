@@ -25,7 +25,7 @@ export interface ActionKindMetadata {
     allowedDowngrades: PlatformNeutralActionKind[];
 }
 export type ConnectorCapabilitySideEffect = "external_read" | "external_write" | "local_state" | "unknown";
-export type SourceRefFamily = "evidence" | "perception" | "judgment" | "action_closure" | "quiet_review" | "dream_run" | "memory_projection" | "tool_experience" | "connector_result" | "audit";
+export type SourceRefFamily = "evidence" | "perception" | "judgment" | "action_closure" | "quiet_review" | "dream_run" | "memory_projection" | "projection" | "tool_experience" | "connector_result" | "audit";
 export type RedactionClass = "none" | "redacted" | "blocked";
 export type SensitivityClass = "public_technical" | "public_general" | "private_context" | "sensitive";
 export type SourceResolveStatus = "resolvable" | "missing" | "redacted" | "permission_denied";

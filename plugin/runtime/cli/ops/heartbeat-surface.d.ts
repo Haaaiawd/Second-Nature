@@ -38,6 +38,16 @@ export interface HeartbeatSurfaceResult {
     v8Spine?: RealRuntimeSpineResult & {
         degradedReason?: string;
     };
+    /** T-GVS.R.1: agent-facing impulse context artifact read pointer */
+    impulseContext?: {
+        available: boolean;
+        sceneType?: string;
+        capabilityClass?: string | null;
+        impulseText?: string | null;
+        atmosphereText?: string | null;
+        freshnessMs?: number;
+        missingReason?: string;
+    };
 }
 export interface HeartbeatCheckInput {
     probeOnly?: boolean;
