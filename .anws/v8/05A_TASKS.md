@@ -799,7 +799,7 @@ graph TD
   - **依赖**: INT-S1, INT-S2, INT-S3, INT-S4, INT-S5
   - **优先级**: P0
 
-- [ ] **INT-R1** [MILESTONE]: Runtime Activation Repair Gate — Real Living Loop
+- [x] **INT-R1** [MILESTONE]: Runtime Activation Repair Gate — Real Living Loop
   - **描述**: Verify the repair backlog turns the v8 living loop from contract-smoke complete into real workspace runtime activity with agent-facing context, safe write capability, independent Quiet/Dream cadence, and causal health evidence.
   - **输入**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2 outputs
   - **输出**: `reports/int-r1-v8-runtime-activation-repair.md`

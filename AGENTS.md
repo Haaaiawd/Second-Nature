@@ -216,33 +216,37 @@ src/
 T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
 **签入**: USER
 **code-reviewer**: 默认执行
-- **状态**: T-CP.R.2 ✅, T-GVS.R.1 ✅, T-CS.R.1 ✅, T-DQ.R.2 ✅, T-OBS.R.2 ✅；INT-R1 待 `/forge`
+- **状态**: ✅ 全部完成
 - **产出**:
   - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — extended with full action-closure spine (proposal → policy → dispatch → closure)
   - `src/core/second-nature/control-plane/real-runtime-spine.ts` — bridge module wrapping `runHeartbeatCycle`
   - `src/cli/ops/heartbeat-surface.ts` — v8 spine result merged into heartbeat surface
   - `src/cli/ops/ops-router.ts` — auto-enables v8 spine when state DB is wired
-  - `tests/unit/control-plane/real-runtime-spine.test.ts` — 4/4 PASS (no-action, full cycle, simulated dispatch, degraded events)
-  - `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` — 3/3 PASS (wired, disabled, missing workspaceRoot)
-  - `tests/integration/v8/real-runtime-living-loop.test.ts` — 2/2 PASS (full cycle, closure diagnostics)
   - `src/core/second-nature/guidance/impulse-context-reader.ts` — read persisted artifact with freshness diagnostics
   - `src/core/second-nature/guidance/impulse-context-writer.ts` — persist assembled impulse + atmosphere as durable artifact
-  - `tests/unit/guidance/impulse-context-artifact.test.ts` — 4/4 PASS (write/read, missing, expired, overwrite)
-  - `tests/api/runtime-ops/guidance-context-command.test.ts` — 2/2 PASS (persisted read, missing reason)
-  - `.anws/v8/05A_TASKS.md` — T-CP.R.2, T-GVS.R.1 checked
-  - `.anws/v8/06_CHANGELOG.md` — T-CP.R.2, T-GVS.R.1 changelog entry
-- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；15/15 targeted tests PASS；`pnpm build:plugin` ✅
-- **最高严重度**: none (T-CP.R.2, T-GVS.R.1)
+  - `src/connectors/base/policy-bound-write-dispatch.ts` — write-side policy gate with dry-run/owner-confirm
+  - `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts` — independent Quiet/Dream daily rhythm
+  - `src/observability/living-loop-health-gate.ts` — real-run vs contract-smoke detection
+  - `src/storage/db/index.ts` — daily_rhythm_state schema added
+  - `src/storage/db/schema/v8-entities.ts` — daily_rhythm_state + impulse_context_artifact tables
+  - `src/storage/v8-state-stores.ts` — read/write ports for daily rhythm + impulse context
+  - 测试: 4/4 real-runtime-spine + 2/2 heartbeat-v8-spine + 2/2 real-runtime-living-loop
+  - 测试: 4/4 impulse-context-artifact + 2/2 guidance-context-command + 11/11 moltbook-write-policy + 4/4 moltbook-write-port
+  - 测试: 4/4 daily-rhythm-scheduler + 4/4 living-loop-health-gate + 2/2 INT-R1
+  - `.anws/v8/05A_TASKS.md` — Wave 106 全部 6 项任务 checked
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；41/41 targeted tests PASS；`pnpm build:plugin` ✅
+- **最高严重度**: none
 - **代码审查要点**:
   - ✅ Split-brain 修复：早期返回路径（空证据、感知降级）现在写入 closure
   - ✅ Exactly-once：每个周期产生恰好一个 closure/no-action；idempotency 键防止重复
-  - ✅ 降级可观测性：所有路径记录 canonical stage events（ingestion/perception/judgment/policy/closure）
-  - ✅ 无真实外部写入：保守策略默认值（platformPermissionDeclared=false, ownerPreferenceAllowAuto=false）
-  - ✅ 非烟雾测试：使用真实内存数据库验证持久化
-  - ✅ Impulse context: guidance_payload 先读 persisted artifact，无则 fallback 到 real-time assembly
-  - ✅ Heartbeat surface: 暴露 impulse context read pointer，不注册 fake context-engine
-  - ✅ Freshness: 24h expiry，显式 missing reason（artifact_not_persisted / artifact_expired / state_unreadable）
-- **下一步**: `/forge` T-CS.R.1 (MoltBook write safety) + T-DQ.R.2 (independent Quiet/Dream cadence) 并行
+  - ✅ 降级可观测性：所有路径记录 canonical stage events
+  - ✅ 无真实外部写入：保守策略默认值
+  - ✅ Impulse context: guidance_payload 先读 persisted artifact
+  - ✅ Heartbeat surface: 暴露 impulse context read pointer
+  - ✅ MoltBook write: policy proof gate，dry-run/owner-confirm 安全路径
+  - ✅ Daily rhythm: Quiet/Dream 独立节律，不依赖 heartbeat 恰好选中 quiet intent
+  - ✅ Health gate: 区分 contract-smoke 与 real-run，显式 missing stage reason
+- **下一步**: Wave 106 完成。所有 v8 05A_TASKS.md 任务已勾选。进入 Step 5 里程碑结算或继续下一波。
 
 ### 🌊 Wave 105 ✅ — v8 Repair: Audit-backed Connector/Quiet Digest Closure
 T-OBS.R.1
