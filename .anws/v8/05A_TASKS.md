@@ -217,7 +217,7 @@ graph TD
   - **依赖**: T-OBS.C.1, T-ROS.C.1, T-DQ.C.1
   - **优先级**: P0
 
-- [ ] **T-OBS.R.2** [REQ-006, REQ-008, REQ-009]: Add real living-loop health gate for runtime activation
+- [x] **T-OBS.R.2** [REQ-006, REQ-008, REQ-009]: Add real living-loop health gate for runtime activation
   - **描述**: Extend `loop_status`, `heartbeat_digest`, and integration reports so they distinguish contract-only v8 smoke from real workspace heartbeat activity across perception, judgment, policy, execution, closure, Quiet, Dream, projection, and impulse-context freshness.
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/control-plane-system.md §4`, T-OBS.C.2, T-ROS.C.1, T-OBS.R.1, T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2 outputs
   - **输出**: living-loop runtime health gate, real-run integration report, and updated loop/digest fixtures.
