@@ -10,6 +10,7 @@ import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js"
 import type { HeartbeatCycleResult } from "../heartbeat/signal.js";
 import { type QuietArtifactAck } from "../../../storage/quiet/quiet-artifact-writer.js";
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
+import type { AppendOnlyAuditStore } from "../../../observability/audit/append-only-audit-store.js";
 /**
  * Minimal port for triggering Dream after Quiet completion (T-V7C.C.3).
  * Kept narrow so run-source-backed-quiet does not take a hard dependency on dream-scheduler.
@@ -32,6 +33,8 @@ export interface RunSourceBackedQuietParams {
     workspaceRoot?: string;
     /** v7 T-V7C.C.3: when present, a successful Quiet artifact write auto-triggers Dream scheduling. */
     dreamSchedulePort?: QuietDreamSchedulePort;
+    /** T-OBS.R.1: when present, Quiet outcomes write audit truth consumed by heartbeat_digest. */
+    auditStore?: AppendOnlyAuditStore;
 }
 export interface RunSourceBackedQuietResult {
     result: HeartbeatCycleResult;

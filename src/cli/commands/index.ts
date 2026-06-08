@@ -356,6 +356,10 @@ export function createCliCommands(
       "T-ROS.C.3 — manually execute a connector capability outside heartbeat cadence",
     ),
     opsCommand(
+      "loop_status",
+      "T-ROS.C.1 — show v8 causal loop health: stalled stage, next action, and stage summaries",
+    ),
+    opsCommand(
       "self_health",
       "T-ROS.C.1 — show v7 self-health snapshot and degraded dimensions",
     ),

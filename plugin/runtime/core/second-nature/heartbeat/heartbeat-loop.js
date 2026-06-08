@@ -10,6 +10,7 @@ import { toCapabilityIntent } from "../orchestrator/effect-dispatcher.js";
 import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js";
 import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
+import { recordConnectorAttemptAudit } from "../../../observability/services/audit-closure-recorders.js";
 /**
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
@@ -40,6 +41,7 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
             workspaceRoot: deps.quietWorkflow.workspaceRoot,
             // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
             dreamSchedulePort: deps.quietWorkflow.dreamSchedulePort,
+            auditStore: deps.quietWorkflow.auditStore,
         });
         return quietRun.result;
     }
@@ -81,6 +83,15 @@ export async function resolveAllowedIntentResult(intent, runtime, inputs, signal
                     canonicalName: runtime.identity?.canonicalName,
                 }
                 : undefined,
+        });
+        recordConnectorAttemptAudit({
+            auditStore: deps.auditStore,
+            platformId: intent.platformId,
+            capability: toCapabilityIntent(intent),
+            result,
+            triggerSource: "heartbeat",
+            decisionId,
+            intentId: intent.id,
         });
         // T3.3.1: on success, map connector result to life evidence and append.
         // On failure or empty result, no evidence is fabricated — attempt audit

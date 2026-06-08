@@ -97,10 +97,21 @@ function aggregateHealthSummary(events, dateStr) {
 }
 function aggregateQuietDreamFromAudit(events, dateStr) {
     const dreamEvents = filterByDate(events, "dream.trace", dateStr);
+    const quietEvents = filterByDate(events, "source_coverage", dateStr)
+        .filter((ev) => ev.payload.subjectType === "quiet_artifact");
+    let quietRuns = 0;
+    let quietSucceeded = 0;
     let dreamRuns = 0;
     let dreamAccepted = 0;
     let dreamSkipped = 0;
     const dreamSkipReasons = [];
+    for (const ev of quietEvents) {
+        const payload = ev.payload;
+        quietRuns++;
+        if (payload.status === "completed" || payload.status === "empty") {
+            quietSucceeded++;
+        }
+    }
     for (const ev of dreamEvents) {
         const payload = ev.payload;
         if (payload.event === "dream_started")
@@ -113,10 +124,9 @@ function aggregateQuietDreamFromAudit(events, dateStr) {
                 dreamSkipReasons.push(payload.skipReason);
         }
     }
-    // Quiet stats not yet in audit (narrative.trace not fully wired) — default to 0
     return {
-        quietRuns: 0,
-        quietSucceeded: 0,
+        quietRuns,
+        quietSucceeded,
         dreamRuns,
         dreamAccepted,
         dreamSkipped,

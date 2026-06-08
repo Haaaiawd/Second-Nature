@@ -159,6 +159,12 @@ interface DreamTracePayload {
   skipReason?: string;
 }
 
+interface SourceCoveragePayload {
+  subjectType?: string;
+  status?: string;
+  reasonCodes?: string[];
+}
+
 interface HeartbeatDecisionPayload {
   outcome?: string;
   platformId?: string;
@@ -268,11 +274,23 @@ function aggregateQuietDreamFromAudit(
   dateStr: string,
 ): Omit<QuietDreamDaySummary, "degraded" | "degradedReason"> {
   const dreamEvents = filterByDate<DreamTracePayload>(events, "dream.trace", dateStr);
+  const quietEvents = filterByDate<SourceCoveragePayload>(events, "source_coverage", dateStr)
+    .filter((ev) => (ev.payload as SourceCoveragePayload).subjectType === "quiet_artifact");
 
+  let quietRuns = 0;
+  let quietSucceeded = 0;
   let dreamRuns = 0;
   let dreamAccepted = 0;
   let dreamSkipped = 0;
   const dreamSkipReasons: string[] = [];
+
+  for (const ev of quietEvents) {
+    const payload = ev.payload as SourceCoveragePayload;
+    quietRuns++;
+    if (payload.status === "completed" || payload.status === "empty") {
+      quietSucceeded++;
+    }
+  }
 
   for (const ev of dreamEvents) {
     const payload = ev.payload as DreamTracePayload;
@@ -284,10 +302,9 @@ function aggregateQuietDreamFromAudit(
     }
   }
 
-  // Quiet stats not yet in audit (narrative.trace not fully wired) — default to 0
   return {
-    quietRuns: 0,
-    quietSucceeded: 0,
+    quietRuns,
+    quietSucceeded,
     dreamRuns,
     dreamAccepted,
     dreamSkipped,

@@ -1,0 +1,205 @@
+{
+  "glossary": {
+    "Living Perception Loop": "Second Nature v8 的主闭环：外部输入经感知、判断、行动、处理与回顾，最终影响下一轮心跳。",
+    "Heartbeat Cycle": "Second Nature 的周期性身体动作，一轮必须有输入、产出、处理结果与下一步状态。",
+    "EvidenceItem": "从 connector 或本地运行面归一化得到的外部观察记录，保留来源、内容指纹、敏感度与时间。",
+    "PerceptionCard": "Nyx 可阅读的感知卡片，解释 EvidenceItem 代表什么、是否新鲜、是否相关、有什么风险。",
+    "JudgmentVerdict": "Nyx 对感知结果做出的判断，说明要忽略、观察、行动、通知、草拟、发布或等待。",
+    "ActionProposal": "由 JudgmentVerdict 产生的待处理动作，必须包含来源、理由、风险和预期产出。",
+    "ActionPolicyDecision": "统一自主边界判断，决定 ActionProposal 是允许执行、降级草拟、等待确认还是拒绝。",
+    "ActionClosureRecord": "一次心跳后行动的闭环记录，描述输入、决策、执行、产出、后处理和下一状态。",
+    "Quiet Review": "每日低噪声回顾，把一天的感知、行动与结果整理为可供 Dream 消化的日记材料。",
+    "Dream Consolidation": "较深层长期记忆形成机制，对 Quiet Review 与重要经历做候选、接受、投影和沉淀。",
+    "Long-Term Memory": "经 Quiet/Dream 回顾接受后的长期记忆，而不是每条实时证据的直接写入结果。",
+    "Memory Projection": "长期记忆被接受后暴露给 EmbodiedContext 与 host 的可读投影，不替代 Quiet/Dream。",
+    "public_technical": "公开技术讨论内容，允许普通安全术语出现，但不允许真实 credential value。"
+  },
+  "entities": [
+    {
+      "name": "Heartbeat Cycle",
+      "type": "聚合根",
+      "necessity": "必须",
+      "description": "v8 的最小生命节拍；每轮都要把输入、产出、处理与下一状态记录清楚。"
+    },
+    {
+      "name": "EvidenceItem",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "所有外部平台和运行时输入的归一化入口。"
+    },
+    {
+      "name": "PerceptionCard",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "把 EvidenceItem 变成 Nyx 可以理解和判断的语义对象。"
+    },
+    {
+      "name": "JudgmentVerdict",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "承载 agent 自主判断，而不是平台特判或固定脚本。"
+    },
+    {
+      "name": "ActionProposal",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "连接 judgment 与真实行动，统一覆盖回复、发布、通知、继续观察和 connector 调用。"
+    },
+    {
+      "name": "ActionPolicyDecision",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "保证 Agent 自行决定仍受统一安全、信任、平台能力与用户偏好边界约束。"
+    },
+    {
+      "name": "ActionClosureRecord",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "记录心跳后的行动是否完成、产生了什么、如何处理，以及下一轮该知道什么。"
+    },
+    {
+      "name": "Quiet Review",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "每日回顾层，聚合一天内的重要感知、判断、行动和结果。"
+    },
+    {
+      "name": "Dream Consolidation",
+      "type": "聚合根",
+      "necessity": "必须",
+      "description": "长期记忆形成层；负责从 Quiet Review 中沉淀可被接受和投影的长期记忆。"
+    },
+    {
+      "name": "Memory Projection",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "长期记忆的可读取投影，供 EmbodiedContext、Claw 和 Nyx 后续推理使用。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "Connector System",
+      "action": "归一化",
+      "to": "EvidenceItem",
+      "data": "platform payload, source refs, content hash, sensitivity class",
+      "trigger": "heartbeat selects read-type connector action",
+      "mode": "per heartbeat"
+    },
+    {
+      "from": "EvidenceItem",
+      "action": "解释",
+      "to": "PerceptionCard",
+      "data": "topic, entities, novelty, relevance, risk flags, summary",
+      "trigger": "new or changed evidence enters state",
+      "mode": "bounded near-real-time"
+    },
+    {
+      "from": "Nyx",
+      "action": "判断",
+      "to": "JudgmentVerdict",
+      "data": "reason, confidence, source refs, candidate action",
+      "trigger": "perception card is available",
+      "mode": "agent-authored decision"
+    },
+    {
+      "from": "JudgmentVerdict",
+      "action": "提出动作",
+      "to": "ActionProposal",
+      "data": "action type, expected output, risk posture, source refs",
+      "trigger": "verdict is actionable",
+      "mode": "platform-neutral"
+    },
+    {
+      "from": "ActionProposal",
+      "action": "过策略",
+      "to": "ActionPolicyDecision",
+      "data": "allow, defer, downgrade, deny, reason",
+      "trigger": "action may affect external platform or owner attention",
+      "mode": "mandatory guard"
+    },
+    {
+      "from": "ActionPolicyDecision",
+      "action": "执行或降级",
+      "to": "ActionClosureRecord",
+      "data": "input, decision, execution result, output artifact, follow-up state",
+      "trigger": "heartbeat action completes, fails, or is deferred",
+      "mode": "closed-loop"
+    },
+    {
+      "from": "ActionClosureRecord",
+      "action": "日终回顾",
+      "to": "Quiet Review",
+      "data": "important actions, unresolved observations, result summaries, emotional/goal impact",
+      "trigger": "quiet daily review window or explicit runtime command",
+      "mode": "daily consolidation input"
+    },
+    {
+      "from": "Quiet Review",
+      "action": "梦境整合",
+      "to": "Dream Consolidation",
+      "data": "daily diary, accepted important events, tool experience, goal movement",
+      "trigger": "quiet completion",
+      "mode": "long-term memory formation"
+    },
+    {
+      "from": "Dream Consolidation",
+      "action": "投影",
+      "to": "Memory Projection",
+      "data": "accepted long-term memory, source refs, status, supersession relation",
+      "trigger": "dream candidate accepted",
+      "mode": "agent-facing memory"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "Heartbeat Action Closure Ledger",
+      "category": "闭环可靠性",
+      "priority": "高",
+      "reason": "没有输入、产出、处理和下一状态记录时，heartbeat 只是定时任务，不像人的自然行动。"
+    },
+    {
+      "component": "Perception/Judgment Spine",
+      "category": "语义理解",
+      "priority": "高",
+      "reason": "当前 evidence 能增长但无法稳定变成 agent 可用判断。"
+    },
+    {
+      "component": "Quiet-to-Dream Long-Term Memory Contract",
+      "category": "记忆一致性",
+      "priority": "高",
+      "reason": "长期记忆必须来自一天回顾和 Dream 整合，而不是每条实时感知直接写入。"
+    },
+    {
+      "component": "Platform-Neutral Autonomy Policy",
+      "category": "自主行动",
+      "priority": "高",
+      "reason": "MoltBook、Instreet、娱乐平台和未来平台都需要共性动作模型，不能写窄平台特判。"
+    },
+    {
+      "component": "Context-Aware Sensitivity Classifier",
+      "category": "安全",
+      "priority": "中",
+      "reason": "技术社区自然出现 token、secret 等词，关键词扫描会误伤 public technical 内容。"
+    },
+    {
+      "component": "Causal Loop Health",
+      "category": "可观测性",
+      "priority": "中",
+      "reason": "需要看出系统卡在输入、感知、判断、行动、处理、回顾或 Dream 哪一段。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "MoltBook/Instreet 上 Nyx 能不能自动回复或发布？",
+      "answer": "需要 Agent 自行决定；这是所有平台共用的能力，不应限定在 MoltBook/Instreet。"
+    },
+    {
+      "question": "长期记忆是否由实时 MemoryProjection 直接形成？",
+      "answer": "不是；长期记忆靠 Dream/Quiet 回顾一整天来形成，MemoryProjection 只是 accepted long-term memory 的可读投影。"
+    },
+    {
+      "question": "heartbeat 后的行动应该如何定义完成？",
+      "answer": "必须闭环；每轮像人类自然行动一样有输入、产出、处理和下一状态。"
+    }
+  ]
+}

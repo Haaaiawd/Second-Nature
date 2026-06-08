@@ -145,6 +145,7 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                         workspaceRoot: options.workspaceRoot,
                         // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
                         dreamSchedulePort: options.dreamSchedulePort,
+                        auditStore: options.auditStore,
                     }
                     : undefined,
                 connectorExecutor: options.connectorExecutor,
@@ -162,6 +163,7 @@ export function createWorkspaceHeartbeatRunner(readModels, options = {}) {
                 idleCuriosityPolicy: options.idleCuriosityPolicy,
                 // v7 T-BTS.C.5: pass circuit breaker manager for execution health tracking.
                 circuitBreakerManager: options.circuitBreakerManager,
+                auditStore: options.auditStore,
             },
         });
         if (options.runtimeRecorder) {

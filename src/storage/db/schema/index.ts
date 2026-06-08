@@ -12,3 +12,4 @@ export * from "./narrative-state.js";
 export * from "./relationship-memory.js";
 export * from "./agent-goal.js";
 export * from "./memory-store.js";
+export * from "./v8-entities.js";

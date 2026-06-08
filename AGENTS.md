@@ -82,14 +82,14 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v7`
-- **活动任务清单**: `.anws/v7/05A_TASKS.md`
-- **活动验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-05-27` (`/forge` Wave 77 — T-V7C.C.6 Production Data Growth Closure)
+- **最新架构版本**: `.anws/v8`
+- **活动任务清单**: `.anws/v8/05A_TASKS.md`
+- **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
+- **最近一次更新**: `2026-06-05` (`/change` v8 — Runtime Activation Repair backlog)
 
-### 🌱 Genesis v7 🧭 — Embodied Agent Loop
+### 🌱 Genesis v8 🧭 — Living Perception Loop
 
-v7 将 Second Nature 从 Agent Self Layer 推进为具身闭环：LLM 是头脑，Second Nature 是身体和生活环境。新增 IdentityProfile、EmbodiedContext、ToolAffordance、ToolExperience、connector wet probe、CircuitBreaker、Quiet DailyDiary、Dream auto-schedule、HeartbeatDigest、NarrativeTimeline、RestoreSnapshot 与 RuntimeSecretAnchor。
+v8 将 Second Nature 从“能收集证据的身体”推进为“能自然行动并形成长期记忆的生活闭环”。新增 EvidenceItem、PerceptionCard、JudgmentVerdict、ActionProposal、ActionPolicyDecision、ActionClosureRecord、Quiet Daily Review、Dream-backed long-term memory projection 与 causal loop health。长期记忆只由 Quiet/Dream 日回顾形成；实时层负责 perception / judgment / action closure。
 
 ---
 
@@ -120,25 +120,37 @@ src/
 └── shared/
 
 .anws/
-└── v7/
+└── v8/
    ├── 00_MANIFEST.md
+   ├── 00_DEEPWIKI_MECHANISM_AUDIT.md
    ├── 01_PRD.md
    ├── 02_ARCHITECTURE_OVERVIEW.md
    ├── 03_ADR/
    │   ├── ADR_001_TECH_STACK.md
-   │   ├── ADR_002_EMBODIED_AGENT_LOOP.md
-   │   ├── ADR_003_TOOL_AFFORDANCE_AND_EXPERIENCE.md
-   │   ├── ADR_004_GOAL_LIFECYCLE_AND_IDLE_CURIOSITY.md
-   │   ├── ADR_005_DREAM_QUIET_PROJECTION.md
-   │   ├── ADR_006_CHANNEL_FEEDBACK_AND_SELF_HEALTH.md
-   │   ├── ADR_007_IDENTITY_DIGEST_AND_RECOVERY.md
-   │   └── ADR_008_CONNECTOR_PROBE_CIRCUIT_BREAKER_AND_ROLLBACK.md
+   │   ├── ADR_002_LIVING_PERCEPTION_LOOP.md
+   │   ├── ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md
+   │   ├── ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md
+   │   └── ADR_005_CAUSAL_LOOP_HEALTH.md
    ├── 04_SYSTEM_DESIGN/
-   │   └── README.md
+   │   ├── shared-v8-contracts.md
+   │   ├── runtime-ops-system.md
+   │   ├── control-plane-system.md
+   │   ├── perception-judgment-system.md
+   │   ├── perception-judgment-system.detail.md
+   │   ├── action-closure-policy-system.md
+   │   ├── action-closure-policy-system.detail.md
+   │   ├── state-memory-system.md
+   │   ├── body-tool-system.md
+   │   ├── connector-system.md
+   │   ├── dream-quiet-memory-system.md
+   │   ├── dream-quiet-memory-system.detail.md
+   │   ├── guidance-voice-system.md
+   │   ├── observability-health-system.md
+   │   └── observability-health-system.detail.md
    ├── 05A_TASKS.md
    ├── 05B_VERIFICATION_PLAN.md
-   ├── 06_CHANGELOG.md
    ├── 07_CHALLENGE_REPORT.md
+   ├── 06_CHANGELOG.md
    └── concept_model.json
 ```
 
@@ -148,13 +160,13 @@ src/
 
 > **注意**: 此部分由 `/genesis` 维护。
 
-- **架构总览**: `.anws/v7/02_ARCHITECTURE_OVERVIEW.md`
-- **PRD**: `.anws/v7/01_PRD.md`
-- **ADR**: `.anws/v7/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: `.anws/v7/04_SYSTEM_DESIGN/`；索引见 `.anws/v7/04_SYSTEM_DESIGN/README.md`
-- **执行主清单**: `.anws/v7/05A_TASKS.md`
-- **验证计划**: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- **质疑报告**: `.anws/v7/07_CHALLENGE_REPORT.md`
+- **架构总览**: `.anws/v8/02_ARCHITECTURE_OVERVIEW.md`
+- **PRD**: `.anws/v8/01_PRD.md`
+- **ADR**: `.anws/v8/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: `.anws/v8/04_SYSTEM_DESIGN/`
+- **执行主清单**: `.anws/v8/05A_TASKS.md`
+- **验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
+- **质疑报告**: `.anws/v8/07_CHALLENGE_REPORT.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
@@ -172,34 +184,274 @@ src/
 - Runtime secret: `SECOND_NATURE_ENCRYPTION_KEY` 必须由宿主稳定持久化；AGENTS/README/self_health 只记录管理位置与恢复原则，不记录 key 明文
 
 ### 系统边界
-- `runtime-ops-system`: plugin/CLI/bridge/manual run、`connector_test --wet`、digest、timeline、restore 与 secret recovery surface — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/runtime-ops-system.md`
-- `control-plane-system`: heartbeat、EmbodiedContext、GoalLifecycle、IdleCuriosity 与 outreach/Quiet/Dream 编排 — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/control-plane-system.md`
-- `state-memory-system`: IdentityProfile、AgentGoal、ToolExperience、DailyDiary、DreamOutput、NarrativeTimeline、RestoreSnapshot — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/state-memory-system.md`
-- `body-tool-system`: ToolAffordanceMap、ToolExperienceLog、ConnectorCircuitBreaker 与 behavior promotion — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/body-tool-system.md`
-- `connector-system`: manifest/registry/trust/credential execution、auto-probe、actualCapabilities 与 endpoint mapping — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/connector-system.md`
-- `dream-quiet-system`: Quiet DailyDiary、QuietClaim、Dream auto-schedule、candidate/accepted projection — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/dream-quiet-system.md`
-- `guidance-voice-system`: source-backed draft、朋友式但有来处的表达、channel-safe copy — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/guidance-voice-system.md`
-- `observability-health-system`: SelfHealth、HeartbeatDigest、NarrativeTimeline、restore audit、redaction 与 explain — 详细设计见 `.anws/v7/04_SYSTEM_DESIGN/observability-health-system.md`
+- `runtime-ops-system`: OpenClaw plugin / CLI / ops surface / `loop_status` — 详见 `.anws/v8/04_SYSTEM_DESIGN/runtime-ops-system.md`
+- `control-plane-system`: heartbeat 主循环、EmbodiedContext assembly、跨系统编排 — 详见 `.anws/v8/04_SYSTEM_DESIGN/control-plane-system.md`
+- `perception-judgment-system`: EvidenceItem → PerceptionCard → JudgmentVerdict，区分 public technical 与 credential-shaped risk — 详见 `.anws/v8/04_SYSTEM_DESIGN/perception-judgment-system.md`
+- `action-closure-policy-system`: ActionProposal、ActionPolicyDecision、ActionClosureRecord 与 no-action reason — 详见 `.anws/v8/04_SYSTEM_DESIGN/action-closure-policy-system.md`
+- `state-memory-system`: Evidence / perception / judgment / closure / Quiet / Dream / projection 的 bounded state 与 read models — 详见 `.anws/v8/04_SYSTEM_DESIGN/state-memory-system.md`
+- `body-tool-system`: ToolAffordance、ToolExperience、CircuitBreaker；回答“能不能做”，不回答“该不该做” — 详见 `.anws/v8/04_SYSTEM_DESIGN/body-tool-system.md`
+- `connector-system`: manifest/trust/credential-gated execution；执行能力但不拥有 agent 判断 — 详见 `.anws/v8/04_SYSTEM_DESIGN/connector-system.md`
+- `dream-quiet-memory-system`: Quiet Daily Review、Dream Consolidation、accepted long-term memory projection — 详见 `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
+- `guidance-voice-system`: source-backed draft / notify / reply / publish 文案生成，不拥有投递权 — 详见 `.anws/v8/04_SYSTEM_DESIGN/guidance-voice-system.md`
+- `observability-health-system`: causal loop health、audit、redaction、trace、digest 与 stall reason — 详见 `.anws/v8/04_SYSTEM_DESIGN/observability-health-system.md`
 
 ### 活跃 ADR
-- ADR-001: Continue TypeScript / Node / OpenClaw Plugin Runtime
-- ADR-002: Embodied Agent Loop Guides the Mind Without Scripted Control
-- ADR-003: Tool Affordance and Tool Experience Form the Agent Body
-- ADR-004: Goals Give Direction, IdleCuriosity Gives Natural Observation
-- ADR-005: Quiet Writes Diary, Dream Continues Sleep Consolidation
-- ADR-006: Delivery, Channel Feedback, and Self Health Must Be Truthful
-- ADR-007: Identity, Digest, and Runtime Secret Recovery Are First-Class Body Signals
-- ADR-008: Probe Truth, History Browser, and Bounded Rollback
+- ADR-001: Continue TypeScript / Node / OpenClaw Runtime
+- ADR-002: Introduce the Living Perception Loop
+- ADR-003: Long-Term Memory Must Be Formed by Quiet and Dream
+- ADR-004: Use Platform-Neutral Autonomy Policy
+- ADR-005: Add Causal Loop Health
 
 ### 当前任务状态
-- 执行主清单: `.anws/v7/05A_TASKS.md`（50 个任务 + 8 个 INT 里程碑 + S8 3 项）
-- 验证计划: `.anws/v7/05B_VERIFICATION_PLAN.md`
-- User Story 数: 12
-- 系统数: 8
-- **状态**: v7 `/forge` Wave 90 完成；S9 Connector 因果链完整性验证通过
-- **Challenge**: `.anws/v7/07_CHALLENGE_REPORT.md`（全部 5 项发现已关闭：INT-S6/restore/regression/README/lint）
-- **下一步**: v7 全部 Sprint 里程碑关门；或继续 v8 规划
-- **最近更新**: `2026-05-29` (`/forge` Wave 90 + residual fix — T-CS.C.11/C.12 + INT-S9 + 4 项残留风险全部闭环)
+- 执行主清单: `.anws/v8/05A_TASKS.md`
+- 验证计划: `.anws/v8/05B_VERIFICATION_PLAN.md`
+- User Story 数: 9
+- 系统数: 10
+- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
+- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
+- **下一步**: Wave 106 `/forge` repair，从 T-CP.R.2 real runtime spine 开始
+- **最近更新**: `2026-06-05` (`/change` repair backlog — runtime activation)
+
+### 🌊 Wave 106 🧭 — v8 Change: Runtime Activation Repair Backlog
+T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ 全部完成
+- **产出**:
+  - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — extended with full action-closure spine (proposal → policy → dispatch → closure)
+  - `src/core/second-nature/control-plane/real-runtime-spine.ts` — bridge module wrapping `runHeartbeatCycle`
+  - `src/cli/ops/heartbeat-surface.ts` — v8 spine result merged into heartbeat surface
+  - `src/cli/ops/ops-router.ts` — auto-enables v8 spine when state DB is wired
+  - `src/core/second-nature/guidance/impulse-context-reader.ts` — read persisted artifact with freshness diagnostics
+  - `src/core/second-nature/guidance/impulse-context-writer.ts` — persist assembled impulse + atmosphere as durable artifact
+  - `src/connectors/base/policy-bound-write-dispatch.ts` — write-side policy gate with dry-run/owner-confirm
+  - `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts` — independent Quiet/Dream daily rhythm
+  - `src/observability/living-loop-health-gate.ts` — real-run vs contract-smoke detection
+  - `src/storage/db/index.ts` — daily_rhythm_state schema added
+  - `src/storage/db/schema/v8-entities.ts` — daily_rhythm_state + impulse_context_artifact tables
+  - `src/storage/v8-state-stores.ts` — read/write ports for daily rhythm + impulse context
+  - 测试: 4/4 real-runtime-spine + 2/2 heartbeat-v8-spine + 2/2 real-runtime-living-loop
+  - 测试: 4/4 impulse-context-artifact + 2/2 guidance-context-command + 11/11 moltbook-write-policy + 4/4 moltbook-write-port
+  - 测试: 4/4 daily-rhythm-scheduler + 4/4 living-loop-health-gate + 2/2 INT-R1
+  - `.anws/v8/05A_TASKS.md` — Wave 106 全部 6 项任务 checked
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；41/41 targeted tests PASS；`pnpm build:plugin` ✅
+- **最高严重度**: none
+- **代码审查要点**:
+  - ✅ Split-brain 修复：早期返回路径（空证据、感知降级）现在写入 closure
+  - ✅ Exactly-once：每个周期产生恰好一个 closure/no-action；idempotency 键防止重复
+  - ✅ 降级可观测性：所有路径记录 canonical stage events
+  - ✅ 无真实外部写入：保守策略默认值
+  - ✅ Impulse context: guidance_payload 先读 persisted artifact
+  - ✅ Heartbeat surface: 暴露 impulse context read pointer
+  - ✅ MoltBook write: policy proof gate，dry-run/owner-confirm 安全路径
+  - ✅ Daily rhythm: Quiet/Dream 独立节律，不依赖 heartbeat 恰好选中 quiet intent
+  - ✅ Health gate: 区分 contract-smoke 与 real-run，显式 missing stage reason
+- **下一步**: Wave 106 完成。所有 v8 05A_TASKS.md 任务已勾选。进入 Step 5 里程碑结算或继续下一波。
+
+### 🌊 Wave 105 ✅ — v8 Repair: Audit-backed Connector/Quiet Digest Closure
+T-OBS.R.1
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-04）
+- **产出**:
+  - `src/observability/services/audit-closure-recorders.ts` — connector attempt and Quiet artifact audit recorders
+  - `src/observability/services/heartbeat-digest-assembler.ts` — audit fallback now counts Quiet source coverage events
+  - `src/cli/index.ts`, `src/cli/ops/heartbeat-surface.ts`, `src/cli/ops/ops-router.ts`, `src/cli/ops/workspace-heartbeat-runner.ts` — shared audit store wiring
+  - `src/cli/ops/manual-run-dispatcher.ts`, `src/core/second-nature/heartbeat/heartbeat-loop.ts`, `src/core/second-nature/quiet/run-source-backed-quiet.ts` — manual/heartbeat connector and Quiet audit emission
+  - `.anws/v8/wave-reviews/wave-105-review.md` — static code review report
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；targeted node tests 58/58 PASS；`pnpm build:plugin` ✅
+- **最高严重度**: none
+- **下一步**: 如需更保守，可跑全量 `pnpm test`；当前 targeted gate 已覆盖 T-OBS.R.1 验收
+
+### 🌊 Wave 104 ✅ — v8 S5 Closure: INT-S5 + INT-V8 + T-REG.C.1 Regression Gate
+INT-S5, INT-V8, T-REG.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `reports/int-s5-v8-explain-the-loop.md` — S5 集成验证报告
+  - `reports/int-v8-living-perception-loop.md` — v8 全链 Living Perception Loop 集成报告
+  - `reports/v8-regression-gate.md` — 回归门报告（1447/1456 pass, 0 fail）
+  - `tests/integration/v8/loop-status-integration.test.ts` — INT-S5 集成测试 2/2 PASS
+  - `tests/integration/v8/living-perception-loop.test.ts` — INT-V8 全链集成测试 12/12 PASS
+- **测试**: `pnpm build` ✅；`pnpm typecheck` ✅；全量回归 1447/1456 pass, 0 fail, 9 skipped（历史 justified skips）
+- **最高严重度**: none
+- **下一步**: v8 全部完成。所有 05A_TASKS.md 任务已勾选。
+
+### 🌊 Wave 103 ✅ — v8 S5 Wave 1: loop_status + Diagnostic Redaction + Guidance Consumption
+T-ROS.C.1, T-OBS.C.3, T-GVS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/observability/loop-status.ts` — readLoopStatus with nextAction generation, operator-facing diagnostics
+  - `src/cli/ops/ops-router.ts` — loop_status command dispatch with degraded envelope handling
+  - `src/cli/commands/index.ts` — loop_status CLI registration
+  - `src/observability/diagnostic-redaction.ts` — projectDiagnosticRedaction with classifyDiagnosticAttribution (storage/dream/perception/policy)
+  - `src/core/second-nature/guidance/guidance-proposal-consumer.ts` — consumeGuidanceProposal with source validation, GuidanceOutput shape, degraded paths
+  - `tests/unit/observability/loop-status.test.ts` — 2 单元测试（0 失败）
+  - `tests/unit/observability/diagnostic-redaction.test.ts` — 8 单元测试（0 失败）
+  - `tests/unit/guidance/guidance-proposal-consumer.test.ts` — 8 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；loop-status 2/2 PASS；diagnostic-redaction 8/8 PASS；guidance-proposal-consumer 8/8 PASS
+- **最高严重度**: none
+- **下一步**: Wave 104 — INT-S5 (S5 Milestone) + INT-V8 + T-REG.C.1 (Regression Gate)
+
+### 🌊 Wave 102 ✅ — v8 S4 Milestone + CP Projection Loader + Loop Health
+INT-S4, T-CP.C.2, T-OBS.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `reports/int-s4-v8-remember-by-quiet-dream.md` — S4 集成验证报告
+  - `src/core/second-nature/control-plane/accepted-projection-loader.ts` — loadAcceptedProjections with active/accepted-only filter, candidate exclusion, degraded handling
+  - `src/observability/causal-loop-health.ts` — assembleLoopStatus with stage freshness, stall detection by cycle-sequence gap
+  - `tests/unit/control-plane/accepted-projection-loader.test.ts` — 1 单元测试（0 失败）
+  - `tests/unit/observability/causal-loop-health.test.ts` — 1 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；accepted-projection-loader 1/1 PASS；causal-loop-health 1/1 PASS
+- **最高严重度**: none
+- **下一步**: Wave 103 — T-ROS.C.1 (loop_status) + T-OBS.C.3 (Diagnostic Redaction) + INT-S5
+
+### 🌊 Wave 101 ✅ — v8 S4 Dream Consolidation + Memory Projection
+T-DQ.C.3, T-DQ.C.4
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/quiet-dream/dream-consolidation-runner.ts` — runDreamConsolidation with rules-only candidate generation, redaction gate, validation, projection candidate write
+  - `src/core/second-nature/quiet-dream/memory-projection-lifecycle.ts` — acceptMemoryProjection with auto-supersede, rejectMemoryProjection, retireMemoryProjection
+  - `src/storage/v8-state-stores.ts` — added readDreamConsolidationRunById
+  - `tests/unit/dream/dream-consolidation-runner.test.ts` — 1 单元测试（0 失败）
+  - `tests/unit/dream/memory-projection-lifecycle.test.ts` — 4 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；dream-consolidation-runner 1/1 PASS；memory-projection-lifecycle 4/4 PASS
+- **最高严重度**: none
+- **下一步**: Wave 102 — INT-S4 (S4 Milestone) + T-CP.C.2 (Accepted Projection Loader) + T-OBS.C.2 (Loop Health)
+
+### 🌊 Wave 100 ✅ — v8 S3 Milestone + S4 Quiet/Dream Bootstrap
+INT-S3, T-DQ.C.1, T-DQ.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `reports/int-s3-v8-act-and-close.md` — S3 集成验证报告
+  - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts` — buildQuietDailyReview from ActionClosureRecord by day, memory candidate extraction, summary generation
+  - `src/core/second-nature/quiet-dream/dream-scheduler.ts` — scheduleDreamAfterQuiet with scheduled/blocked lifecycle, scheduler unavailable handling
+  - `src/storage/v8-state-stores.ts` — added readActionClosuresByDay, readQuietDailyReviewById
+  - `tests/unit/quiet/quiet-daily-review-builder.test.ts` — 2 单元测试（0 失败）
+  - `tests/unit/dream/dream-scheduler-lifecycle.test.ts` — 2 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；quiet-daily-review-builder 2/2 PASS；dream-scheduler 2/2 PASS
+- **最高严重度**: none
+- **下一步**: Wave 101 — T-DQ.C.3 (Dream Consolidation) + T-DQ.C.4 (Memory Projection)
+
+### 🌊 Wave 99 ✅ — v8 S3 Dispatch + Closure Recorder
+T-AC.C.3, T-AC.C.4
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/action/policy-bound-dispatch.ts` — dispatchAllowedAction with deny/defer/downgrade/allow routing, connector/guidance dispatch envelopes, guidance_unavailable fallback
+  - `src/core/second-nature/action/action-closure-recorder.ts` — recordNoActionClosure, recordRememberClosure, recordPolicyOutcomeClosure, recordExecutionClosure with idempotent semantics
+  - `tests/unit/action/policy-bound-dispatch.test.ts` — 7 单元测试（0 失败）
+  - `tests/unit/action/action-closure-recorder.test.ts` — 4 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；policy-bound-dispatch 7/7 PASS；action-closure-recorder 4/4 PASS
+- **最高严重度**: none
+- **下一步**: Wave 100 — INT-S3 (S3 Milestone) 或进入 S4 (Quiet/Dream/Projection)
+
+### 🌊 Wave 98 ✅ — v8 S3 Action Proposal + Policy Evaluator
+T-AC.C.1, T-AC.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/action/action-proposal-builder.ts` — buildActionProposal from JudgmentVerdict, with no-action/remember-for-review/proposal branches, MemoryReviewCandidateClosure emission, batch builder
+  - `src/core/second-nature/action/autonomy-policy-evaluator.ts` — evaluateActionPolicy with table-driven allow/defer/downgrade/deny decisions (source refs, risk posture, breaker, permission, owner preference)
+  - `src/storage/v8-state-stores.ts` — added readJudgmentVerdictById
+  - `tests/unit/action/action-proposal-builder.test.ts` — 3 单元测试（0 失败）
+  - `tests/unit/action/autonomy-policy-evaluator.test.ts` — 9 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；action-proposal-builder 3/3 PASS；autonomy-policy-evaluator 9/9 PASS
+- **最高严重度**: none
+- **下一步**: Wave 99 — T-AC.C.3 (Policy-bound Dispatch) + T-AC.C.4 (ActionClosureRecord)
+
+### 🌊 Wave 96 ✅ — v8 S2 Judgment Engine + Heartbeat Orchestrator
+T-PJ.C.3, T-CP.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/perception/judgment-engine.ts` — runAgentJudgment with rules-only decision tree (relevance/risk/confidence/source-refs thresholds), batch judgment, degraded handling
+  - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — runHeartbeatCycle with monotonic cycleSequence, perception/judgment port invocation, stage event recording, no semantic decision in control-plane
+  - `src/storage/v8-state-stores.ts` — added readPerceptionCardById
+  - `tests/unit/judgment/judgment-engine.test.ts` — 3 单元测试（0 失败）
+  - `tests/unit/control-plane/heartbeat-cycle-trace.test.ts` — 2 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；judgment-engine 3/3 PASS；heartbeat-orchestrator 2/2 PASS
+- **最高严重度**: none
+- **下一步**: Wave 97 — INT-S2 (S2 Milestone) 或 T-AC.C.1 (Action Proposal)
+
+### 🌊 Wave 95 ✅ — v8 S2 Perception Builder
+T-PJ.C.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/perception/perception-builder.ts` — buildPerceptionCards with topic/entities/novelty/relevance/summary/risk/priority inference, rules-only fallback, empty batch handling, truncation support
+  - `tests/unit/perception/perception-builder.test.ts` — 4 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；perception-builder 4/4 PASS
+- **最高严重度**: none
+- **下一步**: Wave 96 — T-PJ.C.3 (Judgment Engine) + T-CP.C.1 (Heartbeat Trace) 或 INT-S2
+
+### 🌊 Wave 94 ✅ — v8 S1 Milestone INT-S1 + S2 Sensitivity Classifier
+INT-S1, T-PJ.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/core/second-nature/perception/sensitivity-classifier.ts` — classifyEvidenceSensitivity with credential/private/public_technical/public_general signals + batch support
+  - `tests/unit/perception/sensitivity-classifier.test.ts` — 13 单元测试（0 失败）
+  - `reports/int-s1-v8-contract-spine.md` — S1 集成验证报告（88 测试全绿，schema 无漂移）
+- **测试**: `pnpm build` ✅；sensitivity-classifier 13/13 PASS
+- **最高严重度**: none
+- **下一步**: Wave 95 — T-PJ.C.2 (Perception Builder) + T-PJ.C.3 (Judgment Engine) 或 INT-S2
+
+### 🌊 Wave 93 ✅ — v8 S1 Observability + Connector: Loop Stage Event + Evidence Normalization
+T-OBS.C.1, T-CS.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/observability/loop-stage-event-sink.ts` — recordLoopStageEvent with validation, redaction, batch recording, malformed-event degraded response
+  - `src/connectors/evidence-normalizer.ts` — normalizeConnectorEvidence with dedup by content hash, sensitivity classification, empty/truncation/failure handling
+  - `src/shared/types/v8-contracts.ts` — added payloadJson to LoopStageEvent
+  - `tests/unit/observability/loop-stage-event-sink.test.ts` — 12 单元测试（0 失败）
+  - `tests/unit/connectors/evidence-normalizer.test.ts` — 14 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；loop-stage-event 12/12 PASS；evidence-normalizer 14/14 PASS
+- **最高严重度**: none
+- **下一步**: Wave 94 — T-PJ.C.1 (Sensitivity Classifier) + T-CP.C.1 (Heartbeat Trace) 或 INT-S1
+
+### 🌊 Wave 92 ✅ — v8 S1 State Stores + Body Tool Side Effects
+T-SMS.C.1, T-BT.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/storage/db/schema/v8-entities.ts` — 9 tables (evidence_item, perception_card, judgment_verdict, action_closure_record, quiet_daily_review, dream_consolidation_run, long_term_memory_projection, heartbeat_cycle_trace, loop_stage_event)
+  - `src/storage/v8-state-stores.ts` — write/read ports per family with source-ref validation, degraded response, lifecycle status round-trip
+  - `src/core/second-nature/body/tool-affordance/affordance-side-effect.ts` — deriveConnectorSideEffect + assembleCapabilityAffordancePosture + buildSideEffectAwareAffordanceMap + policy-facing helpers
+  - `tests/unit/storage/v8-state-stores.test.ts` — 13 单元测试（0 失败）
+  - `tests/unit/body/affordance-side-effect.test.ts` — 15 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；v8-state-stores 13/13 PASS；affordance-side-effect 15/15 PASS
+- **最高严重度**: none
+- **下一步**: Wave 93 — T-OBS.C.1 (Loop Stage Event Sink) + T-CS.C.1 (Evidence Normalization) 或 INT-S1
+
+### 🌊 Wave 91 ✅ — v8 S1 Contract Spine: Shared Contracts
+T-SH.C.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 完成（2026-06-01）
+- **产出**:
+  - `src/shared/types/v8-contracts.ts` — PlatformNeutralActionKind + ACTION_KIND_REGISTRY + SourceRef + HeartbeatCycleTrace + LoopStageEvent + MemoryReviewCandidateClosure + DegradedOperationResult + V8ReasonCode
+  - `tests/unit/contracts/v8-shared-contracts.test.ts` — 21 单元测试（0 失败）
+- **测试**: `pnpm build` ✅；`node --test dist/tests/unit/contracts/v8-shared-contracts.test.js` — 21/21 PASS
+- **最高严重度**: none
+- **下一步**: Wave 92 — T-SMS.C.1 (State Stores) + T-OBS.C.1 (Loop Stage Event Sink)
 
 ### 🌊 Wave 90 ✅ — v7 S9 Connector: Scriptable Runner + INT-S9 里程碑关门
 T-CS.C.11, T-CS.C.12, INT-S9

@@ -28,6 +28,8 @@ import type { ConnectorExecutor, ConnectorResult } from "../../connectors/base/c
 import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 import type { WetProbeRunner } from "../../connectors/base/wet-probe-runner.js";
 import type { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.js";
+import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+import { recordConnectorAttemptAudit } from "../../observability/services/audit-closure-recorders.js";
 import {
   heartbeatCheck,
   type HeartbeatCheckInput,
@@ -93,6 +95,7 @@ export interface ManualRunDispatcherDeps {
   experienceWriter: ExperienceWriter;
   wetProbeRunner: WetProbeRunner;
   registryV7: CapabilityContractRegistryV7;
+  auditStore?: AppendOnlyAuditStore;
 }
 
 function buildManualContext(
@@ -131,6 +134,15 @@ export function createManualRunDispatcher(
         capabilityId: input.capabilityId,
         result: connectorResult,
         triggerSource: ctx.triggerSource,
+      });
+      recordConnectorAttemptAudit({
+        auditStore: deps.auditStore,
+        platformId: input.platformId,
+        capability: input.capabilityId,
+        result: connectorResult,
+        triggerSource: ctx.triggerSource,
+        decisionId,
+        intentId,
       });
 
       const runResult: ConnectorRunResult = {

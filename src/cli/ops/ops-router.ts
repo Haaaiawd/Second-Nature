@@ -62,6 +62,9 @@ import {
 import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 import type { RestoreSnapshotStore } from "../../storage/services/restore-snapshot-store.js";
 import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
+// v8 T-ROS.C.1: loop_status read model
+import { readLoopStatus } from "../../observability/loop-status.js";
+
 // T-ROS.C.3: ManualRunDispatcher and its deps
 import {
   createManualRunDispatcher,
@@ -659,9 +662,13 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             experienceWriter,
             digestOpts,
             dreamSchedulePort,
+            auditStore: deps.auditStore,
             goalLifecyclePolicy,
             idleCuriosityPolicy,
             circuitBreakerManager,
+            v8SpineEnabled:
+              (input as Partial<HeartbeatCheckInput> | undefined)
+                ?.v8SpineEnabled ?? (deps.state !== undefined),
           });
           if (
             result.ok &&
@@ -1028,6 +1035,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           experienceWriter,
           wetProbeRunner,
           registryV7,
+          auditStore: deps.auditStore,
         });
         return dispatcher.runConnector({
           platformId,
@@ -1102,6 +1110,78 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         const limit = typeof input?.limit === "number" ? input.limit : 5;
         const data = await deps.readModels.loadCycleRecent(limit);
         return { ok: true, data };
+      }
+
+      // ─── v8 commands (T-ROS.C.1) ─────────────────────────────────────────
+
+      /**
+       * [G1] loop_status — v8 causal loop health read model.
+       * Returns machine-readable overallStatus, stalledAt, stageSummaries,
+       * and human-readable nextAction for operator diagnosis.
+       */
+      if (command === "loop_status") {
+        const generatedAt = new Date().toISOString();
+        if (!deps.state) {
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "loop_status",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: {
+              code: "STATE_DB_UNAVAILABLE",
+              message: "loop_status requires state database in OpsRouterDeps",
+              nextStep: "wire_state_db_into_ops_router",
+            },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
+        try {
+          const result = await readLoopStatus(deps.state);
+          if (!result.ok) {
+            const envelope: RuntimeOpsEnvelope = {
+              ok: false,
+              command: "loop_status",
+              runtimeMode: "workspace_full_runtime",
+              surfaceMode: "cli",
+              generatedAt,
+              error: {
+                code: "LOOP_STATUS_DEGRADED",
+                message: result.degraded.operatorNextAction,
+                nextStep: "check_state_db_and_retry",
+              },
+              warnings: [result.degraded.reason],
+              sourceRefs: result.degraded.sourceRefs.map((r) => r.uri),
+            };
+            return envelope;
+          }
+          const envelope: RuntimeOpsEnvelope = {
+            ok: true,
+            command: "loop_status",
+            runtimeMode: "workspace_full_runtime",
+            surfaceMode: "cli",
+            generatedAt,
+            data: result.status,
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const envelope: RuntimeOpsEnvelope = {
+            ok: false,
+            command: "loop_status",
+            runtimeMode: "unavailable",
+            surfaceMode: "cli",
+            generatedAt,
+            error: { code: "LOOP_STATUS_EXCEPTION", message: msg },
+            warnings: [],
+            sourceRefs: [],
+          };
+          return envelope;
+        }
       }
 
       // ─── v7 commands (T-ROS.C.1) ─────────────────────────────────────────
@@ -1663,15 +1743,12 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         }
       }
 
-      // ─── T-V7C.C.4R: guidance_payload ──────────────────────────────────────
+      // ─── T-V7C.C.4R + T-GVS.R.1: guidance_payload ─────────────────────────
       // Returns the assembled impulse + atmosphere for a given scene context.
-      // Useful for Claw to inspect what guidance content would be injected before
-      // a real heartbeat cycle, and to verify platform-specific impulse overrides.
+      // When state DB is wired, reads persisted artifact first; falls back to
+      // real-time assembly and persists for subsequent reads.
       if (command === "guidance_payload") {
         const generatedAt = new Date().toISOString();
-        const { assembleImpulseSync } = await import("../../guidance/impulse-assembler.js");
-        const { getBaselineAtmosphereTemplate } = await import("../../guidance/template-registry.js");
-
         const sceneType = (input?.sceneType as string | undefined) ?? "social";
         const capabilityIntent = typeof input?.capabilityIntent === "string"
           ? input.capabilityIntent
@@ -1699,25 +1776,59 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           return envelope;
         }
 
-        const impulseResult = assembleImpulseSync({
-          sceneType: sceneType as import("../../guidance/types.js").GuidanceSceneType,
-          capabilityIntent,
-          platformId,
-        });
+        // T-GVS.R.1: Try reading persisted artifact first
+        let artifactData: Record<string, unknown> | undefined;
+        let warnings: string[] = [];
+        let sourceRefs: string[] = [
+          "guidance/capability-class.ts",
+          "guidance/impulse-assembler.ts",
+          "guidance/template-registry.ts",
+          "guidance/output-guard.ts",
+        ];
 
-        const { buildExpressionBoundary } = await import("../../guidance/output-guard.js");
-        const { getShortAtmosphereTemplate } = await import("../../guidance/template-registry.js");
+        if (deps.state) {
+          try {
+            const { readImpulseContext } = await import(
+              "../../core/second-nature/guidance/impulse-context-reader.js"
+            );
+            const existing = await readImpulseContext(deps.state, sceneType, capabilityIntent, platformId);
+            if (existing.available) {
+              artifactData = {
+                sceneType: existing.artifact.sceneType,
+                capabilityIntent: existing.artifact.capabilityIntent,
+                platformId: existing.artifact.platformId,
+                capabilityClass: existing.artifact.capabilityClass,
+                impulseSource: existing.artifact.impulseSource,
+                impulseText: existing.artifact.impulseText,
+                atmosphereText: existing.artifact.atmosphereText,
+                expressionBoundaryConstraints: existing.artifact.expressionBoundaryConstraints,
+                expressionBoundaryStyle: existing.artifact.expressionBoundaryStyle,
+                freshnessMs: existing.freshnessMs,
+                persisted: true,
+              };
+              sourceRefs.push("core/second-nature/guidance/impulse-context-reader.ts");
+            }
+          } catch {
+            // Reader failure → fall through to assembly
+          }
+        }
 
-        const atmosphere = getShortAtmosphereTemplate("active", "low");
-        const expressionBoundary = buildExpressionBoundary(sceneType as import("../../guidance/types.js").GuidanceSceneType);
+        // Real-time assembly if no persisted artifact
+        if (!artifactData) {
+          const { assembleImpulseSync } = await import("../../guidance/impulse-assembler.js");
+          const { buildExpressionBoundary } = await import("../../guidance/output-guard.js");
+          const { getShortAtmosphereTemplate } = await import("../../guidance/template-registry.js");
 
-        const envelope: RuntimeOpsEnvelope = {
-          ok: true,
-          command: "guidance_payload",
-          runtimeMode: deps.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier",
-          surfaceMode: "cli",
-          generatedAt,
-          data: {
+          const impulseResult = assembleImpulseSync({
+            sceneType: sceneType as import("../../guidance/types.js").GuidanceSceneType,
+            capabilityIntent,
+            platformId,
+          });
+
+          const atmosphere = getShortAtmosphereTemplate("active", "low");
+          const expressionBoundary = buildExpressionBoundary(sceneType as import("../../guidance/types.js").GuidanceSceneType);
+
+          artifactData = {
             sceneType,
             capabilityIntent: capabilityIntent ?? null,
             platformId: platformId ?? null,
@@ -1729,16 +1840,49 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             atmosphereReviewStatus: atmosphere.reviewStatus,
             expressionBoundaryConstraints: expressionBoundary.constraints,
             expressionBoundaryStyle: expressionBoundary.style,
-          },
-          warnings: impulseResult.source === "none"
-            ? ["no_impulse_available_for_this_scene_and_capability"]
-            : [],
-          sourceRefs: [
-            "guidance/capability-class.ts",
-            "guidance/impulse-assembler.ts",
-            "guidance/template-registry.ts",
-            "guidance/output-guard.ts",
-          ],
+            persisted: false,
+          };
+
+          if (impulseResult.source === "none") {
+            warnings.push("no_impulse_available_for_this_scene_and_capability");
+          }
+
+          // T-GVS.R.1: Persist assembled artifact for future reads
+          if (deps.state) {
+            try {
+              const { writeImpulseContext } = await import(
+                "../../core/second-nature/guidance/impulse-context-writer.js"
+              );
+              await writeImpulseContext(
+                deps.state,
+                {
+                  sceneType,
+                  capabilityIntent,
+                  platformId,
+                  impulseResult,
+                  atmosphereText: atmosphere.text,
+                  expressionBoundaryConstraints: expressionBoundary.constraints,
+                  expressionBoundaryStyle: expressionBoundary.style,
+                },
+                { now: generatedAt },
+              );
+              sourceRefs.push("core/second-nature/guidance/impulse-context-writer.ts");
+            } catch {
+              // Persistence failure is non-fatal; surface still returns assembled payload
+              warnings.push("impulse_context_persistence_failed");
+            }
+          }
+        }
+
+        const envelope: RuntimeOpsEnvelope = {
+          ok: true,
+          command: "guidance_payload",
+          runtimeMode: deps.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier",
+          surfaceMode: "cli",
+          generatedAt,
+          data: artifactData,
+          warnings,
+          sourceRefs,
         };
         return envelope;
       }

@@ -26,6 +26,7 @@ import type { ConnectorExecutor, ConnectorResult } from "../../connectors/base/c
 import type { ExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
 import type { WetProbeRunner } from "../../connectors/base/wet-probe-runner.js";
 import type { CapabilityContractRegistryV7 } from "../../connectors/base/manifest-v7.js";
+import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 import { type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
 import type { RuntimeOpsEnvelope } from "./ops-router.js";
 export interface ManualTriggerContext {
@@ -75,5 +76,6 @@ export interface ManualRunDispatcherDeps {
     experienceWriter: ExperienceWriter;
     wetProbeRunner: WetProbeRunner;
     registryV7: CapabilityContractRegistryV7;
+    auditStore?: AppendOnlyAuditStore;
 }
 export declare function createManualRunDispatcher(deps: ManualRunDispatcherDeps): ManualRunDispatcher;

@@ -430,6 +430,54 @@ describe("T-ROS.C.1 #4: heartbeat_digest", () => {
     const result = await router.dispatch("heartbeat_digest") as RuntimeOpsEnvelope;
     assert.strictEqual(result.ok, true);
   });
+
+  it("T-OBS.R.1 — connector:run writes audit visible to heartbeat_digest", async () => {
+    const auditStore = new AppendOnlyAuditStore();
+    const stateDb = createStateDatabase(":memory:");
+    const connectorExecutor = {
+      async executeEffect(input: { platformId: string; intent: string }) {
+        return {
+          status: "success" as const,
+          data: { items: [{ id: "event-1" }] },
+          metadata: {
+            platformId: input.platformId,
+            channel: "api_rest" as const,
+            latencyMs: 12,
+            degraded: false,
+          },
+        };
+      },
+    };
+    const router = createOpsRouter({
+      runtimeAvailable: true,
+      auditStore,
+      state: stateDb,
+      connectorExecutor,
+    });
+
+    const run = await router.dispatch("connector:run", {
+      platformId: "moltbook",
+      capabilityId: "feed.read",
+    }) as RuntimeOpsEnvelope;
+    assert.strictEqual(run.ok, true);
+
+    const date = new Date().toISOString().slice(0, 10);
+    const digestResult = await router.dispatch("heartbeat_digest", { date }) as RuntimeOpsEnvelope;
+    assert.strictEqual(digestResult.ok, true);
+    const digest = digestResult.data as {
+      connectorSummary: Array<{
+        platformId: string;
+        capability: string;
+        successCount: number;
+      }>;
+    };
+    const summary = digest.connectorSummary.find(
+      (entry) => entry.platformId === "moltbook" && entry.capability === "feed.read",
+    );
+    assert.ok(summary, "connector summary must include manual run attempt");
+    assert.strictEqual(summary.successCount, 1);
+    stateDb.close();
+  });
 });
 
 // ─── 5. narrative:diff ────────────────────────────────────────────────────────

@@ -41,6 +41,7 @@ import { createHistoryDigestStore } from "../../storage/services/history-digest-
 import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
+import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 
 export interface WorkspaceHeartbeatRunnerOptions {
   /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
@@ -92,6 +93,8 @@ export interface WorkspaceHeartbeatRunnerOptions {
      */
     digestWindowHour?: number;
   };
+  /** T-OBS.R.1: shared audit sink for heartbeat connector and Quiet outcomes. */
+  auditStore?: AppendOnlyAuditStore;
 }
 
 export async function loadSnapshotInputsForWorkspaceHeartbeat(
@@ -247,6 +250,7 @@ export function createWorkspaceHeartbeatRunner(
               workspaceRoot: options.workspaceRoot!,
               // v7 T-V7C.C.3: pass Dream schedule port so Quiet completion triggers Dream.
               dreamSchedulePort: options.dreamSchedulePort,
+              auditStore: options.auditStore,
             }
           : undefined,
         connectorExecutor: options.connectorExecutor,
@@ -264,6 +268,7 @@ export function createWorkspaceHeartbeatRunner(
         idleCuriosityPolicy: options.idleCuriosityPolicy,
         // v7 T-BTS.C.5: pass circuit breaker manager for execution health tracking.
         circuitBreakerManager: options.circuitBreakerManager,
+        auditStore: options.auditStore,
       },
     });
 

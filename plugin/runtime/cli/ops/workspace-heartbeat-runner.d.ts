@@ -26,6 +26,7 @@ import { type HeartbeatDigestAssemblerDeps } from "../../observability/services/
 import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
+import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 export interface WorkspaceHeartbeatRunnerOptions {
     /** When supplied, the runner persists the cycle so `loadStatus` can read it (T1.2.3). */
     runtimeRecorder?: RuntimeDecisionRecorder;
@@ -76,6 +77,8 @@ export interface WorkspaceHeartbeatRunnerOptions {
          */
         digestWindowHour?: number;
     };
+    /** T-OBS.R.1: shared audit sink for heartbeat connector and Quiet outcomes. */
+    auditStore?: AppendOnlyAuditStore;
 }
 export declare function loadSnapshotInputsForWorkspaceHeartbeat(readModels: CliReadModels, options?: {
     state?: StateDatabase;

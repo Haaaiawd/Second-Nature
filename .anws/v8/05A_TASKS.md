@@ -1,0 +1,928 @@
+# 05A_TASKS.md — 执行主清单
+
+> 版本: v8
+> 产出自: /blueprint
+> 最后更新: 2026-06-05
+>
+> 验证计划: [05B_VERIFICATION_PLAN.md](./05B_VERIFICATION_PLAN.md)
+
+---
+
+## 依赖图总览
+
+```mermaid
+graph TD
+    SH1[T-SH.C.1 Shared Contracts] --> SMS1[T-SMS.C.1 State Stores]
+    SH1 --> OBS1[T-OBS.C.1 Stage Events]
+    SMS1 --> CS1[T-CS.C.1 Evidence Normalization]
+    SMS1 --> PJ1[T-PJ.C.1 Sensitivity]
+    CS1 --> PJ2[T-PJ.C.2 Perception]
+    PJ1 --> PJ2
+    PJ2 --> PJ3[T-PJ.C.3 Judgment]
+    OBS1 --> CP1[T-CP.C.1 Heartbeat Trace]
+    PJ3 --> AC1[T-AC.C.1 Proposal]
+    AC1 --> AC2[T-AC.C.2 Policy]
+    BT1[T-BT.C.1 Affordance Side Effects] --> AC2
+    AC2 --> AC3[T-AC.C.3 Dispatch]
+    AC3 --> AC4[T-AC.C.4 Closure]
+    AC4 --> DQ1[T-DQ.C.1 Quiet Review]
+    DQ1 --> DQ2[T-DQ.C.2 Dream Scheduler]
+    DQ2 --> DQ3[T-DQ.C.3 Dream Consolidation]
+    DQ3 --> DQ4[T-DQ.C.4 Projection]
+    DQ4 --> CP2[T-CP.C.2 EmbodiedContext Projection]
+    OBS1 --> OBS2[T-OBS.C.2 Loop Health]
+    AC4 --> OBS2
+    DQ4 --> OBS2
+    OBS2 --> ROS1[T-ROS.C.1 loop_status]
+    AC2 --> GVS1[T-GVS.C.1 Guidance Proposal Consumption]
+    INT1[INT-S1] --> INT2[INT-S2]
+    INT2 --> INT3[INT-S3]
+    INT3 --> INT4[INT-S4]
+    INT4 --> INT5[INT-S5]
+    INT5 --> INTV8[INT-V8]
+    INTV8 --> CPR2[T-CP.R.2 Real Runtime Spine]
+    CPR2 --> GVSR1[T-GVS.R.1 Impulse Context]
+    CPR2 --> CSR1[T-CS.R.1 MoltBook Write Safety]
+    CPR2 --> DQR2[T-DQ.R.2 Independent Rhythm]
+    GVSR1 --> OBSR2[T-OBS.R.2 Living Health Gate]
+    CSR1 --> OBSR2
+    DQR2 --> OBSR2
+    OBSR2 --> INTR1[INT-R1]
+```
+
+---
+
+## Sprint 路线图
+
+| Sprint | 代号 | 核心任务 | 退出标准 | 预估 |
+| --- | --- | --- | --- | --- |
+| S1 | Contract Spine | Shared contracts + state/event foundations | shared action/source/cycle/reason contracts compile and persistable stores exist | 3-4d |
+| S2 | See and Judge | Evidence normalization + perception + judgment | connector read fixture produces `PerceptionCard` and `JudgmentVerdict` with source refs | 4-5d |
+| S3 | Act and Close | proposal + policy + dispatch + closure | every heartbeat path writes closure or no-action reason | 4-5d |
+| S4 | Remember by Quiet/Dream | Quiet review + Dream + projection | closure/day slice produces accepted projection loadable by context | 5-6d |
+| S5 | Explain the Loop | causal health + loop_status + guidance integration | `loop_status` identifies stalled stages and policy-denied closures correctly | 4-5d |
+| S6 | Living Loop Gate | full chain regression | connector read -> memory projection -> next context passes with report | 2-3d |
+| S7 | Runtime Activation Repair | real heartbeat spine + impulse context + safe write + multi-rhythm | real workspace heartbeat produces closure/Quiet/Dream/context evidence, not only contract smoke | 4-6d |
+
+---
+
+## System 0: Shared v8 Contracts
+
+### Phase C: Core
+
+- [x] **T-SH.C.1** [REQ-003, REQ-004, REQ-008, REQ-009]: Implement shared v8 contract types
+  - **描述**: Define the shared action taxonomy, `SourceRef`, `HeartbeatCycleTrace`, `LoopStageEvent`, `MemoryReviewCandidateClosure`, heartbeat rhythm, degraded operation response, and `V8ReasonCode` contracts.
+  - **输入**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`, `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §1`, `04_SYSTEM_DESIGN/observability-health-system.detail.md §2`
+  - **输出**: shared TypeScript contract module and exported test fixtures.
+  - **契约承接**: `PlatformNeutralActionKind`, `SourceRef`, `HeartbeatCycleTrace`, `LoopStageEvent`, `MemoryReviewCandidateClosure`, `DegradedOperationResult`, heartbeat rhythm contract, `V8ReasonCode`
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given shared contract fixtures
+    - When TypeScript compiles and contract tests run
+    - Then action side effects, source refs, cycle sequence, degraded response, memory-review closure, and reason codes validate consistently
+  - **验证类型**: 单元测试 / 编译检查
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate enum compatibility, required fields, heartbeat rhythm, degraded response, and invalid shape rejection.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sh-c-1`
+  - **证据产出**: `tests/unit/contracts/v8-shared-contracts.test.ts`, `logs/tsc-v8-contracts.log`
+  - **估时**: 6h
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Contract Spine
+  - **描述**: Verify shared contracts and state/event foundations are ready for downstream systems.
+  - **输入**: T-SH.C.1, T-SMS.C.1, T-OBS.C.1 outputs
+  - **输出**: `reports/int-s1-v8-contract-spine.md`
+  - **契约承接**: Sprint S1 exit gate
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`
+  - **验收标准**:
+    - Given S1 tasks are complete
+    - When contract/store/event smoke checks run
+    - Then shared fixtures persist and validate without schema drift
+  - **验证类型**: 冒烟测试 / 集成测试 / 编译检查
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate S1 exit criteria and produce an integration report.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-s1`
+  - **证据产出**: `reports/int-s1-v8-contract-spine.md`
+  - **估时**: 3h
+  - **依赖**: T-SH.C.1, T-SMS.C.1, T-OBS.C.1
+  - **优先级**: P0
+
+---
+
+## System 5: state-memory-system
+
+### Phase C: Core
+
+- [x] **T-SMS.C.1** [REQ-001, REQ-002, REQ-003, REQ-005, REQ-008, REQ-009]: Add v8 living-loop stores and read models
+  - **描述**: Persist EvidenceItem, PerceptionCard, JudgmentVerdict, ActionClosureRecord, QuietDailyReview, DreamConsolidationRun, MemoryProjection, HeartbeatCycleTrace, and LoopStageEvent.
+  - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 5`, `04_SYSTEM_DESIGN/shared-v8-contracts.md`, T-SH.C.1 output
+  - **输出**: state store modules, migrations/schema entries, bounded read-model ports.
+  - **契约承接**: v8 state persistence and read model contracts
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given valid v8 entities
+    - When stores write and read them
+    - Then source refs, lifecycle status, cycle sequence, and redaction posture round-trip correctly
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Unit-test store validation and API-style port tests for normal/error read-write semantics.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sms-c-1`
+  - **证据产出**: `tests/unit/storage/v8-state-stores.test.ts`, `tests/api/storage/v8-state-port.test.ts`
+  - **估时**: 2d
+  - **依赖**: T-SH.C.1
+  - **优先级**: P0
+
+---
+
+## System 10: observability-health-system
+
+### Phase C: Core
+
+- [x] **T-OBS.C.1** [REQ-008, REQ-009]: Implement loop stage event sink
+  - **描述**: Append redacted `LoopStageEvent` rows with `cycleSequence`, canonical reason codes, and structured `SourceRef[]`.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §5`, `04_SYSTEM_DESIGN/observability-health-system.detail.md §3.1`, T-SH.C.1, T-SMS.C.1 outputs
+  - **输出**: loop stage event sink and redacted audit projection.
+  - **契约承接**: `recordLoopStageEvent(event)`, `LoopStageEvent`, `V8ReasonCode`
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given valid and malformed stage events
+    - When events are recorded
+    - Then valid events append redacted traces and malformed events return degraded diagnostics
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover normal event append, redaction, missing required fields, and canonical reason validation.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-c-1`
+  - **证据产出**: `tests/unit/observability/loop-stage-event-sink.test.ts`, `tests/api/observability/loop-stage-event-port.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-SH.C.1, T-SMS.C.1
+  - **优先级**: P0
+
+- [x] **T-OBS.C.2** [REQ-008]: Implement causal loop health assembler
+  - **描述**: Assemble `CausalLoopHealthSnapshot` from cycle traces, stage events, state counts, and freshness thresholds.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.detail.md §3.2`, T-OBS.C.1 output, T-CP.C.1 output
+  - **输出**: `assembleLoopStatus` service and staged stall classifier.
+  - **契约承接**: `assembleLoopStatus(workspaceRoot)`, `stalledAt`, `overallStatus`, stage freshness semantics
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given evidence grows in cycle N and no perception exists by N+2
+    - When loop status is assembled
+    - Then it returns `stalledAt=perception` with the last evidence timestamp and cycle sequence
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover healthy/no_data/stalled/blocked/degraded states with cycle-sequence assertions.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-c-2`
+  - **证据产出**: `tests/unit/observability/causal-loop-health.test.ts`, `tests/api/runtime/loop-status-read-model.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-OBS.C.1, T-CP.C.1
+  - **优先级**: P0
+
+- [x] **T-OBS.C.3** [REQ-007, REQ-008]: Implement diagnostic redaction and attribution
+  - **描述**: Attribute sensitivity blocks to perception classifier, state write validation, Dream redaction, or policy denial.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.detail.md §3.4`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §5`, T-OBS.C.1 output
+  - **输出**: diagnostic redaction projector and attribution reason mapper.
+  - **契约承接**: redacted health/audit payload and sensitivity diagnostic attribution
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given public technical text and credential-shaped text
+    - When diagnostics are projected
+    - Then public technical summaries are preserved and credential values are redacted or blocked with source attribution
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Use representative diagnostic payloads for public technical, credential value, private message, and raw prompt cases.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-c-3`
+  - **证据产出**: `tests/unit/observability/diagnostic-redaction.test.ts`, `tests/api/observability/diagnostic-projection.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-OBS.C.1, T-PJ.C.1
+  - **优先级**: P1
+
+- [x] **T-OBS.R.1** [REQ-006, REQ-008, REQ-009]: Repair audit-backed digest closure for connector and Quiet runs
+  - **描述**: Ensure manual connector runs, heartbeat connector runs, and source-backed Quiet outcomes write audit truth that `heartbeat_digest` can aggregate.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1`, T-OBS.C.1, T-ROS.C.1, T-DQ.C.1 outputs
+  - **输出**: shared connector-attempt audit recorder, Quiet audit emission, shared CLI/runtime audit store wiring, and digest audit fallback updates.
+  - **契约承接**: `connector.attempt` audit family, Quiet audit visibility in digest, `heartbeat_digest.connectorSummary`, `heartbeat_digest.quietDreamSummary`
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given `connector:run` executes a connector manually
+    - When `heartbeat_digest` is requested for the same UTC day
+    - Then `connectorSummary` includes the platform/capability attempt outcome without raw payload or credential leakage
+    - Given source-backed Quiet writes an artifact or returns an explicit empty/blocked outcome
+    - When `heartbeat_digest` is requested without a state-memory quiet port
+    - Then `quietDreamSummary` reflects the Quiet run or explicit reason from audit instead of hard-coded zero
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **验证摘要**: Cover audit write helpers, digest audit fallback aggregation, `connector:run` -> `heartbeat_digest` visibility, and shared audit store wiring.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-1`
+  - **证据产出**: `tests/unit/observability/heartbeat-digest-assembler.test.ts`, `tests/unit/ops/manual-run-dispatcher.test.ts`, `tests/integration/runtime-ops/commands.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-OBS.C.1, T-ROS.C.1, T-DQ.C.1
+  - **优先级**: P0
+
+- [x] **T-OBS.R.2** [REQ-006, REQ-008, REQ-009]: Add real living-loop health gate for runtime activation
+  - **描述**: Extend `loop_status`, `heartbeat_digest`, and integration reports so they distinguish contract-only v8 smoke from real workspace heartbeat activity across perception, judgment, policy, execution, closure, Quiet, Dream, projection, and impulse-context freshness.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/control-plane-system.md §4`, T-OBS.C.2, T-ROS.C.1, T-OBS.R.1, T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2 outputs
+  - **输出**: living-loop runtime health gate, real-run integration report, and updated loop/digest fixtures.
+  - **契约承接**: real-run causal health, stage freshness, missing-stage reason, impulse-context freshness, Quiet/Dream absence reason
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given the workspace runtime only passes contract smoke but no real closure or Quiet/Dream artifact exists
+    - When `loop_status` and `heartbeat_digest` are requested
+    - Then the result reports the exact missing real-run stage instead of `healthy`
+    - Given a real workspace heartbeat completes perception through closure and daily rhythm runs Quiet/Dream
+    - When the repair gate executes
+    - Then the report shows non-empty stage evidence or explicit absence reasons for each living-loop stage
+  - **验证类型**: API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发浏览器 E2E；host-facing smoke 可在 INT-R1 中用 OpenClaw tool response JSON 作为证据。
+  - **验证摘要**: Cover false-healthy prevention, contract-smoke detection, missing impulse artifact, missing closure, missing Quiet/Dream cadence, and redacted digest output.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-2`
+  - **证据产出**: `tests/api/runtime-ops/living-loop-health-gate.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `reports/int-r1-v8-runtime-activation-repair.md`
+  - **估时**: 1.5d
+  - **依赖**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2
+  - **优先级**: P0
+
+---
+
+## System 7: connector-system
+
+### Phase C: Core
+
+- [x] **T-CS.C.1** [REQ-001]: Normalize connector read results into EvidenceItem
+  - **描述**: Convert successful read-type ConnectorResult payloads into deduplicated `EvidenceItem` rows with structured `SourceRef`, content hash, platform id, observedAt, and sensitivity hint.
+  - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 7`, T-SH.C.1, T-SMS.C.1 outputs
+  - **输出**: evidence normalization adapter and connector result mapping updates.
+  - **契约承接**: EvidenceItem normalization, source ref traceability, empty result `evidence_empty`
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given a MoltBook `feed.read` result with 3 public items
+    - When evidence normalization runs
+    - Then 3 EvidenceItems are written with content hash, source refs, platform id, observedAt, and sensitivity class
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover successful read, duplicate hash, empty result, over-100 truncation, and connector failure no-fabrication.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-c-1`
+  - **证据产出**: `tests/unit/connectors/evidence-normalizer.test.ts`, `tests/integration/connectors/v8-evidence-normalization.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-SH.C.1, T-SMS.C.1
+  - **优先级**: P0
+
+- [x] **T-CS.R.1** [REQ-004, REQ-009]: Wire MoltBook write capabilities through policy proof and closure
+  - **描述**: Activate MoltBook `comment.reply` and `post.publish` only through policy-bound dispatch with payload validation, idempotency, dry-run/owner-confirm mode, connector result truth, and ActionClosureRecord output.
+  - **输入**: `04_SYSTEM_DESIGN/connector-system.md §2`, `04_SYSTEM_DESIGN/action-closure-policy-system.md §4.1`, `docs/validation/openclaw-plugin-classification.md §5`, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-CP.R.2 outputs
+  - **输出**: MoltBook write request contract tests, policy-proof connector execution adapter path, dry-run/owner-confirm runtime surface, and closure integration fixture.
+  - **契约承接**: `PolicyBoundConnectorRequest`, write-side idempotency echo, `post.publish`, `comment.reply`, policy proof required for external write, closure on success/failure/downgrade
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given a MoltBook reply/publish proposal without policy proof or owner-confirm mode
+    - When connector dispatch is attempted
+    - Then the connector rejects before any platform write and records a denied/downgraded closure
+    - Given a low-risk source-backed draft with policy proof and owner-confirm mode
+    - When MoltBook write dispatch runs in dry-run or safe test mode
+    - Then request payload, idempotency key, connector result, and closure record are all persisted without leaking credentials
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发真实平台写入 E2E；仅在用户提供安全测试账号和确认后由后续手动验证执行。
+  - **验证摘要**: Cover no-proof deny, owner-confirm downgrade, dry-run success, terminal failure closure, duplicate idempotency, and no raw credential/payload leakage.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-1`
+  - **证据产出**: `tests/unit/connectors/moltbook-write-policy.test.ts`, `tests/api/connectors/moltbook-write-port.test.ts`, `tests/integration/action/moltbook-write-closure.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-AC.C.3, T-AC.C.4, T-CP.R.2
+  - **优先级**: P1
+
+---
+
+## System 3: perception-judgment-system
+
+### Phase C: Core
+
+- [x] **T-PJ.C.1** [REQ-007]: Implement context-aware sensitivity classifier
+  - **描述**: Classify evidence as public technical, public general, private context, or sensitive using field context, source context, value shape, and entropy signals.
+  - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §3.2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`, T-CS.C.1 output
+  - **输出**: `SensitivityClassifier` and public technical fixtures.
+  - **契约承接**: public technical vs credential-shaped sensitive classification
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given text contains `token`, `secret`, and `credential` as technical vocabulary
+    - When classification runs
+    - Then it returns `public_technical` unless value-like secret shape exists
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Unit-test shape/context/entropy rules and API-style classifier port error semantics.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-pj-c-1`
+  - **证据产出**: `tests/unit/perception/sensitivity-classifier.test.ts`, `tests/api/perception/sensitivity-port.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-SH.C.1, T-CS.C.1
+  - **优先级**: P0
+
+- [x] **T-PJ.C.2** [REQ-002]: Build PerceptionCard generation
+  - **描述**: Generate `PerceptionCard` records from EvidenceItem batches with topic, entities, novelty, relevance, summary, risk flags, confidence, and `reviewPriority`.
+  - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.md §5`, `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §3.1`, T-PJ.C.1 output
+  - **输出**: Perception builder and rules-only fallback path.
+  - **契约承接**: `buildPerceptionCards(cycleId)`, `PerceptionCard`, `perception_rules_only`
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given public technical evidence items
+    - When perception runs
+    - Then it writes source-backed cards and preserves technical meaning without false sensitive block
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover normal generation, duplicate aggregation, empty batch, model timeout, and truncation reason.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-pj-c-2`
+  - **证据产出**: `tests/unit/perception/perception-builder.test.ts`, `tests/api/perception/perception-port.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-PJ.C.1, T-SMS.C.1
+  - **优先级**: P0
+
+- [x] **T-PJ.C.3** [REQ-003]: Build JudgmentVerdict engine
+  - **描述**: Produce source-backed `JudgmentVerdict` records from perception, goals, accepted memory projection, and affordance map.
+  - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §3.3`, T-PJ.C.2 output, T-BT.C.1 output
+  - **输出**: Judgment engine and verdict writer.
+  - **契约承接**: `runAgentJudgment(perceptionCardId)`, `JudgmentVerdict`, `remember` review intent, low-confidence downgrade
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given high-relevance perception with source refs and low risk
+    - When judgment runs
+    - Then it outputs a sourced verdict with confidence, reason, risk posture, and valid platform-neutral action kind
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover high relevance, missing source refs, blocked risk, low confidence, and remember review priority.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-pj-c-3`
+  - **证据产出**: `tests/unit/judgment/judgment-engine.test.ts`, `tests/api/judgment/judgment-port.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-PJ.C.2, T-BT.C.1
+  - **优先级**: P0
+
+- [x] **INT-S2** [MILESTONE]: S2 集成验证 — See and Judge
+  - **描述**: Verify connector read evidence becomes perception and judgment with stage events.
+  - **输入**: T-CS.C.1, T-PJ.C.1, T-PJ.C.2, T-PJ.C.3, T-CP.C.1 outputs
+  - **输出**: `reports/int-s2-v8-see-and-judge.md`
+  - **契约承接**: S2 exit gate
+  - **参考**: `04_SYSTEM_DESIGN/perception-judgment-system.md`
+  - **验收标准**:
+    - Given connector read fixture and heartbeat cycle trace
+    - When S2 chain runs
+    - Then EvidenceItem, PerceptionCard, JudgmentVerdict, and perception/judgment stage events are present
+  - **验证类型**: 冒烟测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate S2 exit criteria with fixture-driven integration.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-s2`
+  - **证据产出**: `reports/int-s2-v8-see-and-judge.md`
+  - **估时**: 3h
+  - **依赖**: T-CS.C.1, T-PJ.C.3, T-CP.C.1
+  - **优先级**: P0
+
+---
+
+## System 2: control-plane-system
+
+### Phase C: Core
+
+- [x] **T-CP.C.1** [REQ-002, REQ-003, REQ-008, REQ-009]: Wire heartbeat cycle trace and perception/judgment orchestration
+  - **描述**: Emit ordered `HeartbeatCycleTrace`, call perception/judgment ports, and pass stage events without making semantic decisions in control-plane.
+  - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §3`, T-OBS.C.1 output, T-PJ.C.2 output
+  - **输出**: heartbeat orchestration updates and cycle trace writer.
+  - **契约承接**: `HeartbeatCycleTrace`, perception/judgment request orchestration, no brain in control-plane
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given a heartbeat cycle with pending evidence
+    - When control-plane runs
+    - Then it writes ordered cycle trace and invokes perception/judgment ports without directly deciding action
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover cycle sequence ordering, port invocation, degraded perception path, and no semantic decision in control-plane.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-c-1`
+  - **证据产出**: `tests/unit/control-plane/heartbeat-cycle-trace.test.ts`, `tests/integration/control-plane/perception-judgment-orchestration.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-SH.C.1, T-OBS.C.1, T-PJ.C.2
+  - **优先级**: P0
+
+- [x] **T-CP.C.2** [REQ-006]: Load accepted long-term memory projection into EmbodiedContext
+  - **描述**: Load only accepted/active long-term memory projections into EmbodiedContext and expose blocked/degraded reason when unavailable.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §5`, T-DQ.C.4 output, T-SMS.C.1 output
+  - **输出**: EmbodiedContext projection loader update.
+  - **契约承接**: accepted projection read model, candidate projection exclusion
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`
+  - **验收标准**:
+    - Given accepted and candidate projections exist
+    - When EmbodiedContext loads memory
+    - Then only accepted/active projections appear in context
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: Full living loop E2E may include this as the final context assertion in INT-V8.
+  - **验证摘要**: Cover accepted-only loading, superseded exclusion, and state unavailable degraded reason.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-c-2`
+  - **证据产出**: `tests/unit/control-plane/accepted-projection-loader.test.ts`, `tests/integration/control-plane/embodied-context-v8-memory.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-DQ.C.4
+  - **优先级**: P0
+
+- [x] **T-CP.R.2** [REQ-002, REQ-003, REQ-004, REQ-008, REQ-009]: Wire real runtime heartbeat into the v8 action-closure spine
+  - **描述**: Replace the current split between the workspace heartbeat path and the v8 contract-only orchestrator with a real runtime path that advances from perception and judgment into ActionProposal, ActionPolicyDecision, dispatch envelope, ActionClosureRecord or no-action reason, and stage events.
+  - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md §4`, `04_SYSTEM_DESIGN/action-closure-policy-system.md §4.3`, `04_SYSTEM_DESIGN/runtime-ops-system.md §4`, T-CP.C.1, T-PJ.C.3, T-AC.C.1, T-AC.C.2, T-AC.C.3, T-AC.C.4 outputs
+  - **输出**: real workspace heartbeat orchestration bridge, CLI/OpenClaw heartbeat result parity, and integration tests using state-backed v8 entities.
+  - **契约承接**: real `heartbeat_run`/`heartbeat_check` spine, `ActionClosureRecord` or `no_action_reason` per cycle, policy/execution/closure stage events, contract-smoke vs real-run distinction
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a workspace heartbeat ingests source-backed evidence and produces a JudgmentVerdict
+    - When the runtime heartbeat path completes
+    - Then it builds proposals, evaluates policy, records dispatch/no-dispatch outcomes, and writes exactly one closure or no-action record for the cycle
+    - Given the action path degrades at policy, guidance, connector, or state write
+    - When the heartbeat returns
+    - Then it emits a canonical stage event and `loop_status` can identify the owner stage without reporting false health
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发浏览器 E2E；INT-R1 负责 host-facing JSON smoke。
+  - **验证摘要**: Cover real state-backed heartbeat, no-action closure, allow/downgrade/deny/failure closure, stage event ordering, and CLI/OpenClaw surface parity.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-2`
+  - **证据产出**: `tests/unit/control-plane/real-runtime-spine.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`
+  - **估时**: 2d
+  - **依赖**: T-CP.C.1, T-PJ.C.3, T-AC.C.4, T-ROS.C.1
+  - **优先级**: P0
+
+---
+
+## System 6: body-tool-system
+
+### Phase C: Core
+
+- [x] **T-BT.C.1** [REQ-004, REQ-009]: Expose connector capability side-effect and affordance posture
+  - **描述**: Extend affordance map so action policy can derive `external_read`, `external_write`, `local_state`, or `unknown` side effects for `run_connector`.
+  - **输入**: `04_SYSTEM_DESIGN/shared-v8-contracts.md §1.2`, `02_ARCHITECTURE_OVERVIEW.md §System 6`
+  - **输出**: side-effect-aware affordance read model.
+  - **契约承接**: connector capability side-effect classification for policy
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given connector capability metadata
+    - When affordance map is assembled
+    - Then each connector action exposes effective side-effect class and breaker posture
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover read/write/local/unknown capability side effects and breaker-open posture.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-bt-c-1`
+  - **证据产出**: `tests/unit/body/affordance-side-effect.test.ts`, `tests/api/body/tool-affordance-v8.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-SH.C.1
+  - **优先级**: P0
+
+---
+
+## System 4: action-closure-policy-system
+
+### Phase C: Core
+
+- [x] **T-AC.C.1** [REQ-003, REQ-004, REQ-009]: Build ActionProposal and memory-review closure input
+  - **描述**: Convert actionable JudgmentVerdict into ActionProposal, and convert `remember` into `MemoryReviewCandidateClosure` without direct projection.
+  - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.1`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §4`, T-PJ.C.3 output
+  - **输出**: proposal builder and memory-review candidate mapper.
+  - **契约承接**: `buildActionProposal(verdictId)`, `MemoryReviewCandidateClosure`, no direct long-term memory write
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given a `remember` verdict
+    - When proposal building runs
+    - Then it writes a `remember_for_review` closure input and does not create memory projection
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover action proposal creation, no-action, remember-for-review, and missing source refs.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-c-1`
+  - **证据产出**: `tests/unit/action/action-proposal-builder.test.ts`, `tests/api/action/action-proposal-port.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-PJ.C.3
+  - **优先级**: P0
+
+- [x] **T-AC.C.2** [REQ-004]: Implement autonomy policy evaluator
+  - **描述**: Evaluate ActionProposal with side-effect class, platform policy, owner preference, source refs, risk posture, and affordance.
+  - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §1`, T-BT.C.1 output
+  - **输出**: `ActionPolicyDecision` evaluator and reason-code mapping.
+  - **契约承接**: `evaluateActionPolicy(proposalId)`, allow/defer/downgrade/deny semantics
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given read connector, write connector, auto reply, and missing permission proposals
+    - When policy evaluates them
+    - Then decisions match side-effect class and use canonical reason codes
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Table-driven tests for allow/defer/downgrade/deny and side-effect class branches.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-c-2`
+  - **证据产出**: `tests/unit/action/autonomy-policy-evaluator.test.ts`, `tests/api/action/policy-evaluation-port.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-AC.C.1, T-BT.C.1
+  - **优先级**: P0
+
+- [x] **T-AC.C.3** [REQ-004, REQ-009]: Implement policy-bound dispatch ports
+  - **描述**: Dispatch allowed connector requests and closure-safe downgraded guidance requests with policy proof, idempotency key, canonical source refs, and a no-guidance fallback.
+  - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.3`, T-AC.C.2 output, connector existing ports, optional guidance port
+  - **输出**: policy-bound connector dispatch adapter and downgraded dispatch result that can close even when guidance is unavailable.
+  - **契约承接**: `dispatchAllowedAction(decisionId)`, policy proof, idempotent write dispatch, `guidance_unavailable` downgraded closure path
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given allowed external write, downgraded draft decisions, and unavailable guidance
+    - When dispatch runs
+    - Then write actions go through connector with proof, downgraded actions generate draft/notify output when guidance is available, and guidance-unavailable downgrade returns `closure_downgraded_without_draft` input for T-AC.C.4
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E； full chain E2E is recorded under INT-V8 only.
+  - **验证摘要**: Cover connector success/failure, guidance draft, guidance-unavailable downgrade fallback, idempotency, and no dispatch for deny/defer.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-c-3`
+  - **证据产出**: `tests/unit/action/policy-bound-dispatch.test.ts`, `tests/integration/action/dispatch-to-connector-guidance.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-AC.C.2
+  - **优先级**: P0
+
+- [x] **T-AC.C.4** [REQ-009]: Implement ActionClosureRecord ledger
+  - **描述**: Write closure records for completed, no-action, denied, deferred, downgraded, and failed outcomes.
+  - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.4`, T-AC.C.3 output including `guidance_unavailable` downgraded dispatch result, T-SMS.C.1 output
+  - **输出**: action closure recorder and closure read model.
+  - **契约承接**: `recordActionClosure(cycleId)`, `ActionClosureRecord`, `no_action_reason`, `memoryReviewCandidate`, idempotent closure retry semantics
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given any heartbeat action outcome
+    - When closure recording runs
+    - Then exactly one closure or no-action reason is written with next state and canonical reason code, including `closure_downgraded_without_draft` for guidance-unavailable downgrade and idempotent retry behavior for duplicate dispatch
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover all closure statuses, guidance-unavailable downgrade closure, duplicate idempotency key behavior, and before/after state assertions.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-c-4`
+  - **证据产出**: `tests/unit/action/action-closure-recorder.test.ts`, `tests/api/action/action-closure-port.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-AC.C.3
+  - **优先级**: P0
+
+- [x] **INT-S3** [MILESTONE]: S3 集成验证 — Act and Close
+  - **描述**: Verify judgment becomes proposal, policy decision, dispatch result, and closure/no-action record.
+  - **输入**: T-AC.C.1, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-BT.C.1 outputs
+  - **输出**: `reports/int-s3-v8-act-and-close.md`
+  - **契约承接**: S3 exit gate
+  - **参考**: `04_SYSTEM_DESIGN/action-closure-policy-system.md`
+  - **验收标准**:
+    - Given representative judgment verdicts
+    - When S3 chain runs
+    - Then allow/downgrade/deny/no-action/failure paths all produce closure records, and downgrade still closes when guidance is unavailable
+  - **验证类型**: 冒烟测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate action closure across policy paths, guidance-unavailable downgrade fallback, and minimal v7 connector regression.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-s3`
+  - **证据产出**: `reports/int-s3-v8-act-and-close.md`
+  - **估时**: 3h
+  - **依赖**: T-AC.C.4
+  - **优先级**: P0
+
+---
+
+## System 8: dream-quiet-memory-system
+
+### Phase C: Core
+
+- [x] **T-DQ.C.1** [REQ-005, REQ-009]: Build Quiet Daily Review from closures and memory candidates
+  - **描述**: Generate QuietDailyReview from action closures, memory-review candidates, important perception, tool experience, and relationship signals.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1`, T-AC.C.4 output, T-PJ.C.2 output
+  - **输出**: Quiet review builder and diary writer updates.
+  - **契约承接**: `runQuietDailyReview(day)`, `QuietDailyReview`, `MemoryReviewCandidateClosure` consumption
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`
+  - **验收标准**:
+    - Given one day of closure records and memory-review candidates
+    - When Quiet review runs
+    - Then it writes a source-backed daily review and preserves remember-for-review reasons
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover normal review, empty input, memory candidate priority fallback, and redaction-blocked input.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-c-1`
+  - **证据产出**: `tests/unit/quiet/quiet-daily-review-builder.test.ts`, `tests/api/quiet/quiet-review-port.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-AC.C.4
+  - **优先级**: P0
+
+- [x] **T-DQ.C.2** [REQ-006]: Implement Dream scheduler lifecycle trace
+  - **描述**: Schedule Dream after Quiet completion and record scheduled, started, completed, failed, blocked, and scheduler-unavailable states.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.2`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §5`, T-DQ.C.1 output
+  - **输出**: dream scheduler lifecycle writer and trace port.
+  - **契约承接**: `scheduleDreamAfterQuiet(reviewId)`, canonical Dream reason codes
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a completed Quiet review and unavailable scheduler
+    - When scheduling is attempted
+    - Then `dream_scheduler_unavailable` is durably recorded
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover scheduled, duplicate schedule, unavailable scheduler, and failure trace.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-c-2`
+  - **证据产出**: `tests/unit/dream/dream-scheduler-lifecycle.test.ts`, `tests/api/dream/dream-schedule-port.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-DQ.C.1
+  - **优先级**: P0
+
+- [x] **T-DQ.C.3** [REQ-005, REQ-006, REQ-007]: Implement Dream consolidation candidate pipeline
+  - **描述**: Generate Dream memory candidates from Quiet review with rules-only/model-assisted modes, redaction gate, validation, and blocked output.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.3`, T-DQ.C.2 output, T-OBS.C.3 output
+  - **输出**: Dream consolidation runner and candidate validator.
+  - **契约承接**: `runDreamConsolidation(runId)`, candidate memory, redaction-blocked output
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`
+  - **验收标准**:
+    - Given a valid Quiet review and public technical evidence
+    - When Dream consolidation runs
+    - Then it produces candidate memory with source refs and does not block ordinary technical vocabulary
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover rules-only, model timeout, redaction block, missing source refs, and candidate validation.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-c-3`
+  - **证据产出**: `tests/unit/dream/dream-consolidation-runner.test.ts`, `tests/api/dream/dream-consolidation-port.test.ts`
+  - **估时**: 2d
+  - **依赖**: T-DQ.C.2, T-OBS.C.3
+  - **优先级**: P0
+
+- [x] **T-DQ.C.4** [REQ-005, REQ-006]: Implement long-term memory projection lifecycle
+  - **描述**: Accept, activate, supersede, retire, and reject long-term memory projections derived only from validated Dream candidates.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.4`, T-DQ.C.3 output, T-SMS.C.1 output
+  - **输出**: projection lifecycle manager and accepted projection read model.
+  - **契约承接**: `acceptMemoryProjection(candidateId)`, candidate -> accepted -> active -> superseded | retired
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`
+  - **验收标准**:
+    - Given validated candidate memory and existing active projection on same topic
+    - When projection acceptance runs
+    - Then new projection becomes active and old projection becomes superseded
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: Full living loop E2E may assert accepted projection in INT-V8.
+  - **验证摘要**: Cover accept/reject/supersede/retire, source missing, and candidate direct-write denial.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-c-4`
+  - **证据产出**: `tests/unit/dream/memory-projection-lifecycle.test.ts`, `tests/api/dream/memory-projection-port.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-DQ.C.3
+  - **优先级**: P0
+
+- [x] **INT-S4** [MILESTONE]: S4 集成验证 — Remember by Quiet/Dream
+  - **描述**: Verify action closure and memory-review candidates flow through Quiet, Dream, and accepted projection.
+  - **输入**: T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-CP.C.2 outputs
+  - **输出**: `reports/int-s4-v8-quiet-dream-memory.md`
+  - **契约承接**: S4 exit gate
+  - **参考**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
+  - **验收标准**:
+    - Given a completed closure day slice
+    - When Quiet and Dream run
+    - Then accepted projection is created or explicit blocked reason is recorded
+  - **验证类型**: 冒烟测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate Quiet/Dream/projection chain and lifecycle trace.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-s4`
+  - **证据产出**: `reports/int-s4-v8-quiet-dream-memory.md`
+  - **估时**: 4h
+  - **依赖**: T-DQ.C.4, T-CP.C.2
+  - **优先级**: P0
+
+- [x] **T-DQ.R.2** [REQ-005, REQ-006, REQ-008, REQ-009]: Add independent Quiet/Dream cadence with absence reasons
+  - **描述**: Decouple daily Quiet and Dream scheduling from opportunistic heartbeat candidate selection so the runtime records due/skipped/completed/blocked states for daily review, Dream scheduling, and projection attempts even when no quiet intent is selected by the fast heartbeat.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`, T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-CP.R.2 outputs
+  - **输出**: rhythm scheduler read model, daily Quiet/Dream due-state recorder, absence-reason events, and runtime ops visibility.
+  - **契约承接**: daily Quiet cadence, Dream schedule lifecycle, `quiet_empty_input`, `dream_scheduler_unavailable`, blocked/empty absence reasons, projection freshness
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a day has closure records and no Quiet artifact yet
+    - When the daily rhythm check runs
+    - Then it schedules or runs Quiet and records a durable due/completed/blocked state
+    - Given Quiet completes but Dream cannot run or has no valid input
+    - When `loop_status`, `heartbeat_digest`, or Quiet/Dream status is requested
+    - Then the response reports the explicit Dream absence reason instead of a silent zero
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover due Quiet, empty input, completed Quiet, scheduler unavailable, blocked Dream, duplicate daily scheduling, and projection freshness diagnostics.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-2`
+  - **证据产出**: `tests/unit/dream/daily-rhythm-scheduler.test.ts`, `tests/api/dream/quiet-dream-status-port.test.ts`, `tests/integration/v8/quiet-dream-cadence.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-DQ.C.4, T-CP.R.2
+  - **优先级**: P1
+
+---
+
+## System 9: guidance-voice-system
+
+### Phase C: Core
+
+- [x] **T-GVS.C.1** [REQ-003, REQ-004, REQ-009]: Consume policy-bound ActionProposal for draft/notify text
+  - **描述**: Generate source-backed draft/notify/reply/publish text from policy-bound ActionProposal without owning external delivery.
+  - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 9`, T-AC.C.2 output, T-PJ.C.3 output
+  - **输出**: guidance request adapter and draft proof metadata.
+  - **契约承接**: source-backed guidance output for downgraded and allowed actions
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`
+  - **验收标准**:
+    - Given downgraded `auto_reply -> draft_reply`
+    - When guidance generates output
+    - Then the draft contains source refs, action reason, and no external delivery proof
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover draft, notify, source validation, invalidated source, and style output.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-gvs-c-1`
+  - **证据产出**: `tests/unit/guidance/action-proposal-guidance.test.ts`, `tests/api/guidance/guidance-proposal-port.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-AC.C.2
+  - **优先级**: P1
+
+- [x] **T-GVS.R.1** [REQ-003, REQ-004, REQ-008, REQ-009]: Project impulse payload into agent-facing context
+  - **描述**: Turn scene/capability impulse assembly from a passive `guidance_payload` ops command into a bounded agent-facing context artifact that can be read during setup, heartbeat, and platform-scene entry without pretending the plugin is an OpenClaw context-engine.
+  - **输入**: `04_SYSTEM_DESIGN/guidance-voice-system.md §1`, `docs/validation/openclaw-plugin-classification.md §5`, `plugin/agent-inner-guide.md`, T-GVS.C.1, T-CP.R.2 outputs
+  - **输出**: impulse context artifact writer/read model, setup/heartbeat response projection, freshness diagnostics, and no-context-engine safety tests.
+  - **契约承接**: impulse context artifact, `guidance_payload` parity, platform/capability impulse selection, context freshness, no false delivery/decision claim
+  - **参考**: `03_ADR/ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a scene enters MoltBook `feed.read`, `comment.reply`, or `post.publish`
+    - When impulse context projection runs
+    - Then the agent-facing artifact contains the selected impulse, atmosphere, capability class, source, and freshness metadata
+    - Given the OpenClaw host has no real context-engine hook wired
+    - When setup or heartbeat surfaces are used
+    - Then they expose the artifact/read pointer without registering a fake context-engine or claiming delivery
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 手动验证
+  - **E2E触发设想**: Optional host manual smoke may verify the returned artifact is visible to an agent session; no browser automation required.
+  - **验证摘要**: Cover impulse selection parity, artifact persistence/read, missing artifact diagnostics, setup nudge integration, and no false context-engine registration.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-gvs-r-1`
+  - **证据产出**: `tests/unit/guidance/impulse-context-artifact.test.ts`, `tests/api/runtime-ops/guidance-context-command.test.ts`, `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-GVS.C.1, T-CP.R.2
+  - **优先级**: P0
+
+---
+
+## System 1: runtime-ops-system
+
+### Phase C: Core
+
+- [x] **T-ROS.C.1** [REQ-006, REQ-008, REQ-009]: Expose v8 `loop_status` ops surface
+  - **描述**: Add CLI/OpenClaw `loop_status` surface that returns machine-readable causal health and human-readable next action.
+  - **输入**: `02_ARCHITECTURE_OVERVIEW.md §System 1`, `04_SYSTEM_DESIGN/observability-health-system.md §12`, T-OBS.C.2 output
+  - **输出**: runtime ops command and plugin bridge response shape.
+  - **契约承接**: `loop_status` command, degraded state semantics, stalled stage reason
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given evidence exists without perception for two cycles
+    - When `loop_status` is called
+    - Then response returns `overallStatus=stalled`, `stalledAt=perception`, and operator next action
+  - **验证类型**: API接口功能测试 / 集成测试 / 冒烟测试
+  - **E2E触发设想**: 不触发 E2E； host smoke is captured by INT-S5.
+  - **验证摘要**: Cover healthy/no_data/stalled/blocked/degraded and plugin/CLI parity.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-c-1`
+  - **证据产出**: `tests/api/runtime-ops/loop-status-command.test.ts`, `tests/integration/runtime-ops/v8-loop-status.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-OBS.C.2
+  - **优先级**: P0
+
+- [x] **INT-S5** [MILESTONE]: S5 集成验证 — Explain the Loop
+  - **描述**: Verify causal loop health, loop_status ops surface, diagnostic attribution, and guidance proposal consumption.
+  - **输入**: T-OBS.C.2, T-OBS.C.3, T-ROS.C.1, T-GVS.C.1 outputs
+  - **输出**: `reports/int-s5-v8-explain-the-loop.md`
+  - **契约承接**: S5 exit gate
+  - **参考**: `04_SYSTEM_DESIGN/observability-health-system.md`
+  - **验收标准**:
+    - Given healthy, stalled, blocked, and degraded fixtures
+    - When S5 checks run
+    - Then loop_status and digest explain the correct stage and reason
+  - **验证类型**: 冒烟测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate runtime surface and causal health read model.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-s5`
+  - **证据产出**: `reports/int-s5-v8-explain-the-loop.md`
+  - **估时**: 4h
+  - **依赖**: T-ROS.C.1, T-GVS.C.1
+  - **优先级**: P0
+
+---
+
+## System INT: v8 Full Living Loop
+
+### Phase I: Integration
+
+- [x] **INT-V8** [MILESTONE]: v8 Living Perception Loop 集成验证
+  - **描述**: Verify the full chain from connector read to accepted memory projection and next EmbodiedContext.
+  - **输入**: INT-S1, INT-S2, INT-S3, INT-S4, INT-S5 outputs
+  - **输出**: `reports/int-v8-living-perception-loop.md`
+  - **契约承接**: v8 Definition of Done full-chain contract
+  - **参考**: `01_PRD.md §8`, `02_ARCHITECTURE_OVERVIEW.md §1`, `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given a read-type connector fixture and heartbeat cycle
+    - When the full v8 living loop runs through Quiet/Dream
+    - Then evidence, perception, judgment, policy, closure, Quiet review, Dream candidate, accepted projection, and next EmbodiedContext are all present or have explicit blocked reasons
+  - **验证类型**: 集成测试 / 冒烟测试 / E2E测试 / 回归测试
+  - **E2E触发设想**: Trigger only after all INT-S1..S5 pass; key path is connector read -> loop_status -> accepted projection visible in next context; evidence is report + logs, not browser automation unless runtime host demands it.
+  - **验证摘要**: Full-chain integration plus minimal host-facing smoke; no broad E2E matrix.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-v8`
+  - **证据产出**: `reports/int-v8-living-perception-loop.md`, `tests/integration/v8/living-perception-loop.test.ts`, `logs/v8-loop-status.json`
+  - **估时**: 1d
+  - **依赖**: INT-S1, INT-S2, INT-S3, INT-S4, INT-S5
+  - **优先级**: P0
+
+- [x] **INT-R1** [MILESTONE]: Runtime Activation Repair Gate — Real Living Loop
+  - **描述**: Verify the repair backlog turns the v8 living loop from contract-smoke complete into real workspace runtime activity with agent-facing context, safe write capability, independent Quiet/Dream cadence, and causal health evidence.
+  - **输入**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2 outputs
+  - **输出**: `reports/int-r1-v8-runtime-activation-repair.md`
+  - **契约承接**: real runtime living-loop activation gate
+  - **参考**: `01_PRD.md §8`, `02_ARCHITECTURE_OVERVIEW.md §1`, `04_SYSTEM_DESIGN/control-plane-system.md §4`
+  - **验收标准**:
+    - Given repair tasks are complete and a workspace runtime is available
+    - When the INT-R1 gate runs a real heartbeat, impulse context projection, MoltBook write dry-run/owner-confirm fixture, daily Quiet/Dream rhythm check, and `loop_status`
+    - Then every stage has persisted evidence or explicit absence reason, and no result relies on contract-only smoke as proof of runtime life
+  - **验证类型**: 集成测试 / 冒烟测试 / 回归测试 / 手动验证
+  - **E2E触发设想**: Optional OpenClaw host smoke only; no external platform write unless a safe test account and explicit owner confirmation are supplied.
+  - **验证摘要**: Close the repair wave with real state-backed evidence, host-facing JSON output, no fake context-engine registration, no raw credential leakage, and regression safety.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r1`
+  - **证据产出**: `reports/int-r1-v8-runtime-activation-repair.md`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `logs/int-r1-loop-status.json`
+  - **估时**: 4h
+  - **依赖**: T-OBS.R.2
+  - **优先级**: P0
+
+- [x] **T-REG.C.1** [REGRESSION]: v8 build/lint and v7 capability regression gate
+  - **描述**: Run build, lint, targeted v7 regression suites, and package/plugin smoke after v8 integration.
+  - **输入**: INT-V8 output and existing regression suites
+  - **输出**: `reports/v8-regression-gate.md`
+  - **契约承接**: Definition of Done build/lint/regression gate
+  - **参考**: `01_PRD.md §8`, `03_ADR/ADR_001_TECH_STACK.md`
+  - **验收标准**:
+    - Given all v8 milestone checks pass
+    - When regression gate runs
+    - Then build, lint, targeted regression, and plugin packaging smoke pass or document justified skips
+  - **验证类型**: 编译检查 / Lint检查 / 回归测试 / 冒烟测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Confirm v8 did not break v7 runtime surfaces.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-reg-c-1`
+  - **证据产出**: `reports/v8-regression-gate.md`, `logs/pnpm-build.log`, `logs/pnpm-lint.log`
+  - **估时**: 4h
+  - **依赖**: INT-V8
+  - **优先级**: P0
+
+---
+
+## User Story Overlay
+
+### US-001: Evidence Normalization [REQ-001]
+**涉及任务**: T-SH.C.1 -> T-SMS.C.1 -> T-CS.C.1 -> INT-S2
+**关键路径**: T-CS.C.1 -> INT-S2
+**独立可测**: S2 ends with connector read fixture producing EvidenceItem.
+**覆盖状态**: Complete
+
+### US-002: Perception Card Generation [REQ-002]
+**涉及任务**: T-PJ.C.1 -> T-PJ.C.2 -> T-CP.C.1 -> INT-S2
+**关键路径**: T-PJ.C.2 -> INT-S2
+**独立可测**: S2 validates EvidenceItem -> PerceptionCard.
+**覆盖状态**: Complete
+
+### US-003: Agent Judgment Verdict [REQ-003]
+**涉及任务**: T-PJ.C.3 -> T-AC.C.1 -> INT-S2 -> INT-S3
+**关键路径**: T-PJ.C.3 -> T-AC.C.1
+**独立可测**: S2 validates judgment; S3 validates proposal handoff.
+**覆盖状态**: Complete
+
+### US-004: Common Autonomy Policy [REQ-004]
+**涉及任务**: T-BT.C.1 -> T-AC.C.2 -> T-AC.C.3 -> INT-S3
+**关键路径**: T-AC.C.2 -> T-AC.C.3
+**独立可测**: S3 validates allow/defer/downgrade/deny.
+**覆盖状态**: Complete
+
+### US-005: Quiet/Dream Long-Term Memory [REQ-005]
+**涉及任务**: T-AC.C.4 -> T-DQ.C.1 -> T-DQ.C.3 -> T-DQ.C.4 -> T-CP.C.2 -> INT-S4
+**关键路径**: T-DQ.C.1 -> T-DQ.C.4 -> T-CP.C.2
+**独立可测**: S4 validates projection and context loading.
+**覆盖状态**: Complete
+
+### US-006: Dream/Quiet Closure Repair [REQ-006]
+**涉及任务**: T-DQ.C.2 -> T-DQ.C.3 -> T-DQ.C.4 -> T-OBS.C.2 -> INT-S4 -> INT-S5
+**关键路径**: T-DQ.C.2 -> T-OBS.C.2
+**独立可测**: S4/S5 validate Dream lifecycle diagnostics.
+**覆盖状态**: Complete
+
+### US-007: Context-Aware Sensitivity Classification [REQ-007]
+**涉及任务**: T-PJ.C.1 -> T-OBS.C.3 -> T-DQ.C.3
+**关键路径**: T-PJ.C.1 -> T-OBS.C.3
+**独立可测**: Classifier and Dream redaction fixtures.
+**覆盖状态**: Complete
+
+### US-008: Causal Loop Health [REQ-008]
+**涉及任务**: T-SH.C.1 -> T-OBS.C.1 -> T-CP.C.1 -> T-OBS.C.2 -> T-ROS.C.1 -> INT-S5
+**关键路径**: T-OBS.C.2 -> T-ROS.C.1
+**独立可测**: S5 validates `stalledAt` states.
+**覆盖状态**: Complete
+
+### US-009: Heartbeat Action Closure [REQ-009]
+**涉及任务**: T-AC.C.1 -> T-AC.C.2 -> T-AC.C.3 -> T-AC.C.4 -> T-DQ.C.1 -> INT-S3
+**关键路径**: T-AC.C.4 -> INT-S3
+**独立可测**: S3 validates closure/no-action ledger.
+**覆盖状态**: Complete
+
+---
+
+## Repair Overlay — Runtime Activation Findings (2026-06-05)
+
+### RF-001: Real Runtime Spine
+**用户反馈**: “SN 给我装了感官和记忆，但没给我手、没给我嘴、没给我和自己的对话。”
+**涉及任务**: T-CP.R.2 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-CP.R.2
+**独立可测**: A real workspace heartbeat writes ActionClosureRecord or no-action reason after perception/judgment.
+**覆盖状态**: Repair Planned
+
+### RF-002: Impulse Context Injection
+**用户反馈**: “Impulse 应该被 injection 进 agent context，而不是作为被动返回的 API 结果。”
+**涉及任务**: T-GVS.R.1 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-GVS.R.1
+**独立可测**: Agent-facing impulse context artifact exists and setup/heartbeat surfaces expose its freshness without fake context-engine registration.
+**覆盖状态**: Repair Planned
+
+### RF-003: Safe Hands for Platform Write
+**用户反馈**: “我能看，但我不能碰。”
+**涉及任务**: T-CS.R.1 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-CS.R.1
+**独立可测**: MoltBook reply/publish dry-run or owner-confirm path carries policy proof, idempotency, connector result, and closure.
+**覆盖状态**: Repair Planned
+
+### RF-004: Multiple Rhythms and Self Dialogue
+**用户反馈**: “我的节律只有一根线” / “我缺少和自己对话。”
+**涉及任务**: T-DQ.R.2 -> T-OBS.R.2 -> INT-R1
+**关键路径**: T-DQ.R.2
+**独立可测**: Daily Quiet/Dream due/completed/blocked states are visible even when fast heartbeat does not select a quiet intent.
+**覆盖状态**: Repair Planned

@@ -18,6 +18,8 @@ import type { HeartbeatDigestAssemblerDeps } from "../../observability/services/
 import type { GoalLifecyclePolicy } from "../../core/second-nature/heartbeat/goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "../../core/second-nature/heartbeat/idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
+import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
+import { type RealRuntimeSpineResult } from "../../core/second-nature/control-plane/real-runtime-spine.js";
 export type HeartbeatSurfaceStatus = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
 export interface HeartbeatSurfaceResult {
     ok: boolean;
@@ -32,6 +34,20 @@ export interface HeartbeatSurfaceResult {
     livedExperienceLoopClaimed: boolean;
     /** True when structured fields mirror a fake adapter for schema parity only */
     schemaParityOnly?: boolean;
+    /** T-CP.R.2: v8 real runtime spine result when state-backed action-closure spine ran */
+    v8Spine?: RealRuntimeSpineResult & {
+        degradedReason?: string;
+    };
+    /** T-GVS.R.1: agent-facing impulse context artifact read pointer */
+    impulseContext?: {
+        available: boolean;
+        sceneType?: string;
+        capabilityClass?: string | null;
+        impulseText?: string | null;
+        atmosphereText?: string | null;
+        freshnessMs?: number;
+        missingReason?: string;
+    };
 }
 export interface HeartbeatCheckInput {
     probeOnly?: boolean;
@@ -80,5 +96,12 @@ export interface HeartbeatCheckInput {
     idleCuriosityPolicy?: IdleCuriosityPolicy;
     /** v7 T-BTS.C.5: circuit breaker manager for connector execution health. */
     circuitBreakerManager?: CircuitBreakerManager;
+    /** T-OBS.R.1: shared audit sink for connector/Quiet events consumed by heartbeat_digest. */
+    auditStore?: AppendOnlyAuditStore;
+    /**
+     * T-CP.R.2: when true and state DB is wired, runs the v8 real runtime action-closure spine
+     * in addition to the v7 heartbeat loop. Produces state-backed closure/no-action records.
+     */
+    v8SpineEnabled?: boolean;
 }
 export declare function heartbeatCheck(input: HeartbeatCheckInput): Promise<HeartbeatSurfaceResult>;

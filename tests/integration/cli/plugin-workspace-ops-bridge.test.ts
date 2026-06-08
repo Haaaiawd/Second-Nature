@@ -785,3 +785,72 @@ process.stdout.write("ok");
   assert.equal(result.status, 0, `stderr: ${result.stderr}\nstdout: ${result.stdout}`);
   assert.equal(result.stdout.trim(), "ok");
 });
+
+// T-GVS.R.1: impulse context artifact integration
+test("heartbeat_check exposes impulse context when artifact exists", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-ica-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  // Seed artifact directly in state DB
+  const dbPath = path.join(tmp, "data", "state.db");
+  const { createStateDatabase } = await import("../../../src/storage/db/index.js");
+  const { writeImpulseContext } = await import("../../../src/core/second-nature/guidance/impulse-context-writer.js");
+  const db = createStateDatabase(dbPath);
+  try {
+    await writeImpulseContext(
+      db,
+      {
+        sceneType: "social",
+        impulseResult: {
+          impulse: { kind: "social", text: "Be warm and curious", reviewStatus: "approved" },
+          source: "intent_kind",
+          capabilityClass: null,
+        },
+        atmosphereText: "Open and receptive",
+        expressionBoundaryConstraints: ["avoid_sarcasm"],
+      },
+      { now: new Date().toISOString() },
+    );
+  } finally {
+    db.close();
+  }
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const text = (
+    await tool.execute("1", {
+      command: "heartbeat_check",
+      args: { timestamp: "2026-06-05T12:00:00.000Z" },
+      workspaceRoot: tmp,
+    })
+  ).content[0]?.text ?? "{}";
+  const payload = JSON.parse(text) as {
+    ok: boolean;
+    impulseContext?: { available: boolean; impulseText?: string };
+    reasons: string[];
+  };
+  assert.equal(payload.ok, true);
+  assert.ok(payload.impulseContext, "impulseContext should be present");
+  assert.equal(payload.impulseContext?.available, true);
+  assert.ok(
+    payload.reasons.some((r) => r.startsWith("impulse_context:")),
+    "reasons should reference impulse context"
+  );
+});
