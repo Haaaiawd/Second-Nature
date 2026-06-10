@@ -63,8 +63,30 @@ describe("int-r2-proof-memory-closure", () => {
     const db = createStateDatabase(":memory:");
     try {
       const now = new Date().toISOString();
+      const day = now.slice(0, 10);
       await runHeartbeatCycle(db, { workspaceRoot: "/test", requestedAt: now, trigger: "manual" });
       await checkDailyRhythm(db, { now, forceQuiet: true });
+
+      // Seed impulse context and projection for full gate pass
+      await writeImpulseContext(db, {
+        sceneType: "heartbeat",
+        impulseResult: { impulse: { kind: "social", text: "Be warm", reviewStatus: "approved" }, source: "intent_kind", capabilityClass: null },
+        atmosphereText: "Open",
+        expressionBoundaryConstraints: ["avoid_sarcasm"],
+      }, { now });
+
+      const { writeLongTermMemoryProjection } = await import("../../../src/storage/v8-state-stores.js");
+      await writeLongTermMemoryProjection(db, {
+        id: `proj_${day}_001`,
+        createdAt: now,
+        candidateId: `candidate_${day}_001`,
+        topicKey: "test_topic",
+        status: "active",
+        sourceRefs: [makeRef("proj1", "memory_projection")],
+        redactionClass: "none",
+        lifecycleStatus: "active",
+        payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: now }),
+      });
 
       const status = await readLoopStatus(db);
       assert.equal(status.ok, true);

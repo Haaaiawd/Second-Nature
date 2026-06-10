@@ -35,6 +35,8 @@ export interface RealRunHealthProjection {
   hasRealClosure: boolean;
   hasQuietArtifact: boolean;
   hasDreamArtifact: boolean;
+  hasFreshImpulseContext: boolean;
+  hasProjectionFeedback: boolean;
   missingStage?: string;
   missingReason?: string;
 }
@@ -131,6 +133,8 @@ export async function readLoopStatus(
       hasRealClosure: realRunResult.gate.hasRealClosure,
       hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
       hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+      hasFreshImpulseContext: realRunResult.gate.hasFreshImpulseContext,
+      hasProjectionFeedback: realRunResult.gate.hasProjectionFeedback,
       missingStage: realRunResult.gate.missingStage,
       missingReason: realRunResult.gate.missingReason,
     };
@@ -142,7 +146,9 @@ export async function readLoopStatus(
       hasRealClosure: false,
       hasQuietArtifact: false,
       hasDreamArtifact: false,
-      missingReason: "Real-run health check degraded",
+      hasFreshImpulseContext: false,
+      hasProjectionFeedback: false,
+      missingReason: "Real-run health check degraded: " + (realRunResult.degraded.operatorNextAction || "unknown"),
     };
   }
 

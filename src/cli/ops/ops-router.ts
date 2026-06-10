@@ -1329,6 +1329,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
                 hasRealClosure: realRunResult.gate.hasRealClosure,
                 hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
                 hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+                hasFreshImpulseContext: realRunResult.gate.hasFreshImpulseContext,
+                hasProjectionFeedback: realRunResult.gate.hasProjectionFeedback,
                 missingStage: realRunResult.gate.missingStage,
                 missingReason: realRunResult.gate.missingReason,
               };
@@ -1340,6 +1342,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
                 hasRealClosure: false,
                 hasQuietArtifact: false,
                 hasDreamArtifact: false,
+                hasFreshImpulseContext: false,
+                hasProjectionFeedback: false,
                 missingReason: "Real-run health check degraded: " + realRunResult.degraded.reason,
               };
             }

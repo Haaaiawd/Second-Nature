@@ -10,7 +10,7 @@ import assert from "node:assert";
 
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { checkRealRunHealth } from "../../../src/observability/living-loop-health-gate.js";
-import { writeActionClosureRecord, writeDailyRhythmState, writeHeartbeatCycleTrace } from "../../../src/storage/v8-state-stores.js";
+import { writeActionClosureRecord, writeDailyRhythmState, writeHeartbeatCycleTrace, writeLoopStageEvent, writeImpulseContextArtifact, writeLongTermMemoryProjection } from "../../../src/storage/v8-state-stores.js";
 
 async function seedClosure(db: ReturnType<typeof createStateDatabase>, day: string, withCycleTrace = true) {
   if (withCycleTrace) {
@@ -25,6 +25,19 @@ async function seedClosure(db: ReturnType<typeof createStateDatabase>, day: stri
         { uri: "sn://heartbeat/cycle", family: "audit" as const, id: `cycle_${day}_001`, redactionClass: "none" as const, resolveStatus: "resolvable" as const },
       ],
     });
+    // F3: write closure stage event to satisfy runtime-proof validation
+    await writeLoopStageEvent(db, {
+      id: `stage_${day}_closure_001`,
+      cycleId: `cycle_${day}_001`,
+      cycleSequence: 1,
+      stage: "closure",
+      status: "completed",
+      reason: "closure_completed",
+      sourceRefs: [
+        { uri: "sn://test", family: "action_closure" as const, id: "c1", redactionClass: "none" as const, resolveStatus: "resolvable" as const },
+      ],
+      occurredAt: `${day}T12:00:00Z`,
+    });
   }
   await writeActionClosureRecord(db, {
     id: `closure_${day}_001`,
@@ -35,6 +48,44 @@ async function seedClosure(db: ReturnType<typeof createStateDatabase>, day: stri
       { uri: "sn://test", family: "action_closure" as const, id: "c1", redactionClass: "none" as const, resolveStatus: "resolvable" as const },
     ],
     createdAt: `${day}T12:00:00Z`,
+  });
+}
+
+async function seedImpulseContext(db: ReturnType<typeof createStateDatabase>, _day: string) {
+  const now = new Date().toISOString();
+  await writeImpulseContextArtifact(db, {
+    id: `impulse_${_day}`,
+    sceneType: "heartbeat",
+    capabilityIntent: null,
+    platformId: null,
+    capabilityClass: null,
+    impulseSource: "runtime",
+    impulseText: "test impulse",
+    atmosphereText: "test atmosphere",
+    expressionBoundaryConstraintsJson: JSON.stringify(["be concise"]),
+    expressionBoundaryStyle: "direct",
+    freshnessVersion: 1,
+    createdAt: now,
+    updatedAt: now,
+    sourceRefs: [
+      { uri: `sn://impulse/${_day}`, family: "audit" as const, id: `impulse_${_day}`, redactionClass: "none" as const, resolveStatus: "resolvable" as const },
+    ],
+  });
+}
+
+async function seedProjection(db: ReturnType<typeof createStateDatabase>, day: string) {
+  await writeLongTermMemoryProjection(db, {
+    id: `proj_${day}_001`,
+    createdAt: `${day}T12:00:00Z`,
+    candidateId: `candidate_${day}_001`,
+    topicKey: "test_topic",
+    status: "active",
+    sourceRefs: [
+      { uri: `sn://projection/${day}`, family: "memory_projection" as const, id: `proj_${day}_001`, redactionClass: "none" as const, resolveStatus: "resolvable" as const },
+    ],
+    redactionClass: "none",
+    lifecycleStatus: "active",
+    payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: `${day}T12:00:00Z` }),
   });
 }
 
@@ -121,6 +172,8 @@ describe("living-loop-health-gate", () => {
     try {
       await seedClosure(db, "2026-06-05");
       await seedRhythm(db, "2026-06-05", "completed", "scheduled");
+      await seedImpulseContext(db, "2026-06-05");
+      await seedProjection(db, "2026-06-05");
 
       const result = await checkRealRunHealth(db, "2026-06-05");
       assert.equal(result.ok, true);
@@ -128,6 +181,8 @@ describe("living-loop-health-gate", () => {
         assert.equal(result.gate.hasRealClosure, true);
         assert.equal(result.gate.hasQuietArtifact, true);
         assert.equal(result.gate.hasDreamArtifact, true);
+        assert.equal(result.gate.hasFreshImpulseContext, true);
+        assert.equal(result.gate.hasProjectionFeedback, true);
         assert.equal(result.gate.contractSmokeOnly, false);
         assert.equal(result.gate.seededStateDetected, false);
         assert.equal(result.gate.gatePassed, true);

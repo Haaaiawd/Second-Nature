@@ -20,7 +20,7 @@ import { dispatchPolicyBoundWrite } from "../../../src/connectors/base/policy-bo
 import { checkDailyRhythm } from "../../../src/core/second-nature/quiet-dream/daily-rhythm-scheduler.js";
 import { checkRealRunHealth } from "../../../src/observability/living-loop-health-gate.js";
 import { readLoopStatus } from "../../../src/observability/loop-status.js";
-import { writeActionClosureRecord } from "../../../src/storage/v8-state-stores.js";
+import { writeActionClosureRecord, writeLongTermMemoryProjection } from "../../../src/storage/v8-state-stores.js";
 
 describe("int-r1-runtime-activation-repair", () => {
   it("full repair chain produces real runtime artifacts per stage", async () => {
@@ -50,7 +50,7 @@ describe("int-r1-runtime-activation-repair", () => {
 
       // 2. T-GVS.R.1: Write and read impulse context artifact
       const impulseInput: ImpulseContextArtifactInput = {
-        sceneType: "social",
+        sceneType: "heartbeat",
         impulseResult: {
           impulse: { kind: "social", text: "Be warm", reviewStatus: "approved" },
           source: "intent_kind",
@@ -62,7 +62,7 @@ describe("int-r1-runtime-activation-repair", () => {
       const writeResult = await writeImpulseContext(db, impulseInput, { now });
       assert.ok("id" in writeResult, "impulse context should persist");
 
-      const readResult = await readImpulseContext(db, "social");
+      const readResult = await readImpulseContext(db, "heartbeat");
       assert.ok(readResult.available, "impulse context should be readable");
 
       // 3. T-CS.R.1: Policy-bound write dispatch (dry-run)
@@ -86,6 +86,19 @@ describe("int-r1-runtime-activation-repair", () => {
       if (rhythmResult.status === "checked") {
         assert.equal(rhythmResult.state.quietStatus, "completed");
       }
+
+      // 4b. Seed accepted projection for health gate completeness
+      await writeLongTermMemoryProjection(db, {
+        id: `proj_${day}_001`,
+        createdAt: now,
+        candidateId: `candidate_${day}_001`,
+        topicKey: "test_topic",
+        status: "active",
+        sourceRefs: [{ uri: "sn://projection", family: "memory_projection", id: "proj1", redactionClass: "none", resolveStatus: "resolvable" }],
+        redactionClass: "none",
+        lifecycleStatus: "active",
+        payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: now }),
+      });
 
       // 5. T-OBS.R.2: Real run health gate — must PASS for runtime-produced evidence
       const healthResult = await checkRealRunHealth(db, day);

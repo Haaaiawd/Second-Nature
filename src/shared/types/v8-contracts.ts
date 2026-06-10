@@ -223,6 +223,7 @@ export type V8ReasonCode =
   | "closure_failed"
   // Perception / Judgment / Observability
   | "perception_rules_only"
+  | "perception_contract_drift"
   | "evidence_batch_empty"
   | "evidence_batch_truncated"
   | "judgment_low_confidence"

@@ -65,13 +65,45 @@ describe("loop-status-real-run-gate", () => {
   it("full runtime path (heartbeat + daily rhythm) reports healthy", async () => {
     const db = createStateDatabase(":memory:");
     try {
+      const now = new Date().toISOString();
+      const day = now.slice(0, 10);
       await runHeartbeatCycle(db, {
         workspaceRoot: "/test",
-        requestedAt: new Date().toISOString(),
+        requestedAt: now,
         trigger: "manual",
       });
 
-      await checkDailyRhythm(db, { now: new Date().toISOString(), forceQuiet: true });
+      await checkDailyRhythm(db, { now, forceQuiet: true });
+
+      // Seed impulse context and projection for full gate pass
+      const { writeImpulseContextArtifact, writeLongTermMemoryProjection } = await import("../../../src/storage/v8-state-stores.js");
+      await writeImpulseContextArtifact(db, {
+        id: `impulse_${day}`,
+        sceneType: "heartbeat",
+        capabilityIntent: null,
+        platformId: null,
+        capabilityClass: null,
+        impulseSource: "runtime",
+        impulseText: "test impulse",
+        atmosphereText: "test atmosphere",
+        expressionBoundaryConstraintsJson: JSON.stringify(["be concise"]),
+        expressionBoundaryStyle: "direct",
+        freshnessVersion: 1,
+        createdAt: now,
+        updatedAt: now,
+        sourceRefs: [{ uri: "sn://impulse", family: "audit" as const, id: "impulse1", redactionClass: "none" as const, resolveStatus: "resolvable" as const }],
+      });
+      await writeLongTermMemoryProjection(db, {
+        id: `proj_${day}_001`,
+        createdAt: now,
+        candidateId: `candidate_${day}_001`,
+        topicKey: "test_topic",
+        status: "active",
+        sourceRefs: [{ uri: "sn://projection", family: "memory_projection" as const, id: "proj1", redactionClass: "none" as const, resolveStatus: "resolvable" as const }],
+        redactionClass: "none",
+        lifecycleStatus: "active",
+        payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: now }),
+      });
 
       const result = await readLoopStatus(db);
       assert.equal(result.ok, true);

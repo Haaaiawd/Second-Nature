@@ -22,6 +22,9 @@ import {
   readActionClosuresByDay,
   readDailyRhythmStateByDay,
   readHeartbeatCycleTraces,
+  readLoopStageEventsByCycle,
+  readImpulseContextArtifact,
+  readMemoryProjectionsByStatus,
 } from "../storage/v8-state-stores.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
 
@@ -36,14 +39,18 @@ export interface RealRunHealthGate {
   hasQuietArtifact: boolean;
   /** Has a scheduled or completed DreamConsolidationRun */
   hasDreamArtifact: boolean;
+  /** Has a fresh impulse context artifact (within 24h) */
+  hasFreshImpulseContext: boolean;
+  /** Has at least one accepted or active long-term memory projection */
+  hasProjectionFeedback: boolean;
   /** True if only contract smoke (cycle traces) but no real artifacts */
   contractSmokeOnly: boolean;
-  /** True if closure exists but no runtime-produced cycle trace backs it */
+  /** True if closure exists but no runtime-produced cycle trace + stage event backs it */
   seededStateDetected: boolean;
   /** True only when real runtime activity is proven (not seeded, not smoke-only) */
   gatePassed: boolean;
   /** Explicit missing stage reason */
-  missingStage?: "closure" | "quiet" | "dream" | "none";
+  missingStage?: "closure" | "quiet" | "dream" | "impulse" | "projection" | "none";
   missingReason?: string;
 }
 
@@ -69,7 +76,7 @@ export async function checkRealRunHealth(
 
   const hasRealClosure = closureResult.rows.length > 0;
 
-  // Check if closures are runtime-produced (backed by cycle trace + stage events)
+  // Check if closures are runtime-produced (backed by cycle trace + closure stage event + source refs)
   let seededStateDetected = false;
   if (hasRealClosure) {
     const traces = await readHeartbeatCycleTraces(db, 1000);
@@ -79,6 +86,30 @@ export async function checkRealRunHealth(
     for (const closure of closureResult.rows) {
       const hasCycleTrace = traces.rows.some((t) => t.id === closure.cycleId);
       if (!hasCycleTrace) {
+        seededStateDetected = true;
+        break;
+      }
+      // F3: verify closure has corresponding loop_stage_event with stage="closure" and status="completed"
+      const stageEvents = await readLoopStageEventsByCycle(db, closure.cycleId);
+      if (stageEvents.degraded) {
+        return { ok: false, degraded: stageEvents.degraded };
+      }
+      const hasClosureStageEvent = stageEvents.rows.some(
+        (e) => e.stage === "closure" && e.status === "completed"
+      );
+      if (!hasClosureStageEvent) {
+        seededStateDetected = true;
+        break;
+      }
+      // F3: verify closure has non-empty source refs
+      const sourceRefsJson = closure.sourceRefsJson ?? "[]";
+      let sourceRefs: unknown[] = [];
+      try {
+        sourceRefs = JSON.parse(sourceRefsJson);
+      } catch {
+        sourceRefs = [];
+      }
+      if (!Array.isArray(sourceRefs) || sourceRefs.length === 0) {
         seededStateDetected = true;
         break;
       }
@@ -95,11 +126,28 @@ export async function checkRealRunHealth(
   const hasQuietArtifact = rhythm?.quietStatus === "completed";
   const hasDreamArtifact = rhythm?.dreamStatus === "scheduled" || rhythm?.dreamStatus === "completed";
 
+  // Check impulse context artifact freshness
+  const impulseResult = await readImpulseContextArtifact(db, "heartbeat");
+  let hasFreshImpulseContext = false;
+  if (!impulseResult.degraded && impulseResult.row) {
+    const updatedAt = new Date(impulseResult.row.updatedAt).getTime();
+    const now = Date.now();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    hasFreshImpulseContext = now - updatedAt <= ONE_DAY_MS;
+  }
+
+  // Check accepted/active memory projections
+  const activeProjections = await readMemoryProjectionsByStatus(db, "active");
+  const acceptedProjections = await readMemoryProjectionsByStatus(db, "accepted");
+  const hasProjectionFeedback =
+    (!activeProjections.degraded && activeProjections.rows.length > 0) ||
+    (!acceptedProjections.degraded && acceptedProjections.rows.length > 0);
+
   // Determine if only contract smoke
-  const contractSmokeOnly = !hasRealClosure && !hasQuietArtifact && !hasDreamArtifact;
+  const contractSmokeOnly = !hasRealClosure && !hasQuietArtifact && !hasDreamArtifact && !hasFreshImpulseContext && !hasProjectionFeedback;
 
   // Gate passes only when all real runtime stages have evidence
-  const gatePassed = !contractSmokeOnly && !seededStateDetected && hasRealClosure && hasQuietArtifact && hasDreamArtifact;
+  const gatePassed = !contractSmokeOnly && !seededStateDetected && hasRealClosure && hasQuietArtifact && hasDreamArtifact && hasFreshImpulseContext && hasProjectionFeedback;
 
   // Identify missing stage
   let missingStage: RealRunHealthGate["missingStage"];
@@ -110,13 +158,19 @@ export async function checkRealRunHealth(
     missingReason = "No ActionClosureRecord for today. Heartbeat may be running contract smoke without real action closure.";
   } else if (seededStateDetected) {
     missingStage = "closure";
-    missingReason = "ActionClosureRecord exists but lacks runtime-produced cycle trace. Seeded state detected — not valid runtime proof.";
+    missingReason = "ActionClosureRecord exists but lacks runtime-produced cycle trace, closure stage event, or source refs. Seeded state detected — not valid runtime proof.";
   } else if (!hasQuietArtifact) {
     missingStage = "quiet";
     missingReason = "ActionClosureRecord exists but no QuietDailyReview. Daily review may be due or skipped.";
   } else if (!hasDreamArtifact) {
     missingStage = "dream";
     missingReason = "QuietDailyReview completed but no DreamConsolidationRun. Dream scheduler may be unavailable.";
+  } else if (!hasFreshImpulseContext) {
+    missingStage = "impulse";
+    missingReason = "Heartbeat produces closure but impulse context artifact is missing or stale (>24h). Run guidance_payload to refresh.";
+  } else if (!hasProjectionFeedback) {
+    missingStage = "projection";
+    missingReason = "Living loop active but no accepted/active memory projections. Quiet/Dream may not have produced accepted memory yet.";
   } else {
     missingStage = "none";
     missingReason = "All living-loop stages have real artifacts.";
@@ -128,6 +182,8 @@ export async function checkRealRunHealth(
       hasRealClosure,
       hasQuietArtifact,
       hasDreamArtifact,
+      hasFreshImpulseContext,
+      hasProjectionFeedback,
       contractSmokeOnly,
       seededStateDetected,
       gatePassed,

@@ -188,12 +188,71 @@ export async function readEvidenceItemsByStatus(
 // PerceptionCard store
 // ───────────────────────────────────────────────────────────────
 
+const CANONICAL_NOVELTY_CLASSES = ["new", "changed", "duplicate", "stale"];
+const CANONICAL_RELEVANCE_CLASSES = ["low", "medium", "high"];
+
+function validatePerceptionCardCanonical(
+  row: Omit<NewPerceptionCardRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): { ok: true } | { ok: false; degraded: DegradedOperationResult } {
+  // Validate noveltyClass
+  if (row.novelty && !CANONICAL_NOVELTY_CLASSES.includes(row.novelty)) {
+    return {
+      ok: false,
+      degraded: {
+        status: "degraded",
+        reason: "perception_contract_drift",
+        ownerStage: "perception",
+        sourceRefs: row.sourceRefs,
+        operatorNextAction: `novelty "${row.novelty}" is not canonical. Expected one of: ${CANONICAL_NOVELTY_CLASSES.join(", ")}`,
+        retryable: false,
+      },
+    };
+  }
+
+  // Validate relevanceScore range
+  if (row.relevance !== undefined && row.relevance !== null) {
+    if (row.relevance < 0 || row.relevance > 1) {
+      return {
+        ok: false,
+        degraded: {
+          status: "degraded",
+          reason: "perception_contract_drift",
+          ownerStage: "perception",
+          sourceRefs: row.sourceRefs,
+          operatorNextAction: `relevanceScore ${row.relevance} out of range [0, 1]`,
+          retryable: false,
+        },
+      };
+    }
+  }
+
+  // Validate relevanceClass
+  if (row.relevanceClass && !CANONICAL_RELEVANCE_CLASSES.includes(row.relevanceClass)) {
+    return {
+      ok: false,
+      degraded: {
+        status: "degraded",
+        reason: "perception_contract_drift",
+        ownerStage: "perception",
+        sourceRefs: row.sourceRefs,
+        operatorNextAction: `relevanceClass "${row.relevanceClass}" is not canonical. Expected one of: ${CANONICAL_RELEVANCE_CLASSES.join(", ")}`,
+        retryable: false,
+      },
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function writePerceptionCard(
   db: StateDatabase,
   row: Omit<NewPerceptionCardRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
 ): Promise<{ id: string } | DegradedOperationResult> {
   const validated = validateSourceRefs(row.sourceRefs, "perception");
   if (!validated.ok) return validated.degraded;
+
+  const canonicalCheck = validatePerceptionCardCanonical(row);
+  if (!canonicalCheck.ok) return canonicalCheck.degraded;
 
   try {
     const record: NewPerceptionCardRecord = {
