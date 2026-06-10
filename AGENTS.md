@@ -13,9 +13,8 @@
 
 1. **读取根目录的 AGENTS.md** → 获取项目地图
 2. **查看下方"当前状态"** → 找到最新架构版本
-3. 若 `05A_TASKS.md` / `05B_VERIFICATION_PLAN.md` 已存在，读取它们 → 了解执行与验证待办
-4. 若最新版本尚未 blueprint-ready，先按导航进入 `/design-system` / `/challenge` / `/blueprint`
-5. **开始工作**
+3. **读取 `.anws/v{N}/05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`** → 了解执行与验证待办
+4. **开始工作**
 
 ---
 
@@ -85,7 +84,7 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-05` (`/change` v8 — Runtime Activation Repair backlog)
+- **最近一次更新**: `2026-06-09` (`/change` v8 — Proof Truth and Memory Feedback backlog)
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -209,14 +208,34 @@ src/
 - 系统数: 10
 - **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
 - **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: Wave 106 `/forge` repair，从 T-CP.R.2 real runtime spine 开始
-- **最近更新**: `2026-06-05` (`/change` repair backlog — runtime activation)
+- **下一步**: Wave 107 `/forge` repair，从 T-VERIFY.R.1 proof truth gate 开始
+- **最近更新**: `2026-06-09` (`/change` repair backlog — proof truth and memory feedback)
+
+### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
+T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 107 全部完成（T-VERIFY.R.1 + T-OBS.R.3 + T-PJ.R.1 + T-DQ.R.3 + T-DQ.R.4 + INT-R2）
+- **产出**:
+  - `reports/v8-current-system-mechanism-audit-2026-06-09.md` — current system mechanism audit and gap analysis
+  - `reports/v8-wave107-proof-memory-change-spec.md` — Wave 107 change spec and implementation order
+  - `.anws/v8/05A_TASKS.md` — Wave 107 all tasks checked; INT-R2 checked
+  - `.anws/v8/05B_VERIFICATION_PLAN.md` — added Wave 107 verification gates
+  - `.anws/v8/06_CHANGELOG.md` — recorded Wave 107 full completion
+  - `reports/int-r1-v8-runtime-activation-repair.md` — INT-R1 verification report
+  - `logs/int-r1-loop-status.json` — structured loop status evidence
+  - `logs/int-r2-loop-status.json` — loop_status/digest real-run parity evidence
+  - `reports/perception-contract-alignment.md` — perception contract alignment report
+  - `reports/int-r2-v8-proof-memory-closure.md` — INT-R2 Wave 107 gate report
+  - `.anws/v8/wave-reviews/wave-106-review.md` — Wave 106 retrospective review
+- **最高严重度**: High planning repair (全部已关闭)
+- **下一步**: 等待用户指令 — Wave 107 已完成，可进入下一轮或发布
 
 ### 🌊 Wave 106 🧭 — v8 Change: Runtime Activation Repair Backlog
 T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
 **签入**: USER
 **code-reviewer**: 默认执行
-- **状态**: ✅ 全部完成
+- **状态**: 实现完成；proof truth / handoff evidence 由 Wave 107 重新打开验证
 - **产出**:
   - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — extended with full action-closure spine (proposal → policy → dispatch → closure)
   - `src/core/second-nature/control-plane/real-runtime-spine.ts` — bridge module wrapping `runHeartbeatCycle`
@@ -246,7 +265,7 @@ T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1
   - ✅ MoltBook write: policy proof gate，dry-run/owner-confirm 安全路径
   - ✅ Daily rhythm: Quiet/Dream 独立节律，不依赖 heartbeat 恰好选中 quiet intent
   - ✅ Health gate: 区分 contract-smoke 与 real-run，显式 missing stage reason
-- **下一步**: Wave 106 完成。所有 v8 05A_TASKS.md 任务已勾选。进入 Step 5 里程碑结算或继续下一波。
+- **下一步**: Wave 107 已打开 proof truth / memory feedback 修复，不进入 Step 5 结算。
 
 ### 🌊 Wave 105 ✅ — v8 Repair: Audit-backed Connector/Quiet Digest Closure
 T-OBS.R.1
@@ -1063,43 +1082,5 @@ S5 Waves 36-39 测试增量明细：
 
 ---
 
-## Bootstrap Recovery (DR-034)
-
-> **铁律**：RuntimeSecretAnchor 只记录密钥的**管理位置**与**恢复原则**，绝不输出密钥**明文**。任何请求 key value 的回复都必须拒绝。
-
-当 `sn runtime_secret_bootstrap` 返回 `missing_key` 或 `wrong_key` 时，按以下步骤排查：
-
-1. **检查环境变量**：确认 `SECOND_NATURE_ENCRYPTION_KEY` 已在当前 shell 或 `.env` 文件中设置。
-2. **验证 anchor 位置**：检查 workspace root 下是否存在 `data/runtime-secret-anchor.json`（或配置中定义的路径）。
-   - 默认路径：`{workspaceRoot}/data/runtime-secret-anchor.json`
-   - 自定义路径：通过 `SECOND_NATURE_SECRET_ANCHOR_PATH` 环境变量覆盖。
-3. **重新验证**：运行 `sn runtime_secret_bootstrap`，status 应变为 `ok`。
-4. **密钥轮换（wrong_key）**：若密钥已更换，旧密文无法解密——需要执行 credential re-encryption 流程（见 runtime-ops-system.md §12）。
-
-### DR-034 恢复路径摘要
-
-| 场景 | RuntimeSecretAnchorView.status | 操作 |
-|---|---|---|
-| 密钥未设置 | `runtime_secret_anchor_missing` | 设置 `SECOND_NATURE_ENCRYPTION_KEY` 后重试 |
-| 密钥错误 | `runtime_secret_unavailable` | 确认 key 与 anchor 文件匹配；如已轮换，执行 re-encryption |
-| 凭据无法解密 | `credential_recovery_required` | 旧密文不可恢复，需重新初始化凭据；系统必须诚实报告，不得伪装恢复 |
-| 正常 | `ok` | 无需操作 |
-
-注：恢复操作**不**输出密钥明文；所有状态通过 `RuntimeSecretAnchorView` 的 `status` 字段机器可读。AGENTS.md、README.md 与 `self_health` 诊断面仅记录管理位置与恢复原则，不记录 key value。
-
----
-
-## Manual Handoff — v6 Design System
-
-- `dream-system`: v6 异步记忆整理引擎设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/dream-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/dream-system-research.md`。
-- `connector-system`: v6 动态 connector 生态设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/connector-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/connector-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/connector-system-research.md`。
-- `state-system`: v6 Agent Self Layer 与 Dream I/O 状态真相源设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/state-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/state-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/state-system-research.md`。
-- `observability-system`: v6 DreamTrace、NarrativeTrace 与 connector inventory 审计设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/observability-system.md`；实现层补充见 `.anws/v6/04_SYSTEM_DESIGN/observability-system.detail.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/observability-system-research.md`。
-- `control-plane-system`: v6 self-aware heartbeat、goal priority、narrative update 与 Dream trigger 设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/control-plane-system.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/control-plane-system-research.md`。
-- `behavioral-guidance-system`: v6 source-backed outreach、insight/narrative/relationship proposal 与 ModelAssistPort 设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/behavioral-guidance-system.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/behavioral-guidance-system-research.md`。
-- `cli-system`: v6 `narrative` / `goal` / `dream:recent` / `connector:*` / `cycle:recent` 与 JSON-first ops surface 设计已落盘，见 `.anws/v6/04_SYSTEM_DESIGN/cli-system.md`；调研见 `.anws/v6/04_SYSTEM_DESIGN/_research/cli-system-research.md`。
-- 本轮 `/challenge` 与 `/change` 回写见 `.anws/v6/07_CHALLENGE_REPORT.md` 的 Round 2～6；DR3-01 已回流到 `.anws/v6/05A_TASKS.md` 的 T5.1.2 `NarrativeTrace` 与 T5.1.3 `ConnectorInventoryAudit`，DR6-01 / TR6-01 已回流到 T1.2.4～T1.2.6 与 `.anws/v6/05B_VERIFICATION_PLAN.md`。
-
----
-
 > **状态自检**: 准备好了？提醒用户运行 `/quickstart` 开始吧。
+

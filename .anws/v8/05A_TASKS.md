@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-05
+> 最后更新: 2026-06-09
 >
 > 验证计划: [05B_VERIFICATION_PLAN.md](./05B_VERIFICATION_PLAN.md)
 
@@ -48,6 +48,14 @@ graph TD
     CSR1 --> OBSR2
     DQR2 --> OBSR2
     OBSR2 --> INTR1[INT-R1]
+    INTR1 --> VERIFYR1[T-VERIFY.R.1 Proof Truth]
+    VERIFYR1 --> OBSR3[T-OBS.R.3 Real-run Health Surface]
+    VERIFYR1 --> PJR1[T-PJ.R.1 Perception Contract Alignment]
+    VERIFYR1 --> DQR3[T-DQ.R.3 Projection Lifecycle + Feedback]
+    DQR3 --> DQR4[T-DQ.R.4 Quiet ClosureRefs]
+    OBSR3 --> INTR2[INT-R2]
+    PJR1 --> INTR2
+    DQR4 --> INTR2
 ```
 
 ---
@@ -63,6 +71,7 @@ graph TD
 | S5 | Explain the Loop | causal health + loop_status + guidance integration | `loop_status` identifies stalled stages and policy-denied closures correctly | 4-5d |
 | S6 | Living Loop Gate | full chain regression | connector read -> memory projection -> next context passes with report | 2-3d |
 | S7 | Runtime Activation Repair | real heartbeat spine + impulse context + safe write + multi-rhythm | real workspace heartbeat produces closure/Quiet/Dream/context evidence, not only contract smoke | 4-6d |
+| S8 | Proof and Memory Closure | proof truth + real-run health surface + perception contract + memory feedback | runtime proof cannot false-green, and accepted memory feeds the next heartbeat context | 3-5d |
 
 ---
 
@@ -239,6 +248,50 @@ graph TD
   - **依赖**: T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2
   - **优先级**: P0
 
+- [x] **T-VERIFY.R.1** [REQ-002, REQ-005, REQ-006, REQ-008, REQ-009]: Repair Wave 106 proof truth and handoff artifacts
+  - **描述**: Replace the current false-green INT-R1 proof with a gate that proves runtime-produced closure/no-action, impulse context freshness, Quiet/Dream cadence, and operator-facing loop status using generated evidence artifacts instead of manually seeded state.
+  - **输入**: `reports/v8-current-system-mechanism-audit-2026-06-09.md`, `reports/v8-wave107-proof-memory-change-spec.md`, INT-R1 task contract, current `tests/integration/v8/int-r1-runtime-activation-repair.test.ts`
+  - **输出**: repaired INT-R1 test/report/log/review artifact set and explicit failure mode for missing runtime-produced proof.
+  - **契约承接**: runtime proof truth, no manually seeded closure as success proof, required handoff artifact completeness, no false completion record
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given INT-R1 runs without runtime-produced closure/no-action evidence
+    - When the repair gate evaluates proof artifacts
+    - Then the gate fails with an explicit missing-proof reason instead of passing from seeded state
+    - Given a real heartbeat path produces closure/no-action and related rhythm/context evidence
+    - When INT-R1 completes
+    - Then `reports/int-r1-v8-runtime-activation-repair.md`, `logs/int-r1-loop-status.json`, and `.anws/v8/wave-reviews/wave-106-review.md` exist and agree on the same outcome
+  - **验证类型**: 集成测试 / 冒烟测试 / 回归测试 / 静态审查
+  - **E2E触发设想**: 不触发浏览器 E2E；host-facing smoke 只记录 JSON/log 证据。
+  - **验证摘要**: Cover missing report/log/review artifacts, seeded closure rejection, runtime-produced closure proof, and consistency between test result, report, and loop status log.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-verify-r-1`
+  - **证据产出**: `tests/integration/v8/int-r1-runtime-activation-repair.test.ts`, `reports/int-r1-v8-runtime-activation-repair.md`, `logs/int-r1-loop-status.json`, `.anws/v8/wave-reviews/wave-106-review.md`
+  - **估时**: 1d
+  - **依赖**: INT-R1
+  - **优先级**: P0
+
+- [x] **T-OBS.R.3** [REQ-006, REQ-008, REQ-009]: Wire real-run health gate into `loop_status` and `heartbeat_digest`
+  - **描述**: Make operator-facing runtime surfaces consume the real-run health gate so closure, impulse context, Quiet/Dream cadence, projection feedback, and proof-artifact gaps are visible as explicit unhealthy/degraded states.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, T-OBS.R.2 implementation, T-VERIFY.R.1 outputs
+  - **输出**: real-run health projection in `loop_status`, digest parity for real-run health, and redacted next-action diagnostics.
+  - **契约承接**: real-run health read model, impulse freshness, closure proof, Quiet/Dream absence reason, projection feedback freshness
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given the generic causal snapshot is healthy but real-run proof artifacts or impulse context are missing
+    - When `loop_status` is requested
+    - Then the result is not reported as healthy and includes the concrete missing real-run stage
+    - Given `heartbeat_digest` is requested for the same workspace/day
+    - When real-run health is degraded
+    - Then digest reports the same degraded reason without raw platform payload or credential leakage
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover healthy parity, missing closure, stale impulse context, missing Quiet/Dream cadence, missing projection feedback, missing proof artifacts, and digest/loop_status agreement.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-3`
+  - **证据产出**: `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`, `tests/integration/runtime-ops/heartbeat-digest-real-run-gate.test.ts`, `logs/int-r2-loop-status.json`
+  - **估时**: 1d
+  - **依赖**: T-VERIFY.R.1, T-OBS.R.2
+  - **优先级**: P0
+
 ---
 
 ## System 7: connector-system
@@ -347,6 +400,28 @@ graph TD
   - **证据产出**: `tests/unit/judgment/judgment-engine.test.ts`, `tests/api/judgment/judgment-port.test.ts`
   - **估时**: 1.5d
   - **依赖**: T-PJ.C.2, T-BT.C.1
+  - **优先级**: P0
+
+- [x] **T-PJ.R.1** [REQ-002, REQ-003, REQ-007]: Canonicalize `PerceptionCard` novelty and relevance contract
+  - **描述**: Resolve design/code drift by making perception write a canonical novelty/relevance shape and by either migrating or compatibility-reading legacy cards without silently persisting ambiguous semantics.
+  - **输入**: `04_SYSTEM_DESIGN/perception-judgment-system.md §5`, `04_SYSTEM_DESIGN/perception-judgment-system.detail.md §2`, current `src/core/second-nature/perception/perception-builder.ts`, current v8 state schema
+  - **输出**: canonical PerceptionCard contract update, builder/store validation, compatibility read path if needed, and drift report.
+  - **契约承接**: `noveltyClass=new|changed|duplicate|stale`, `relevanceScore=0..1`, `relevanceClass=low|medium|high`, no ambiguous `recurring/update` write semantics
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given new evidence is transformed into a PerceptionCard
+    - When the card is written
+    - Then novelty and relevance are persisted in the canonical shape
+    - Given an older card uses `recurring`, `update`, or numeric-only relevance
+    - When the read/migration path handles it
+    - Then the result is normalized or explicitly rejected with a drift diagnostic
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover canonical writes, legacy read normalization/rejection, store schema compatibility, judgment consumption, and reportable drift diagnostics.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-pj-r-1`
+  - **证据产出**: `tests/unit/perception/perception-contract-alignment.test.ts`, `tests/api/perception/perception-port.test.ts`, `reports/perception-contract-alignment.md`
+  - **估时**: 1d
+  - **依赖**: T-VERIFY.R.1, T-PJ.C.2, T-PJ.C.3
   - **优先级**: P0
 
 - [x] **INT-S2** [MILESTONE]: S2 集成验证 — See and Judge
@@ -683,6 +758,50 @@ graph TD
   - **依赖**: T-DQ.C.4, T-CP.R.2
   - **优先级**: P1
 
+- [x] **T-DQ.R.3** [REQ-005, REQ-006, REQ-008, REQ-009]: Fix projection supersession and load accepted memory into heartbeat context
+  - **描述**: Repair long-term memory projection lifecycle so supersession performs a real status transition, then wire accepted active projections into the next heartbeat context used by judgment.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §6`, `04_SYSTEM_DESIGN/control-plane-system.md §4`, T-DQ.C.4, T-CP.C.2, T-DQ.R.2 outputs
+  - **输出**: projection status-transition path, accepted projection context loader wiring, stale/superseded exclusion, and integration proof.
+  - **契约承接**: candidate -> accepted/active -> superseded/retired lifecycle, accepted-only context, no candidate memory leakage, projection feedback freshness
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given an active projection exists for a topic and a new validated candidate is accepted
+    - When projection acceptance runs
+    - Then the old projection is transitioned to `superseded` without insert-only primary-key conflict and the new projection becomes active
+    - Given an active accepted projection exists
+    - When the next heartbeat context is assembled
+    - Then judgment receives the accepted memory slice and excludes candidate/superseded projections
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发浏览器 E2E；INT-R2 consumes the integration proof.
+  - **验证摘要**: Cover supersession status update, duplicate topic acceptance, candidate exclusion, context assembly feedback, stale projection diagnostics, and loop health freshness.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-3`
+  - **证据产出**: `tests/unit/dream/memory-projection-lifecycle.test.ts`, `tests/api/dream/memory-projection-port.test.ts`, `tests/integration/control-plane/accepted-projection-feedback.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-VERIFY.R.1, T-DQ.C.4, T-CP.C.2, T-DQ.R.2
+  - **优先级**: P0
+
+- [x] **T-DQ.R.4** [REQ-005, REQ-009]: Make `QuietDailyReview.closureRefs` first-class
+  - **描述**: Add explicit closure references to QuietDailyReview write/read models so Quiet, Dream, projection, and audit can trace which ActionClosureRecords were reviewed without reconstructing provenance from generic source refs or payload JSON.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1`, T-DQ.C.1, T-DQ.R.2, T-DQ.R.3 outputs
+  - **输出**: QuietDailyReview closureRefs contract, store/read model support, builder updates, and cadence integration proof.
+  - **契约承接**: `closureRefs: SourceRef[]`, daily review provenance, Dream input grounding, action-closure -> Quiet traceability
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`
+  - **验收标准**:
+    - Given a daily review has one or more ActionClosureRecords
+    - When QuietDailyReview is written
+    - Then the review contains first-class `closureRefs` for each reviewed closure
+    - Given Dream consumes a QuietDailyReview
+    - When source grounding is validated
+    - Then closureRefs are available without parsing payload JSON
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover non-empty closureRefs, empty Quiet input, redacted read model, Dream source grounding, and backward compatibility for older reviews.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-4`
+  - **证据产出**: `tests/unit/quiet/quiet-daily-review-builder.test.ts`, `tests/api/quiet/quiet-review-port.test.ts`, `tests/integration/v8/quiet-dream-cadence.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-DQ.R.3
+  - **优先级**: P0
+
 ---
 
 ## System 9: guidance-voice-system
@@ -818,6 +937,28 @@ graph TD
   - **依赖**: T-OBS.R.2
   - **优先级**: P0
 
+- [x] **INT-R2** [MILESTONE]: Proof Truth and Memory Feedback Gate
+  - **描述**: Verify Wave 107 closes the proof-truth and memory-feedback gaps without relying on completed-task labels or manually seeded state.
+  - **输入**: T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4 outputs
+  - **输出**: `reports/int-r2-v8-proof-memory-closure.md`
+  - **契约承接**: proof artifact completeness, real-run operator health, canonical perception contract, projection feedback into heartbeat context, Quiet closure provenance
+  - **参考**: `reports/v8-current-system-mechanism-audit-2026-06-09.md`, `reports/v8-wave107-proof-memory-change-spec.md`
+  - **验收标准**:
+    - Given Wave 107 repair tasks are complete
+    - When INT-R2 runs the proof and memory feedback gate
+    - Then loop_status/digest health, perception contract, projection lifecycle, accepted memory feedback, Quiet closureRefs, and required proof artifacts all pass together
+    - Given any proof artifact or memory feedback link is absent
+    - When INT-R2 evaluates the workspace
+    - Then it fails with a specific missing-link reason
+  - **验证类型**: 集成测试 / 冒烟测试 / 回归测试 / 静态审查
+  - **E2E触发设想**: Optional host smoke only; no real external platform write.
+  - **验证摘要**: Close the repair with a single report that cross-checks all Wave 107 artifacts and runtime read models.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r2`
+  - **证据产出**: `reports/int-r2-v8-proof-memory-closure.md`, `tests/integration/v8/proof-memory-closure.test.ts`, `logs/int-r2-loop-status.json`
+  - **估时**: 4h
+  - **依赖**: T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.4
+  - **优先级**: P0
+
 - [x] **T-REG.C.1** [REGRESSION]: v8 build/lint and v7 capability regression gate
   - **描述**: Run build, lint, targeted v7 regression suites, and package/plugin smoke after v8 integration.
   - **输入**: INT-V8 output and existing regression suites
@@ -925,4 +1066,43 @@ graph TD
 **涉及任务**: T-DQ.R.2 -> T-OBS.R.2 -> INT-R1
 **关键路径**: T-DQ.R.2
 **独立可测**: Daily Quiet/Dream due/completed/blocked states are visible even when fast heartbeat does not select a quiet intent.
+**覆盖状态**: Repair Planned
+
+---
+
+## Repair Overlay — Proof Truth and Memory Feedback Findings (2026-06-09)
+
+### RF-005: Proof Truth Is Not Runtime Truth
+**审查发现**: INT-R1 is marked complete, but the required report/log/review artifacts are absent and the integration test can pass from manually seeded closure state.
+**涉及任务**: T-VERIFY.R.1 -> T-OBS.R.3 -> INT-R2
+**关键路径**: T-VERIFY.R.1
+**独立可测**: The repair gate fails when closure/no-action proof is not produced by the runtime path, and required artifacts exist when it passes.
+**覆盖状态**: Repair Planned
+
+### RF-006: Real-run Health Is Not Operator-facing
+**审查发现**: The real-run health helper exists, but `loop_status` and `heartbeat_digest` do not consume it as the truth gate.
+**涉及任务**: T-OBS.R.3 -> INT-R2
+**关键路径**: T-OBS.R.3
+**独立可测**: `loop_status` and digest report missing closure, stale impulse context, missing rhythm, or missing projection feedback instead of returning false healthy.
+**覆盖状态**: Repair Planned
+
+### RF-007: PerceptionCard Contract Drift
+**审查发现**: Design says novelty is `new|changed|duplicate|stale` and relevance is `low|medium|high`; code writes `new|recurring|update` and numeric relevance.
+**涉及任务**: T-PJ.R.1 -> INT-R2
+**关键路径**: T-PJ.R.1
+**独立可测**: New PerceptionCards use canonical novelty/relevance fields, and legacy cards are normalized or rejected with drift diagnostics.
+**覆盖状态**: Repair Planned
+
+### RF-008: Memory Projection Does Not Reliably Feed Back
+**审查发现**: Projection supersession risks insert-only primary-key conflict, and the heartbeat path does not clearly load accepted projections into the next context.
+**涉及任务**: T-DQ.R.3 -> INT-R2
+**关键路径**: T-DQ.R.3
+**独立可测**: Accepting a same-topic projection supersedes the old row and the next heartbeat receives accepted active memory in context.
+**覆盖状态**: Repair Planned
+
+### RF-009: Quiet Closure Provenance Is Implicit
+**审查发现**: QuietDailyReview design names `closureRefs`, but implementation stores closure provenance only through generic source refs/payload JSON.
+**涉及任务**: T-DQ.R.4 -> INT-R2
+**关键路径**: T-DQ.R.4
+**独立可测**: QuietDailyReview exposes first-class closureRefs consumed by Dream/source grounding without parsing payload JSON.
 **覆盖状态**: Repair Planned

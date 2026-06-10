@@ -27,7 +27,10 @@ export interface QuietDailyReviewResult {
     day: string;
     closureCount: number;
     memoryCandidateCount: number;
+    /** Generic source refs (closure + perception + other) */
     sourceRefs: SourceRef[];
+    /** Explicit closure refs — first-class provenance for reviewed ActionClosureRecords */
+    closureRefs: SourceRef[];
     reviewSummary: string;
     importanceSignals: string[];
     createdAt: string;

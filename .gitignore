@@ -15,6 +15,7 @@ tmp/
 Thumbs.db
 .claude/
 .codex/
+.opencode/
 data/
 
 # Keep architecture and workflow docs under version control

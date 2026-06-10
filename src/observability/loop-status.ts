@@ -21,11 +21,23 @@
 
 import type { StateDatabase } from "../storage/db/index.js";
 import { assembleLoopStatus } from "./causal-loop-health.js";
+import { checkRealRunHealth, type RealRunHealthGate } from "./living-loop-health-gate.js";
 import type { DegradedOperationResult, LoopStage } from "../shared/types/v8-contracts.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
 // ───────────────────────────────────────────────────────────────
+
+export interface RealRunHealthProjection {
+  gatePassed: boolean;
+  contractSmokeOnly: boolean;
+  seededStateDetected: boolean;
+  hasRealClosure: boolean;
+  hasQuietArtifact: boolean;
+  hasDreamArtifact: boolean;
+  missingStage?: string;
+  missingReason?: string;
+}
 
 export interface LoopStatusReadModel {
   ok: true;
@@ -36,6 +48,7 @@ export interface LoopStatusReadModel {
   stageSummaries: StageSummary[];
   policyDeniedCount: number;
   nextAction: string;
+  realRunHealth: RealRunHealthProjection;
 }
 
 export interface StageSummary {
@@ -56,7 +69,13 @@ export type LoopStatusResult =
 function computeNextAction(
   overallStatus: "healthy" | "degraded" | "stalled" | "no_data",
   stalledAt?: LoopStage,
+  realRunMissingStage?: string,
+  realRunMissingReason?: string,
 ): string {
+  // Real-run health takes precedence over generic causal health
+  if (realRunMissingStage && realRunMissingStage !== "none") {
+    return `Real-run health degraded: ${realRunMissingReason ?? `missing stage: ${realRunMissingStage}`}. Run a real heartbeat cycle or verify daily rhythm state.`;
+  }
   if (overallStatus === "healthy") {
     return "No operator action required. Loop is progressing normally.";
   }
@@ -101,6 +120,46 @@ export async function readLoopStatus(
 
   const snapshot = health as import("./causal-loop-health.js").CausalLoopHealthSnapshot;
 
+  // T-OBS.R.3: Consume real-run health gate
+  const realRunResult = await checkRealRunHealth(db);
+  let realRunHealth: RealRunHealthProjection;
+  if (realRunResult.ok) {
+    realRunHealth = {
+      gatePassed: realRunResult.gate.gatePassed,
+      contractSmokeOnly: realRunResult.gate.contractSmokeOnly,
+      seededStateDetected: realRunResult.gate.seededStateDetected,
+      hasRealClosure: realRunResult.gate.hasRealClosure,
+      hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
+      hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+      missingStage: realRunResult.gate.missingStage,
+      missingReason: realRunResult.gate.missingReason,
+    };
+  } else {
+    realRunHealth = {
+      gatePassed: false,
+      contractSmokeOnly: false,
+      seededStateDetected: false,
+      hasRealClosure: false,
+      hasQuietArtifact: false,
+      hasDreamArtifact: false,
+      missingReason: "Real-run health check degraded",
+    };
+  }
+
+  // Override overallStatus based on real-run health parity
+  let overallStatus = snapshot.overallStatus;
+  let stalledAt = snapshot.stalledAt;
+  if (!realRunHealth.gatePassed) {
+    // Real-run gate fails → cannot report healthy
+    if (overallStatus === "healthy") {
+      overallStatus = "degraded";
+    }
+  } else {
+    // Real-run gate passes → all stages have evidence, ignore staged-event-only stall
+    overallStatus = "healthy";
+    stalledAt = undefined;
+  }
+
   const stageSummaries: StageSummary[] = snapshot.stages.map((s) => ({
     stage: s.stage,
     eventCount: s.eventCount,
@@ -111,19 +170,25 @@ export async function readLoopStatus(
   // Policy denied count is a placeholder; real implementation would query action closures
   const policyDeniedCount = 0;
 
-  const nextAction = computeNextAction(snapshot.overallStatus, snapshot.stalledAt);
+  const nextAction = computeNextAction(
+    overallStatus as "healthy" | "degraded" | "stalled" | "no_data",
+    snapshot.stalledAt,
+    realRunHealth.missingStage,
+    realRunHealth.missingReason,
+  );
 
   return {
     ok: true,
     status: {
       ok: true,
-      overallStatus: snapshot.overallStatus,
+      overallStatus,
       stalledAt: snapshot.stalledAt,
       lastCycleSequence: snapshot.lastCycleSequence,
       lastHeartbeatAt: snapshot.lastHeartbeatAt,
       stageSummaries,
       policyDeniedCount,
       nextAction,
+      realRunHealth,
     },
   };
 }

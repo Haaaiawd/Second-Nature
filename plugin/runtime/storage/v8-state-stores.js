@@ -258,6 +258,7 @@ export async function writeQuietDailyReview(db, row) {
         const record = {
             ...row,
             sourceRefsJson: serializeSourceRefs(validated.record),
+            closureRefsJson: row.closureRefs ? serializeSourceRefs(row.closureRefs) : null,
         };
         await db.db.insert(quietDailyReview).values(record);
         return { id: row.id };
@@ -366,6 +367,23 @@ export async function writeLongTermMemoryProjection(db, row) {
         return makeDegraded("state_unreadable", "projection", "Retry projection write after DB recovery", validated.record);
     }
 }
+/**
+ * Update an existing projection's status — required for supersession lifecycle.
+ * Uses UPDATE instead of INSERT to avoid primary-key conflict.
+ */
+export async function updateLongTermMemoryProjectionStatus(db, id, status, payloadJson) {
+    try {
+        const updateData = { status, lifecycleStatus: status };
+        if (payloadJson !== undefined) {
+            updateData.payloadJson = payloadJson;
+        }
+        await db.db.update(longTermMemoryProjection).set(updateData).where(eq(longTermMemoryProjection.id, id));
+        return { id };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "projection", `Retry projection status update for ${id} after DB recovery`);
+    }
+}
 export async function readMemoryProjectionsByStatus(db, status) {
     try {
         const rows = await db.db
@@ -395,6 +413,21 @@ export async function readMemoryProjectionsByTopic(db, topicKey) {
         return {
             rows: [],
             degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readLongTermMemoryProjectionById(db, id) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(longTermMemoryProjection)
+            .where(eq(longTermMemoryProjection.id, id))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "projection", `Check state database connectivity for projection ${id}`),
         };
     }
 }

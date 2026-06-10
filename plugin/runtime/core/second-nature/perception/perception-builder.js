@@ -76,12 +76,13 @@ function extractEntities(evidence) {
     }
     return [...new Set(entities)];
 }
-function inferNovelty(evidence) {
+function inferNoveltyClass(evidence) {
+    // Canonical novelty classification
     if (evidence.sensitivityHint === "public_technical")
-        return "recurring";
+        return "changed";
     return "new";
 }
-function inferRelevance(evidence) {
+function inferRelevanceScore(evidence) {
     if (evidence.sensitivityHint === "sensitive")
         return 0.9;
     if (evidence.sensitivityHint === "public_technical")
@@ -89,6 +90,13 @@ function inferRelevance(evidence) {
     if (evidence.sensitivityHint === "private_context")
         return 0.5;
     return 0.3;
+}
+function inferRelevanceClass(score) {
+    if (score >= 0.7)
+        return "high";
+    if (score >= 0.4)
+        return "medium";
+    return "low";
 }
 function inferSummary(evidence) {
     const platform = evidence.platformId;
@@ -124,13 +132,15 @@ function inferRiskFlags(evidence) {
 }
 function buildCardFromEvidence(evidence, cycleId, now) {
     const sourceRefs = parseSourceRefs(evidence.sourceRefsJson);
+    const relevanceScore = inferRelevanceScore(evidence);
     return {
         id: `per_${evidence.id}`,
         cycleId,
         topic: extractTopic(evidence),
         entities: extractEntities(evidence),
-        novelty: inferNovelty(evidence),
-        relevance: inferRelevance(evidence),
+        noveltyClass: inferNoveltyClass(evidence),
+        relevanceScore,
+        relevanceClass: inferRelevanceClass(relevanceScore),
         summary: inferSummary(evidence),
         possibleIntents: inferPossibleIntents(evidence),
         reviewPriority: inferReviewPriority(evidence),
@@ -177,8 +187,9 @@ export async function buildPerceptionCards(db, options) {
             cycleId: card.cycleId,
             topic: card.topic,
             entitiesJson: JSON.stringify(card.entities),
-            novelty: card.novelty,
-            relevance: card.relevance,
+            novelty: card.noveltyClass,
+            relevance: card.relevanceScore,
+            relevanceClass: card.relevanceClass,
             summary: card.summary,
             riskFlagsJson: JSON.stringify(card.riskFlags),
             confidence: card.confidence,

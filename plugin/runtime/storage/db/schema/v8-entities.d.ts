@@ -346,6 +346,25 @@ export declare const perceptionCard: import("drizzle-orm/sqlite-core").SQLiteTab
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        relevanceClass: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "relevance_class";
+            tableName: "perception_card";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         summary: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "summary";
             tableName: "perception_card";
@@ -1076,6 +1095,25 @@ export declare const quietDailyReview: import("drizzle-orm/sqlite-core").SQLiteT
             data: string;
             driverParam: string;
             notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        closureRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "closure_refs_json";
+            tableName: "quiet_daily_review";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;

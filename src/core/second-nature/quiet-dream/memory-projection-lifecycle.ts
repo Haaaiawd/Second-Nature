@@ -25,6 +25,7 @@ import type { StateDatabase } from "../../../storage/db/index.js";
 import {
   readMemoryProjectionsByTopic,
   writeLongTermMemoryProjection,
+  updateLongTermMemoryProjectionStatus,
 } from "../../../storage/v8-state-stores.js";
 import type {
   SourceRef,
@@ -82,21 +83,17 @@ export async function acceptMemoryProjection(
   let supersedesId: string | undefined;
 
   if (activeProjection) {
-    // Supersede existing active projection
-    const supersedeResult = await writeLongTermMemoryProjection(db, {
-      id: activeProjection.id,
-      createdAt: activeProjection.createdAt,
-      candidateId: activeProjection.candidateId,
-      topicKey: activeProjection.topicKey,
-      status: "superseded",
-      sourceRefs: parseSourceRefs(activeProjection.sourceRefsJson),
-      redactionClass: activeProjection.redactionClass,
-      lifecycleStatus: "superseded",
-      payloadJson: JSON.stringify({
+    // Supersede existing active projection — UPDATE instead of INSERT
+    const supersedeResult = await updateLongTermMemoryProjectionStatus(
+      db,
+      activeProjection.id,
+      "superseded",
+      JSON.stringify({
+        ...parsePayloadJson(activeProjection.payloadJson),
         supersededAt: now,
         supersededBy: candidateId,
       }),
-    });
+    );
 
     if ("reason" in supersedeResult) {
       return supersedeResult;
@@ -213,5 +210,14 @@ function parseSourceRefs(json: string | null): SourceRef[] {
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
+  }
+}
+
+function parsePayloadJson(json: string | null): Record<string, unknown> {
+  if (!json) return {};
+  try {
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return {};
   }
 }

@@ -227,6 +227,15 @@ export async function generateHeartbeatDigest(date, deps) {
         goalSummary,
         quietDreamSummary,
         healthSummary,
+        realRunHealth: {
+            gatePassed: false,
+            contractSmokeOnly: true,
+            seededStateDetected: false,
+            hasRealClosure: false,
+            hasQuietArtifact: false,
+            hasDreamArtifact: false,
+            missingReason: "Real-run health not evaluated — call checkRealRunHealth before digest generation",
+        },
     };
     // T-OBS.C.4: delivery hook — attempt delivery if adapter is provided
     if (deliveryAdapter) {

@@ -37,8 +37,12 @@ export interface PerceptionCardResult {
     cycleId: string;
     topic: string;
     entities: string[];
-    novelty: "new" | "recurring" | "update";
-    relevance: number;
+    /** Canonical novelty class: new | changed | duplicate | stale */
+    noveltyClass: "new" | "changed" | "duplicate" | "stale";
+    /** Numeric relevance score in [0, 1] */
+    relevanceScore: number;
+    /** Derived relevance class: low | medium | high */
+    relevanceClass: "low" | "medium" | "high";
     summary: string;
     possibleIntents: PlatformNeutralActionKind[];
     reviewPriority: "low" | "medium" | "high";

@@ -25,6 +25,7 @@ import { writeHeartbeatCycleTrace, readHeartbeatCycleTraces, } from "../../../st
 import { recordLoopStageEvent } from "../../../observability/loop-stage-event-sink.js";
 import { buildPerceptionCards } from "../perception/perception-builder.js";
 import { runAgentJudgments } from "../perception/judgment-engine.js";
+import { loadAcceptedProjections } from "./accepted-projection-loader.js";
 import { buildActionProposal, } from "../action/action-proposal-builder.js";
 import { evaluateActionPolicy } from "../action/autonomy-policy-evaluator.js";
 import { dispatchAllowedAction } from "../action/policy-bound-dispatch.js";
@@ -188,8 +189,11 @@ export async function runHeartbeatCycle(db, request) {
             noActionReason: "evidence_batch_empty",
         };
     }
+    // ── Context assembly: load accepted projections (T-DQ.R.3) ──
+    const projectionResult = await loadAcceptedProjections(db);
+    const acceptedProjections = projectionResult.ok ? projectionResult.slice.projections : [];
     // ── Judgment stage ──
-    const judgmentResult = await runAgentJudgments(db, cards.map((c) => c.id), { now });
+    const judgmentResult = await runAgentJudgments(db, cards.map((c) => c.id), { now, acceptedProjections });
     const judgmentFailed = judgmentResult.failed.length > 0;
     await recordLoopStageEvent(db, {
         id: `evt_${cycleId}_judgment`,

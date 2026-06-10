@@ -153,7 +153,17 @@ export async function runAgentJudgment(db, perceptionCardId, options) {
             /* ignore */
         }
     }
-    const { actionKind, reason, finalConfidence } = selectVerdict(card.relevance ?? 0.3, card.confidence ?? 0.6, riskPosture, hasSourceRefs, possibleIntents);
+    let { actionKind, reason, finalConfidence } = selectVerdict(card.relevance ?? 0.3, card.confidence ?? 0.6, riskPosture, hasSourceRefs, possibleIntents);
+    // T-DQ.R.3: Boost verdict when accepted memory projection matches topic
+    const acceptedProjections = options?.acceptedProjections ?? [];
+    const matchingProjection = acceptedProjections.find((p) => p.topicKey.toLowerCase() === (card.topic ?? "").toLowerCase());
+    if (matchingProjection) {
+        finalConfidence = Math.min(0.95, finalConfidence + 0.1);
+        if (actionKind === "ignore") {
+            actionKind = "remember";
+            reason = "projection_topic_matched";
+        }
+    }
     const verdict = {
         id: `jud_${perceptionCardId}_${now.replace(/[:.]/g, "")}`,
         cycleId: card.cycleId,

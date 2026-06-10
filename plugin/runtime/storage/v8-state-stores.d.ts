@@ -81,8 +81,9 @@ export declare function readActionClosuresByDay(db: StateDatabase, day: string):
     rows: ActionClosureRecordSelect[];
     degraded?: DegradedOperationResult;
 }>;
-export declare function writeQuietDailyReview(db: StateDatabase, row: Omit<NewQuietDailyReviewRecord, "sourceRefsJson"> & {
+export declare function writeQuietDailyReview(db: StateDatabase, row: Omit<NewQuietDailyReviewRecord, "sourceRefsJson" | "closureRefsJson"> & {
     sourceRefs: SourceRef[];
+    closureRefs?: SourceRef[];
 }): Promise<{
     id: string;
 } | DegradedOperationResult>;
@@ -112,12 +113,23 @@ export declare function writeLongTermMemoryProjection(db: StateDatabase, row: Om
 }): Promise<{
     id: string;
 } | DegradedOperationResult>;
+/**
+ * Update an existing projection's status — required for supersession lifecycle.
+ * Uses UPDATE instead of INSERT to avoid primary-key conflict.
+ */
+export declare function updateLongTermMemoryProjectionStatus(db: StateDatabase, id: string, status: LongTermMemoryProjectionRecord["status"], payloadJson?: string): Promise<{
+    id: string;
+} | DegradedOperationResult>;
 export declare function readMemoryProjectionsByStatus(db: StateDatabase, status: LongTermMemoryProjectionRecord["status"]): Promise<{
     rows: LongTermMemoryProjectionRecord[];
     degraded?: DegradedOperationResult;
 }>;
 export declare function readMemoryProjectionsByTopic(db: StateDatabase, topicKey: string): Promise<{
     rows: LongTermMemoryProjectionRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function readLongTermMemoryProjectionById(db: StateDatabase, id: string): Promise<{
+    row?: LongTermMemoryProjectionRecord;
     degraded?: DegradedOperationResult;
 }>;
 export declare function writeHeartbeatCycleTrace(db: StateDatabase, row: Omit<NewHeartbeatCycleTraceRecord, "sourceRefsJson"> & {

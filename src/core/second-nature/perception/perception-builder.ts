@@ -59,8 +59,12 @@ export interface PerceptionCardResult {
   cycleId: string;
   topic: string;
   entities: string[];
-  novelty: "new" | "recurring" | "update";
-  relevance: number;
+  /** Canonical novelty class: new | changed | duplicate | stale */
+  noveltyClass: "new" | "changed" | "duplicate" | "stale";
+  /** Numeric relevance score in [0, 1] */
+  relevanceScore: number;
+  /** Derived relevance class: low | medium | high */
+  relevanceClass: "low" | "medium" | "high";
   summary: string;
   possibleIntents: PlatformNeutralActionKind[];
   reviewPriority: "low" | "medium" | "high";
@@ -126,16 +130,23 @@ function extractEntities(evidence: EvidenceItemInput): string[] {
   return [...new Set(entities)];
 }
 
-function inferNovelty(evidence: EvidenceItemInput): PerceptionCardResult["novelty"] {
-  if (evidence.sensitivityHint === "public_technical") return "recurring";
+function inferNoveltyClass(evidence: EvidenceItemInput): PerceptionCardResult["noveltyClass"] {
+  // Canonical novelty classification
+  if (evidence.sensitivityHint === "public_technical") return "changed";
   return "new";
 }
 
-function inferRelevance(evidence: EvidenceItemInput): number {
+function inferRelevanceScore(evidence: EvidenceItemInput): number {
   if (evidence.sensitivityHint === "sensitive") return 0.9;
   if (evidence.sensitivityHint === "public_technical") return 0.7;
   if (evidence.sensitivityHint === "private_context") return 0.5;
   return 0.3;
+}
+
+function inferRelevanceClass(score: number): PerceptionCardResult["relevanceClass"] {
+  if (score >= 0.7) return "high";
+  if (score >= 0.4) return "medium";
+  return "low";
 }
 
 function inferSummary(evidence: EvidenceItemInput): string {
@@ -178,13 +189,15 @@ function buildCardFromEvidence(
   now: string,
 ): PerceptionCardResult {
   const sourceRefs = parseSourceRefs(evidence.sourceRefsJson);
+  const relevanceScore = inferRelevanceScore(evidence);
   return {
     id: `per_${evidence.id}`,
     cycleId,
     topic: extractTopic(evidence),
     entities: extractEntities(evidence),
-    novelty: inferNovelty(evidence),
-    relevance: inferRelevance(evidence),
+    noveltyClass: inferNoveltyClass(evidence),
+    relevanceScore,
+    relevanceClass: inferRelevanceClass(relevanceScore),
     summary: inferSummary(evidence),
     possibleIntents: inferPossibleIntents(evidence),
     reviewPriority: inferReviewPriority(evidence),
@@ -257,8 +270,9 @@ export async function buildPerceptionCards(
       cycleId: card.cycleId,
       topic: card.topic,
       entitiesJson: JSON.stringify(card.entities),
-      novelty: card.novelty,
-      relevance: card.relevance,
+      novelty: card.noveltyClass,
+      relevance: card.relevanceScore,
+      relevanceClass: card.relevanceClass,
       summary: card.summary,
       riskFlagsJson: JSON.stringify(card.riskFlags),
       confidence: card.confidence,

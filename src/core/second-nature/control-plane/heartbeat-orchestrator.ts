@@ -30,6 +30,7 @@ import {
 import { recordLoopStageEvent } from "../../../observability/loop-stage-event-sink.js";
 import { buildPerceptionCards } from "../perception/perception-builder.js";
 import { runAgentJudgments } from "../perception/judgment-engine.js";
+import { loadAcceptedProjections } from "./accepted-projection-loader.js";
 import {
   buildActionProposal,
   type BuildActionProposalResult,
@@ -248,11 +249,15 @@ export async function runHeartbeatCycle(
     };
   }
 
+  // ── Context assembly: load accepted projections (T-DQ.R.3) ──
+  const projectionResult = await loadAcceptedProjections(db);
+  const acceptedProjections = projectionResult.ok ? projectionResult.slice.projections : [];
+
   // ── Judgment stage ──
   const judgmentResult = await runAgentJudgments(
     db,
     cards.map((c) => c.id),
-    { now },
+    { now, acceptedProjections },
   );
 
   const judgmentFailed = judgmentResult.failed.length > 0;

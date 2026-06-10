@@ -1,0 +1,108 @@
+{
+  "report": "int-r1-loop-status",
+  "generatedAt": "2026-06-09T00:00:00.000Z",
+  "wave": "Wave 107 / T-VERIFY.R.1",
+  "summary": {
+    "overallResult": "PASS",
+    "seededStateRejection": "enabled",
+    "runtimeProofRequired": true
+  },
+  "tests": [
+    {
+      "name": "full repair chain produces real runtime artifacts per stage",
+      "result": "PASS",
+      "stages": {
+        "heartbeat": {
+          "cycleProduced": true,
+          "closureRef": "runtime-produced",
+          "stageEvents": ["ingestion", "perception", "judgment", "policy", "closure"]
+        },
+        "impulseContext": {
+          "written": true,
+          "readable": true,
+          "freshnessValid": true
+        },
+        "policyBoundWrite": {
+          "dryRunExecuted": true,
+          "status": "dry_run",
+          "realPlatformWrite": false
+        },
+        "dailyRhythm": {
+          "quietStatus": "completed",
+          "dreamStatus": "scheduled"
+        },
+        "healthGate": {
+          "checkRealRunHealth": {
+            "ok": true,
+            "gate": {
+              "hasRealClosure": true,
+              "hasQuietArtifact": true,
+              "hasDreamArtifact": true,
+              "contractSmokeOnly": false,
+              "seededStateDetected": false,
+              "gatePassed": true,
+              "missingStage": "none",
+              "missingReason": "All living-loop stages have real artifacts."
+            }
+          }
+        },
+        "loopStatus": {
+          "ok": true,
+          "closureStageVisible": true
+        }
+      }
+    },
+    {
+      "name": "seeded-only closure fails as not valid runtime proof",
+      "result": "PASS",
+      "stages": {
+        "seededClosure": {
+          "manuallySeeded": true,
+          "cycleTraceBacking": false
+        },
+        "healthGate": {
+          "checkRealRunHealth": {
+            "ok": true,
+            "gate": {
+              "hasRealClosure": true,
+              "hasQuietArtifact": false,
+              "hasDreamArtifact": false,
+              "contractSmokeOnly": false,
+              "seededStateDetected": true,
+              "gatePassed": false,
+              "missingStage": "closure",
+              "missingReason": "ActionClosureRecord exists but lacks runtime-produced cycle trace. Seeded state detected — not valid runtime proof."
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "missing all runtime artifacts fails with explicit reason",
+      "result": "PASS",
+      "stages": {
+        "healthGate": {
+          "checkRealRunHealth": {
+            "ok": true,
+            "gate": {
+              "hasRealClosure": false,
+              "hasQuietArtifact": false,
+              "hasDreamArtifact": false,
+              "contractSmokeOnly": true,
+              "seededStateDetected": false,
+              "gatePassed": false,
+              "missingStage": "closure",
+              "missingReason": "No ActionClosureRecord for today. Heartbeat may be running contract smoke without real action closure."
+            }
+          }
+        }
+      }
+    }
+  ],
+  "consistencyCheck": {
+    "reportMatchesLog": true,
+    "testResultsMatchArtifacts": true,
+    "seededStateRejectionVerified": true,
+    "runtimeClosureProofVerified": true
+  }
+}

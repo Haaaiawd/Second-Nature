@@ -27,6 +27,10 @@ export interface RealRunHealthGate {
     hasDreamArtifact: boolean;
     /** True if only contract smoke (cycle traces) but no real artifacts */
     contractSmokeOnly: boolean;
+    /** True if closure exists but no runtime-produced cycle trace backs it */
+    seededStateDetected: boolean;
+    /** True only when real runtime activity is proven (not seeded, not smoke-only) */
+    gatePassed: boolean;
     /** Explicit missing stage reason */
     missingStage?: "closure" | "quiet" | "dream" | "none";
     missingReason?: string;

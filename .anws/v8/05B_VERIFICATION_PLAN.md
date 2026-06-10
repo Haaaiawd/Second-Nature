@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-05
+> 最后更新: 2026-06-10
 >
 > 执行主清单: [05A_TASKS.md](./05A_TASKS.md)
 
@@ -342,6 +342,61 @@
 - **断言**: status is not healthy until real runtime stages have persisted evidence or explicit absence reasons; raw platform payload and credential values are redacted.
 - **证据**: `tests/api/runtime-ops/living-loop-health-gate.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `reports/int-r1-v8-runtime-activation-repair.md`
 
+### T-VERIFY.R.1
+- **关联需求**: REQ-002, REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: runtime proof truth, handoff artifact completeness, no manually seeded closure as success proof
+- **风险类别**: false-green milestone / missing artifacts / seeded state mistaken for runtime activity
+- **单元测试覆盖**: 不新增纯单元；uses focused integration proof and artifact checks.
+- **API接口功能测试覆盖**: loop_status JSON artifact is generated and cross-checked against the report.
+- **集成/E2E/冒烟覆盖**: repaired INT-R1 integration fails on seeded-only closure and passes only when runtime-produced closure/no-action evidence exists; no browser E2E.
+- **前置数据**: workspace runtime fixture, seeded-only closure fixture, missing artifact fixture, real heartbeat fixture.
+- **断言**: missing `reports/int-r1-v8-runtime-activation-repair.md`, `logs/int-r1-loop-status.json`, or `.anws/v8/wave-reviews/wave-106-review.md` fails the gate; runtime-produced closure/no-action is required.
+- **证据**: `tests/integration/v8/int-r1-runtime-activation-repair.test.ts`, `reports/int-r1-v8-runtime-activation-repair.md`, `logs/int-r1-loop-status.json`, `.anws/v8/wave-reviews/wave-106-review.md`
+
+### T-OBS.R.3
+- **关联需求**: REQ-006, REQ-008, REQ-009
+- **关联契约**: real-run health read model, `loop_status`/digest parity, impulse freshness, projection feedback freshness
+- **风险类别**: operator false healthy / health helper unwired / digest-status disagreement
+- **单元测试覆盖**: real-run health projection mapper for missing closure, stale impulse, missing Quiet/Dream, missing projection feedback, and missing proof artifact.
+- **API接口功能测试覆盖**: `loop_status` returns real-run health block, missing stage, and next action; digest returns the same redacted health reason for the same workspace/day.
+- **集成/E2E/冒烟覆盖**: runtime-ops integration verifies `loop_status` and `heartbeat_digest` parity; no broad E2E.
+- **前置数据**: T-VERIFY.R.1 artifact set, healthy real-run fixture, degraded real-run fixtures.
+- **断言**: generic causal health cannot override a failed real-run gate; raw platform payload and credential-like strings are absent.
+- **证据**: `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`, `tests/integration/runtime-ops/heartbeat-digest-real-run-gate.test.ts`, `logs/int-r2-loop-status.json`
+
+### T-PJ.R.1
+- **关联需求**: REQ-002, REQ-003, REQ-007
+- **关联契约**: canonical PerceptionCard novelty/relevance shape
+- **风险类别**: type contract drift / judgment misclassification / unsafe schema ambiguity
+- **单元测试覆盖**: canonical writes for `noveltyClass`, `relevanceScore`, `relevanceClass`; legacy `recurring/update` and numeric-only relevance normalization or rejection.
+- **API接口功能测试覆盖**: perception port before/after assertions verify persisted cards use canonical shape and expose drift diagnostics for legacy input.
+- **集成/E2E/冒烟覆盖**: perception -> judgment integration verifies judgment consumes canonical relevance and novelty without semantic regression.
+- **前置数据**: new/changed/duplicate/stale evidence fixtures, legacy cards, public technical and sensitive fixtures.
+- **断言**: new writes do not persist ambiguous `recurring/update` novelty; relevance class and score remain consistent.
+- **证据**: `tests/unit/perception/perception-contract-alignment.test.ts`, `tests/api/perception/perception-port.test.ts`, `reports/perception-contract-alignment.md`
+
+### T-DQ.R.3
+- **关联需求**: REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: projection supersession lifecycle, accepted-only context feedback, projection freshness
+- **风险类别**: primary-key conflict / stale memory / candidate memory leak / judgment without memory feedback
+- **单元测试覆盖**: accept same-topic candidate, supersede old active projection, reject invalid candidate, retire projection, exclude candidate/superseded rows.
+- **API接口功能测试覆盖**: projection port before/after assertions for status transition and accepted-active read model.
+- **集成/E2E/冒烟覆盖**: heartbeat context integration proves accepted projection is loaded into the next judgment context; no browser E2E.
+- **前置数据**: validated Dream candidate, existing active projection, candidate/superseded fixtures, heartbeat context fixture.
+- **断言**: supersession updates old row instead of attempting insert-only overwrite; next heartbeat receives only accepted active memory.
+- **证据**: `tests/unit/dream/memory-projection-lifecycle.test.ts`, `tests/api/dream/memory-projection-port.test.ts`, `tests/integration/control-plane/accepted-projection-feedback.test.ts`
+
+### T-DQ.R.4
+- **关联需求**: REQ-005, REQ-009
+- **关联契约**: `QuietDailyReview.closureRefs`, Dream source grounding, action-closure provenance
+- **风险类别**: closure provenance loss / payload JSON coupling / weak self-dialogue trace
+- **单元测试覆盖**: Quiet review builder emits closureRefs for reviewed ActionClosureRecords, handles empty input, and preserves redaction boundaries.
+- **API接口功能测试覆盖**: Quiet review port read/write round-trips closureRefs and remains compatible with older reviews.
+- **集成/E2E/冒烟覆盖**: Quiet/Dream cadence integration proves Dream can source-ground from closureRefs without parsing payload JSON.
+- **前置数据**: daily closure slice, empty day, older Quiet review fixture, Dream source grounding fixture.
+- **断言**: closureRefs are first-class and redacted; Dream input validation can consume them directly.
+- **证据**: `tests/unit/quiet/quiet-daily-review-builder.test.ts`, `tests/api/quiet/quiet-review-port.test.ts`, `tests/integration/v8/quiet-dream-cadence.test.ts`
+
 ### T-GVS.C.1
 - **关联需求**: REQ-003, REQ-004, REQ-009
 - **关联契约**: policy-bound draft/notify output
@@ -441,6 +496,17 @@
 - **断言**: real workspace runtime produces persisted closure/no-action, impulse context, safe write dry-run/owner-confirm evidence, daily Quiet/Dream due or absence state, and non-false `loop_status`.
 - **证据**: `reports/int-r1-v8-runtime-activation-repair.md`, `tests/integration/v8/real-runtime-living-loop.test.ts`, `logs/int-r1-loop-status.json`
 
+### INT-R2
+- **关联需求**: REQ-002, REQ-003, REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: proof truth, real-run operator health, canonical perception, projection feedback, Quiet closure provenance
+- **风险类别**: proof drift remains open / memory feedback still absent / contract repair not integrated
+- **单元测试覆盖**: 不新增单元测试； consumes Wave 107 task evidence.
+- **API接口功能测试覆盖**: loop_status, digest, perception, projection, and Quiet review ports are cross-checked through their task evidence.
+- **集成/E2E/冒烟覆盖**: one integration gate verifies proof artifacts, health parity, perception contract, projection lifecycle/context feedback, and closureRefs together; optional host smoke only.
+- **前置数据**: T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4 completed.
+- **断言**: any missing proof artifact, real-run health link, perception canonical field, projection feedback path, or Quiet closureRef fails with a specific missing-link reason.
+- **证据**: `reports/int-r2-v8-proof-memory-closure.md`, `tests/integration/v8/proof-memory-closure.test.ts`, `logs/int-r2-loop-status.json`
+
 ### T-REG.C.1
 - **关联需求**: Definition of Done
 - **关联契约**: build/lint/regression gate
@@ -458,40 +524,46 @@
 
 | 契约 | 类型 | 实现承接 | 验证承接 | 状态 |
 | --- | --- | --- | --- | :---: |
-| Shared v8 action taxonomy | 数据结构 / 错误语义 | T-SH.C.1 | T-SH.C.1 单元测试 | ⬜ |
-| `SourceRef` contract | 数据结构 / 审计 | T-SH.C.1, T-SMS.C.1 | T-SH.C.1, T-SMS.C.1 | ⬜ |
-| `HeartbeatCycleTrace` | 状态 / 可观测性 | T-SH.C.1, T-CP.C.1 | T-CP.C.1, T-OBS.C.2 | ⬜ |
-| Heartbeat rhythm contract | 时间 / SLA | T-SH.C.1, T-CP.C.1, T-OBS.C.2 | T-SH.C.1 单元 + T-OBS.C.2 API接口功能测试 | ⬜ |
-| Cross-system degraded response | 错误语义 / root cause | T-SH.C.1, T-OBS.C.1, T-OBS.C.2 | T-SH.C.1 单元 + T-OBS.C.2 API接口功能测试 | ⬜ |
-| `LoopStageEvent` | 可观测性 / 持久化 | T-SH.C.1, T-OBS.C.1 | T-OBS.C.1 API接口功能测试 | ⬜ |
-| EvidenceItem normalization | 数据结构 / connector contract | T-CS.C.1 | T-CS.C.1 单元 + 集成 | ⬜ |
-| `SensitivityClassifier` | 安全 / 错误语义 | T-PJ.C.1 | T-PJ.C.1 单元 + API接口功能测试 | ⬜ |
-| `buildPerceptionCards` | 操作契约 | T-PJ.C.2 | T-PJ.C.2 单元 + API接口功能测试 | ⬜ |
-| `runAgentJudgment` | 操作契约 | T-PJ.C.3 | T-PJ.C.3 单元 + API接口功能测试 | ⬜ |
-| capability side-effect affordance | 数据结构 / policy input | T-BT.C.1 | T-BT.C.1 单元 + API接口功能测试 | ⬜ |
-| `buildActionProposal` | 操作契约 | T-AC.C.1 | T-AC.C.1 单元 + API接口功能测试 | ⬜ |
-| `MemoryReviewCandidateClosure` | 状态 / memory boundary | T-AC.C.1, T-DQ.C.1 | T-AC.C.1, T-DQ.C.1 | ⬜ |
-| `evaluateActionPolicy` | 安全 / 操作契约 | T-AC.C.2 | T-AC.C.2 单元 + API接口功能测试 | ⬜ |
-| policy-bound dispatch | 操作契约 / side effect | T-AC.C.3 | T-AC.C.3 单元 + 集成 | ⬜ |
-| `ActionClosureRecord` | 持久化 / closure ledger | T-AC.C.4 | T-AC.C.4 API接口功能测试 | ⬜ |
-| Idempotent closure retry | 运行承诺 / duplicate write | T-AC.C.3, T-AC.C.4 | T-AC.C.3 单元 + T-AC.C.4 API接口功能测试 | ⬜ |
-| `runQuietDailyReview` | 操作契约 / memory input | T-DQ.C.1 | T-DQ.C.1 单元 + API接口功能测试 | ⬜ |
-| `scheduleDreamAfterQuiet` | 操作契约 / lifecycle | T-DQ.C.2 | T-DQ.C.2 API接口功能测试 | ⬜ |
-| `runDreamConsolidation` | 操作契约 / redaction | T-DQ.C.3 | T-DQ.C.3 单元 + API接口功能测试 | ⬜ |
-| projection lifecycle | 状态 / memory read model | T-DQ.C.4 | T-DQ.C.4 单元 + API接口功能测试 | ⬜ |
-| accepted projection in EmbodiedContext | read model / context | T-CP.C.2 | T-CP.C.2 集成 | ⬜ |
-| `assembleLoopStatus` | ops read model | T-OBS.C.2 | T-OBS.C.2 API接口功能测试 | ⬜ |
-| diagnostic redaction attribution | 安全 / observability | T-OBS.C.3 | T-OBS.C.3 单元 + API接口功能测试 | ⬜ |
-| audit-backed digest closure | 可观测性 / read model | T-OBS.R.1 | T-OBS.R.1 单元 + API接口功能测试 + 集成 | ⬜ |
-| guidance proposal consumption | operation contract | T-GVS.C.1 | T-GVS.C.1 API接口功能测试 | ⬜ |
-| `loop_status` runtime command | CLI/OpenClaw API | T-ROS.C.1 | T-ROS.C.1 API接口功能测试 | ⬜ |
-| real runtime heartbeat spine | 操作契约 / runtime bridge | T-CP.R.2 | T-CP.R.2 单元 + API接口功能测试 + 集成 | ⬜ |
-| impulse context artifact | agent-facing context / guidance | T-GVS.R.1 | T-GVS.R.1 单元 + API接口功能测试 + 集成/手动 | ⬜ |
-| policy-bound MoltBook write | connector action / external write safety | T-CS.R.1 | T-CS.R.1 单元 + API接口功能测试 + 集成 | ⬜ |
-| independent Quiet/Dream cadence | rhythm / async lifecycle | T-DQ.R.2 | T-DQ.R.2 单元 + API接口功能测试 + 集成 | ⬜ |
-| real living-loop health gate | observability / read model | T-OBS.R.2 | T-OBS.R.2 API接口功能测试 + 集成 + report | ⬜ |
-| Runtime Activation Repair Gate | 集成契约 | INT-R1 | INT-R1 集成 + 冒烟 + 手动 | ⬜ |
-| Full living loop DoD | 集成契约 | INT-V8 | INT-V8 集成/E2E/冒烟 | ⬜ |
+| Shared v8 action taxonomy | 数据结构 / 错误语义 | T-SH.C.1 | T-SH.C.1 单元测试 | ✅ |
+| `SourceRef` contract | 数据结构 / 审计 | T-SH.C.1, T-SMS.C.1 | T-SH.C.1, T-SMS.C.1 | ✅ |
+| `HeartbeatCycleTrace` | 状态 / 可观测性 | T-SH.C.1, T-CP.C.1 | T-CP.C.1, T-OBS.C.2 | ✅ |
+| Heartbeat rhythm contract | 时间 / SLA | T-SH.C.1, T-CP.C.1, T-OBS.C.2 | T-SH.C.1 单元 + T-OBS.C.2 API接口功能测试 | ✅ |
+| Cross-system degraded response | 错误语义 / root cause | T-SH.C.1, T-OBS.C.1, T-OBS.C.2 | T-SH.C.1 单元 + T-OBS.C.2 API接口功能测试 | ✅ |
+| `LoopStageEvent` | 可观测性 / 持久化 | T-SH.C.1, T-OBS.C.1 | T-OBS.C.1 API接口功能测试 | ✅ |
+| EvidenceItem normalization | 数据结构 / connector contract | T-CS.C.1 | T-CS.C.1 单元 + 集成 | ✅ |
+| `SensitivityClassifier` | 安全 / 错误语义 | T-PJ.C.1 | T-PJ.C.1 单元 + API接口功能测试 | ✅ |
+| `buildPerceptionCards` | 操作契约 | T-PJ.C.2 | T-PJ.C.2 单元 + API接口功能测试 | ✅ |
+| `runAgentJudgment` | 操作契约 | T-PJ.C.3 | T-PJ.C.3 单元 + API接口功能测试 | ✅ |
+| capability side-effect affordance | 数据结构 / policy input | T-BT.C.1 | T-BT.C.1 单元 + API接口功能测试 | ✅ |
+| `buildActionProposal` | 操作契约 | T-AC.C.1 | T-AC.C.1 单元 + API接口功能测试 | ✅ |
+| `MemoryReviewCandidateClosure` | 状态 / memory boundary | T-AC.C.1, T-DQ.C.1 | T-AC.C.1, T-DQ.C.1 | ✅ |
+| `evaluateActionPolicy` | 安全 / 操作契约 | T-AC.C.2 | T-AC.C.2 单元 + API接口功能测试 | ✅ |
+| policy-bound dispatch | 操作契约 / side effect | T-AC.C.3 | T-AC.C.3 单元 + 集成 | ✅ |
+| `ActionClosureRecord` | 持久化 / closure ledger | T-AC.C.4 | T-AC.C.4 API接口功能测试 | ✅ |
+| Idempotent closure retry | 运行承诺 / duplicate write | T-AC.C.3, T-AC.C.4 | T-AC.C.3 单元 + T-AC.C.4 API接口功能测试 | ✅ |
+| `runQuietDailyReview` | 操作契约 / memory input | T-DQ.C.1 | T-DQ.C.1 单元 + API接口功能测试 | ✅ |
+| `scheduleDreamAfterQuiet` | 操作契约 / lifecycle | T-DQ.C.2 | T-DQ.C.2 API接口功能测试 | ✅ |
+| `runDreamConsolidation` | 操作契约 / redaction | T-DQ.C.3 | T-DQ.C.3 单元 + API接口功能测试 | ✅ |
+| projection lifecycle | 状态 / memory read model | T-DQ.C.4 | T-DQ.C.4 单元 + API接口功能测试 | ✅ |
+| accepted projection in EmbodiedContext | read model / context | T-CP.C.2 | T-CP.C.2 集成 | ✅ |
+| `assembleLoopStatus` | ops read model | T-OBS.C.2 | T-OBS.C.2 API接口功能测试 | ✅ |
+| diagnostic redaction attribution | 安全 / observability | T-OBS.C.3 | T-OBS.C.3 单元 + API接口功能测试 | ✅ |
+| audit-backed digest closure | 可观测性 / read model | T-OBS.R.1 | T-OBS.R.1 单元 + API接口功能测试 + 集成 | ✅ |
+| guidance proposal consumption | operation contract | T-GVS.C.1 | T-GVS.C.1 API接口功能测试 | ✅ |
+| `loop_status` runtime command | CLI/OpenClaw API | T-ROS.C.1 | T-ROS.C.1 API接口功能测试 | ✅ |
+| real runtime heartbeat spine | 操作契约 / runtime bridge | T-CP.R.2 | T-CP.R.2 单元 + API接口功能测试 + 集成 | ✅ |
+| impulse context artifact | agent-facing context / guidance | T-GVS.R.1 | T-GVS.R.1 单元 + API接口功能测试 + 集成/手动 | ✅ |
+| policy-bound MoltBook write | connector action / external write safety | T-CS.R.1 | T-CS.R.1 单元 + API接口功能测试 + 集成 | ✅ |
+| independent Quiet/Dream cadence | rhythm / async lifecycle | T-DQ.R.2 | T-DQ.R.2 单元 + API接口功能测试 + 集成 | ✅ |
+| real living-loop health gate | observability / read model | T-OBS.R.2 | T-OBS.R.2 API接口功能测试 + 集成 + report | ✅ |
+| Runtime Activation Repair Gate | 集成契约 | INT-R1 | INT-R1 集成 + 冒烟 + 手动 | ✅ |
+| Wave 106 proof truth | verification / handoff artifact | T-VERIFY.R.1 | T-VERIFY.R.1 集成 + 冒烟 + 静态审查 | ✅ |
+| operator-facing real-run health | observability / ops read model | T-OBS.R.3 | T-OBS.R.3 API接口功能测试 + 集成 | ✅ |
+| canonical PerceptionCard semantics | 数据结构 / semantic contract | T-PJ.R.1 | T-PJ.R.1 单元 + API接口功能测试 + 集成 | ✅ |
+| projection feedback into heartbeat context | memory lifecycle / context | T-DQ.R.3 | T-DQ.R.3 单元 + API接口功能测试 + 集成 | ✅ |
+| QuietDailyReview closureRefs | memory provenance / source grounding | T-DQ.R.4 | T-DQ.R.4 单元 + API接口功能测试 + 集成 | ✅ |
+| Proof Truth and Memory Feedback Gate | 集成契约 | INT-R2 | INT-R2 集成 + 冒烟 + 静态审查 | ✅ |
+| Full living loop DoD | 集成契约 | INT-V8 | INT-V8 集成/E2E/冒烟 | ✅ |
 
 ---
 
@@ -499,31 +571,37 @@
 
 | 测试责任 | 风险类别 | 覆盖方法 | 任务承接 | 测试材料 | 状态 |
 | --- | --- | --- | --- | --- | :---: |
-| Shared contracts valid/invalid shapes | contract drift | 单元测试 + compile check | T-SH.C.1 | `tests/unit/contracts/v8-shared-contracts.test.ts` | ⬜ |
-| State store before/after | persistence | API接口功能测试 + integration | T-SMS.C.1 | `tests/api/storage/v8-state-port.test.ts` | ⬜ |
-| Evidence normalization no-fabrication | connector truth | 单元 + 集成 | T-CS.C.1 | `tests/integration/connectors/v8-evidence-normalization.test.ts` | ⬜ |
-| Public technical vs credential shape | security | 单元 + API接口功能测试 | T-PJ.C.1 | `tests/unit/perception/sensitivity-classifier.test.ts` | ⬜ |
-| Perception fallback and dedupe | semantic transformation | 单元 + API接口功能测试 | T-PJ.C.2 | `tests/api/perception/perception-port.test.ts` | ⬜ |
-| Judgment source and confidence guard | autonomy safety | 单元 + API接口功能测试 | T-PJ.C.3 | `tests/api/judgment/judgment-port.test.ts` | ⬜ |
-| Heartbeat cycle ordering | causal health | 单元 + 集成 | T-CP.C.1, T-OBS.C.2 | `tests/unit/control-plane/heartbeat-cycle-trace.test.ts` | ⬜ |
-| Cross-system degraded state unreadable | root-cause attribution | 单元 + API接口功能测试 | T-SH.C.1, T-OBS.C.2 | `tests/unit/contracts/v8-shared-contracts.test.ts` | ⬜ |
-| Capability side-effect classification | policy input | 单元 + API接口功能测试 | T-BT.C.1 | `tests/api/body/tool-affordance-v8.test.ts` | ⬜ |
-| Policy allow/defer/downgrade/deny | safety boundary | table-driven unit + API接口功能测试 | T-AC.C.2 | `tests/unit/action/autonomy-policy-evaluator.test.ts` | ⬜ |
-| Action closure statuses | closure reliability | 单元 + API接口功能测试 | T-AC.C.4 | `tests/api/action/action-closure-port.test.ts` | ⬜ |
-| Idempotent closure retry | duplicate write prevention | 单元 + API接口功能测试 | T-AC.C.3, T-AC.C.4 | `tests/unit/action/action-closure-recorder.test.ts` | ⬜ |
-| Quiet review memory candidate consumption | memory boundary | 单元 + API接口功能测试 | T-DQ.C.1 | `tests/api/quiet/quiet-review-port.test.ts` | ⬜ |
-| Connector/Quiet digest visibility | audit truth | 单元 + API接口功能测试 + 集成 | T-OBS.R.1 | `tests/integration/runtime-ops/commands.test.ts` | ⬜ |
-| Dream lifecycle diagnostics | async lifecycle | 单元 + API接口功能测试 | T-DQ.C.2 | `tests/api/dream/dream-schedule-port.test.ts` | ⬜ |
-| Dream redaction and candidate validation | security + memory | 单元 + API接口功能测试 | T-DQ.C.3 | `tests/api/dream/dream-consolidation-port.test.ts` | ⬜ |
-| Projection lifecycle supersession | long-term memory consistency | 单元 + API接口功能测试 | T-DQ.C.4 | `tests/api/dream/memory-projection-port.test.ts` | ⬜ |
-| loop_status stage diagnosis | observability | API接口功能测试 + integration | T-ROS.C.1, INT-S5 | `tests/api/runtime-ops/loop-status-command.test.ts` | ⬜ |
-| Real heartbeat writes closure/no-action | split-brain heartbeat | 单元 + API接口功能测试 + 集成 | T-CP.R.2 | `tests/integration/v8/real-runtime-living-loop.test.ts` | ⬜ |
-| Impulse context visible to agent surfaces | passive guidance API | 单元 + API接口功能测试 + plugin bridge | T-GVS.R.1 | `tests/api/runtime-ops/guidance-context-command.test.ts` | ⬜ |
-| MoltBook write remains policy-bound | unsafe external write | 单元 + API接口功能测试 + 集成 | T-CS.R.1 | `tests/integration/action/moltbook-write-closure.test.ts` | ⬜ |
-| Quiet/Dream due and absence states | single rhythm / silent Dream absence | 单元 + API接口功能测试 + 集成 | T-DQ.R.2 | `tests/integration/v8/quiet-dream-cadence.test.ts` | ⬜ |
-| Runtime activation false-health prevention | false healthy | API接口功能测试 + 集成 + report | T-OBS.R.2, INT-R1 | `reports/int-r1-v8-runtime-activation-repair.md` | ⬜ |
-| Full living loop | end-to-end value | integration + scoped E2E + smoke | INT-V8 | `tests/integration/v8/living-perception-loop.test.ts` | ⬜ |
-| Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ⬜ |
+| Shared contracts valid/invalid shapes | contract drift | 单元测试 + compile check | T-SH.C.1 | `tests/unit/contracts/v8-shared-contracts.test.ts` | ✅ |
+| State store before/after | persistence | API接口功能测试 + integration | T-SMS.C.1 | `tests/api/storage/v8-state-port.test.ts` | ✅ |
+| Evidence normalization no-fabrication | connector truth | 单元 + 集成 | T-CS.C.1 | `tests/integration/connectors/v8-evidence-normalization.test.ts` | ✅ |
+| Public technical vs credential shape | security | 单元 + API接口功能测试 | T-PJ.C.1 | `tests/unit/perception/sensitivity-classifier.test.ts` | ✅ |
+| Perception fallback and dedupe | semantic transformation | 单元 + API接口功能测试 | T-PJ.C.2 | `tests/api/perception/perception-port.test.ts` | ✅ |
+| Judgment source and confidence guard | autonomy safety | 单元 + API接口功能测试 | T-PJ.C.3 | `tests/api/judgment/judgment-port.test.ts` | ✅ |
+| Heartbeat cycle ordering | causal health | 单元 + 集成 | T-CP.C.1, T-OBS.C.2 | `tests/unit/control-plane/heartbeat-cycle-trace.test.ts` | ✅ |
+| Cross-system degraded state unreadable | root-cause attribution | 单元 + API接口功能测试 | T-SH.C.1, T-OBS.C.2 | `tests/unit/contracts/v8-shared-contracts.test.ts` | ✅ |
+| Capability side-effect classification | policy input | 单元 + API接口功能测试 | T-BT.C.1 | `tests/api/body/tool-affordance-v8.test.ts` | ✅ |
+| Policy allow/defer/downgrade/deny | safety boundary | table-driven unit + API接口功能测试 | T-AC.C.2 | `tests/unit/action/autonomy-policy-evaluator.test.ts` | ✅ |
+| Action closure statuses | closure reliability | 单元 + API接口功能测试 | T-AC.C.4 | `tests/api/action/action-closure-port.test.ts` | ✅ |
+| Idempotent closure retry | duplicate write prevention | 单元 + API接口功能测试 | T-AC.C.3, T-AC.C.4 | `tests/unit/action/action-closure-recorder.test.ts` | ✅ |
+| Quiet review memory candidate consumption | memory boundary | 单元 + API接口功能测试 | T-DQ.C.1 | `tests/api/quiet/quiet-review-port.test.ts` | ✅ |
+| Connector/Quiet digest visibility | audit truth | 单元 + API接口功能测试 + 集成 | T-OBS.R.1 | `tests/integration/runtime-ops/commands.test.ts` | ✅ |
+| Dream lifecycle diagnostics | async lifecycle | 单元 + API接口功能测试 | T-DQ.C.2 | `tests/api/dream/dream-schedule-port.test.ts` | ✅ |
+| Dream redaction and candidate validation | security + memory | 单元 + API接口功能测试 | T-DQ.C.3 | `tests/api/dream/dream-consolidation-port.test.ts` | ✅ |
+| Projection lifecycle supersession | long-term memory consistency | 单元 + API接口功能测试 | T-DQ.C.4 | `tests/api/dream/memory-projection-port.test.ts` | ✅ |
+| loop_status stage diagnosis | observability | API接口功能测试 + integration | T-ROS.C.1, INT-S5 | `tests/api/runtime-ops/loop-status-command.test.ts` | ✅ |
+| Real heartbeat writes closure/no-action | split-brain heartbeat | 单元 + API接口功能测试 + 集成 | T-CP.R.2 | `tests/integration/v8/real-runtime-living-loop.test.ts` | ✅ |
+| Impulse context visible to agent surfaces | passive guidance API | 单元 + API接口功能测试 + plugin bridge | T-GVS.R.1 | `tests/api/runtime-ops/guidance-context-command.test.ts` | ✅ |
+| MoltBook write remains policy-bound | unsafe external write | 单元 + API接口功能测试 + 集成 | T-CS.R.1 | `tests/integration/action/moltbook-write-closure.test.ts` | ✅ |
+| Quiet/Dream due and absence states | single rhythm / silent Dream absence | 单元 + API接口功能测试 + 集成 | T-DQ.R.2 | `tests/integration/v8/quiet-dream-cadence.test.ts` | ✅ |
+| Runtime activation false-health prevention | false healthy | API接口功能测试 + 集成 + report | T-OBS.R.2, INT-R1 | `reports/int-r1-v8-runtime-activation-repair.md` | ✅ |
+| Proof artifacts cannot false-green | false completion | 集成 + 冒烟 + 静态审查 | T-VERIFY.R.1 | `reports/int-r1-v8-runtime-activation-repair.md` | ✅ |
+| loop_status/digest real-run parity | operator truth | API接口功能测试 + 集成 | T-OBS.R.3 | `tests/integration/runtime-ops/heartbeat-digest-real-run-gate.test.ts` | ✅ |
+| Perception novelty/relevance canonicalization | contract drift | 单元 + API接口功能测试 + 集成 | T-PJ.R.1 | `reports/perception-contract-alignment.md` | ✅ |
+| Accepted memory feeds next heartbeat | memory feedback | 单元 + API接口功能测试 + 集成 | T-DQ.R.3 | `tests/integration/control-plane/accepted-projection-feedback.test.ts` | ✅ |
+| Quiet closure provenance is first-class | self-dialogue trace | 单元 + API接口功能测试 + 集成 | T-DQ.R.4 | `tests/api/quiet/quiet-review-port.test.ts` | ✅ |
+| Proof and memory closure gate | integrated repair | 集成 + 冒烟 + 静态审查 | INT-R2 | `reports/int-r2-v8-proof-memory-closure.md` | ✅ |
+| Full living loop | end-to-end value | integration + scoped E2E + smoke | INT-V8 | `tests/integration/v8/living-perception-loop.test.ts` | ✅ |
+| Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ✅ |
 
 ---
 
@@ -531,22 +609,28 @@
 
 | REQ/Contract | Task | Verification | Test Material | Evidence | Status |
 | --- | --- | --- | --- | --- | :---: |
-| REQ-001 Evidence Normalization | T-CS.C.1, INT-S2 | 单元 + 集成 | `tests/unit/connectors/evidence-normalizer.test.ts` | INT-S2 report | ⬜ |
-| REQ-002 Perception Card | T-PJ.C.2, T-CP.C.1, INT-S2 | 单元 + API接口功能测试 + 集成 | `tests/api/perception/perception-port.test.ts` | INT-S2 report | ⬜ |
-| REQ-003 Judgment Verdict | T-PJ.C.3, T-AC.C.1, INT-S2, INT-S3 | 单元 + API接口功能测试 | `tests/api/judgment/judgment-port.test.ts` | INT-S3 report | ⬜ |
-| REQ-004 Common Autonomy Policy | T-BT.C.1, T-AC.C.2, T-AC.C.3, INT-S3 | 单元 + API接口功能测试 + 集成 | `tests/unit/action/autonomy-policy-evaluator.test.ts` | INT-S3 report | ⬜ |
-| REQ-005 Quiet/Dream Long-Term Memory | T-DQ.C.1, T-DQ.C.3, T-DQ.C.4, T-CP.C.2, INT-S4 | 单元 + API接口功能测试 + 集成 | `tests/api/dream/memory-projection-port.test.ts` | INT-S4 report | ⬜ |
-| REQ-006 Dream/Quiet Closure Repair | T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-OBS.C.2, T-OBS.R.1, INT-S4, INT-S5 | API接口功能测试 + 集成 | `tests/api/dream/dream-schedule-port.test.ts`, `tests/unit/observability/heartbeat-digest-assembler.test.ts` | INT-S5 report | ⬜ |
-| REQ-007 Context-Aware Sensitivity | T-PJ.C.1, T-OBS.C.3, T-DQ.C.3 | 单元 + API接口功能测试 | `tests/unit/perception/sensitivity-classifier.test.ts` | diagnostic test report | ⬜ |
-| REQ-008 Causal Loop Health | T-SH.C.1, T-OBS.C.1, T-CP.C.1, T-OBS.C.2, T-OBS.R.1, T-ROS.C.1, INT-S5 | API接口功能测试 + 集成 | `tests/api/runtime-ops/loop-status-command.test.ts`, `tests/integration/runtime-ops/commands.test.ts` | INT-S5 report | ⬜ |
-| REQ-009 Heartbeat Action Closure | T-AC.C.1, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-DQ.C.1, T-OBS.R.1, INT-S3 | 单元 + API接口功能测试 + 集成 | `tests/api/action/action-closure-port.test.ts`, `tests/unit/ops/manual-run-dispatcher.test.ts` | INT-S3 report | ⬜ |
-| Shared action contract | T-SH.C.1, T-AC.C.2 | 单元 + API接口功能测试 | `tests/unit/contracts/v8-shared-contracts.test.ts` | contract test logs | ⬜ |
-| SourceRef grounding | T-SH.C.1, T-SMS.C.1, T-OBS.C.1 | 单元 + API接口功能测试 | `tests/api/storage/v8-state-port.test.ts` | state port report | ⬜ |
-| Heartbeat-count SLA | T-CP.C.1, T-OBS.C.2, T-ROS.C.1 | 单元 + API接口功能测试 | `tests/unit/observability/causal-loop-health.test.ts` | loop_status report | ⬜ |
-| Memory review closure | T-AC.C.1, T-AC.C.4, T-DQ.C.1 | 单元 + API接口功能测试 | `tests/api/action/action-closure-port.test.ts` | Quiet review report | ⬜ |
-| REQ-002..009 Runtime Activation Repair | T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/real-runtime-living-loop.test.ts` | `reports/int-r1-v8-runtime-activation-repair.md` | ⬜ |
-| Real heartbeat closure | T-CP.R.2, T-OBS.R.2 | 单元 + API接口功能测试 + 集成 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | real-runtime integration report | ⬜ |
-| Impulse context injection | T-GVS.R.1 | 单元 + API接口功能测试 + 集成/手动 | `tests/api/runtime-ops/guidance-context-command.test.ts` | plugin bridge smoke | ⬜ |
-| Policy-bound platform write | T-CS.R.1 | 单元 + API接口功能测试 + 集成 | `tests/api/connectors/moltbook-write-port.test.ts` | write closure integration report | ⬜ |
-| Independent Quiet/Dream cadence | T-DQ.R.2 | 单元 + API接口功能测试 + 集成 | `tests/api/dream/quiet-dream-status-port.test.ts` | cadence integration report | ⬜ |
-| Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ⬜ |
+| REQ-001 Evidence Normalization | T-CS.C.1, INT-S2 | 单元 + 集成 | `tests/unit/connectors/evidence-normalizer.test.ts` | INT-S2 report | ✅ |
+| REQ-002 Perception Card | T-PJ.C.2, T-CP.C.1, INT-S2 | 单元 + API接口功能测试 + 集成 | `tests/api/perception/perception-port.test.ts` | INT-S2 report | ✅ |
+| REQ-003 Judgment Verdict | T-PJ.C.3, T-AC.C.1, INT-S2, INT-S3 | 单元 + API接口功能测试 | `tests/api/judgment/judgment-port.test.ts` | INT-S3 report | ✅ |
+| REQ-004 Common Autonomy Policy | T-BT.C.1, T-AC.C.2, T-AC.C.3, INT-S3 | 单元 + API接口功能测试 + 集成 | `tests/unit/action/autonomy-policy-evaluator.test.ts` | INT-S3 report | ✅ |
+| REQ-005 Quiet/Dream Long-Term Memory | T-DQ.C.1, T-DQ.C.3, T-DQ.C.4, T-CP.C.2, INT-S4 | 单元 + API接口功能测试 + 集成 | `tests/api/dream/memory-projection-port.test.ts` | INT-S4 report | ✅ |
+| REQ-006 Dream/Quiet Closure Repair | T-DQ.C.2, T-DQ.C.3, T-DQ.C.4, T-OBS.C.2, T-OBS.R.1, INT-S4, INT-S5 | API接口功能测试 + 集成 | `tests/api/dream/dream-schedule-port.test.ts`, `tests/unit/observability/heartbeat-digest-assembler.test.ts` | INT-S5 report | ✅ |
+| REQ-007 Context-Aware Sensitivity | T-PJ.C.1, T-OBS.C.3, T-DQ.C.3 | 单元 + API接口功能测试 | `tests/unit/perception/sensitivity-classifier.test.ts` | diagnostic test report | ✅ |
+| REQ-008 Causal Loop Health | T-SH.C.1, T-OBS.C.1, T-CP.C.1, T-OBS.C.2, T-OBS.R.1, T-ROS.C.1, INT-S5 | API接口功能测试 + 集成 | `tests/api/runtime-ops/loop-status-command.test.ts`, `tests/integration/runtime-ops/commands.test.ts` | INT-S5 report | ✅ |
+| REQ-009 Heartbeat Action Closure | T-AC.C.1, T-AC.C.2, T-AC.C.3, T-AC.C.4, T-DQ.C.1, T-OBS.R.1, INT-S3 | 单元 + API接口功能测试 + 集成 | `tests/api/action/action-closure-port.test.ts`, `tests/unit/ops/manual-run-dispatcher.test.ts` | INT-S3 report | ✅ |
+| Shared action contract | T-SH.C.1, T-AC.C.2 | 单元 + API接口功能测试 | `tests/unit/contracts/v8-shared-contracts.test.ts` | contract test logs | ✅ |
+| SourceRef grounding | T-SH.C.1, T-SMS.C.1, T-OBS.C.1 | 单元 + API接口功能测试 | `tests/api/storage/v8-state-port.test.ts` | state port report | ✅ |
+| Heartbeat-count SLA | T-CP.C.1, T-OBS.C.2, T-ROS.C.1 | 单元 + API接口功能测试 | `tests/unit/observability/causal-loop-health.test.ts` | loop_status report | ✅ |
+| Memory review closure | T-AC.C.1, T-AC.C.4, T-DQ.C.1 | 单元 + API接口功能测试 | `tests/api/action/action-closure-port.test.ts` | Quiet review report | ✅ |
+| REQ-002..009 Runtime Activation Repair | T-CP.R.2, T-GVS.R.1, T-CS.R.1, T-DQ.R.2, T-OBS.R.2, INT-R1 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/real-runtime-living-loop.test.ts` | `reports/int-r1-v8-runtime-activation-repair.md` | ✅ |
+| Real heartbeat closure | T-CP.R.2, T-OBS.R.2 | 单元 + API接口功能测试 + 集成 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | real-runtime integration report | ✅ |
+| Impulse context injection | T-GVS.R.1 | 单元 + API接口功能测试 + 集成/手动 | `tests/api/runtime-ops/guidance-context-command.test.ts` | plugin bridge smoke | ✅ |
+| Policy-bound platform write | T-CS.R.1 | 单元 + API接口功能测试 + 集成 | `tests/api/connectors/moltbook-write-port.test.ts` | write closure integration report | ✅ |
+| Independent Quiet/Dream cadence | T-DQ.R.2 | 单元 + API接口功能测试 + 集成 | `tests/api/dream/quiet-dream-status-port.test.ts` | cadence integration report | ✅ |
+| Proof truth and handoff artifacts | T-VERIFY.R.1 | 集成 + 冒烟 + 静态审查 | `tests/integration/v8/int-r1-runtime-activation-repair.test.ts` | `reports/int-r1-v8-runtime-activation-repair.md` | ✅ |
+| Real-run health operator surface | T-OBS.R.3 | API接口功能测试 + 集成 | `tests/api/runtime-ops/loop-status-real-run-gate.test.ts` | `logs/int-r2-loop-status.json` | ✅ |
+| PerceptionCard canonical semantics | T-PJ.R.1 | 单元 + API接口功能测试 + 集成 | `tests/unit/perception/perception-contract-alignment.test.ts` | `reports/perception-contract-alignment.md` | ✅ |
+| Memory projection feedback | T-DQ.R.3 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/accepted-projection-feedback.test.ts` | INT-R2 report | ✅ |
+| Quiet closure provenance | T-DQ.R.4 | 单元 + API接口功能测试 + 集成 | `tests/api/quiet/quiet-review-port.test.ts` | INT-R2 report | ✅ |
+| REQ-002/003/005/006/008/009 Proof and Memory Repair | T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/proof-memory-closure.test.ts` | `reports/int-r2-v8-proof-memory-closure.md` | ✅ |
+| Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |

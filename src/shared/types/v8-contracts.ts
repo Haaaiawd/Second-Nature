@@ -201,6 +201,7 @@ export type V8ReasonCode =
   | "projection_accepted"
   | "projection_rejected"
   | "projection_superseded"
+  | "projection_topic_matched"
   // Action / Policy / Closure
   | "proposal_created"
   | "proposal_no_action"

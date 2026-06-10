@@ -16,7 +16,7 @@
  * - Read-only diagnostic; does not modify state.
  * - Reports explicit absence reasons instead of silent zeros.
  */
-import { readActionClosuresByDay, readDailyRhythmStateByDay, } from "../storage/v8-state-stores.js";
+import { readActionClosuresByDay, readDailyRhythmStateByDay, readHeartbeatCycleTraces, } from "../storage/v8-state-stores.js";
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -28,6 +28,21 @@ export async function checkRealRunHealth(db, day) {
         return { ok: false, degraded: closureResult.degraded };
     }
     const hasRealClosure = closureResult.rows.length > 0;
+    // Check if closures are runtime-produced (backed by cycle trace + stage events)
+    let seededStateDetected = false;
+    if (hasRealClosure) {
+        const traces = await readHeartbeatCycleTraces(db, 1000);
+        if (traces.degraded) {
+            return { ok: false, degraded: traces.degraded };
+        }
+        for (const closure of closureResult.rows) {
+            const hasCycleTrace = traces.rows.some((t) => t.id === closure.cycleId);
+            if (!hasCycleTrace) {
+                seededStateDetected = true;
+                break;
+            }
+        }
+    }
     // Check daily rhythm state for Quiet/Dream
     const rhythmResult = await readDailyRhythmStateByDay(db, targetDay);
     if (rhythmResult.degraded) {
@@ -38,12 +53,18 @@ export async function checkRealRunHealth(db, day) {
     const hasDreamArtifact = rhythm?.dreamStatus === "scheduled" || rhythm?.dreamStatus === "completed";
     // Determine if only contract smoke
     const contractSmokeOnly = !hasRealClosure && !hasQuietArtifact && !hasDreamArtifact;
+    // Gate passes only when all real runtime stages have evidence
+    const gatePassed = !contractSmokeOnly && !seededStateDetected && hasRealClosure && hasQuietArtifact && hasDreamArtifact;
     // Identify missing stage
     let missingStage;
     let missingReason;
     if (!hasRealClosure) {
         missingStage = "closure";
         missingReason = "No ActionClosureRecord for today. Heartbeat may be running contract smoke without real action closure.";
+    }
+    else if (seededStateDetected) {
+        missingStage = "closure";
+        missingReason = "ActionClosureRecord exists but lacks runtime-produced cycle trace. Seeded state detected — not valid runtime proof.";
     }
     else if (!hasQuietArtifact) {
         missingStage = "quiet";
@@ -64,6 +85,8 @@ export async function checkRealRunHealth(db, day) {
             hasQuietArtifact,
             hasDreamArtifact,
             contractSmokeOnly,
+            seededStateDetected,
+            gatePassed,
             missingStage,
             missingReason,
         },

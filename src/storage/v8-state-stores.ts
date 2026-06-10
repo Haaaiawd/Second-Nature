@@ -410,7 +410,7 @@ export async function readActionClosuresByDay(
 
 export async function writeQuietDailyReview(
   db: StateDatabase,
-  row: Omit<NewQuietDailyReviewRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+  row: Omit<NewQuietDailyReviewRecord, "sourceRefsJson" | "closureRefsJson"> & { sourceRefs: SourceRef[]; closureRefs?: SourceRef[] },
 ): Promise<{ id: string } | DegradedOperationResult> {
   const validated = validateSourceRefs(row.sourceRefs, "quiet");
   if (!validated.ok) return validated.degraded;
@@ -419,6 +419,7 @@ export async function writeQuietDailyReview(
     const record: NewQuietDailyReviewRecord = {
       ...row,
       sourceRefsJson: serializeSourceRefs(validated.record),
+      closureRefsJson: row.closureRefs ? serializeSourceRefs(row.closureRefs) : null,
     };
     await db.db.insert(quietDailyReview).values(record);
     return { id: row.id };
@@ -578,6 +579,32 @@ export async function writeLongTermMemoryProjection(
   }
 }
 
+/**
+ * Update an existing projection's status — required for supersession lifecycle.
+ * Uses UPDATE instead of INSERT to avoid primary-key conflict.
+ */
+export async function updateLongTermMemoryProjectionStatus(
+  db: StateDatabase,
+  id: string,
+  status: LongTermMemoryProjectionRecord["status"],
+  payloadJson?: string,
+): Promise<{ id: string } | DegradedOperationResult> {
+  try {
+    const updateData: Record<string, unknown> = { status, lifecycleStatus: status };
+    if (payloadJson !== undefined) {
+      updateData.payloadJson = payloadJson;
+    }
+    await db.db.update(longTermMemoryProjection).set(updateData).where(eq(longTermMemoryProjection.id, id));
+    return { id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "projection",
+      `Retry projection status update for ${id} after DB recovery`,
+    );
+  }
+}
+
 export async function readMemoryProjectionsByStatus(
   db: StateDatabase,
   status: LongTermMemoryProjectionRecord["status"],
@@ -619,6 +646,28 @@ export async function readMemoryProjectionsByTopic(
         "state_unreadable",
         "projection",
         "Check state database connectivity",
+      ),
+    };
+  }
+}
+
+export async function readLongTermMemoryProjectionById(
+  db: StateDatabase,
+  id: string,
+): Promise<{ row?: LongTermMemoryProjectionRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(longTermMemoryProjection)
+      .where(eq(longTermMemoryProjection.id, id))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "projection",
+        `Check state database connectivity for projection ${id}`,
       ),
     };
   }

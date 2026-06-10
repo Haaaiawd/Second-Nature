@@ -78,6 +78,17 @@ export interface DeliveryProofRef {
   messageHash: string;
 }
 
+export interface RealRunHealthDigestProjection {
+  gatePassed: boolean;
+  contractSmokeOnly: boolean;
+  seededStateDetected: boolean;
+  hasRealClosure: boolean;
+  hasQuietArtifact: boolean;
+  hasDreamArtifact: boolean;
+  missingStage?: string;
+  missingReason?: string;
+}
+
 export interface HeartbeatDigest {
   date: string; // YYYY-MM-DD
   generatedAt: string;
@@ -86,6 +97,8 @@ export interface HeartbeatDigest {
   goalSummary: GoalDaySummary;
   quietDreamSummary: QuietDreamDaySummary;
   healthSummary: HealthDaySummary;
+  /** Real-run health gate result (T-OBS.R.3) */
+  realRunHealth: RealRunHealthDigestProjection;
   /** Set when delivery succeeded */
   deliveredAt?: string;
   /** Proof of successful delivery (channel + message hash, no raw content) */
@@ -447,6 +460,15 @@ export async function generateHeartbeatDigest(
     goalSummary,
     quietDreamSummary,
     healthSummary,
+    realRunHealth: {
+      gatePassed: false,
+      contractSmokeOnly: true,
+      seededStateDetected: false,
+      hasRealClosure: false,
+      hasQuietArtifact: false,
+      hasDreamArtifact: false,
+      missingReason: "Real-run health not evaluated — call checkRealRunHealth before digest generation",
+    },
   };
 
   // T-OBS.C.4: delivery hook — attempt delivery if adapter is provided

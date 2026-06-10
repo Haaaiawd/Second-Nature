@@ -28,6 +28,7 @@ import { writeRestoreAudit, } from "../../observability/services/restore-audit-s
 import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
 // v8 T-ROS.C.1: loop_status read model
 import { readLoopStatus } from "../../observability/loop-status.js";
+import { checkRealRunHealth } from "../../observability/living-loop-health-gate.js";
 // T-ROS.C.3: ManualRunDispatcher and its deps
 import { createManualRunDispatcher, } from "./manual-run-dispatcher.js";
 import { createExperienceWriter } from "../../core/second-nature/body/tool-experience/experience-writer.js";
@@ -1055,6 +1056,33 @@ export function createOpsRouter(deps) {
                         ...deps.heartbeatDigestDeps,
                     };
                     const digest = await generateHeartbeatDigest(date, digestDeps);
+                    // T-OBS.R.3: Embed real-run health into digest when state DB is available
+                    if (deps.state) {
+                        const realRunResult = await checkRealRunHealth(deps.state, date);
+                        if (realRunResult.ok) {
+                            digest.realRunHealth = {
+                                gatePassed: realRunResult.gate.gatePassed,
+                                contractSmokeOnly: realRunResult.gate.contractSmokeOnly,
+                                seededStateDetected: realRunResult.gate.seededStateDetected,
+                                hasRealClosure: realRunResult.gate.hasRealClosure,
+                                hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
+                                hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+                                missingStage: realRunResult.gate.missingStage,
+                                missingReason: realRunResult.gate.missingReason,
+                            };
+                        }
+                        else {
+                            digest.realRunHealth = {
+                                gatePassed: false,
+                                contractSmokeOnly: false,
+                                seededStateDetected: false,
+                                hasRealClosure: false,
+                                hasQuietArtifact: false,
+                                hasDreamArtifact: false,
+                                missingReason: "Real-run health check degraded: " + realRunResult.degraded.reason,
+                            };
+                        }
+                    }
                     const envelope = {
                         ok: true,
                         command: "heartbeat_digest",

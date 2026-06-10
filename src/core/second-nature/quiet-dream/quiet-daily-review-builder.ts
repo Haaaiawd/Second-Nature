@@ -48,7 +48,10 @@ export interface QuietDailyReviewResult {
   day: string;
   closureCount: number;
   memoryCandidateCount: number;
+  /** Generic source refs (closure + perception + other) */
   sourceRefs: SourceRef[];
+  /** Explicit closure refs — first-class provenance for reviewed ActionClosureRecords */
+  closureRefs: SourceRef[];
   reviewSummary: string;
   importanceSignals: string[];
   createdAt: string;
@@ -117,6 +120,8 @@ export async function buildQuietDailyReview(
   }
 
   const sourceRefs: SourceRef[] = closures.map(buildSourceRefFromClosure);
+  // T-DQ.R.4: first-class closure refs — identical to sourceRefs here, but explicitly typed
+  const closureRefs: SourceRef[] = closures.map(buildSourceRefFromClosure);
 
   // Collect memory-review candidates from closure payloads
   const memoryCandidates: MemoryReviewCandidateClosure[] = [];
@@ -151,6 +156,7 @@ export async function buildQuietDailyReview(
     closureCount: closures.length,
     memoryCandidateCount: memoryCandidates.length,
     sourceRefs,
+    closureRefs,
     redactionClass: "none",
     lifecycleStatus: "pending",
     payloadJson: JSON.stringify({
@@ -172,6 +178,7 @@ export async function buildQuietDailyReview(
       closureCount: closures.length,
       memoryCandidateCount: memoryCandidates.length,
       sourceRefs,
+      closureRefs,
       reviewSummary,
       importanceSignals,
       createdAt: now,

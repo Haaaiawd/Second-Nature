@@ -10,9 +10,22 @@ import assert from "node:assert";
 
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { checkRealRunHealth } from "../../../src/observability/living-loop-health-gate.js";
-import { writeActionClosureRecord, writeDailyRhythmState } from "../../../src/storage/v8-state-stores.js";
+import { writeActionClosureRecord, writeDailyRhythmState, writeHeartbeatCycleTrace } from "../../../src/storage/v8-state-stores.js";
 
-async function seedClosure(db: ReturnType<typeof createStateDatabase>, day: string) {
+async function seedClosure(db: ReturnType<typeof createStateDatabase>, day: string, withCycleTrace = true) {
+  if (withCycleTrace) {
+    await writeHeartbeatCycleTrace(db, {
+      id: `cycle_${day}_001`,
+      cycleSequence: 1,
+      heartbeatStartedAt: `${day}T12:00:00Z`,
+      inputCount: 0,
+      outputCount: 1,
+      status: "completed",
+      sourceRefs: [
+        { uri: "sn://heartbeat/cycle", family: "audit" as const, id: `cycle_${day}_001`, redactionClass: "none" as const, resolveStatus: "resolvable" as const },
+      ],
+    });
+  }
   await writeActionClosureRecord(db, {
     id: `closure_${day}_001`,
     cycleId: `cycle_${day}_001`,
@@ -51,6 +64,8 @@ describe("living-loop-health-gate", () => {
         assert.equal(result.gate.hasRealClosure, false);
         assert.equal(result.gate.hasQuietArtifact, false);
         assert.equal(result.gate.hasDreamArtifact, false);
+        assert.equal(result.gate.seededStateDetected, false);
+        assert.equal(result.gate.gatePassed, false);
         assert.equal(result.gate.missingStage, "closure");
         assert.ok(result.gate.missingReason?.includes("No ActionClosureRecord"));
       }
@@ -68,6 +83,8 @@ describe("living-loop-health-gate", () => {
       assert.equal(result.ok, true);
       if (result.ok) {
         assert.equal(result.gate.hasRealClosure, true);
+        assert.equal(result.gate.seededStateDetected, false);
+        assert.equal(result.gate.gatePassed, false);
         assert.equal(result.gate.hasQuietArtifact, false);
         assert.equal(result.gate.missingStage, "quiet");
         assert.ok(result.gate.missingReason?.includes("no QuietDailyReview"));
@@ -87,6 +104,8 @@ describe("living-loop-health-gate", () => {
       assert.equal(result.ok, true);
       if (result.ok) {
         assert.equal(result.gate.hasRealClosure, true);
+        assert.equal(result.gate.seededStateDetected, false);
+        assert.equal(result.gate.gatePassed, false);
         assert.equal(result.gate.hasQuietArtifact, true);
         assert.equal(result.gate.hasDreamArtifact, false);
         assert.equal(result.gate.missingStage, "dream");
@@ -110,7 +129,28 @@ describe("living-loop-health-gate", () => {
         assert.equal(result.gate.hasQuietArtifact, true);
         assert.equal(result.gate.hasDreamArtifact, true);
         assert.equal(result.gate.contractSmokeOnly, false);
+        assert.equal(result.gate.seededStateDetected, false);
+        assert.equal(result.gate.gatePassed, true);
         assert.equal(result.gate.missingStage, "none");
+      }
+    } finally {
+      db.close();
+    }
+  });
+
+  it("detects seeded state when closure lacks runtime cycle trace", async () => {
+    const db = createStateDatabase(":memory:");
+    try {
+      await seedClosure(db, "2026-06-05", false); // no cycle trace
+
+      const result = await checkRealRunHealth(db, "2026-06-05");
+      assert.equal(result.ok, true);
+      if (result.ok) {
+        assert.equal(result.gate.hasRealClosure, true);
+        assert.equal(result.gate.seededStateDetected, true);
+        assert.equal(result.gate.gatePassed, false);
+        assert.equal(result.gate.missingStage, "closure");
+        assert.ok(result.gate.missingReason?.includes("Seeded state detected"));
       }
     } finally {
       db.close();

@@ -20,7 +20,7 @@
  *
  * Test coverage: tests/unit/dream/memory-projection-lifecycle.test.ts
  */
-import { readMemoryProjectionsByTopic, writeLongTermMemoryProjection, } from "../../../storage/v8-state-stores.js";
+import { readMemoryProjectionsByTopic, writeLongTermMemoryProjection, updateLongTermMemoryProjectionStatus, } from "../../../storage/v8-state-stores.js";
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -44,21 +44,12 @@ export async function acceptMemoryProjection(db, candidateId, topicKey, memoryTe
     const activeProjection = existing.rows.find((r) => r.status === "active" || r.status === "accepted");
     let supersedesId;
     if (activeProjection) {
-        // Supersede existing active projection
-        const supersedeResult = await writeLongTermMemoryProjection(db, {
-            id: activeProjection.id,
-            createdAt: activeProjection.createdAt,
-            candidateId: activeProjection.candidateId,
-            topicKey: activeProjection.topicKey,
-            status: "superseded",
-            sourceRefs: parseSourceRefs(activeProjection.sourceRefsJson),
-            redactionClass: activeProjection.redactionClass,
-            lifecycleStatus: "superseded",
-            payloadJson: JSON.stringify({
-                supersededAt: now,
-                supersededBy: candidateId,
-            }),
-        });
+        // Supersede existing active projection — UPDATE instead of INSERT
+        const supersedeResult = await updateLongTermMemoryProjectionStatus(db, activeProjection.id, "superseded", JSON.stringify({
+            ...parsePayloadJson(activeProjection.payloadJson),
+            supersededAt: now,
+            supersededBy: candidateId,
+        }));
         if ("reason" in supersedeResult) {
             return supersedeResult;
         }
@@ -147,5 +138,15 @@ function parseSourceRefs(json) {
     }
     catch {
         return [];
+    }
+}
+function parsePayloadJson(json) {
+    if (!json)
+        return {};
+    try {
+        return JSON.parse(json);
+    }
+    catch {
+        return {};
     }
 }

@@ -19,10 +19,15 @@
  * Test coverage: tests/unit/observability/loop-status.test.ts
  */
 import { assembleLoopStatus } from "./causal-loop-health.js";
+import { checkRealRunHealth } from "./living-loop-health-gate.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-function computeNextAction(overallStatus, stalledAt) {
+function computeNextAction(overallStatus, stalledAt, realRunMissingStage, realRunMissingReason) {
+    // Real-run health takes precedence over generic causal health
+    if (realRunMissingStage && realRunMissingStage !== "none") {
+        return `Real-run health degraded: ${realRunMissingReason ?? `missing stage: ${realRunMissingStage}`}. Run a real heartbeat cycle or verify daily rhythm state.`;
+    }
     if (overallStatus === "healthy") {
         return "No operator action required. Loop is progressing normally.";
     }
@@ -60,6 +65,46 @@ export async function readLoopStatus(db) {
         };
     }
     const snapshot = health;
+    // T-OBS.R.3: Consume real-run health gate
+    const realRunResult = await checkRealRunHealth(db);
+    let realRunHealth;
+    if (realRunResult.ok) {
+        realRunHealth = {
+            gatePassed: realRunResult.gate.gatePassed,
+            contractSmokeOnly: realRunResult.gate.contractSmokeOnly,
+            seededStateDetected: realRunResult.gate.seededStateDetected,
+            hasRealClosure: realRunResult.gate.hasRealClosure,
+            hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
+            hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+            missingStage: realRunResult.gate.missingStage,
+            missingReason: realRunResult.gate.missingReason,
+        };
+    }
+    else {
+        realRunHealth = {
+            gatePassed: false,
+            contractSmokeOnly: false,
+            seededStateDetected: false,
+            hasRealClosure: false,
+            hasQuietArtifact: false,
+            hasDreamArtifact: false,
+            missingReason: "Real-run health check degraded",
+        };
+    }
+    // Override overallStatus based on real-run health parity
+    let overallStatus = snapshot.overallStatus;
+    let stalledAt = snapshot.stalledAt;
+    if (!realRunHealth.gatePassed) {
+        // Real-run gate fails → cannot report healthy
+        if (overallStatus === "healthy") {
+            overallStatus = "degraded";
+        }
+    }
+    else {
+        // Real-run gate passes → all stages have evidence, ignore staged-event-only stall
+        overallStatus = "healthy";
+        stalledAt = undefined;
+    }
     const stageSummaries = snapshot.stages.map((s) => ({
         stage: s.stage,
         eventCount: s.eventCount,
@@ -68,18 +113,19 @@ export async function readLoopStatus(db) {
     }));
     // Policy denied count is a placeholder; real implementation would query action closures
     const policyDeniedCount = 0;
-    const nextAction = computeNextAction(snapshot.overallStatus, snapshot.stalledAt);
+    const nextAction = computeNextAction(overallStatus, snapshot.stalledAt, realRunHealth.missingStage, realRunHealth.missingReason);
     return {
         ok: true,
         status: {
             ok: true,
-            overallStatus: snapshot.overallStatus,
+            overallStatus,
             stalledAt: snapshot.stalledAt,
             lastCycleSequence: snapshot.lastCycleSequence,
             lastHeartbeatAt: snapshot.lastHeartbeatAt,
             stageSummaries,
             policyDeniedCount,
             nextAction,
+            realRunHealth,
         },
     };
 }

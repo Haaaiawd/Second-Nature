@@ -23,6 +23,7 @@
  */
 import type { StateDatabase } from "../../../storage/db/index.js";
 import type { SourceRef, DegradedOperationResult, PlatformNeutralActionKind, V8ReasonCode } from "../../../shared/types/v8-contracts.js";
+import type { AcceptedProjection } from "../control-plane/accepted-projection-loader.js";
 export interface JudgmentVerdictResult {
     id: string;
     cycleId: string;
@@ -41,6 +42,7 @@ export interface RunAgentJudgmentResult {
 }
 export interface RunAgentJudgmentOptions {
     now?: string;
+    acceptedProjections?: AcceptedProjection[];
 }
 export declare function runAgentJudgment(db: StateDatabase, perceptionCardId: string, options?: RunAgentJudgmentOptions): Promise<RunAgentJudgmentResult | DegradedOperationResult>;
 export interface BatchJudgmentResult {

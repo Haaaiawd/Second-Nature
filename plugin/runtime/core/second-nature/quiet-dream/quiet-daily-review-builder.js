@@ -68,6 +68,8 @@ export async function buildQuietDailyReview(db, options) {
         };
     }
     const sourceRefs = closures.map(buildSourceRefFromClosure);
+    // T-DQ.R.4: first-class closure refs — identical to sourceRefs here, but explicitly typed
+    const closureRefs = closures.map(buildSourceRefFromClosure);
     // Collect memory-review candidates from closure payloads
     const memoryCandidates = [];
     for (const closure of closures) {
@@ -96,6 +98,7 @@ export async function buildQuietDailyReview(db, options) {
         closureCount: closures.length,
         memoryCandidateCount: memoryCandidates.length,
         sourceRefs,
+        closureRefs,
         redactionClass: "none",
         lifecycleStatus: "pending",
         payloadJson: JSON.stringify({
@@ -115,6 +118,7 @@ export async function buildQuietDailyReview(db, options) {
             closureCount: closures.length,
             memoryCandidateCount: memoryCandidates.length,
             sourceRefs,
+            closureRefs,
             reviewSummary,
             importanceSignals,
             createdAt: now,

@@ -34,6 +34,7 @@ import type {
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
+import type { AcceptedProjection } from "../control-plane/accepted-projection-loader.js";
 
 // ───────────────────────────────────────────────────────────────
 // Config
@@ -65,6 +66,7 @@ export interface RunAgentJudgmentResult {
 
 export interface RunAgentJudgmentOptions {
   now?: string;
+  acceptedProjections?: AcceptedProjection[];
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -223,13 +225,26 @@ export async function runAgentJudgment(
     }
   }
 
-  const { actionKind, reason, finalConfidence } = selectVerdict(
+  let { actionKind, reason, finalConfidence } = selectVerdict(
     card.relevance ?? 0.3,
     card.confidence ?? 0.6,
     riskPosture,
     hasSourceRefs,
     possibleIntents,
   );
+
+  // T-DQ.R.3: Boost verdict when accepted memory projection matches topic
+  const acceptedProjections = options?.acceptedProjections ?? [];
+  const matchingProjection = acceptedProjections.find(
+    (p) => p.topicKey.toLowerCase() === (card.topic ?? "").toLowerCase(),
+  );
+  if (matchingProjection) {
+    finalConfidence = Math.min(0.95, finalConfidence + 0.1);
+    if (actionKind === "ignore") {
+      actionKind = "remember";
+      reason = "projection_topic_matched";
+    }
+  }
 
   const verdict: JudgmentVerdictResult = {
     id: `jud_${perceptionCardId}_${now.replace(/[:.]/g, "")}`,

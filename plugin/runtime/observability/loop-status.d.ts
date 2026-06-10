@@ -20,6 +20,16 @@
  */
 import type { StateDatabase } from "../storage/db/index.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
+export interface RealRunHealthProjection {
+    gatePassed: boolean;
+    contractSmokeOnly: boolean;
+    seededStateDetected: boolean;
+    hasRealClosure: boolean;
+    hasQuietArtifact: boolean;
+    hasDreamArtifact: boolean;
+    missingStage?: string;
+    missingReason?: string;
+}
 export interface LoopStatusReadModel {
     ok: true;
     overallStatus: string;
@@ -29,6 +39,7 @@ export interface LoopStatusReadModel {
     stageSummaries: StageSummary[];
     policyDeniedCount: number;
     nextAction: string;
+    realRunHealth: RealRunHealthProjection;
 }
 export interface StageSummary {
     stage: string;

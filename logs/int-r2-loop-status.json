@@ -1,0 +1,96 @@
+{
+  "report": "int-r2-loop-status",
+  "generatedAt": "2026-06-10T00:00:00.000Z",
+  "wave": "Wave 107 / T-OBS.R.3",
+  "summary": {
+    "overallResult": "PASS",
+    "loopStatusRealRunWired": true,
+    "digestRealRunWired": true,
+    "parityVerified": true
+  },
+  "tests": [
+    {
+      "name": "loop-status-real-run-gate",
+      "result": "PASS",
+      "cases": [
+        {
+          "name": "empty state reports degraded real-run health",
+          "assertions": {
+            "realRunHealth.gatePassed": false,
+            "realRunHealth.contractSmokeOnly": true,
+            "realRunHealth.hasRealClosure": false,
+            "overallStatusNotHealthy": true,
+            "nextActionIncludesRealRun": true
+          }
+        },
+        {
+          "name": "runtime heartbeat without daily rhythm reports degraded (missing quiet)",
+          "assertions": {
+            "realRunHealth.gatePassed": false,
+            "realRunHealth.hasRealClosure": true,
+            "realRunHealth.seededStateDetected": false,
+            "realRunHealth.missingStage": "quiet",
+            "overallStatusNotHealthy": true,
+            "nextActionIncludesRealRun": true
+          }
+        },
+        {
+          "name": "full runtime path (heartbeat + daily rhythm) reports healthy",
+          "assertions": {
+            "realRunHealth.gatePassed": true,
+            "realRunHealth.hasRealClosure": true,
+            "realRunHealth.hasQuietArtifact": true,
+            "realRunHealth.seededStateDetected": false,
+            "realRunHealth.missingStage": "none",
+            "overallStatus": "healthy",
+            "nextActionNoActionRequired": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "heartbeat-digest-real-run-gate",
+      "result": "PASS",
+      "cases": [
+        {
+          "name": "digest realRunHealth agrees with loop_status for empty state",
+          "assertions": {
+            "digest.realRunHealth.gatePassed": false,
+            "checkRealRunHealth.gatePassed": false,
+            "checkRealRunHealth.contractSmokeOnly": true,
+            "parity": true
+          }
+        },
+        {
+          "name": "digest realRunHealth agrees with loop_status after full runtime path",
+          "assertions": {
+            "digest.realRunHealth.gatePassed": true,
+            "digest.realRunHealth.hasRealClosure": true,
+            "digest.realRunHealth.seededStateDetected": false,
+            "digest.realRunHealth.missingStage": "none",
+            "checkRealRunHealth.gatePassed": true,
+            "parity": true
+          }
+        },
+        {
+          "name": "digest realRunHealth surfaces seeded state when closure is manually inserted",
+          "assertions": {
+            "digest.realRunHealth.seededStateDetected": true,
+            "digest.realRunHealth.gatePassed": false,
+            "digest.realRunHealth.missingReasonIncludesSeeded": true,
+            "checkRealRunHealth.seededStateDetected": true,
+            "parity": true
+          }
+        }
+      ]
+    }
+  ],
+  "consistencyCheck": {
+    "loopStatusConsumesCheckRealRunHealth": true,
+    "digestEmbedsRealRunHealth": true,
+    "opsRouterWiresDigest": true,
+    "genericCausalHealthCannotOverrideFailedGate": true,
+    "gatePassedPromotesHealthy": true,
+    "noRawPayloadOrCredentialLeakage": true
+  }
+}
