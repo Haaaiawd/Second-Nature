@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-10
+> 最后更新: 2026-06-11
 >
 > 执行主清单: [05A_TASKS.md](./05A_TASKS.md)
 
@@ -298,6 +298,17 @@
 - **断言**: every real heartbeat cycle writes exactly one closure or no-action reason; loop stage events identify missing policy/execution/closure; contract-only smoke cannot satisfy real-run gate.
 - **证据**: `tests/unit/control-plane/real-runtime-spine.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`
 
+### T-CP.R.3
+- **关联需求**: REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: closure -> Quiet/Dream runtime advancement, daily rhythm state, real-run health gate input
+- **风险类别**: post-closure stall / Quiet never triggered / Dream absence hidden / operator false diagnosis
+- **单元测试覆盖**: heartbeat rhythm advancement coordinator for closure, no-action closure, Quiet empty, Quiet blocked, Dream scheduled, Dream blocked.
+- **API接口功能测试覆盖**: `heartbeat_check` before/after state assertions prove daily rhythm state is written after state-backed closure/no-action.
+- **集成/E2E/冒烟覆盖**: real runtime integration from heartbeat closure into Quiet/Dream state and loop_status parity; optional host JSON smoke only.
+- **前置数据**: state-backed heartbeat fixture with closure/no-action output, existing daily rhythm empty state, Dream scheduler available/unavailable fixtures.
+- **断言**: ActionClosureRecord for today cannot remain the final stage without daily rhythm state or explicit blocked/empty reason.
+- **证据**: `tests/api/runtime-ops/heartbeat-rhythm-advance.test.ts`, `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts`, `logs/int-r3-loop-status.json`
+
 ### T-GVS.R.1
 - **关联需求**: REQ-003, REQ-004, REQ-008, REQ-009
 - **关联契约**: impulse context artifact, `guidance_payload` parity, platform/capability impulse selection, context freshness, no false context-engine registration
@@ -319,6 +330,28 @@
 - **前置数据**: source-backed draft proposal, policy decision proof, MoltBook API mock, credential context fixture, duplicate idempotency fixture.
 - **断言**: no platform write occurs without proof and owner-confirm/dry-run posture; success/failure/downgrade all close; raw credential and raw private payload do not appear in output.
 - **证据**: `tests/unit/connectors/moltbook-write-policy.test.ts`, `tests/api/connectors/moltbook-write-port.test.ts`, `tests/integration/action/moltbook-write-closure.test.ts`
+
+### T-CS.R.2
+- **关联需求**: REQ-001, REQ-008, REQ-009
+- **关联契约**: connector failure taxonomy, HTTP status mapping, read failure no-fabrication, connector availability diagnostics
+- **风险类别**: unknown failure bucket / wrong operator action / fabricated evidence / credential leak
+- **单元测试覆盖**: failure taxonomy mapping for MoltBook and Agent-world 401/403, 404/422, 429, 5xx, malformed body, timeout, and truly unknown errors.
+- **API接口功能测试覆盖**: connector execution adapter returns actionable failure classes and redacted detail for representative read failures.
+- **集成/E2E/冒烟覆盖**: failed connector read through heartbeat/evidence normalization writes no fabricated EvidenceItem and surfaces the connector reason in loop_status/digest.
+- **前置数据**: MoltBook/Agent-world API mocks, credential missing/expired fixtures, empty read fixture, redaction fixture.
+- **断言**: `unknown_platform_change` is not used for known HTTP/auth/config branches; connector failure does not create EvidenceItem or PerceptionCard.
+- **证据**: `tests/unit/connectors/failure-taxonomy.test.ts`, `tests/api/connectors/connector-failure-truth.test.ts`, `tests/integration/connectors/read-failure-no-fabrication.test.ts`
+
+### T-CS.R.3
+- **关联需求**: REQ-001, REQ-008, REQ-009
+- **关联契约**: connector cooldown state, repeated terminal failure suppression, retry-after semantics, operator reset/retry guidance
+- **风险类别**: infinite heartbeat replay / observability noise growth / connector hammering / stale failure loop
+- **单元测试覆盖**: cooldown state creation, expiry, reset, retry-after calculation, terminal vs retryable failure behavior.
+- **API接口功能测试覆盖**: route-planner or connector execution port reads cooldown before dispatch and writes cooldown after repeated terminal failures with before/after assertions.
+- **集成/E2E/冒烟覆盖**: heartbeat integration verifies repeated same platform/capability failure becomes cooldown-blocked and later retry resumes after expiry/reset.
+- **前置数据**: repeated MoltBook read terminal failure fixture, active cooldown row, expired cooldown row, successful recovery fixture.
+- **断言**: identical connector failures do not replay every heartbeat; successful recovery clears or bypasses stale cooldown according to policy.
+- **证据**: `tests/unit/connectors/connector-cooldown.test.ts`, `tests/api/connectors/connector-cooldown-port.test.ts`, `tests/integration/control-plane/connector-replay-cooldown.test.ts`
 
 ### T-DQ.R.2
 - **关联需求**: REQ-005, REQ-006, REQ-008, REQ-009
@@ -364,6 +397,17 @@
 - **断言**: generic causal health cannot override a failed real-run gate; raw platform payload and credential-like strings are absent.
 - **证据**: `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`, `tests/integration/runtime-ops/heartbeat-digest-real-run-gate.test.ts`, `logs/int-r2-loop-status.json`
 
+### T-OBS.R.4
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: `decision_denied` attribution, hard-guard reason projection, connector replay/cooldown diagnostics, redacted operator next action
+- **风险类别**: governance false blame / hidden hard-guard cause / repeated failure noise / operator cannot repair
+- **单元测试覆盖**: attribution mapper for hard guard deny/defer, connector terminal failure, cooldown block, source absence, quiet suppression, awaiting user, and true policy/governance denial.
+- **API接口功能测试覆盖**: loop_status/digest expose denial/replay attribution fields and next action without leaking raw payload or credentials.
+- **集成/E2E/冒烟覆盖**: runtime-ops integration cross-checks decision ledger, execution attempts, cooldown rows, and loop_status output for the same heartbeat window.
+- **前置数据**: denied heartbeat fixture, deferred heartbeat fixture, repeated connector failure fixture, cooldown active fixture, redacted telemetry fixture.
+- **断言**: `decision_denied` counters are explainable by concrete guard/cooldown/policy causes; repeated connector replay is visible as bounded cooldown, not generic governance denial.
+- **证据**: `tests/unit/observability/heartbeat-denial-attribution.test.ts`, `tests/api/runtime-ops/loop-status-denial-attribution.test.ts`, `tests/integration/runtime-ops/connector-replay-diagnostics.test.ts`
+
 ### T-PJ.R.1
 - **关联需求**: REQ-002, REQ-003, REQ-007
 - **关联契约**: canonical PerceptionCard novelty/relevance shape
@@ -396,6 +440,17 @@
 - **前置数据**: daily closure slice, empty day, older Quiet review fixture, Dream source grounding fixture.
 - **断言**: closureRefs are first-class and redacted; Dream input validation can consume them directly.
 - **证据**: `tests/unit/quiet/quiet-daily-review-builder.test.ts`, `tests/api/quiet/quiet-review-port.test.ts`, `tests/integration/v8/quiet-dream-cadence.test.ts`
+
+### T-DQ.R.5
+- **关联需求**: REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: QuietDailyReview runtime production, DailyDiary absence truth, DreamConsolidationRun scheduling, blocked/empty memory reason, closureRefs grounding
+- **风险类别**: Quiet stage deadlock / Dream no-input ambiguity / silent diary absence / memory formation false empty
+- **单元测试覆盖**: daily rhythm scheduler writes QuietDailyReview from closure-day slice, preserves closureRefs, distinguishes empty input, blocked input, missing diary source, and redaction block.
+- **API接口功能测试覆盖**: Quiet/Dream runtime chain port before/after assertions for QuietDailyReview, daily rhythm state, DreamConsolidationRun, and absence reason fields.
+- **集成/E2E/冒烟覆盖**: heartbeat closure -> daily rhythm -> Quiet -> Dream schedule/block -> loop_status/digest parity; no browser E2E.
+- **前置数据**: ActionClosureRecord day slice, no existing QuietDailyReview, diary present/absent fixtures, Dream scheduler available/unavailable fixtures.
+- **断言**: real closure day with no QuietDailyReview cannot remain silent; Dream zero output is explained as scheduled, blocked, empty, or redaction-blocked.
+- **证据**: `tests/unit/dream/daily-rhythm-scheduler.test.ts`, `tests/api/dream/quiet-dream-runtime-chain.test.ts`, `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts`
 
 ### T-GVS.C.1
 - **关联需求**: REQ-003, REQ-004, REQ-009
@@ -507,6 +562,17 @@
 - **断言**: any missing proof artifact, real-run health link, perception canonical field, projection feedback path, or Quiet closureRef fails with a specific missing-link reason.
 - **证据**: `reports/int-r2-v8-proof-memory-closure.md`, `tests/integration/v8/proof-memory-closure.test.ts`, `logs/int-r2-loop-status.json`
 
+### INT-R3
+- **关联需求**: REQ-001, REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: closure -> Quiet/Dream runtime advance, connector failure truth, replay cooldown, denial attribution, real-run health parity
+- **风险类别**: runtime still stalls at Quiet / connectors remain opaque / infinite replay / false governance blame / PRD loop not restored
+- **单元测试覆盖**: 不新增单元测试；consumes Wave 108 task evidence.
+- **API接口功能测试覆盖**: heartbeat rhythm advancement, connector failure truth, connector cooldown, and denial attribution ports are cross-checked through their task evidence.
+- **集成/E2E/冒烟覆盖**: one integration gate verifies heartbeat closure advances to Quiet/Dream truth, representative connector failures are classified, repeated failures are cooldown-bounded, and loop_status/digest agree; optional host smoke only.
+- **前置数据**: T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4 completed.
+- **断言**: a real heartbeat cannot pass while stuck at Quiet without a precise absence reason; connector failures cannot all collapse into `unknown_platform_change`; repeated failures cannot replay indefinitely.
+- **证据**: `reports/int-r3-v8-runtime-recovery-closure.md`, `tests/integration/v8/runtime-recovery-closure.test.ts`, `logs/int-r3-loop-status.json`
+
 ### T-REG.C.1
 - **关联需求**: Definition of Done
 - **关联契约**: build/lint/regression gate
@@ -563,6 +629,12 @@
 | projection feedback into heartbeat context | memory lifecycle / context | T-DQ.R.3 | T-DQ.R.3 单元 + API接口功能测试 + 集成 | ✅ |
 | QuietDailyReview closureRefs | memory provenance / source grounding | T-DQ.R.4 | T-DQ.R.4 单元 + API接口功能测试 + 集成 | ✅ |
 | Proof Truth and Memory Feedback Gate | 集成契约 | INT-R2 | INT-R2 集成 + 冒烟 + 静态审查 | ✅ |
+| heartbeat daily rhythm advancement | runtime orchestration / memory trigger | T-CP.R.3 | T-CP.R.3 API接口功能测试 + 集成 | ⬜ |
+| Quiet/Dream runtime closure truth | memory lifecycle / absence reason | T-DQ.R.5 | T-DQ.R.5 单元 + API接口功能测试 + 集成 | ⬜ |
+| connector failure taxonomy truth | 错误语义 / operator repair | T-CS.R.2 | T-CS.R.2 单元 + API接口功能测试 + 集成 | ⬜ |
+| connector terminal-failure cooldown | replay control / affordance | T-CS.R.3 | T-CS.R.3 单元 + API接口功能测试 + 集成 | ⬜ |
+| denial and replay attribution | observability / root cause | T-OBS.R.4 | T-OBS.R.4 单元 + API接口功能测试 + 集成 | ⬜ |
+| Runtime Recovery Closure Gate | 集成契约 | INT-R3 | INT-R3 集成 + 冒烟 + 静态审查 | ⬜ |
 | Full living loop DoD | 集成契约 | INT-V8 | INT-V8 集成/E2E/冒烟 | ✅ |
 
 ---
@@ -600,6 +672,12 @@
 | Accepted memory feeds next heartbeat | memory feedback | 单元 + API接口功能测试 + 集成 | T-DQ.R.3 | `tests/integration/control-plane/accepted-projection-feedback.test.ts` | ✅ |
 | Quiet closure provenance is first-class | self-dialogue trace | 单元 + API接口功能测试 + 集成 | T-DQ.R.4 | `tests/api/quiet/quiet-review-port.test.ts` | ✅ |
 | Proof and memory closure gate | integrated repair | 集成 + 冒烟 + 静态审查 | INT-R2 | `reports/int-r2-v8-proof-memory-closure.md` | ✅ |
+| Heartbeat advances daily rhythm | post-closure stall | API接口功能测试 + 集成 | T-CP.R.3 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | ⬜ |
+| Quiet/Dream reports absence truth | Quiet deadlock / Dream no-input ambiguity | 单元 + API接口功能测试 + 集成 | T-DQ.R.5 | `tests/api/dream/quiet-dream-runtime-chain.test.ts` | ⬜ |
+| Connector failures classify truthfully | unknown failure bucket | 单元 + API接口功能测试 + 集成 | T-CS.R.2 | `tests/api/connectors/connector-failure-truth.test.ts` | ⬜ |
+| Connector replay is cooldown-bounded | infinite replay / noise growth | 单元 + API接口功能测试 + 集成 | T-CS.R.3 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | ⬜ |
+| Decision denial has root-cause attribution | false governance blame | 单元 + API接口功能测试 + 集成 | T-OBS.R.4 | `tests/api/runtime-ops/loop-status-denial-attribution.test.ts` | ⬜ |
+| Runtime recovery closure gate | PRD loop restoration | 集成 + 冒烟 + 静态审查 | INT-R3 | `tests/integration/v8/runtime-recovery-closure.test.ts` | ⬜ |
 | Full living loop | end-to-end value | integration + scoped E2E + smoke | INT-V8 | `tests/integration/v8/living-perception-loop.test.ts` | ✅ |
 | Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ✅ |
 
@@ -633,4 +711,8 @@
 | Memory projection feedback | T-DQ.R.3 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/accepted-projection-feedback.test.ts` | INT-R2 report | ✅ |
 | Quiet closure provenance | T-DQ.R.4 | 单元 + API接口功能测试 + 集成 | `tests/api/quiet/quiet-review-port.test.ts` | INT-R2 report | ✅ |
 | REQ-002/003/005/006/008/009 Proof and Memory Repair | T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/proof-memory-closure.test.ts` | `reports/int-r2-v8-proof-memory-closure.md` | ✅ |
+| REQ-001/005/006/008/009 Runtime Recovery Repair | T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/runtime-recovery-closure.test.ts` | INT-R3 report | ⬜ |
+| Connector failure truth | T-CS.R.2, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/api/connectors/connector-failure-truth.test.ts` | connector failure truth report | ⬜ |
+| Connector replay cooldown | T-CS.R.3, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | replay diagnostics report | ⬜ |
+| Quiet runtime recovery | T-CP.R.3, T-DQ.R.5, T-OBS.R.4 | API接口功能测试 + 集成 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | `logs/int-r3-loop-status.json` | ⬜ |
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |

@@ -44,6 +44,7 @@ import {
   recordExecutionClosure,
   type ClosureStatus,
 } from "../action/action-closure-recorder.js";
+import { checkDailyRhythm, type DailyRhythmState } from "../quiet-dream/daily-rhythm-scheduler.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -66,6 +67,7 @@ export interface HeartbeatOrchestrationResult {
   closureRef?: SourceRef;
   noActionReason?: V8ReasonCode;
   degraded?: DegradedOperationResult;
+  rhythmState?: DailyRhythmState;
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -82,6 +84,72 @@ async function nextCycleSequence(db: StateDatabase): Promise<number> {
 
 function buildCycleId(sequence: number, now: string): string {
   return `cyc_${now.replace(/[:.]/g, "")}_${sequence}`;
+}
+
+async function advanceAndRecordDailyRhythm(
+  db: StateDatabase,
+  cycleId: string,
+  cycleSequence: number,
+  cycleRef: SourceRef,
+  now: string,
+): Promise<{ rhythmState?: DailyRhythmState; rhythmDegraded?: DegradedOperationResult }> {
+  try {
+    const rhythmResult = await checkDailyRhythm(db, { now });
+    if ("status" in rhythmResult && rhythmResult.status === "checked") {
+      await recordLoopStageEvent(db, {
+        id: `evt_${cycleId}_daily_rhythm`,
+        cycleId,
+        cycleSequence,
+        stage: "quiet",
+        status: "completed",
+        occurredAt: new Date().toISOString(),
+        sourceRefs: [
+          cycleRef,
+          {
+            uri: `sn://rhythm/${rhythmResult.state.day}`,
+            family: "dream_run",
+            id: `rhythm_${rhythmResult.state.day}`,
+            redactionClass: "none",
+            resolveStatus: "resolvable",
+          },
+        ],
+      });
+      return { rhythmState: rhythmResult.state };
+    }
+    const degraded = rhythmResult as DegradedOperationResult;
+    await recordLoopStageEvent(db, {
+      id: `evt_${cycleId}_daily_rhythm`,
+      cycleId,
+      cycleSequence,
+      stage: "quiet",
+      status: "failed",
+      occurredAt: new Date().toISOString(),
+      reason: degraded.reason,
+      sourceRefs: [cycleRef],
+    });
+    return { rhythmDegraded: degraded };
+  } catch (rhythmErr) {
+    const errMsg = rhythmErr instanceof Error ? rhythmErr.message : String(rhythmErr);
+    const degraded: DegradedOperationResult = {
+      status: "degraded",
+      reason: "state_unreadable",
+      ownerStage: "quiet",
+      sourceRefs: [cycleRef],
+      operatorNextAction: `Daily rhythm check failed: ${errMsg.slice(0, 120)}`,
+      retryable: true,
+    };
+    await recordLoopStageEvent(db, {
+      id: `evt_${cycleId}_daily_rhythm`,
+      cycleId,
+      cycleSequence,
+      stage: "quiet",
+      status: "failed",
+      occurredAt: new Date().toISOString(),
+      reason: degraded.reason,
+      sourceRefs: [cycleRef],
+    });
+    return { rhythmDegraded: degraded };
+  }
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -185,6 +253,8 @@ export async function runHeartbeatCycle(
       sourceRefs: degradedClosureRef ? [degradedClosureRef, cycleRef] : [cycleRef],
     });
 
+    const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+
     return {
       cycleId,
       cycleSequence,
@@ -200,6 +270,7 @@ export async function runHeartbeatCycle(
             retryable: true,
           }
         : undefined,
+      rhythmState,
     };
   }
 
@@ -241,11 +312,14 @@ export async function runHeartbeatCycle(
       sourceRefs: emptyClosureRef ? [emptyClosureRef, cycleRef] : [cycleRef],
     });
 
+    const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+
     return {
       cycleId,
       cycleSequence,
       closureRef: emptyClosureRef,
       noActionReason: "evidence_batch_empty",
+      rhythmState,
     };
   }
 
@@ -571,11 +645,15 @@ export async function runHeartbeatCycle(
     noActionReason = "proposal_no_action";
   }
 
+  // T-CP.R.3: Advance daily rhythm after closure/no-action
+  const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+
   return {
     cycleId,
     cycleSequence,
     closureRef,
     noActionReason,
     degraded: closureDegraded,
+    rhythmState,
   };
 }

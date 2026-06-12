@@ -84,7 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-09` (`/change` v8 — Proof Truth and Memory Feedback backlog)
+- **最近一次更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure in progress)
+- **当前波次**: Wave 108
+- **下一步**: T-CP.R.3 runtime rhythm wiring
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -208,8 +210,25 @@ src/
 - 系统数: 10
 - **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
 - **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: Wave 107 `/forge` repair，从 T-VERIFY.R.1 proof truth gate 开始
-- **最近更新**: `2026-06-09` (`/change` repair backlog — proof truth and memory feedback)
+- **下一步**: Wave 108 `/forge` repair，从 T-CP.R.3 runtime rhythm wiring 开始
+- **最近更新**: `2026-06-11` (`/change` repair backlog — runtime recovery closure)
+
+### 🌊 Wave 108 🧭 — v8 Change: Runtime Recovery Closure Backlog
+T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: 🟡 in_progress（/forge 已签入，T-CP.R.3 开始）
+- **用户诊断锚点**:
+  - Quiet 阶段断链：ActionClosureRecord exists but no QuietDailyReview
+  - Connector 全部不可用：MoltBook/Agent-world failure truth 不清晰
+  - Heartbeat 无限重放：同一 connector intent 重复 50+ 次
+  - `decision_denied` 过聚合：需要区分 hard guard、cooldown、source absence、quiet suppression 与真实 policy/governance
+- **产出计划**:
+  - `.anws/v8/05A_TASKS.md` — added Wave 108 tasks and RF-010..RF-013 overlay
+  - `.anws/v8/05B_VERIFICATION_PLAN.md` — added Wave 108 verification gates and traceability
+  - `.anws/v8/06_CHANGELOG.md` — recorded Wave 108 planned change
+- **最高严重度**: P0 runtime recovery backlog
+- **下一步**: `/forge` Wave 108，从 T-CP.R.3 开始，先恢复 closure -> Quiet/Dream 真实推进
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2
@@ -1083,4 +1102,3 @@ S5 Waves 36-39 测试增量明细：
 ---
 
 > **状态自检**: 准备好了？提醒用户运行 `/quickstart` 开始吧。
-

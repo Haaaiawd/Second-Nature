@@ -27,6 +27,7 @@ import type {
   DegradedOperationResult,
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
+import type { DailyRhythmState } from "../quiet-dream/daily-rhythm-scheduler.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -45,6 +46,7 @@ export interface RealRuntimeSpineResult {
   closureRef?: SourceRef;
   noActionReason?: V8ReasonCode;
   degraded?: DegradedOperationResult;
+  rhythmState?: DailyRhythmState;
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -75,5 +77,6 @@ export async function runRealRuntimeHeartbeatCycle(
     closureRef: orchestrationResult.closureRef,
     noActionReason: orchestrationResult.noActionReason,
     degraded: orchestrationResult.degraded,
+    rhythmState: orchestrationResult.rhythmState,
   };
 }

@@ -34,7 +34,7 @@ import { scheduleDreamAfterQuiet } from "./dream-scheduler.js";
 // Types
 // ───────────────────────────────────────────────────────────────
 
-export type RhythmStatus = "due" | "completed" | "skipped" | "blocked" | "not_due";
+export type RhythmStatus = "due" | "completed" | "scheduled" | "skipped" | "blocked" | "not_due";
 
 export interface DailyRhythmState {
   day: string;
@@ -157,7 +157,7 @@ export async function checkDailyRhythm(
         state.dreamStatus = "blocked";
         state.dreamReason = dreamResult.reason ?? "dream_scheduler_unavailable";
       } else {
-        state.dreamStatus = "scheduled" as RhythmStatus;
+        state.dreamStatus = "scheduled";
         state.dreamReason = "dream_scheduled";
       }
     }

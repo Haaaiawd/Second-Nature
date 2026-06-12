@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-09
+> 最后更新: 2026-06-11
 >
 > 验证计划: [05B_VERIFICATION_PLAN.md](./05B_VERIFICATION_PLAN.md)
 
@@ -56,6 +56,13 @@ graph TD
     OBSR3 --> INTR2[INT-R2]
     PJR1 --> INTR2
     DQR4 --> INTR2
+    INTR2 --> CPR3[T-CP.R.3 Runtime Rhythm Wiring]
+    CPR3 --> DQR5[T-DQ.R.5 Quiet/Dream Runtime Closure]
+    CPR3 --> CSR2[T-CS.R.2 Connector Failure Truth]
+    CSR2 --> CSR3[T-CS.R.3 Connector Replay Cooldown]
+    CSR3 --> OBSR4[T-OBS.R.4 Denial/Replay Attribution]
+    DQR5 --> INTR3[INT-R3]
+    OBSR4 --> INTR3
 ```
 
 ---
@@ -72,6 +79,7 @@ graph TD
 | S6 | Living Loop Gate | full chain regression | connector read -> memory projection -> next context passes with report | 2-3d |
 | S7 | Runtime Activation Repair | real heartbeat spine + impulse context + safe write + multi-rhythm | real workspace heartbeat produces closure/Quiet/Dream/context evidence, not only contract smoke | 4-6d |
 | S8 | Proof and Memory Closure | proof truth + real-run health surface + perception contract + memory feedback | runtime proof cannot false-green, and accepted memory feeds the next heartbeat context | 3-5d |
+| S9 | Runtime Recovery Closure | heartbeat-rhythm wiring + connector failure truth + replay control | real heartbeat advances closure -> Quiet/Dream or reports a precise blocked reason without infinite connector replay | 2-4d |
 
 ---
 
@@ -292,6 +300,28 @@ graph TD
   - **依赖**: T-VERIFY.R.1, T-OBS.R.2
   - **优先级**: P0
 
+- [ ] **T-OBS.R.4** [REQ-008, REQ-009]: Attribute heartbeat denial and connector replay root causes
+  - **描述**: Split operator diagnostics for `decision_denied`, hard-guard denial, connector terminal failure, and cooldown/replay prevention so governance-looking counters do not hide the actual blocked stage or repeated platform failure.
+  - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/control-plane-system.md §6`, T-OBS.R.3, T-CS.R.2, T-CS.R.3 outputs
+  - **输出**: denial/replay attribution read model, loop_status/digest diagnostics, and redacted operator next-action messages.
+  - **契约承接**: `decision_denied` attribution, hard-guard reason projection, connector replay/cooldown diagnostics, no false governance blame
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given heartbeat returns `denied` because all candidates fail hard guards
+    - When `loop_status` or digest is requested
+    - Then the result reports guard reasons such as missing source refs, affordance unavailable, quiet suppression, or awaiting user instead of only `decision_denied`
+    - Given a connector repeatedly fails with the same terminal class
+    - When replay control blocks a later heartbeat attempt
+    - Then observability reports the cooldown/replay block and next operator action without raw credential or platform payload leakage
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover denied/deferred attribution, terminal connector replay attribution, cooldown active state, redaction, and loop_status/digest parity.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-4`
+  - **证据产出**: `tests/unit/observability/heartbeat-denial-attribution.test.ts`, `tests/api/runtime-ops/loop-status-denial-attribution.test.ts`, `tests/integration/runtime-ops/connector-replay-diagnostics.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-OBS.R.3, T-CS.R.2, T-CS.R.3
+  - **优先级**: P0
+
 ---
 
 ## System 7: connector-system
@@ -338,6 +368,50 @@ graph TD
   - **估时**: 1.5d
   - **依赖**: T-AC.C.3, T-AC.C.4, T-CP.R.2
   - **优先级**: P1
+
+- [ ] **T-CS.R.2** [REQ-001, REQ-008, REQ-009]: Restore connector failure truth for read availability
+  - **描述**: Normalize MoltBook and Agent-world HTTP/API failures into actionable failure classes so `unknown_platform_change` is reserved for genuinely unclassified platform drift and connector read failures can be repaired or blocked honestly.
+  - **输入**: `04_SYSTEM_DESIGN/connector-system.md §2`, `04_SYSTEM_DESIGN/connector-system.md §6`, T-CS.C.1, T-OBS.R.3 outputs
+  - **输出**: connector failure normalization, MoltBook/Agent-world HTTP status mapping, credential/config diagnostics, and no-fabrication evidence handoff proof.
+  - **契约承接**: connector failure taxonomy, `auth_failure`, `credential_expired`, `verification_required`, `permanent_input_error`, `transport_failure`, `unknown_platform_change`, connector read availability diagnostics
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given MoltBook or Agent-world returns 401/403, 404/422, 429, or 5xx
+    - When connector execution completes
+    - Then the failure class maps to auth, permanent input, rate limit, or transport instead of defaulting to `unknown_platform_change`
+    - Given connector execution fails or returns empty data
+    - When evidence normalization runs
+    - Then no evidence is fabricated and loop health reports the precise connector reason
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发真实平台 E2E；external API validation remains manual after safe credentials exist.
+  - **验证摘要**: Cover HTTP status mapping, unknown-platform reservation, credential/config absence, empty read no-fabrication, and redacted telemetry detail.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-2`
+  - **证据产出**: `tests/unit/connectors/failure-taxonomy.test.ts`, `tests/api/connectors/connector-failure-truth.test.ts`, `tests/integration/connectors/read-failure-no-fabrication.test.ts`
+  - **估时**: 1d
+  - **依赖**: T-CS.C.1, T-OBS.R.3
+  - **优先级**: P0
+
+- [ ] **T-CS.R.3** [REQ-001, REQ-008, REQ-009]: Add connector terminal-failure cooldown to prevent infinite replay
+  - **描述**: Persist a bounded cooldown or breaker state for repeated terminal connector failures so heartbeat does not keep replaying the same read intent every cycle while Quiet/Dream waits on absent evidence.
+  - **输入**: `04_SYSTEM_DESIGN/connector-system.md §6`, `04_SYSTEM_DESIGN/body-tool-system.md §4`, T-CS.R.2, T-BT.C.1 outputs
+  - **输出**: connector cooldown state, route-planner cooldown read/write integration, heartbeat guard diagnostics, and operator reset/retry guidance.
+  - **契约承接**: connector cooldown state, repeated terminal failure suppression, affordance/replay diagnostics, safe retry window
+  - **参考**: `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given the same platform/capability returns terminal failure repeatedly within the cooldown window
+    - When the next heartbeat plans the same connector action
+    - Then route planning or guard evaluation blocks replay with a durable cooldown reason
+    - Given the cooldown expires or operator resets it
+    - When heartbeat runs again
+    - Then the connector may be retried and the attempt is recorded with a new trace
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover cooldown write/read, retry-after semantics, route-planner blocking, heartbeat reason projection, expiry/reset, and no suppression for successful recovery.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-3`
+  - **证据产出**: `tests/unit/connectors/connector-cooldown.test.ts`, `tests/api/connectors/connector-cooldown-port.test.ts`, `tests/integration/control-plane/connector-replay-cooldown.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-CS.R.2, T-BT.C.1
+  - **优先级**: P0
 
 ---
 
@@ -507,6 +581,28 @@ graph TD
   - **证据产出**: `tests/unit/control-plane/real-runtime-spine.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`, `tests/integration/v8/real-runtime-living-loop.test.ts`
   - **估时**: 2d
   - **依赖**: T-CP.C.1, T-PJ.C.3, T-AC.C.4, T-ROS.C.1
+  - **优先级**: P0
+
+- [x] **T-CP.R.3** [REQ-005, REQ-006, REQ-008, REQ-009]: Wire daily rhythm advancement into real heartbeat and ops runtime
+  - **描述**: Invoke the daily Quiet/Dream rhythm check after state-backed heartbeat closure/no-action so the real runtime advances from ActionClosureRecord into QuietDailyReview and Dream scheduling, or records an explicit blocked/empty reason.
+  - **输入**: `04_SYSTEM_DESIGN/control-plane-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, T-CP.R.2, T-DQ.R.2 outputs
+  - **输出**: heartbeat/ops rhythm wiring, closure -> daily rhythm bridge, runtime response diagnostics, and integration proof.
+  - **契约承接**: closure -> Quiet/Dream runtime advancement, daily rhythm state, no silent post-closure stall, real-run health gate input
+  - **参考**: `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a real heartbeat writes an ActionClosureRecord or no-action closure for today
+    - When the heartbeat/ops runtime completes
+    - Then it runs or schedules the daily rhythm check and persists Quiet/Dream state or explicit absence reason
+    - Given Quiet cannot complete or Dream cannot be scheduled
+    - When `loop_status` evaluates real-run health
+    - Then the missing stage and operator next action reflect the durable rhythm state
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: Optional host smoke may capture OpenClaw `heartbeat_check` JSON after `/forge`; no browser automation.
+  - **验证摘要**: Cover heartbeat success, no-action closure, Quiet completed, Quiet empty/blocked, Dream scheduled/blocked, and realRunHealth parity.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-3`
+  - **证据产出**: `tests/api/runtime-ops/heartbeat-rhythm-advance.test.ts`, `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts`, `logs/int-r3-loop-status.json`
+  - **估时**: 1d
+  - **依赖**: T-CP.R.2, T-DQ.R.2
   - **优先级**: P0
 
 ---
@@ -802,6 +898,28 @@ graph TD
   - **依赖**: T-DQ.R.3
   - **优先级**: P0
 
+- [ ] **T-DQ.R.5** [REQ-005, REQ-006, REQ-008, REQ-009]: Close Quiet/Dream runtime chain from daily rhythm state
+  - **描述**: Repair Quiet/Dream runtime closure so a daily rhythm check with existing ActionClosureRecords writes QuietDailyReview, records DailyDiary/Dream absence truth, schedules or runs Dream consolidation when eligible, and exposes blocked/empty reasons when memory cannot form.
+  - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`, T-CP.R.3, T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.R.4 outputs
+  - **输出**: daily rhythm -> QuietDailyReview -> Dream lifecycle integration, diary absence diagnostics, and source-grounded blocked memory reason.
+  - **契约承接**: QuietDailyReview runtime production, DailyDiary absence truth, DreamConsolidationRun scheduling, blocked/empty memory reason, closureRefs grounding
+  - **参考**: `03_ADR/ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given ActionClosureRecords exist for a day and no QuietDailyReview exists
+    - When daily rhythm advancement runs
+    - Then a QuietDailyReview is written with closureRefs and Dream is scheduled or explicitly blocked
+    - Given there is no valid Dream input, diary source is absent, or redaction blocks memory formation
+    - When loop health or digest is assembled
+    - Then the response reports the precise Quiet/Dream absence reason instead of silent zero counts
+  - **验证类型**: 单元测试 / API接口功能测试 / 集成测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Cover closure-day slice, Quiet write, closureRefs, diary absent vs empty, Dream scheduled/blocked, redaction block, and digest/loop_status parity.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-5`
+  - **证据产出**: `tests/unit/dream/daily-rhythm-scheduler.test.ts`, `tests/api/dream/quiet-dream-runtime-chain.test.ts`, `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts`
+  - **估时**: 1.5d
+  - **依赖**: T-CP.R.3, T-DQ.R.4
+  - **优先级**: P0
+
 ---
 
 ## System 9: guidance-voice-system
@@ -959,6 +1077,28 @@ graph TD
   - **依赖**: T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.4
   - **优先级**: P0
 
+- [ ] **INT-R3** [MILESTONE]: Runtime Recovery Closure Gate
+  - **描述**: Verify the Wave 108 recovery repairs restore the PRD living loop path from heartbeat closure into Quiet/Dream while connector failures and repeated denials are truthful, bounded, and operator-actionable.
+  - **输入**: T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4 outputs
+  - **输出**: `reports/int-r3-v8-runtime-recovery-closure.md`
+  - **契约承接**: closure -> Quiet/Dream runtime advance, connector failure truth, replay cooldown, denial attribution, real-run health parity
+  - **参考**: `01_PRD.md §3.1`, `01_PRD.md §5.1`, `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`, `03_ADR/ADR_005_CAUSAL_LOOP_HEALTH.md`
+  - **验收标准**:
+    - Given a real heartbeat produces a closure/no-action record
+    - When INT-R3 executes the runtime recovery gate
+    - Then QuietDailyReview and Dream schedule/block truth are present, or the gate fails with a precise missing-link reason
+    - Given MoltBook/Agent-world connector reads fail with representative HTTP/auth/config classes
+    - When heartbeat repeats
+    - Then failures are classified truthfully, replay is cooldown-bounded, and `loop_status` explains the root cause without blaming generic governance
+  - **验证类型**: 集成测试 / 冒烟测试 / 回归测试 / 静态审查
+  - **E2E触发设想**: Optional OpenClaw host smoke only; no real external platform write.
+  - **验证摘要**: Close Wave 108 with a single report cross-checking real heartbeat rhythm advancement, connector failure taxonomy, cooldown behavior, denial attribution, and digest/loop_status agreement.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r3`
+  - **证据产出**: `reports/int-r3-v8-runtime-recovery-closure.md`, `tests/integration/v8/runtime-recovery-closure.test.ts`, `logs/int-r3-loop-status.json`
+  - **估时**: 4h
+  - **依赖**: T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4
+  - **优先级**: P0
+
 - [x] **T-REG.C.1** [REGRESSION]: v8 build/lint and v7 capability regression gate
   - **描述**: Run build, lint, targeted v7 regression suites, and package/plugin smoke after v8 integration.
   - **输入**: INT-V8 output and existing regression suites
@@ -1105,4 +1245,32 @@ graph TD
 **涉及任务**: T-DQ.R.4 -> INT-R2
 **关键路径**: T-DQ.R.4
 **独立可测**: QuietDailyReview exposes first-class closureRefs consumed by Dream/source grounding without parsing payload JSON.
+**覆盖状态**: Repair Planned
+
+### RF-010: Runtime Closure Does Not Advance Daily Rhythm
+**用户反馈**: “Pipeline 卡在 Quiet 阶段，无法产出任何内容” / “ActionClosureRecord exists but no QuietDailyReview”。
+**涉及任务**: T-CP.R.3 -> T-DQ.R.5 -> INT-R3
+**关键路径**: T-CP.R.3
+**独立可测**: A real heartbeat closure triggers daily rhythm advancement and produces QuietDailyReview/Dream state or explicit absence reason.
+**覆盖状态**: Repair Planned
+
+### RF-011: Connector Failure Classes Hide Repair Actions
+**用户反馈**: “Connector 全部不可用，无法获取证据” / “moltbook:feed.read unknown_platform_change”。
+**涉及任务**: T-CS.R.2 -> T-OBS.R.4 -> INT-R3
+**关键路径**: T-CS.R.2
+**独立可测**: MoltBook and Agent-world representative HTTP/auth/config failures map to actionable failure classes and do not fabricate evidence.
+**覆盖状态**: Repair Planned
+
+### RF-012: Connector Terminal Failures Replay Forever
+**用户反馈**: “每 30 分钟产生一条 intent-exploration-moltbook ... 已重复 50+ 次”。
+**涉及任务**: T-CS.R.3 -> T-OBS.R.4 -> INT-R3
+**关键路径**: T-CS.R.3
+**独立可测**: Repeated terminal failure for the same platform/capability enters cooldown and blocks replay until expiry/reset.
+**覆盖状态**: Repair Planned
+
+### RF-013: Decision Denied Is Over-aggregated
+**用户反馈**: “decision_denied 标记出现了 330 次 ... 被 governance 拒绝”。
+**涉及任务**: T-OBS.R.4 -> INT-R3
+**关键路径**: T-OBS.R.4
+**独立可测**: Denied heartbeat outcomes are attributed to hard guard, cooldown, source absence, quiet suppression, or true policy/governance causes.
 **覆盖状态**: Repair Planned

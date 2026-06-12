@@ -11,7 +11,6 @@ import assert from "node:assert";
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { readLoopStatus } from "../../../src/observability/loop-status.js";
 import { runHeartbeatCycle } from "../../../src/core/second-nature/control-plane/heartbeat-orchestrator.js";
-import { checkDailyRhythm } from "../../../src/core/second-nature/quiet-dream/daily-rhythm-scheduler.js";
 
 describe("loop-status-real-run-gate", () => {
   it("empty state reports degraded real-run health", async () => {
@@ -32,7 +31,7 @@ describe("loop-status-real-run-gate", () => {
     }
   });
 
-  it("runtime heartbeat without daily rhythm reports degraded (missing quiet)", async () => {
+  it("runtime heartbeat auto-advances daily rhythm; missing impulse/projection is next gap", async () => {
     const db = createStateDatabase(":memory:");
     try {
       await runHeartbeatCycle(db, {
@@ -44,17 +43,15 @@ describe("loop-status-real-run-gate", () => {
       const result = await readLoopStatus(db);
       assert.equal(result.ok, true);
       if (result.ok) {
-        // Causal snapshot may be healthy, but real-run gate fails due to missing quiet/dream
+        // Heartbeat now auto-advances closure → Quiet → Dream
         assert.equal(result.status.realRunHealth.gatePassed, false);
         assert.equal(result.status.realRunHealth.hasRealClosure, true);
         assert.equal(result.status.realRunHealth.seededStateDetected, false);
-        assert.equal(result.status.realRunHealth.missingStage, "quiet");
-        // overallStatus must not be healthy because real-run gate fails
-        // (may be "stalled" from causal snapshot or "degraded" from real-run override)
-        assert.ok(
-          result.status.overallStatus !== "healthy",
-          `expected non-healthy, got ${result.status.overallStatus}`
-        );
+        assert.equal(result.status.realRunHealth.hasQuietArtifact, true);
+        assert.equal(result.status.realRunHealth.hasDreamArtifact, true);
+        assert.notEqual(result.status.realRunHealth.missingStage, "quiet");
+        assert.notEqual(result.status.realRunHealth.missingStage, "dream");
+        assert.ok(result.status.realRunHealth.missingStage);
         assert.ok(result.status.nextAction.includes("Real-run health degraded"));
       }
     } finally {
@@ -62,7 +59,7 @@ describe("loop-status-real-run-gate", () => {
     }
   });
 
-  it("full runtime path (heartbeat + daily rhythm) reports healthy", async () => {
+  it("full runtime path (heartbeat + auto daily rhythm) reports healthy", async () => {
     const db = createStateDatabase(":memory:");
     try {
       const now = new Date().toISOString();
@@ -73,9 +70,8 @@ describe("loop-status-real-run-gate", () => {
         trigger: "manual",
       });
 
-      await checkDailyRhythm(db, { now, forceQuiet: true });
-
-      // Seed impulse context and projection for full gate pass
+      // Heartbeat now auto-advances closure → Quiet → Dream.
+      // Seed impulse context and projection for full gate pass.
       const { writeImpulseContextArtifact, writeLongTermMemoryProjection } = await import("../../../src/storage/v8-state-stores.js");
       await writeImpulseContextArtifact(db, {
         id: `impulse_${day}`,
@@ -111,6 +107,7 @@ describe("loop-status-real-run-gate", () => {
         assert.equal(result.status.realRunHealth.gatePassed, true);
         assert.equal(result.status.realRunHealth.hasRealClosure, true);
         assert.equal(result.status.realRunHealth.hasQuietArtifact, true);
+        assert.equal(result.status.realRunHealth.hasDreamArtifact, true);
         assert.equal(result.status.realRunHealth.seededStateDetected, false);
         assert.equal(result.status.realRunHealth.missingStage, "none");
         assert.equal(result.status.overallStatus, "healthy");
