@@ -152,7 +152,7 @@ async function fetchAgentWorldJson(input: {
     body: input.body === undefined ? undefined : JSON.stringify(input.body),
   });
   if (!resp.ok) {
-    throw { code: "api_error", detail: `agent-world ${input.label}: ${resp.status}` };
+    throw { code: "api_error", status: resp.status, detail: `agent-world ${input.label}: ${resp.status}` };
   }
   return resp.json();
 }
@@ -203,7 +203,7 @@ async function fetchEvoMapJson(input: {
     body: input.body === undefined ? undefined : JSON.stringify(input.body),
   });
   if (!resp.ok) {
-    throw { code: "api_error", detail: `evomap ${input.label}: ${resp.status}` };
+    throw { code: "api_error", status: resp.status, detail: `evomap ${input.label}: ${resp.status}` };
   }
   return resp.json();
 }

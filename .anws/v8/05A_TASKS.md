@@ -369,7 +369,7 @@ graph TD
   - **依赖**: T-AC.C.3, T-AC.C.4, T-CP.R.2
   - **优先级**: P1
 
-- [ ] **T-CS.R.2** [REQ-001, REQ-008, REQ-009]: Restore connector failure truth for read availability
+- [x] **T-CS.R.2** [REQ-001, REQ-008, REQ-009]: Restore connector failure truth for read availability
   - **描述**: Normalize MoltBook and Agent-world HTTP/API failures into actionable failure classes so `unknown_platform_change` is reserved for genuinely unclassified platform drift and connector read failures can be repaired or blocked honestly.
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md §2`, `04_SYSTEM_DESIGN/connector-system.md §6`, T-CS.C.1, T-OBS.R.3 outputs
   - **输出**: connector failure normalization, MoltBook/Agent-world HTTP status mapping, credential/config diagnostics, and no-fabrication evidence handoff proof.
