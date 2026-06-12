@@ -113,7 +113,7 @@ export interface CooldownLedgerPort {
   loadCooldownState(
     platformId: string,
     intent: CapabilityIntent,
-  ): Promise<{ blocked: boolean; retryAfterMs?: number }>;
+  ): Promise<{ blocked: boolean; retryAfterMs?: number; reason?: string }>;
 }
 
 export interface RouteContextPort

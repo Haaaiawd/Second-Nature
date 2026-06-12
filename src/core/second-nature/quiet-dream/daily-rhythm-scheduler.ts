@@ -114,7 +114,6 @@ export async function checkDailyRhythm(
   } else {
     // Closures exist but Quiet not completed → due
     state.quietStatus = "due";
-    state.quietReason = "quiet_empty_input";
 
     // Auto-run Quiet if forced or if not yet attempted
     if (options?.forceQuiet || state.quietStatus === "due") {

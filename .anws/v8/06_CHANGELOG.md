@@ -66,16 +66,18 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - Updated `living-loop-health-gate.test.ts`, `int-r1-runtime-activation-repair.test.ts`, `proof-memory-closure.test.ts`, `loop-status-real-run-gate.test.ts` to seed impulse context + projection where full gate pass is expected
 - **Test Results**: 51/51 targeted tests PASS (0 fail); `pnpm typecheck` ✅; `pnpm build` ✅
 
-## Wave 108 Planned — Runtime Recovery Closure — 2026-06-11
+## Wave 108 Completed — Runtime Recovery Closure — 2026-06-12
 
 - **Change source**: User SN v0.2.0 diagnostic report identified real-run stall at Quiet, opaque connector failures, repeated connector replay, and over-aggregated `decision_denied` counters.
 - **Classification**: `/change` controlled extension inside v8; no PRD/ADR premise change.
-- **Tasks added**:
+- **Tasks completed**:
   - `T-CP.R.3` — wire daily rhythm advancement into real heartbeat and ops runtime.
   - `T-DQ.R.5` — close Quiet/Dream runtime chain from daily rhythm state.
   - `T-CS.R.2` — restore connector failure truth for read availability.
   - `T-CS.R.3` — add connector terminal-failure cooldown to prevent infinite replay.
   - `T-OBS.R.4` — attribute heartbeat denial and connector replay root causes.
   - `INT-R3` — Runtime Recovery Closure Gate.
-- **Verification plan updated**: Added task-by-task entries, contract coverage, testing coverage, and traceability rows for Wave 108.
+- **Verification plan updated**: Added task-by-task entries, contract coverage, testing coverage, and traceability rows for Wave 108; all Wave 108 gates checked.
 - **Guardrails**: No `05A` checkbox backfill, no `[REQ-*]` binding changes, no PRD or ADR premise edits.
+- **Code review**: `.anws/v8/wave-reviews/wave-108-review.md` — H-1 fixed during review, final verdict Pass.
+- **Test Results**: 57/57 Wave 108 targeted tests PASS (0 fail); `pnpm typecheck` ✅; `pnpm build` ✅.

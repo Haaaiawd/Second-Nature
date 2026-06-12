@@ -629,12 +629,12 @@
 | projection feedback into heartbeat context | memory lifecycle / context | T-DQ.R.3 | T-DQ.R.3 单元 + API接口功能测试 + 集成 | ✅ |
 | QuietDailyReview closureRefs | memory provenance / source grounding | T-DQ.R.4 | T-DQ.R.4 单元 + API接口功能测试 + 集成 | ✅ |
 | Proof Truth and Memory Feedback Gate | 集成契约 | INT-R2 | INT-R2 集成 + 冒烟 + 静态审查 | ✅ |
-| heartbeat daily rhythm advancement | runtime orchestration / memory trigger | T-CP.R.3 | T-CP.R.3 API接口功能测试 + 集成 | ⬜ |
-| Quiet/Dream runtime closure truth | memory lifecycle / absence reason | T-DQ.R.5 | T-DQ.R.5 单元 + API接口功能测试 + 集成 | ⬜ |
-| connector failure taxonomy truth | 错误语义 / operator repair | T-CS.R.2 | T-CS.R.2 单元 + API接口功能测试 + 集成 | ⬜ |
-| connector terminal-failure cooldown | replay control / affordance | T-CS.R.3 | T-CS.R.3 单元 + API接口功能测试 + 集成 | ⬜ |
-| denial and replay attribution | observability / root cause | T-OBS.R.4 | T-OBS.R.4 单元 + API接口功能测试 + 集成 | ⬜ |
-| Runtime Recovery Closure Gate | 集成契约 | INT-R3 | INT-R3 集成 + 冒烟 + 静态审查 | ⬜ |
+| heartbeat daily rhythm advancement | runtime orchestration / memory trigger | T-CP.R.3 | T-CP.R.3 API接口功能测试 + 集成 | ✅ |
+| Quiet/Dream runtime closure truth | memory lifecycle / absence reason | T-DQ.R.5 | T-DQ.R.5 单元 + API接口功能测试 + 集成 | ✅ |
+| connector failure taxonomy truth | 错误语义 / operator repair | T-CS.R.2 | T-CS.R.2 单元 + API接口功能测试 + 集成 | ✅ |
+| connector terminal-failure cooldown | replay control / affordance | T-CS.R.3 | T-CS.R.3 单元 + API接口功能测试 + 集成 | ✅ |
+| denial and replay attribution | observability / root cause | T-OBS.R.4 | T-OBS.R.4 单元 + API接口功能测试 + 集成 | ✅ |
+| Runtime Recovery Closure Gate | 集成契约 | INT-R3 | INT-R3 集成 + 冒烟 + 静态审查 | ✅ |
 | Full living loop DoD | 集成契约 | INT-V8 | INT-V8 集成/E2E/冒烟 | ✅ |
 
 ---
@@ -672,12 +672,12 @@
 | Accepted memory feeds next heartbeat | memory feedback | 单元 + API接口功能测试 + 集成 | T-DQ.R.3 | `tests/integration/control-plane/accepted-projection-feedback.test.ts` | ✅ |
 | Quiet closure provenance is first-class | self-dialogue trace | 单元 + API接口功能测试 + 集成 | T-DQ.R.4 | `tests/api/quiet/quiet-review-port.test.ts` | ✅ |
 | Proof and memory closure gate | integrated repair | 集成 + 冒烟 + 静态审查 | INT-R2 | `reports/int-r2-v8-proof-memory-closure.md` | ✅ |
-| Heartbeat advances daily rhythm | post-closure stall | API接口功能测试 + 集成 | T-CP.R.3 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | ⬜ |
-| Quiet/Dream reports absence truth | Quiet deadlock / Dream no-input ambiguity | 单元 + API接口功能测试 + 集成 | T-DQ.R.5 | `tests/api/dream/quiet-dream-runtime-chain.test.ts` | ⬜ |
-| Connector failures classify truthfully | unknown failure bucket | 单元 + API接口功能测试 + 集成 | T-CS.R.2 | `tests/api/connectors/connector-failure-truth.test.ts` | ⬜ |
-| Connector replay is cooldown-bounded | infinite replay / noise growth | 单元 + API接口功能测试 + 集成 | T-CS.R.3 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | ⬜ |
-| Decision denial has root-cause attribution | false governance blame | 单元 + API接口功能测试 + 集成 | T-OBS.R.4 | `tests/api/runtime-ops/loop-status-denial-attribution.test.ts` | ⬜ |
-| Runtime recovery closure gate | PRD loop restoration | 集成 + 冒烟 + 静态审查 | INT-R3 | `tests/integration/v8/runtime-recovery-closure.test.ts` | ⬜ |
+| Heartbeat advances daily rhythm | post-closure stall | API接口功能测试 + 集成 | T-CP.R.3 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | ✅ |
+| Quiet/Dream reports absence truth | Quiet deadlock / Dream no-input ambiguity | 单元 + API接口功能测试 + 集成 | T-DQ.R.5 | `tests/api/dream/quiet-dream-runtime-chain.test.ts` | ✅ |
+| Connector failures classify truthfully | unknown failure bucket | 单元 + API接口功能测试 + 集成 | T-CS.R.2 | `tests/api/connectors/connector-failure-truth.test.ts` | ✅ |
+| Connector replay is cooldown-bounded | infinite replay / noise growth | 单元 + API接口功能测试 + 集成 | T-CS.R.3 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | ✅ |
+| Decision denial has root-cause attribution | false governance blame | 单元 + API接口功能测试 + 集成 | T-OBS.R.4 | `tests/api/runtime-ops/loop-status-denial-attribution.test.ts` | ✅ |
+| Runtime recovery closure gate | PRD loop restoration | 集成 + 冒烟 + 静态审查 | INT-R3 | `tests/integration/v8/runtime-recovery-closure.test.ts` | ✅ |
 | Full living loop | end-to-end value | integration + scoped E2E + smoke | INT-V8 | `tests/integration/v8/living-perception-loop.test.ts` | ✅ |
 | Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ✅ |
 
@@ -711,8 +711,8 @@
 | Memory projection feedback | T-DQ.R.3 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/accepted-projection-feedback.test.ts` | INT-R2 report | ✅ |
 | Quiet closure provenance | T-DQ.R.4 | 单元 + API接口功能测试 + 集成 | `tests/api/quiet/quiet-review-port.test.ts` | INT-R2 report | ✅ |
 | REQ-002/003/005/006/008/009 Proof and Memory Repair | T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/proof-memory-closure.test.ts` | `reports/int-r2-v8-proof-memory-closure.md` | ✅ |
-| REQ-001/005/006/008/009 Runtime Recovery Repair | T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/runtime-recovery-closure.test.ts` | INT-R3 report | ⬜ |
-| Connector failure truth | T-CS.R.2, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/api/connectors/connector-failure-truth.test.ts` | connector failure truth report | ⬜ |
-| Connector replay cooldown | T-CS.R.3, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | replay diagnostics report | ⬜ |
-| Quiet runtime recovery | T-CP.R.3, T-DQ.R.5, T-OBS.R.4 | API接口功能测试 + 集成 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | `logs/int-r3-loop-status.json` | ⬜ |
+| REQ-001/005/006/008/009 Runtime Recovery Repair | T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3 | 单元 + API接口功能测试 + 集成 + 冒烟 | `tests/integration/v8/runtime-recovery-closure.test.ts` | INT-R3 report | ✅ |
+| Connector failure truth | T-CS.R.2, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/api/connectors/connector-failure-truth.test.ts` | connector failure truth report | ✅ |
+| Connector replay cooldown | T-CS.R.3, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | replay diagnostics report | ✅ |
+| Quiet runtime recovery | T-CP.R.3, T-DQ.R.5, T-OBS.R.4 | API接口功能测试 + 集成 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | `logs/int-r3-loop-status.json` | ✅ |
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |

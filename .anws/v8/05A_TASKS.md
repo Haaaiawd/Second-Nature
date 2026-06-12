@@ -300,7 +300,7 @@ graph TD
   - **依赖**: T-VERIFY.R.1, T-OBS.R.2
   - **优先级**: P0
 
-- [ ] **T-OBS.R.4** [REQ-008, REQ-009]: Attribute heartbeat denial and connector replay root causes
+- [x] **T-OBS.R.4** [REQ-008, REQ-009]: Attribute heartbeat denial and connector replay root causes
   - **描述**: Split operator diagnostics for `decision_denied`, hard-guard denial, connector terminal failure, and cooldown/replay prevention so governance-looking counters do not hide the actual blocked stage or repeated platform failure.
   - **输入**: `04_SYSTEM_DESIGN/observability-health-system.md §4.2`, `04_SYSTEM_DESIGN/control-plane-system.md §6`, T-OBS.R.3, T-CS.R.2, T-CS.R.3 outputs
   - **输出**: denial/replay attribution read model, loop_status/digest diagnostics, and redacted operator next-action messages.
@@ -1077,7 +1077,7 @@ graph TD
   - **依赖**: T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.4
   - **优先级**: P0
 
-- [ ] **INT-R3** [MILESTONE]: Runtime Recovery Closure Gate
+- [x] **INT-R3** [MILESTONE]: Runtime Recovery Closure Gate
   - **描述**: Verify the Wave 108 recovery repairs restore the PRD living loop path from heartbeat closure into Quiet/Dream while connector failures and repeated denials are truthful, bounded, and operator-actionable.
   - **输入**: T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4 outputs
   - **输出**: `reports/int-r3-v8-runtime-recovery-closure.md`

@@ -109,6 +109,7 @@ export async function recordNoActionClosure(
     id: closureId,
     createdAt: now,
     cycleId,
+    platformId: "heartbeat",
     status: "no_action",
     reason: noActionReason,
     nextState: "await_next_cycle",
@@ -182,6 +183,8 @@ export async function recordPolicyOutcomeClosure(
   params: {
     proposalId?: string;
     decisionId?: string;
+    platformId?: string;
+    capabilityId?: string;
     downgradedActionKind?: string;
     postProcessing?: string[];
     nextState?: string;
@@ -215,6 +218,8 @@ export async function recordPolicyOutcomeClosure(
     id: closureId,
     createdAt: now,
     cycleId,
+    platformId: params.platformId ?? "heartbeat",
+    capabilityId: params.capabilityId,
     proposalId: params.proposalId,
     decisionId: params.decisionId,
     status: closureStatus,
@@ -250,6 +255,8 @@ export async function recordExecutionClosure(
   params: {
     proposalId: string;
     decisionId: string;
+    platformId?: string;
+    capabilityId?: string;
     executionResultRef?: string;
     outputSummary?: string;
     nextState?: string;
@@ -274,6 +281,8 @@ export async function recordExecutionClosure(
     id: closureId,
     createdAt: now,
     cycleId,
+    platformId: params.platformId ?? "heartbeat",
+    capabilityId: params.capabilityId,
     proposalId: params.proposalId,
     decisionId: params.decisionId,
     status: closureStatus,

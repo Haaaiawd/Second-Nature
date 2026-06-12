@@ -130,7 +130,7 @@ export function classifyFailure(error: unknown): FailureClassification {
           retryable: RETRYABLE_BY_CLASS.permanent_input_error,
         };
       }
-      if (status === 500 || status === 502 || status === 503 || status === 504) {
+      if (status >= 500 && status <= 599) {
         return {
           class: "transport_failure",
           retryable: RETRYABLE_BY_CLASS.transport_failure,

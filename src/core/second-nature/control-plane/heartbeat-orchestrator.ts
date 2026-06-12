@@ -509,6 +509,8 @@ export async function runHeartbeatCycle(
             {
               proposalId: proposal.id,
               decisionId: decision.id,
+              platformId: proposal.targetPlatformId,
+              capabilityId: proposal.targetCapabilityId,
               nextState: "await_next_cycle",
             },
             { now },
@@ -533,6 +535,8 @@ export async function runHeartbeatCycle(
             {
               proposalId: proposal.id,
               decisionId: decision.id,
+              platformId: proposal.targetPlatformId,
+              capabilityId: proposal.targetCapabilityId,
               downgradedActionKind: dispatchResult.downgradedActionKind,
               nextState: "await_guidance_recovery",
             },
@@ -559,6 +563,8 @@ export async function runHeartbeatCycle(
             {
               proposalId: proposal.id,
               decisionId: decision.id,
+              platformId: proposal.targetPlatformId,
+              capabilityId: proposal.targetCapabilityId,
               outputSummary: "Guidance draft dispatched (simulated)",
               nextState: "await_next_cycle",
             },
@@ -585,6 +591,8 @@ export async function runHeartbeatCycle(
             {
               proposalId: proposal.id,
               decisionId: decision.id,
+              platformId: proposal.targetPlatformId,
+              capabilityId: proposal.targetCapabilityId,
               outputSummary: "Connector dispatch prepared (simulated — T-CP.R.2)",
               nextState: "await_real_execution",
             },

@@ -328,6 +328,8 @@ function createDeclarativeHttpRunner(
         });
 
         if (!resp.ok) {
+          const status = resp.status;
+          const body = await resp.text().catch(() => "");
           return {
             platformId: request.platformId,
             channel: plan.channel,
@@ -335,7 +337,8 @@ function createDeclarativeHttpRunner(
             success: false,
             error: {
               code: "api_error",
-              detail: `HTTP ${resp.status}: ${await resp.text().catch(() => "")}`,
+              status,
+              detail: `HTTP ${status}${body ? `: ${body.slice(0, 200)}` : ""}`,
             },
           };
         }

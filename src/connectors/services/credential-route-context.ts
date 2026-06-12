@@ -30,7 +30,11 @@ export function createCredentialRouteContextPort(
     },
     async loadCooldownState(platformId: string, intent: string) {
       const read = await readConnectorCooldownState(db, platformId, intent);
-      if (read.degraded || !read.row) {
+      if (read.degraded) {
+        // Fail-closed on unreadable cooldown state
+        return { blocked: true as const, reason: "cooldown_state_unreadable" as const };
+      }
+      if (!read.row) {
         return { blocked: false as const };
       }
       const now = new Date().toISOString();

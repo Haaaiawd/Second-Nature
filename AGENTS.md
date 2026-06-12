@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure in progress)
+- **最近一次更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure completed; code review H-1 fixed, final verdict Pass)
 - **当前波次**: Wave 108
-- **下一步**: T-CP.R.3 runtime rhythm wiring
+- **下一步**: 等待用户指令进入发布 / 下一轮
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -208,27 +208,38 @@ src/
 - 验证计划: `.anws/v8/05B_VERIFICATION_PLAN.md`
 - User Story 数: 9
 - 系统数: 10
-- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成
+- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成；Wave 108 `/forge` Runtime Recovery Closure 已完成
 - **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: Wave 108 `/forge` repair，从 T-CP.R.3 runtime rhythm wiring 开始
-- **最近更新**: `2026-06-11` (`/change` repair backlog — runtime recovery closure)
+- **下一步**: Wave 108 波末 code-reviewer 或用户指令进入发布
+- **最近更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure completed)
 
 ### 🌊 Wave 108 🧭 — v8 Change: Runtime Recovery Closure Backlog
 T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3
 **签入**: USER
 **code-reviewer**: 默认执行
-- **状态**: 🟡 in_progress（/forge 已签入，T-CP.R.3 开始）
-- **用户诊断锚点**:
-  - Quiet 阶段断链：ActionClosureRecord exists but no QuietDailyReview
-  - Connector 全部不可用：MoltBook/Agent-world failure truth 不清晰
-  - Heartbeat 无限重放：同一 connector intent 重复 50+ 次
-  - `decision_denied` 过聚合：需要区分 hard guard、cooldown、source absence、quiet suppression 与真实 policy/governance
-- **产出计划**:
-  - `.anws/v8/05A_TASKS.md` — added Wave 108 tasks and RF-010..RF-013 overlay
-  - `.anws/v8/05B_VERIFICATION_PLAN.md` — added Wave 108 verification gates and traceability
-  - `.anws/v8/06_CHANGELOG.md` — recorded Wave 108 planned change
-- **最高严重度**: P0 runtime recovery backlog
-- **下一步**: `/forge` Wave 108，从 T-CP.R.3 开始，先恢复 closure -> Quiet/Dream 真实推进
+- **状态**: ✅ Wave 108 全部完成（T-CP.R.3 + T-DQ.R.5 + T-CS.R.2 + T-CS.R.3 + T-OBS.R.4 + INT-R3）
+- **产出**:
+  - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — `advanceAndRecordDailyRhythm` wired after every closure path; rhythm state returned in cycle result
+  - `src/core/second-nature/control-plane/real-runtime-spine.ts` — rhythm state pass-through
+  - `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts` — `RhythmStatus` extended with `scheduled`; precise skipped/blocked dream reasons; duplicate-schedule guard; H-1 `quiet_empty_input` while `due` fixed
+  - `src/connectors/base/failure-taxonomy.ts` — HTTP `status`/`statusCode` mapping to actionable failure classes; 5xx range broadened to 500-599
+  - `src/connectors/services/connector-executor-adapter.ts` — declarative_http runner now returns `status` in errors; detail truncated to 200 chars
+  - `src/connectors/services/connector-cooldown-port.ts` — durable cooldown table + threshold/retryAfter policy; separate `terminalCount`; fail-closed on degraded read
+  - `src/connectors/services/credential-route-context.ts` — cooldown state load integration; fail-closed on degraded read
+  - `src/storage/db/schema/v8-entities.ts` + `src/storage/db/index.ts` + `src/storage/v8-state-stores.ts` — `connector_cooldown_state` schema + `terminal_count` + composite index; `action_closure_record.platform_id`
+  - `src/observability/loop-status.ts` — canonical reason-code attribution set + durable cooldown state read for replay attribution; `stalledAt` override fixed
+  - `src/core/second-nature/action/action-closure-recorder.ts` + `action-proposal-builder.ts` — populate `platform_id` on closure writes
+  - `tests/integration/v8/runtime-recovery-closure.test.ts` — INT-R3 9 cases (no-action rhythm, multi-HTTP-status failure mapping, closureRefs grounding)
+  - `tests/api/runtime-ops/loop-status-denial-attribution.test.ts` — durable cooldown attribution + credential leak checks
+  - `tests/unit/observability/heartbeat-denial-attribution.test.ts` — canonical reason-code classification
+  - `reports/int-r3-v8-runtime-recovery-closure.md` — Wave 108 gate report
+  - `logs/int-r3-loop-status.json` — structured attribution evidence
+  - `.anws/v8/05A_TASKS.md` — Wave 108 all tasks checked
+  - `.anws/v8/05B_VERIFICATION_PLAN.md` — Wave 108 verification gates checked
+  - `.anws/v8/wave-reviews/wave-108-review.md` — code review report, H-1 fixed, final verdict Pass
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；Wave 108 targeted 79/79 PASS（含 INT-V8 + declarative-http 回归）；`real-runtime-living-loop` 2/2 PASS
+- **最高严重度**: none blocking (H-1, H-2, H-3 fixed during review; M-1, M-3, M-4 fixed; M-2 + generic connector target derivation accepted residual)
+- **下一步**: 等待用户指令进入发布 / 下一轮
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2
