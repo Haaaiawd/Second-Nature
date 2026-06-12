@@ -391,7 +391,7 @@ graph TD
   - **依赖**: T-CS.C.1, T-OBS.R.3
   - **优先级**: P0
 
-- [ ] **T-CS.R.3** [REQ-001, REQ-008, REQ-009]: Add connector terminal-failure cooldown to prevent infinite replay
+- [x] **T-CS.R.3** [REQ-001, REQ-008, REQ-009]: Add connector terminal-failure cooldown to prevent infinite replay
   - **描述**: Persist a bounded cooldown or breaker state for repeated terminal connector failures so heartbeat does not keep replaying the same read intent every cycle while Quiet/Dream waits on absent evidence.
   - **输入**: `04_SYSTEM_DESIGN/connector-system.md §6`, `04_SYSTEM_DESIGN/body-tool-system.md §4`, T-CS.R.2, T-BT.C.1 outputs
   - **输出**: connector cooldown state, route-planner cooldown read/write integration, heartbeat guard diagnostics, and operator reset/retry guidance.
