@@ -137,8 +137,12 @@ export async function checkDailyRhythm(
 
   // Determine Dream status based on Quiet outcome
   if (state.quietStatus === "completed") {
-    if (state.dreamStatus === "completed" || state.dreamStatus === "blocked") {
-      // Already handled
+    if (
+      state.dreamStatus === "completed" ||
+      state.dreamStatus === "scheduled" ||
+      state.dreamStatus === "blocked"
+    ) {
+      // Already handled; do not re-schedule
     } else {
       state.dreamStatus = "due";
       state.dreamReason = "dream_scheduled";
@@ -164,10 +168,13 @@ export async function checkDailyRhythm(
   } else if (state.quietStatus === "not_due") {
     state.dreamStatus = "not_due";
     state.dreamReason = "quiet_empty_input";
-  } else {
-    // Quiet blocked/skipped → Dream cannot run
+  } else if (state.quietStatus === "skipped") {
     state.dreamStatus = "blocked";
-    state.dreamReason = "dream_blocked_redaction";
+    state.dreamReason = state.quietReason ?? "quiet_empty_input";
+  } else {
+    // Quiet blocked (degraded) → Dream cannot run
+    state.dreamStatus = "blocked";
+    state.dreamReason = state.quietReason ?? "dream_blocked_redaction";
   }
 
   // Persist state

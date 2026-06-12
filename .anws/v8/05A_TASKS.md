@@ -898,7 +898,7 @@ graph TD
   - **依赖**: T-DQ.R.3
   - **优先级**: P0
 
-- [ ] **T-DQ.R.5** [REQ-005, REQ-006, REQ-008, REQ-009]: Close Quiet/Dream runtime chain from daily rhythm state
+- [x] **T-DQ.R.5** [REQ-005, REQ-006, REQ-008, REQ-009]: Close Quiet/Dream runtime chain from daily rhythm state
   - **描述**: Repair Quiet/Dream runtime closure so a daily rhythm check with existing ActionClosureRecords writes QuietDailyReview, records DailyDiary/Dream absence truth, schedules or runs Dream consolidation when eligible, and exposes blocked/empty reasons when memory cannot form.
   - **输入**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`, T-CP.R.3, T-DQ.C.1, T-DQ.C.2, T-DQ.C.3, T-DQ.R.4 outputs
   - **输出**: daily rhythm -> QuietDailyReview -> Dream lifecycle integration, diary absence diagnostics, and source-grounded blocked memory reason.
