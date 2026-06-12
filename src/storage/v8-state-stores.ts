@@ -36,6 +36,7 @@ import {
   loopStageEvent,
   impulseContextArtifact,
   dailyRhythmState,
+  connectorCooldownState,
   type EvidenceItemRecord,
   type NewEvidenceItemRecord,
   type PerceptionCardRecord,
@@ -58,6 +59,8 @@ import {
   type NewImpulseContextArtifactRecord,
   type DailyRhythmStateRecord,
   type NewDailyRhythmStateRecord,
+  type ConnectorCooldownStateRecord,
+  type NewConnectorCooldownStateRecord,
 } from "./db/schema/v8-entities.js";
 
 import type {
@@ -972,6 +975,60 @@ export async function readDailyRhythmStateByDay(
         `Check state database connectivity for day=${day}`,
       ),
     };
+  }
+}
+
+export async function readConnectorCooldownState(
+  db: StateDatabase,
+  platformId: string,
+  capabilityId: string,
+): Promise<{ row?: ConnectorCooldownStateRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorCooldownState)
+      .where(
+        and(
+          eq(connectorCooldownState.platformId, platformId),
+          eq(connectorCooldownState.capabilityId, capabilityId),
+        ),
+      )
+      .orderBy(desc(connectorCooldownState.updatedAt))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded(
+        "state_unreadable",
+        "ingestion",
+        `Check state database connectivity for cooldown ${platformId}:${capabilityId}`,
+      ),
+    };
+  }
+}
+
+export async function writeConnectorCooldownState(
+  db: StateDatabase,
+  row: Omit<NewConnectorCooldownStateRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+): Promise<{ id: string } | DegradedOperationResult> {
+  const validated = validateSourceRefs(row.sourceRefs, "ingestion");
+  if (!validated.ok) return validated.degraded;
+
+  try {
+    const record: NewConnectorCooldownStateRecord = {
+      ...row,
+      sourceRefsJson: serializeSourceRefs(validated.record),
+    };
+    await db.db.delete(connectorCooldownState).where(eq(connectorCooldownState.id, row.id));
+    await db.db.insert(connectorCooldownState).values(record);
+    return { id: row.id };
+  } catch {
+    return makeDegraded(
+      "state_unreadable",
+      "ingestion",
+      "Retry connector cooldown state write after DB recovery",
+      validated.record,
+    );
   }
 }
 

@@ -253,3 +253,25 @@ export const dailyRhythmState = sqliteTable("daily_rhythm_state", {
 
 export type DailyRhythmStateRecord = typeof dailyRhythmState.$inferSelect;
 export type NewDailyRhythmStateRecord = typeof dailyRhythmState.$inferInsert;
+
+// ───────────────────────────────────────────────────────────────
+// 12. ConnectorCooldownState
+// ───────────────────────────────────────────────────────────────
+
+export const connectorCooldownState = sqliteTable("connector_cooldown_state", {
+  id: text("id").primaryKey(),
+  platformId: text("platform_id").notNull(),
+  capabilityId: text("capability_id").notNull(),
+  failureClass: text("failure_class").notNull(),
+  retryAfterMs: integer("retry_after_ms"),
+  blockedUntil: text("blocked_until").notNull(),
+  failureCount: integer("failure_count").notNull().default(1),
+  sourceRefsJson: text("source_refs_json").notNull(),
+  redactionClass: text("redaction_class").notNull().default("none"),
+  payloadJson: text("payload_json"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export type ConnectorCooldownStateRecord = typeof connectorCooldownState.$inferSelect;
+export type NewConnectorCooldownStateRecord = typeof connectorCooldownState.$inferInsert;

@@ -40,6 +40,7 @@ import type { ConnectorManifestV6 } from "../manifest/manifest-schema.js";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { createConnectorCooldownPort } from "./connector-cooldown-port.js";
 
 export interface ConnectorExecutorAdapterOptions {
   stateDb: StateDatabase;
@@ -725,7 +726,8 @@ export function createConnectorExecutorAdapter(
   registry.register({ ...instreetManifest });
   registerWorkspaceManifests(registry, options.workspaceRoot);
 
-  const routeContextPort = createCredentialRouteContextPort(vault);
+  const cooldownPort = createConnectorCooldownPort(options.stateDb);
+  const routeContextPort = createCredentialRouteContextPort(vault, options.stateDb);
   const routePlanner = new ConnectorRoutePlanner(
     registry,
     routeContextPort,
@@ -738,6 +740,7 @@ export function createConnectorExecutorAdapter(
     routePlanner,
     executionRunner,
     telemetry,
+    cooldownPort,
     effectCommitLedger: new InMemoryEffectCommitLedger(),
     retryPolicy: { maxRetries: 2, jitter: true },
   });

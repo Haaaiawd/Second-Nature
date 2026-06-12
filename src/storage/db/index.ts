@@ -330,6 +330,20 @@ const STATE_SCHEMA_SQL = `
     payload_json TEXT,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS connector_cooldown_state (
+    id TEXT PRIMARY KEY,
+    platform_id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    failure_class TEXT NOT NULL,
+    retry_after_ms INTEGER,
+    blocked_until TEXT NOT NULL,
+    failure_count INTEGER NOT NULL DEFAULT 1,
+    source_refs_json TEXT NOT NULL,
+    redaction_class TEXT NOT NULL DEFAULT 'none',
+    payload_json TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 `;
 
 export interface StateDatabase {
