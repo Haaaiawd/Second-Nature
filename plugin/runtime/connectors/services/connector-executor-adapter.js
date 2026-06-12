@@ -19,6 +19,7 @@ import { parseConnectorManifestV6 } from "../manifest/manifest-parser.js";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { createConnectorCooldownPort } from "./connector-cooldown-port.js";
 const DEFAULT_AGENT_WORLD_USERNAME = "nyx_ha";
 const DEFAULT_AGENT_WORLD_PROFILE_PATH_TEMPLATE = "/api/agents/profile/{username}";
 function readString(value) {
@@ -104,7 +105,7 @@ async function fetchAgentWorldJson(input) {
         body: input.body === undefined ? undefined : JSON.stringify(input.body),
     });
     if (!resp.ok) {
-        throw { code: "api_error", detail: `agent-world ${input.label}: ${resp.status}` };
+        throw { code: "api_error", status: resp.status, detail: `agent-world ${input.label}: ${resp.status}` };
     }
     return resp.json();
 }
@@ -147,7 +148,7 @@ async function fetchEvoMapJson(input) {
         body: input.body === undefined ? undefined : JSON.stringify(input.body),
     });
     if (!resp.ok) {
-        throw { code: "api_error", detail: `evomap ${input.label}: ${resp.status}` };
+        throw { code: "api_error", status: resp.status, detail: `evomap ${input.label}: ${resp.status}` };
     }
     return resp.json();
 }
@@ -256,6 +257,8 @@ function createDeclarativeHttpRunner(manifest, credential) {
                     body: method !== "GET" && request.payload ? JSON.stringify(request.payload) : undefined,
                 });
                 if (!resp.ok) {
+                    const status = resp.status;
+                    const body = await resp.text().catch(() => "");
                     return {
                         platformId: request.platformId,
                         channel: plan.channel,
@@ -263,7 +266,8 @@ function createDeclarativeHttpRunner(manifest, credential) {
                         success: false,
                         error: {
                             code: "api_error",
-                            detail: `HTTP ${resp.status}: ${await resp.text().catch(() => "")}`,
+                            status,
+                            detail: `HTTP ${status}${body ? `: ${body.slice(0, 200)}` : ""}`,
                         },
                     };
                 }
@@ -618,7 +622,8 @@ export function createConnectorExecutorAdapter(options) {
     registry.register({ ...agentWorldManifest });
     registry.register({ ...instreetManifest });
     registerWorkspaceManifests(registry, options.workspaceRoot);
-    const routeContextPort = createCredentialRouteContextPort(vault);
+    const cooldownPort = createConnectorCooldownPort(options.stateDb);
+    const routeContextPort = createCredentialRouteContextPort(vault, options.stateDb);
     const routePlanner = new ConnectorRoutePlanner(registry, routeContextPort, new ChannelHealthStore());
     const telemetry = new ExecutionTelemetry(options.observabilityDb);
     const executionRunner = createAdaptiveExecutionRunner(vault, options.workspaceRoot);
@@ -626,6 +631,7 @@ export function createConnectorExecutorAdapter(options) {
         routePlanner,
         executionRunner,
         telemetry,
+        cooldownPort,
         effectCommitLedger: new InMemoryEffectCommitLedger(),
         retryPolicy: { maxRetries: 2, jitter: true },
     });

@@ -82,21 +82,12 @@ export async function acceptMemoryProjection(db, candidateId, topicKey, memoryTe
         supersedesProjectionId: supersedesId,
     };
 }
-export async function rejectMemoryProjection(db, projectionId, candidateId, topicKey, sourceRefs, reason = "projection_rejected", options) {
+export async function rejectMemoryProjection(db, projectionId, _candidateId, _topicKey, _sourceRefs, reason = "projection_rejected", options) {
     const now = options?.now ?? new Date().toISOString();
-    const writeResult = await writeLongTermMemoryProjection(db, {
-        id: projectionId,
-        createdAt: now,
-        candidateId,
-        topicKey,
-        status: "rejected",
-        sourceRefs,
-        redactionClass: "none",
-        lifecycleStatus: "rejected",
-        payloadJson: JSON.stringify({ rejectedAt: now, reason }),
-    });
-    if ("reason" in writeResult) {
-        return writeResult;
+    // F5: Use UPDATE instead of INSERT to avoid PK conflict on existing projections
+    const updateResult = await updateLongTermMemoryProjectionStatus(db, projectionId, "rejected", JSON.stringify({ rejectedAt: now, reason }));
+    if ("reason" in updateResult) {
+        return updateResult;
     }
     return {
         projectionId,
@@ -104,21 +95,12 @@ export async function rejectMemoryProjection(db, projectionId, candidateId, topi
         reason,
     };
 }
-export async function retireMemoryProjection(db, projectionId, candidateId, topicKey, sourceRefs, options) {
+export async function retireMemoryProjection(db, projectionId, _candidateId, _topicKey, _sourceRefs, options) {
     const now = options?.now ?? new Date().toISOString();
-    const writeResult = await writeLongTermMemoryProjection(db, {
-        id: projectionId,
-        createdAt: now,
-        candidateId,
-        topicKey,
-        status: "retired",
-        sourceRefs,
-        redactionClass: "none",
-        lifecycleStatus: "retired",
-        payloadJson: JSON.stringify({ retiredAt: now }),
-    });
-    if ("reason" in writeResult) {
-        return writeResult;
+    // F5: Use UPDATE instead of INSERT to avoid PK conflict on existing projections
+    const updateResult = await updateLongTermMemoryProjectionStatus(db, projectionId, "retired", JSON.stringify({ retiredAt: now }));
+    if ("reason" in updateResult) {
+        return updateResult;
     }
     return {
         projectionId,

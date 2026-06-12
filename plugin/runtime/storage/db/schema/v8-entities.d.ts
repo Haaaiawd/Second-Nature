@@ -816,6 +816,44 @@ export declare const actionClosureRecord: import("drizzle-orm/sqlite-core").SQLi
         }, {}, {
             length: number | undefined;
         }>;
+        platformId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "platform_id";
+            tableName: "action_closure_record";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        capabilityId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "capability_id";
+            tableName: "action_closure_record";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         proposalId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "proposal_id";
             tableName: "action_closure_record";
@@ -2557,3 +2595,253 @@ export declare const dailyRhythmState: import("drizzle-orm/sqlite-core").SQLiteT
 }>;
 export type DailyRhythmStateRecord = typeof dailyRhythmState.$inferSelect;
 export type NewDailyRhythmStateRecord = typeof dailyRhythmState.$inferInsert;
+export declare const connectorCooldownState: import("drizzle-orm/sqlite-core").SQLiteTableWithColumns<{
+    name: "connector_cooldown_state";
+    schema: undefined;
+    columns: {
+        id: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "id";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: true;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        platformId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "platform_id";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        capabilityId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "capability_id";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        failureClass: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "failure_class";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        retryAfterMs: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "retry_after_ms";
+            tableName: "connector_cooldown_state";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        blockedUntil: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "blocked_until";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        failureCount: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "failure_count";
+            tableName: "connector_cooldown_state";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        terminalCount: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "terminal_count";
+            tableName: "connector_cooldown_state";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
+        sourceRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "source_refs_json";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        redactionClass: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "redaction_class";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        payloadJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "payload_json";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        createdAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "created_at";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        updatedAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "updated_at";
+            tableName: "connector_cooldown_state";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+    };
+    dialect: "sqlite";
+}>;
+export type ConnectorCooldownStateRecord = typeof connectorCooldownState.$inferSelect;
+export type NewConnectorCooldownStateRecord = typeof connectorCooldownState.$inferInsert;

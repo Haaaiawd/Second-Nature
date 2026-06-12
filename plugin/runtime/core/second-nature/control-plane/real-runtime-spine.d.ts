@@ -17,6 +17,7 @@
  */
 import type { StateDatabase } from "../../../storage/db/index.js";
 import type { SourceRef, DegradedOperationResult, V8ReasonCode } from "../../../shared/types/v8-contracts.js";
+import type { DailyRhythmState } from "../quiet-dream/daily-rhythm-scheduler.js";
 export interface RealRuntimeSpineOptions {
     workspaceRoot: string;
     state: StateDatabase;
@@ -29,5 +30,6 @@ export interface RealRuntimeSpineResult {
     closureRef?: SourceRef;
     noActionReason?: V8ReasonCode;
     degraded?: DegradedOperationResult;
+    rhythmState?: DailyRhythmState;
 }
 export declare function runRealRuntimeHeartbeatCycle(options: RealRuntimeSpineOptions): Promise<RealRuntimeSpineResult | DegradedOperationResult>;

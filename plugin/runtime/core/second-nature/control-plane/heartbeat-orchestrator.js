@@ -30,6 +30,7 @@ import { buildActionProposal, } from "../action/action-proposal-builder.js";
 import { evaluateActionPolicy } from "../action/autonomy-policy-evaluator.js";
 import { dispatchAllowedAction } from "../action/policy-bound-dispatch.js";
 import { recordNoActionClosure, recordRememberClosure, recordPolicyOutcomeClosure, recordExecutionClosure, } from "../action/action-closure-recorder.js";
+import { checkDailyRhythm } from "../quiet-dream/daily-rhythm-scheduler.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -42,6 +43,66 @@ async function nextCycleSequence(db) {
 }
 function buildCycleId(sequence, now) {
     return `cyc_${now.replace(/[:.]/g, "")}_${sequence}`;
+}
+async function advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now) {
+    try {
+        const rhythmResult = await checkDailyRhythm(db, { now });
+        if ("status" in rhythmResult && rhythmResult.status === "checked") {
+            await recordLoopStageEvent(db, {
+                id: `evt_${cycleId}_daily_rhythm`,
+                cycleId,
+                cycleSequence,
+                stage: "quiet",
+                status: "completed",
+                occurredAt: new Date().toISOString(),
+                sourceRefs: [
+                    cycleRef,
+                    {
+                        uri: `sn://rhythm/${rhythmResult.state.day}`,
+                        family: "dream_run",
+                        id: `rhythm_${rhythmResult.state.day}`,
+                        redactionClass: "none",
+                        resolveStatus: "resolvable",
+                    },
+                ],
+            });
+            return { rhythmState: rhythmResult.state };
+        }
+        const degraded = rhythmResult;
+        await recordLoopStageEvent(db, {
+            id: `evt_${cycleId}_daily_rhythm`,
+            cycleId,
+            cycleSequence,
+            stage: "quiet",
+            status: "failed",
+            occurredAt: new Date().toISOString(),
+            reason: degraded.reason,
+            sourceRefs: [cycleRef],
+        });
+        return { rhythmDegraded: degraded };
+    }
+    catch (rhythmErr) {
+        const errMsg = rhythmErr instanceof Error ? rhythmErr.message : String(rhythmErr);
+        const degraded = {
+            status: "degraded",
+            reason: "state_unreadable",
+            ownerStage: "quiet",
+            sourceRefs: [cycleRef],
+            operatorNextAction: `Daily rhythm check failed: ${errMsg.slice(0, 120)}`,
+            retryable: true,
+        };
+        await recordLoopStageEvent(db, {
+            id: `evt_${cycleId}_daily_rhythm`,
+            cycleId,
+            cycleSequence,
+            stage: "quiet",
+            status: "failed",
+            occurredAt: new Date().toISOString(),
+            reason: degraded.reason,
+            sourceRefs: [cycleRef],
+        });
+        return { rhythmDegraded: degraded };
+    }
 }
 // ───────────────────────────────────────────────────────────────
 // Public API
@@ -130,6 +191,7 @@ export async function runHeartbeatCycle(db, request) {
             reason: degradedReason,
             sourceRefs: degradedClosureRef ? [degradedClosureRef, cycleRef] : [cycleRef],
         });
+        const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
         return {
             cycleId,
             cycleSequence,
@@ -145,6 +207,7 @@ export async function runHeartbeatCycle(db, request) {
                     retryable: true,
                 }
                 : undefined,
+            rhythmState,
         };
     }
     const cards = perceptionResult.cards;
@@ -182,11 +245,13 @@ export async function runHeartbeatCycle(db, request) {
             reason: "evidence_batch_empty",
             sourceRefs: emptyClosureRef ? [emptyClosureRef, cycleRef] : [cycleRef],
         });
+        const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
         return {
             cycleId,
             cycleSequence,
             closureRef: emptyClosureRef,
             noActionReason: "evidence_batch_empty",
+            rhythmState,
         };
     }
     // ── Context assembly: load accepted projections (T-DQ.R.3) ──
@@ -350,6 +415,8 @@ export async function runHeartbeatCycle(db, request) {
                     const closureResult = await recordPolicyOutcomeClosure(db, cycleId, closureStatus, decision.decisionReason, {
                         proposalId: proposal.id,
                         decisionId: decision.id,
+                        platformId: proposal.targetPlatformId,
+                        capabilityId: proposal.targetCapabilityId,
                         nextState: "await_next_cycle",
                     }, { now });
                     if ("closureId" in closureResult) {
@@ -369,6 +436,8 @@ export async function runHeartbeatCycle(db, request) {
                     const closureResult = await recordPolicyOutcomeClosure(db, cycleId, "downgraded", "guidance_unavailable", {
                         proposalId: proposal.id,
                         decisionId: decision.id,
+                        platformId: proposal.targetPlatformId,
+                        capabilityId: proposal.targetCapabilityId,
                         downgradedActionKind: dispatchResult.downgradedActionKind,
                         nextState: "await_guidance_recovery",
                     }, { now });
@@ -390,6 +459,8 @@ export async function runHeartbeatCycle(db, request) {
                     const closureResult = await recordExecutionClosure(db, cycleId, "completed", "policy_allowed", {
                         proposalId: proposal.id,
                         decisionId: decision.id,
+                        platformId: proposal.targetPlatformId,
+                        capabilityId: proposal.targetCapabilityId,
                         outputSummary: "Guidance draft dispatched (simulated)",
                         nextState: "await_next_cycle",
                     }, { now });
@@ -411,6 +482,8 @@ export async function runHeartbeatCycle(db, request) {
                     const closureResult = await recordExecutionClosure(db, cycleId, "completed", "policy_allowed", {
                         proposalId: proposal.id,
                         decisionId: decision.id,
+                        platformId: proposal.targetPlatformId,
+                        capabilityId: proposal.targetCapabilityId,
                         outputSummary: "Connector dispatch prepared (simulated — T-CP.R.2)",
                         nextState: "await_real_execution",
                     }, { now });
@@ -466,11 +539,14 @@ export async function runHeartbeatCycle(db, request) {
         }
         noActionReason = "proposal_no_action";
     }
+    // T-CP.R.3: Advance daily rhythm after closure/no-action
+    const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
     return {
         cycleId,
         cycleSequence,
         closureRef,
         noActionReason,
         degraded: closureDegraded,
+        rhythmState,
     };
 }

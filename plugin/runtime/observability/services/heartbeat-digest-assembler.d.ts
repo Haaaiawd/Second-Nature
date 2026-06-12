@@ -31,6 +31,7 @@
  *   tests/integration/observability/digest-delivery.test.ts (T-OBS.C.4)
  */
 import type { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
+import type { StateDatabase } from "../../storage/db/index.js";
 export interface ConnectorDaySummary {
     platformId: string;
     capability: string;
@@ -75,6 +76,8 @@ export interface RealRunHealthDigestProjection {
     hasRealClosure: boolean;
     hasQuietArtifact: boolean;
     hasDreamArtifact: boolean;
+    hasFreshImpulseContext: boolean;
+    hasProjectionFeedback: boolean;
     missingStage?: string;
     missingReason?: string;
 }
@@ -136,6 +139,12 @@ export interface StateMemoryDigestPort {
 export interface HeartbeatDigestAssemblerDeps {
     auditStore: AppendOnlyAuditStore;
     stateMemoryPort?: StateMemoryDigestPort;
+    /**
+     * Optional state database for real-run health evaluation (F6).
+     * When provided, generateHeartbeatDigest calls checkRealRunHealth automatically
+     * and embeds the result into digest.realRunHealth.
+     */
+    db?: StateDatabase;
     /**
      * Optional delivery adapter (T-OBS.C.4).
      * When provided, the assembled digest is passed to adapter.deliver() after assembly.

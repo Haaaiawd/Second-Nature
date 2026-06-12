@@ -1,0 +1,32 @@
+{
+  "report": "int-r3-loop-status",
+  "generatedAt": "2026-06-12T02:31:17.149Z",
+  "wave": "Wave 108 / INT-R3",
+  "summary": {
+    "overallResult": "PASS",
+    "loopStatusOk": true,
+    "attributionExposed": true,
+    "noCredentialLeak": true,
+    "noGenericGovernanceBlame": true
+  },
+  "attribution": {
+    "policyDeniedCount": 1,
+    "hardGuardDeniedCount": 1,
+    "cooldownReplayCount": 1,
+    "sourceAbsenceCount": 1,
+    "quietSuppressionCount": 1,
+    "connectorTerminalCount": 1
+  },
+  "diagnostics": {
+    "overallStatus": "no_data",
+    "nextAction": "Real-run health degraded: ActionClosureRecord exists but lacks runtime-produced cycle trace, closure stage event, or source refs. Seeded state detected — not valid runtime proof.. Run a real heartbeat cycle or verify daily rhythm state."
+  },
+  "consistencyCheck": {
+    "policyDeniedCountEquals1": true,
+    "hardGuardDeniedCountEquals1": true,
+    "cooldownReplayCountEquals1": true,
+    "sourceAbsenceCountEquals1": true,
+    "quietSuppressionCountEquals1": true,
+    "connectorTerminalCountEquals1": true
+  }
+}

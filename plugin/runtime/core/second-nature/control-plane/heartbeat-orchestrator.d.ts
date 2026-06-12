@@ -22,6 +22,7 @@
  * Test coverage: tests/unit/control-plane/heartbeat-cycle-trace.test.ts
  */
 import type { StateDatabase } from "../../../storage/db/index.js";
+import { type DailyRhythmState } from "../quiet-dream/daily-rhythm-scheduler.js";
 import type { SourceRef, DegradedOperationResult, V8ReasonCode } from "../../../shared/types/v8-contracts.js";
 export interface HeartbeatOrchestrationRequest {
     workspaceRoot: string;
@@ -34,5 +35,6 @@ export interface HeartbeatOrchestrationResult {
     closureRef?: SourceRef;
     noActionReason?: V8ReasonCode;
     degraded?: DegradedOperationResult;
+    rhythmState?: DailyRhythmState;
 }
 export declare function runHeartbeatCycle(db: StateDatabase, request: HeartbeatOrchestrationRequest): Promise<HeartbeatOrchestrationResult | DegradedOperationResult>;

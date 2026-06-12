@@ -20,10 +20,11 @@
  */
 import { assembleLoopStatus } from "./causal-loop-health.js";
 import { checkRealRunHealth } from "./living-loop-health-gate.js";
+import { readActionClosuresByDay, readConnectorCooldownState, } from "../storage/v8-state-stores.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-function computeNextAction(overallStatus, stalledAt, realRunMissingStage, realRunMissingReason) {
+function computeNextAction(overallStatus, stalledAt, realRunMissingStage, realRunMissingReason, attribution) {
     // Real-run health takes precedence over generic causal health
     if (realRunMissingStage && realRunMissingStage !== "none") {
         return `Real-run health degraded: ${realRunMissingReason ?? `missing stage: ${realRunMissingStage}`}. Run a real heartbeat cycle or verify daily rhythm state.`;
@@ -54,6 +55,110 @@ function computeNextAction(overallStatus, stalledAt, realRunMissingStage, realRu
     return "Review loop stage events and state database health.";
 }
 // ───────────────────────────────────────────────────────────────
+// Denial / replay attribution (T-OBS.R.4)
+// ───────────────────────────────────────────────────────────────
+const CONNECTOR_TERMINAL_REASONS = new Set([
+    "auth_failure",
+    "credential_expired",
+    "verification_required",
+    "configuration_missing",
+    "platform_unavailable",
+    "transport_failure",
+    "rate_limited",
+    "timeout",
+    "script_error",
+    "parse_failure",
+    "protocol_mismatch",
+    "semantic_rejection",
+    "permanent_input_error",
+    "unknown_platform_change",
+]);
+function classifyReasonToTerminal(reason) {
+    return CONNECTOR_TERMINAL_REASONS.has(reason);
+}
+function emptyAttribution() {
+    return {
+        policyDeniedCount: 0,
+        hardGuardDeniedCount: 0,
+        cooldownReplayCount: 0,
+        sourceAbsenceCount: 0,
+        quietSuppressionCount: 0,
+        connectorTerminalCount: 0,
+    };
+}
+export async function attributeDenials(db, options) {
+    const targetDay = options?.day ?? new Date().toISOString().slice(0, 10);
+    const readResult = await readActionClosuresByDay(db, targetDay);
+    if (readResult.degraded) {
+        return emptyAttribution();
+    }
+    const attribution = emptyAttribution();
+    for (const closure of readResult.rows) {
+        const status = closure.status;
+        const reason = closure.reason ?? "";
+        // Cooldown/replay is determined from durable cooldown state per platform/capability.
+        if ((status === "denied" || status === "downgraded" || status === "deferred") &&
+            closure.platformId &&
+            closure.capabilityId) {
+            const cooldownResult = await readConnectorCooldownState(db, closure.platformId, closure.capabilityId);
+            if (cooldownResult.row?.blockedUntil && new Date(cooldownResult.row.blockedUntil) > new Date()) {
+                attribution.cooldownReplayCount += 1;
+                continue;
+            }
+        }
+        const terminalClass = classifyReasonToTerminal(reason);
+        const isCooldownReplay = reason === "cooldown_blocked" || reason === "replay_suppressed";
+        const isQuietSuppression = reason === "guidance_unavailable" || reason === "quiet_empty_input" || reason === "quiet_suppression";
+        if (isCooldownReplay) {
+            attribution.cooldownReplayCount += 1;
+            continue;
+        }
+        if (status === "denied") {
+            if (reason.startsWith("policy_denied")) {
+                attribution.policyDeniedCount += 1;
+            }
+            else if (terminalClass) {
+                attribution.connectorTerminalCount += 1;
+            }
+            else if (reason === "source_refs_missing" ||
+                reason === "affordance_unavailable" ||
+                reason === "awaiting_user" ||
+                reason === "permission_missing") {
+                attribution.hardGuardDeniedCount += 1;
+            }
+            else {
+                attribution.policyDeniedCount += 1;
+            }
+            continue;
+        }
+        if (status === "downgraded" || status === "deferred") {
+            if (isQuietSuppression) {
+                attribution.quietSuppressionCount += 1;
+            }
+            else if (terminalClass) {
+                attribution.connectorTerminalCount += 1;
+            }
+            continue;
+        }
+        if (status === "no_action") {
+            if (reason === "evidence_batch_empty" || reason === "quiet_empty_input") {
+                attribution.sourceAbsenceCount += 1;
+            }
+            else if (terminalClass) {
+                attribution.connectorTerminalCount += 1;
+            }
+            continue;
+        }
+        if (status === "completed" || status === "failed") {
+            if (terminalClass) {
+                attribution.connectorTerminalCount += 1;
+            }
+            continue;
+        }
+    }
+    return attribution;
+}
+// ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
 export async function readLoopStatus(db) {
@@ -76,6 +181,8 @@ export async function readLoopStatus(db) {
             hasRealClosure: realRunResult.gate.hasRealClosure,
             hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
             hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+            hasFreshImpulseContext: realRunResult.gate.hasFreshImpulseContext,
+            hasProjectionFeedback: realRunResult.gate.hasProjectionFeedback,
             missingStage: realRunResult.gate.missingStage,
             missingReason: realRunResult.gate.missingReason,
         };
@@ -88,7 +195,9 @@ export async function readLoopStatus(db) {
             hasRealClosure: false,
             hasQuietArtifact: false,
             hasDreamArtifact: false,
-            missingReason: "Real-run health check degraded",
+            hasFreshImpulseContext: false,
+            hasProjectionFeedback: false,
+            missingReason: "Real-run health check degraded: " + (realRunResult.degraded.operatorNextAction || "unknown"),
         };
     }
     // Override overallStatus based on real-run health parity
@@ -111,19 +220,24 @@ export async function readLoopStatus(db) {
         stalled: s.stalled,
         lastEventAt: s.lastEventAt,
     }));
-    // Policy denied count is a placeholder; real implementation would query action closures
-    const policyDeniedCount = 0;
-    const nextAction = computeNextAction(overallStatus, snapshot.stalledAt, realRunHealth.missingStage, realRunHealth.missingReason);
+    // T-OBS.R.4: Attribute denials and connector replay root causes
+    const attribution = await attributeDenials(db);
+    const nextAction = computeNextAction(overallStatus, stalledAt, realRunHealth.missingStage, realRunHealth.missingReason, attribution);
     return {
         ok: true,
         status: {
             ok: true,
             overallStatus,
-            stalledAt: snapshot.stalledAt,
+            stalledAt,
             lastCycleSequence: snapshot.lastCycleSequence,
             lastHeartbeatAt: snapshot.lastHeartbeatAt,
             stageSummaries,
-            policyDeniedCount,
+            policyDeniedCount: attribution.policyDeniedCount,
+            hardGuardDeniedCount: attribution.hardGuardDeniedCount,
+            cooldownReplayCount: attribution.cooldownReplayCount,
+            sourceAbsenceCount: attribution.sourceAbsenceCount,
+            quietSuppressionCount: attribution.quietSuppressionCount,
+            connectorTerminalCount: attribution.connectorTerminalCount,
             nextAction,
             realRunHealth,
         },

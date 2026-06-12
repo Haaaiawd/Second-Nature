@@ -71,7 +71,6 @@ export async function checkDailyRhythm(db, options) {
     else {
         // Closures exist but Quiet not completed → due
         state.quietStatus = "due";
-        state.quietReason = "quiet_empty_input";
         // Auto-run Quiet if forced or if not yet attempted
         if (options?.forceQuiet || state.quietStatus === "due") {
             const quietResult = await buildQuietDailyReview(db, { day, now });
@@ -93,8 +92,10 @@ export async function checkDailyRhythm(db, options) {
     }
     // Determine Dream status based on Quiet outcome
     if (state.quietStatus === "completed") {
-        if (state.dreamStatus === "completed" || state.dreamStatus === "blocked") {
-            // Already handled
+        if (state.dreamStatus === "completed" ||
+            state.dreamStatus === "scheduled" ||
+            state.dreamStatus === "blocked") {
+            // Already handled; do not re-schedule
         }
         else {
             state.dreamStatus = "due";
@@ -123,10 +124,14 @@ export async function checkDailyRhythm(db, options) {
         state.dreamStatus = "not_due";
         state.dreamReason = "quiet_empty_input";
     }
-    else {
-        // Quiet blocked/skipped → Dream cannot run
+    else if (state.quietStatus === "skipped") {
         state.dreamStatus = "blocked";
-        state.dreamReason = "dream_blocked_redaction";
+        state.dreamReason = state.quietReason ?? "quiet_empty_input";
+    }
+    else {
+        // Quiet blocked (degraded) → Dream cannot run
+        state.dreamStatus = "blocked";
+        state.dreamReason = state.quietReason ?? "dream_blocked_redaction";
     }
     // Persist state
     const writeResult = await writeDailyRhythmState(db, {

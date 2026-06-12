@@ -25,14 +25,18 @@ export interface RealRunHealthGate {
     hasQuietArtifact: boolean;
     /** Has a scheduled or completed DreamConsolidationRun */
     hasDreamArtifact: boolean;
+    /** Has a fresh impulse context artifact (within 24h) */
+    hasFreshImpulseContext: boolean;
+    /** Has at least one accepted or active long-term memory projection */
+    hasProjectionFeedback: boolean;
     /** True if only contract smoke (cycle traces) but no real artifacts */
     contractSmokeOnly: boolean;
-    /** True if closure exists but no runtime-produced cycle trace backs it */
+    /** True if closure exists but no runtime-produced cycle trace + stage event backs it */
     seededStateDetected: boolean;
     /** True only when real runtime activity is proven (not seeded, not smoke-only) */
     gatePassed: boolean;
     /** Explicit missing stage reason */
-    missingStage?: "closure" | "quiet" | "dream" | "none";
+    missingStage?: "closure" | "quiet" | "dream" | "impulse" | "projection" | "none";
     missingReason?: string;
 }
 export type RealRunHealthResult = {

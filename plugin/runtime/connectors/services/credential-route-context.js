@@ -1,4 +1,5 @@
-export function createCredentialRouteContextPort(vault) {
+import { readConnectorCooldownState } from "../../storage/v8-state-stores.js";
+export function createCredentialRouteContextPort(vault, db) {
     return {
         async loadCredentialState(platformId) {
             const ctx = await vault.loadCredentialContext(platformId);
@@ -12,8 +13,23 @@ export function createCredentialRouteContextPort(vault) {
             }
             return ctx;
         },
-        async loadCooldownState() {
-            return { blocked: false };
+        async loadCooldownState(platformId, intent) {
+            const read = await readConnectorCooldownState(db, platformId, intent);
+            if (read.degraded) {
+                // Fail-closed on unreadable cooldown state
+                return { blocked: true, reason: "cooldown_state_unreadable" };
+            }
+            if (!read.row) {
+                return { blocked: false };
+            }
+            const now = new Date().toISOString();
+            const blocked = new Date(read.row.blockedUntil).getTime() > new Date(now).getTime();
+            return {
+                blocked,
+                retryAfterMs: blocked
+                    ? Math.max(0, new Date(read.row.blockedUntil).getTime() - new Date(now).getTime())
+                    : undefined,
+            };
         },
     };
 }

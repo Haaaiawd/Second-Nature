@@ -21,7 +21,7 @@
  */
 import type { StateDatabase } from "../../../storage/db/index.js";
 import type { DegradedOperationResult, V8ReasonCode } from "../../../shared/types/v8-contracts.js";
-export type RhythmStatus = "due" | "completed" | "skipped" | "blocked" | "not_due";
+export type RhythmStatus = "due" | "completed" | "scheduled" | "skipped" | "blocked" | "not_due";
 export interface DailyRhythmState {
     day: string;
     quietStatus: RhythmStatus;

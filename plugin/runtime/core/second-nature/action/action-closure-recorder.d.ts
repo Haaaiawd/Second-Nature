@@ -56,6 +56,8 @@ export declare function recordRememberClosure(db: StateDatabase, cycleId: string
 export declare function recordPolicyOutcomeClosure(db: StateDatabase, cycleId: string, closureStatus: ClosureStatus, reason: V8ReasonCode, params: {
     proposalId?: string;
     decisionId?: string;
+    platformId?: string;
+    capabilityId?: string;
     downgradedActionKind?: string;
     postProcessing?: string[];
     nextState?: string;
@@ -63,6 +65,8 @@ export declare function recordPolicyOutcomeClosure(db: StateDatabase, cycleId: s
 export declare function recordExecutionClosure(db: StateDatabase, cycleId: string, closureStatus: "completed" | "failed", reason: V8ReasonCode, params: {
     proposalId: string;
     decisionId: string;
+    platformId?: string;
+    capabilityId?: string;
     executionResultRef?: string;
     outputSummary?: string;
     nextState?: string;

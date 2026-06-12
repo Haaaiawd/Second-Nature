@@ -27,6 +27,8 @@ export interface RealRunHealthProjection {
     hasRealClosure: boolean;
     hasQuietArtifact: boolean;
     hasDreamArtifact: boolean;
+    hasFreshImpulseContext: boolean;
+    hasProjectionFeedback: boolean;
     missingStage?: string;
     missingReason?: string;
 }
@@ -38,6 +40,11 @@ export interface LoopStatusReadModel {
     lastHeartbeatAt?: string;
     stageSummaries: StageSummary[];
     policyDeniedCount: number;
+    hardGuardDeniedCount: number;
+    cooldownReplayCount: number;
+    sourceAbsenceCount: number;
+    quietSuppressionCount: number;
+    connectorTerminalCount: number;
     nextAction: string;
     realRunHealth: RealRunHealthProjection;
 }
@@ -54,4 +61,16 @@ export type LoopStatusResult = {
     ok: false;
     degraded: DegradedOperationResult;
 };
+export interface DenialAttribution {
+    policyDeniedCount: number;
+    hardGuardDeniedCount: number;
+    cooldownReplayCount: number;
+    sourceAbsenceCount: number;
+    quietSuppressionCount: number;
+    connectorTerminalCount: number;
+}
+export declare function attributeDenials(db: StateDatabase, options?: {
+    day?: string;
+    cycleWindowHours?: number;
+}): Promise<DenialAttribution>;
 export declare function readLoopStatus(db: StateDatabase): Promise<LoopStatusResult>;

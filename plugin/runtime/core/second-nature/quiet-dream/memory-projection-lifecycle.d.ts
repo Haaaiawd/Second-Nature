@@ -32,5 +32,5 @@ export interface AcceptMemoryProjectionOptions {
     now?: string;
 }
 export declare function acceptMemoryProjection(db: StateDatabase, candidateId: string, topicKey: string, memoryText: string, sourceRefs: SourceRef[], options?: AcceptMemoryProjectionOptions): Promise<ProjectionLifecycleResult | DegradedOperationResult>;
-export declare function rejectMemoryProjection(db: StateDatabase, projectionId: string, candidateId: string, topicKey: string, sourceRefs: SourceRef[], reason?: V8ReasonCode, options?: AcceptMemoryProjectionOptions): Promise<ProjectionLifecycleResult | DegradedOperationResult>;
-export declare function retireMemoryProjection(db: StateDatabase, projectionId: string, candidateId: string, topicKey: string, sourceRefs: SourceRef[], options?: AcceptMemoryProjectionOptions): Promise<ProjectionLifecycleResult | DegradedOperationResult>;
+export declare function rejectMemoryProjection(db: StateDatabase, projectionId: string, _candidateId: string, _topicKey: string, _sourceRefs: SourceRef[], reason?: V8ReasonCode, options?: AcceptMemoryProjectionOptions): Promise<ProjectionLifecycleResult | DegradedOperationResult>;
+export declare function retireMemoryProjection(db: StateDatabase, projectionId: string, _candidateId: string, _topicKey: string, _sourceRefs: SourceRef[], options?: AcceptMemoryProjectionOptions): Promise<ProjectionLifecycleResult | DegradedOperationResult>;

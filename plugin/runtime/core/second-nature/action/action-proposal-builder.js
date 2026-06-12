@@ -136,6 +136,7 @@ export async function buildActionProposal(db, judgmentVerdictId, options) {
             id: closureId,
             createdAt: now,
             cycleId,
+            platformId: "heartbeat",
             status: "completed",
             reason: "remember_for_review",
             nextState: "pending_daily_review",

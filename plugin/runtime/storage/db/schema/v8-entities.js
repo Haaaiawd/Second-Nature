@@ -12,7 +12,7 @@
  * Dependencies: drizzle-orm/sqlite-core
  * Boundary: Schema definitions only; no runtime logic.
  */
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 // ───────────────────────────────────────────────────────────────
 // 1. EvidenceItem
 // ───────────────────────────────────────────────────────────────
@@ -73,6 +73,8 @@ export const actionClosureRecord = sqliteTable("action_closure_record", {
     id: text("id").primaryKey(),
     createdAt: text("created_at").notNull(),
     cycleId: text("cycle_id").notNull(),
+    platformId: text("platform_id"),
+    capabilityId: text("capability_id"),
     proposalId: text("proposal_id"),
     decisionId: text("decision_id"),
     status: text("status").notNull(),
@@ -197,3 +199,23 @@ export const dailyRhythmState = sqliteTable("daily_rhythm_state", {
     payloadJson: text("payload_json"),
     updatedAt: text("updated_at").notNull(),
 });
+// ───────────────────────────────────────────────────────────────
+// 12. ConnectorCooldownState
+// ───────────────────────────────────────────────────────────────
+export const connectorCooldownState = sqliteTable("connector_cooldown_state", {
+    id: text("id").primaryKey(),
+    platformId: text("platform_id").notNull(),
+    capabilityId: text("capability_id").notNull(),
+    failureClass: text("failure_class").notNull(),
+    retryAfterMs: integer("retry_after_ms"),
+    blockedUntil: text("blocked_until").notNull(),
+    failureCount: integer("failure_count").notNull().default(1),
+    terminalCount: integer("terminal_count").notNull().default(0),
+    sourceRefsJson: text("source_refs_json").notNull(),
+    redactionClass: text("redaction_class").notNull().default("none"),
+    payloadJson: text("payload_json"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+}, (table) => ({
+    platformCapabilityIdx: index("connector_cooldown_state_platform_capability_idx").on(table.platformId, table.capabilityId),
+}));

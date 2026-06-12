@@ -30,6 +30,7 @@
  *   tests/unit/observability/heartbeat-digest-assembler.test.ts (T-OBS.C.3)
  *   tests/integration/observability/digest-delivery.test.ts (T-OBS.C.4)
  */
+import { checkRealRunHealth } from "../living-loop-health-gate.js";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function isSameDayUtc(isoTimestamp, dateStr) {
     // dateStr: "YYYY-MM-DD"
@@ -219,6 +220,48 @@ export async function generateHeartbeatDigest(date, deps) {
         quietDreamSummary = aggregateQuietDreamFromAudit(events, date);
     }
     const nothingSignificant = isNothingSignificant(connectorSummary, goalSummary, quietDreamSummary, healthSummary);
+    // F6: Auto-evaluate real-run health when db is provided
+    let realRunHealth = {
+        gatePassed: false,
+        contractSmokeOnly: true,
+        seededStateDetected: false,
+        hasRealClosure: false,
+        hasQuietArtifact: false,
+        hasDreamArtifact: false,
+        hasFreshImpulseContext: false,
+        hasProjectionFeedback: false,
+        missingReason: "Real-run health not evaluated — no state DB wired to digest assembler",
+    };
+    if (deps.db) {
+        const realRunResult = await checkRealRunHealth(deps.db, date);
+        if (realRunResult.ok) {
+            realRunHealth = {
+                gatePassed: realRunResult.gate.gatePassed,
+                contractSmokeOnly: realRunResult.gate.contractSmokeOnly,
+                seededStateDetected: realRunResult.gate.seededStateDetected,
+                hasRealClosure: realRunResult.gate.hasRealClosure,
+                hasQuietArtifact: realRunResult.gate.hasQuietArtifact,
+                hasDreamArtifact: realRunResult.gate.hasDreamArtifact,
+                hasFreshImpulseContext: realRunResult.gate.hasFreshImpulseContext,
+                hasProjectionFeedback: realRunResult.gate.hasProjectionFeedback,
+                missingStage: realRunResult.gate.missingStage,
+                missingReason: realRunResult.gate.missingReason,
+            };
+        }
+        else {
+            realRunHealth = {
+                gatePassed: false,
+                contractSmokeOnly: false,
+                seededStateDetected: false,
+                hasRealClosure: false,
+                hasQuietArtifact: false,
+                hasDreamArtifact: false,
+                hasFreshImpulseContext: false,
+                hasProjectionFeedback: false,
+                missingReason: "Real-run health check degraded: " + (realRunResult.degraded.operatorNextAction ?? "unknown"),
+            };
+        }
+    }
     const digest = {
         date,
         generatedAt,
@@ -227,15 +270,7 @@ export async function generateHeartbeatDigest(date, deps) {
         goalSummary,
         quietDreamSummary,
         healthSummary,
-        realRunHealth: {
-            gatePassed: false,
-            contractSmokeOnly: true,
-            seededStateDetected: false,
-            hasRealClosure: false,
-            hasQuietArtifact: false,
-            hasDreamArtifact: false,
-            missingReason: "Real-run health not evaluated — call checkRealRunHealth before digest generation",
-        },
+        realRunHealth,
     };
     // T-OBS.C.4: delivery hook — attempt delivery if adapter is provided
     if (deliveryAdapter) {

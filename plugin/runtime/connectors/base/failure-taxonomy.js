@@ -61,6 +61,23 @@ function readRetryAfterMs(input) {
     }
     return undefined;
 }
+function readStatusCode(record) {
+    if (typeof record.status === "number")
+        return record.status;
+    if (typeof record.statusCode === "number")
+        return record.statusCode;
+    if (typeof record.status === "string") {
+        const parsed = Number.parseInt(record.status, 10);
+        if (Number.isFinite(parsed))
+            return parsed;
+    }
+    if (typeof record.statusCode === "string") {
+        const parsed = Number.parseInt(record.statusCode, 10);
+        if (Number.isFinite(parsed))
+            return parsed;
+    }
+    return undefined;
+}
 export function classifyFailure(error) {
     if (error instanceof ConnectorPolicyError) {
         return {
@@ -74,6 +91,34 @@ export function classifyFailure(error) {
     }
     if (error && typeof error === "object") {
         const record = error;
+        const status = readStatusCode(record);
+        if (status !== undefined) {
+            if (status === 429) {
+                return {
+                    class: "rate_limited",
+                    retryable: RETRYABLE_BY_CLASS.rate_limited,
+                    retryAfterMs: readRetryAfterMs(record),
+                };
+            }
+            if (status === 401 || status === 403) {
+                return {
+                    class: "auth_failure",
+                    retryable: RETRYABLE_BY_CLASS.auth_failure,
+                };
+            }
+            if (status === 400 || status === 404 || status === 422) {
+                return {
+                    class: "permanent_input_error",
+                    retryable: RETRYABLE_BY_CLASS.permanent_input_error,
+                };
+            }
+            if (status >= 500 && status <= 599) {
+                return {
+                    class: "transport_failure",
+                    retryable: RETRYABLE_BY_CLASS.transport_failure,
+                };
+            }
+        }
         const code = record.code;
         if (typeof code === "string") {
             if (code === "auth_failure")
@@ -151,32 +196,6 @@ export function classifyFailure(error) {
                     class: "unknown_platform_change",
                     retryable: RETRYABLE_BY_CLASS.unknown_platform_change,
                 };
-        }
-        const status = record.status;
-        if (status === 429) {
-            return {
-                class: "rate_limited",
-                retryable: RETRYABLE_BY_CLASS.rate_limited,
-                retryAfterMs: readRetryAfterMs(record),
-            };
-        }
-        if (status === 401 || status === 403) {
-            return {
-                class: "auth_failure",
-                retryable: RETRYABLE_BY_CLASS.auth_failure,
-            };
-        }
-        if (status === 400 || status === 404 || status === 422) {
-            return {
-                class: "permanent_input_error",
-                retryable: RETRYABLE_BY_CLASS.permanent_input_error,
-            };
-        }
-        if (status === 500 || status === 502 || status === 503 || status === 504) {
-            return {
-                class: "transport_failure",
-                retryable: RETRYABLE_BY_CLASS.transport_failure,
-            };
         }
     }
     return {

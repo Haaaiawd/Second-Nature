@@ -22,7 +22,7 @@
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
 import { eq, and, desc, like, isNull } from "drizzle-orm";
-import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, } from "./db/schema/v8-entities.js";
+import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, connectorCooldownState, } from "./db/schema/v8-entities.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
@@ -99,10 +99,62 @@ export async function readEvidenceItemsByStatus(db, lifecycleStatus) {
 // ───────────────────────────────────────────────────────────────
 // PerceptionCard store
 // ───────────────────────────────────────────────────────────────
+const CANONICAL_NOVELTY_CLASSES = ["new", "changed", "duplicate", "stale"];
+const CANONICAL_RELEVANCE_CLASSES = ["low", "medium", "high"];
+function validatePerceptionCardCanonical(row) {
+    // Validate noveltyClass
+    if (row.novelty && !CANONICAL_NOVELTY_CLASSES.includes(row.novelty)) {
+        return {
+            ok: false,
+            degraded: {
+                status: "degraded",
+                reason: "perception_contract_drift",
+                ownerStage: "perception",
+                sourceRefs: row.sourceRefs,
+                operatorNextAction: `novelty "${row.novelty}" is not canonical. Expected one of: ${CANONICAL_NOVELTY_CLASSES.join(", ")}`,
+                retryable: false,
+            },
+        };
+    }
+    // Validate relevanceScore range
+    if (row.relevance !== undefined && row.relevance !== null) {
+        if (row.relevance < 0 || row.relevance > 1) {
+            return {
+                ok: false,
+                degraded: {
+                    status: "degraded",
+                    reason: "perception_contract_drift",
+                    ownerStage: "perception",
+                    sourceRefs: row.sourceRefs,
+                    operatorNextAction: `relevanceScore ${row.relevance} out of range [0, 1]`,
+                    retryable: false,
+                },
+            };
+        }
+    }
+    // Validate relevanceClass
+    if (row.relevanceClass && !CANONICAL_RELEVANCE_CLASSES.includes(row.relevanceClass)) {
+        return {
+            ok: false,
+            degraded: {
+                status: "degraded",
+                reason: "perception_contract_drift",
+                ownerStage: "perception",
+                sourceRefs: row.sourceRefs,
+                operatorNextAction: `relevanceClass "${row.relevanceClass}" is not canonical. Expected one of: ${CANONICAL_RELEVANCE_CLASSES.join(", ")}`,
+                retryable: false,
+            },
+        };
+    }
+    return { ok: true };
+}
 export async function writePerceptionCard(db, row) {
     const validated = validateSourceRefs(row.sourceRefs, "perception");
     if (!validated.ok)
         return validated.degraded;
+    const canonicalCheck = validatePerceptionCardCanonical(row);
+    if (!canonicalCheck.ok)
+        return canonicalCheck.degraded;
     try {
         const record = {
             ...row,
@@ -600,6 +652,39 @@ export async function readDailyRhythmStateByDay(db, day) {
         return {
             degraded: makeDegraded("state_unreadable", "dream", `Check state database connectivity for day=${day}`),
         };
+    }
+}
+export async function readConnectorCooldownState(db, platformId, capabilityId) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorCooldownState)
+            .where(and(eq(connectorCooldownState.platformId, platformId), eq(connectorCooldownState.capabilityId, capabilityId)))
+            .orderBy(desc(connectorCooldownState.updatedAt))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "ingestion", `Check state database connectivity for cooldown ${platformId}:${capabilityId}`),
+        };
+    }
+}
+export async function writeConnectorCooldownState(db, row) {
+    const validated = validateSourceRefs(row.sourceRefs, "ingestion");
+    if (!validated.ok)
+        return validated.degraded;
+    try {
+        const record = {
+            ...row,
+            sourceRefsJson: serializeSourceRefs(validated.record),
+        };
+        await db.db.delete(connectorCooldownState).where(eq(connectorCooldownState.id, row.id));
+        await db.db.insert(connectorCooldownState).values(record);
+        return { id: row.id };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "ingestion", "Retry connector cooldown state write after DB recovery", validated.record);
     }
 }
 // ───────────────────────────────────────────────────────────────

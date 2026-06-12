@@ -197,7 +197,6 @@ const STATE_SCHEMA_SQL = `
     entities_json TEXT,
     novelty TEXT,
     relevance REAL,
-    relevance_class TEXT,
     summary TEXT,
     risk_flags_json TEXT,
     confidence REAL,
@@ -225,6 +224,8 @@ const STATE_SCHEMA_SQL = `
     id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,
     cycle_id TEXT NOT NULL,
+    platform_id TEXT,
+    capability_id TEXT,
     proposal_id TEXT,
     decision_id TEXT,
     status TEXT NOT NULL,
@@ -242,7 +243,6 @@ const STATE_SCHEMA_SQL = `
     closure_count INTEGER NOT NULL DEFAULT 0,
     memory_candidate_count INTEGER NOT NULL DEFAULT 0,
     source_refs_json TEXT NOT NULL,
-    closure_refs_json TEXT,
     redaction_class TEXT NOT NULL DEFAULT 'none',
     payload_json TEXT,
     lifecycle_status TEXT NOT NULL DEFAULT 'pending'
@@ -329,6 +329,22 @@ const STATE_SCHEMA_SQL = `
     payload_json TEXT,
     updated_at TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS connector_cooldown_state (
+    id TEXT PRIMARY KEY,
+    platform_id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    failure_class TEXT NOT NULL,
+    retry_after_ms INTEGER,
+    blocked_until TEXT NOT NULL,
+    failure_count INTEGER NOT NULL DEFAULT 1,
+    terminal_count INTEGER NOT NULL DEFAULT 0,
+    source_refs_json TEXT NOT NULL,
+    redaction_class TEXT NOT NULL DEFAULT 'none',
+    payload_json TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS connector_cooldown_state_platform_capability_idx ON connector_cooldown_state(platform_id, capability_id);
 `;
 function resolveDbPath(filename) {
     if (path.isAbsolute(filename) || filename === ":memory:") {
@@ -350,6 +366,10 @@ function bootstrapStateSchema(sqlite) {
 function applyStateSchemaMigrations(sqlite) {
     const migrations = [
         "ALTER TABLE policy_records ADD COLUMN outreach_daily_budget INTEGER NOT NULL DEFAULT 2",
+        "ALTER TABLE action_closure_record ADD COLUMN platform_id TEXT",
+        "ALTER TABLE action_closure_record ADD COLUMN capability_id TEXT",
+        "ALTER TABLE connector_cooldown_state ADD COLUMN terminal_count INTEGER NOT NULL DEFAULT 0",
+        "CREATE INDEX IF NOT EXISTS connector_cooldown_state_platform_capability_idx ON connector_cooldown_state(platform_id, capability_id)",
     ];
     for (const sql of migrations) {
         try {

@@ -22,7 +22,7 @@
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
 import type { StateDatabase } from "./db/index.js";
-import { type EvidenceItemRecord, type NewEvidenceItemRecord, type PerceptionCardRecord, type NewPerceptionCardRecord, type JudgmentVerdictRecord, type NewJudgmentVerdictRecord, type ActionClosureRecordSelect, type ActionClosureRecordInsert, type QuietDailyReviewRecord, type NewQuietDailyReviewRecord, type DreamConsolidationRunRecord, type NewDreamConsolidationRunRecord, type LongTermMemoryProjectionRecord, type NewLongTermMemoryProjectionRecord, type HeartbeatCycleTraceRecord, type NewHeartbeatCycleTraceRecord, type LoopStageEventRecord, type NewLoopStageEventRecord, type ImpulseContextArtifactRecord, type NewImpulseContextArtifactRecord, type DailyRhythmStateRecord, type NewDailyRhythmStateRecord } from "./db/schema/v8-entities.js";
+import { type EvidenceItemRecord, type NewEvidenceItemRecord, type PerceptionCardRecord, type NewPerceptionCardRecord, type JudgmentVerdictRecord, type NewJudgmentVerdictRecord, type ActionClosureRecordSelect, type ActionClosureRecordInsert, type QuietDailyReviewRecord, type NewQuietDailyReviewRecord, type DreamConsolidationRunRecord, type NewDreamConsolidationRunRecord, type LongTermMemoryProjectionRecord, type NewLongTermMemoryProjectionRecord, type HeartbeatCycleTraceRecord, type NewHeartbeatCycleTraceRecord, type LoopStageEventRecord, type NewLoopStageEventRecord, type ImpulseContextArtifactRecord, type NewImpulseContextArtifactRecord, type DailyRhythmStateRecord, type NewDailyRhythmStateRecord, type ConnectorCooldownStateRecord, type NewConnectorCooldownStateRecord } from "./db/schema/v8-entities.js";
 import type { SourceRef, DegradedOperationResult } from "../shared/types/v8-contracts.js";
 export interface WriteValidationError {
     ok: false;
@@ -172,6 +172,15 @@ export declare function readDailyRhythmStateByDay(db: StateDatabase, day: string
     row?: DailyRhythmStateRecord;
     degraded?: DegradedOperationResult;
 }>;
+export declare function readConnectorCooldownState(db: StateDatabase, platformId: string, capabilityId: string): Promise<{
+    row?: ConnectorCooldownStateRecord;
+    degraded?: DegradedOperationResult;
+}>;
+export declare function writeConnectorCooldownState(db: StateDatabase, row: Omit<NewConnectorCooldownStateRecord, "sourceRefsJson"> & {
+    sourceRefs: SourceRef[];
+}): Promise<{
+    id: string;
+} | DegradedOperationResult>;
 export declare function extractSourceRefs(row: {
     sourceRefsJson: string | null;
 }): SourceRef[];
