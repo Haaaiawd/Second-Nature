@@ -1,6 +1,6 @@
 # Second Nature v8 — Living Perception Loop E2E 测试指南
 
-> **版本**: 0.2.0 | **目标读者**: OpenClaw Agent (Claw) | **验收标准**: 工具返回 JSON 为准，不凭口头推断
+> **版本**: 0.2.6 | **目标读者**: OpenClaw Agent (Claw) | **验收标准**: 工具返回 JSON 为准，不凭口头推断
 
 ---
 
@@ -10,7 +10,7 @@
 
 | # | 检查项 | 验收方式 |
 |---|--------|----------|
-| 0.1 | Plugin 已安装并启用，版本 >= 0.2.0 | `openclaw plugins list` 包含 `second-nature`，`openclaw plugins info second-nature` 返回 version 0.2.0 |
+| 0.1 | Plugin 已安装并启用，版本 >= 0.2.6 | `openclaw plugins list` 包含 `second-nature`，`openclaw plugins info second-nature` 返回 version 0.2.6 |
 | 0.2 | `SECOND_NATURE_ENCRYPTION_KEY` 已配置（>=32 字符） | 由操作者确认；后续 `runtime_secret_bootstrap` 会验证 |
 | 0.3 | `SECOND_NATURE_WORKSPACE_ROOT` 指向有效 workspace | `status` 命令确认 `workspaceRootResolution` 为 `env` 或 `tool_args` |
 | 0.4 | Anchor files 就位 | `workspace/SOUL.md`、`workspace/IDENTITY.md`、`workspace/USER.md`、`workspace/MEMORY.md` 存在且有实质内容 |

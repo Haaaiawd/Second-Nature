@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure completed; code review H-1 fixed, final verdict Pass)
-- **当前波次**: Wave 108
-- **下一步**: 等待用户指令进入发布 / 下一轮
+- **最近一次更新**: `2026-06-13` (v0.2.6 patch — CLI state flush, narrative:diff UX, setup CLI parity, E2E guide)
+- **当前波次**: Wave 108 + v0.2.6 patch
+- **下一步**: 等待用户指令进入发布 / 下一轮 / 实机 E2E 回填
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 

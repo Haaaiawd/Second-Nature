@@ -1,7 +1,7 @@
 # 06_CHANGELOG.md — v8 变更日志
 
 > 版本: v8
-> 最后更新: 2026-06-11
+> 最后更新: 2026-06-13
 
 ---
 
@@ -66,7 +66,21 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - Updated `living-loop-health-gate.test.ts`, `int-r1-runtime-activation-repair.test.ts`, `proof-memory-closure.test.ts`, `loop-status-real-run-gate.test.ts` to seed impulse context + projection where full gate pass is expected
 - **Test Results**: 51/51 targeted tests PASS (0 fail); `pnpm typecheck` ✅; `pnpm build` ✅
 
-## Wave 108 Completed — Runtime Recovery Closure — 2026-06-12
+## v0.2.6 Patch Release — CLI State Flush + narrative:diff UX + Setup Parity — 2026-06-13
+
+- **Change source**: E2E test report found `loop_status stages=0` after `heartbeat_check` in CLI bridge, `narrative:diff` returning `MISSING_VERSIONS` on empty timeline, and `setup_hint/setup_ack` missing from CLI surface.
+- **Fixes**:
+  - Added `StateDatabase.flush()` / `ObservabilityDatabase.flush()` for sql.js in-memory persistence without closing connection.
+  - Auto-flush after all mutating CLI ops (`heartbeat_check`, `connector:run`, `policy set`, `goal`, `snapshot:capture`, `restore`, `setup_ack`, etc.) so cross-command reads see persisted state.
+  - `narrative:diff` now auto-resolves the two most recent narrative timeline versions when `from`/`to` are omitted; returns `NARRATIVE_DIFF_REQUIRES_TWO_VERSIONS` with clear `nextStep` when fewer than two versions exist.
+  - Added `setup_hint` / `setup_ack` commands to CLI surface, achieving parity with OpenClaw plugin onboarding.
+- **Verification**:
+  - `pnpm typecheck` / `pnpm build` / `pnpm build:plugin` pass.
+  - New integration tests: CLI state flush regression, setup CLI parity, narrative:diff auto-resolve, narrative:diff empty-timeline friendly error.
+  - Wave 108 targeted tests + v8 integration regression: all PASS.
+- **Artifacts**: `.anws/v8/v8-e2e-verification-guide.md`, `.anws/v8/wave-reviews/wave-108-e2e.md`.
+
+---
 
 - **Change source**: User SN v0.2.0 diagnostic report identified real-run stall at Quiet, opaque connector failures, repeated connector replay, and over-aggregated `decision_denied` counters.
 - **Classification**: `/change` controlled extension inside v8; no PRD/ADR premise change.
