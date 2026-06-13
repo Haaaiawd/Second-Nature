@@ -5,6 +5,8 @@ export interface StateDatabase {
     sqlite: Database;
     db: ReturnType<typeof drizzle<typeof schema>>;
     schema: typeof schema;
+    /** Persist in-memory sql.js state to disk without closing the connection. */
+    flush(): void;
     close(): void;
 }
 export declare function createStateDatabase(filename?: string): StateDatabase;

@@ -354,6 +354,8 @@ export interface StateDatabase {
   sqlite: Database;
   db: ReturnType<typeof drizzle<typeof schema>>;
   schema: typeof schema;
+  /** Persist in-memory sql.js state to disk without closing the connection. */
+  flush(): void;
   close(): void;
 }
 
@@ -410,6 +412,12 @@ export function createStateDatabase(filename = "state.db"): StateDatabase {
     sqlite,
     db,
     schema,
+    flush() {
+      if (!isMemory) {
+        const data = sqlite.export();
+        fs.writeFileSync(dbPath, Buffer.from(data));
+      }
+    },
     close() {
       if (!isMemory) {
         const data = sqlite.export();

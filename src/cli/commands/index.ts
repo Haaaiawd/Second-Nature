@@ -1,5 +1,9 @@
 import type { ActionBridge } from "../action-bridge.js";
 import type { OpsRouter } from "../ops/ops-router.js";
+import type { StateDatabase } from "../../storage/db/index.js";
+import type { ObservabilityDatabase } from "../../observability/db/index.js";
+import fs from "node:fs";
+import path from "node:path";
 import { credentialVerify } from "./credential.js";
 import { connectorInit, type ConnectorInitInput } from "./connector-init.js";
 import { formatExplanation } from "../explain/format-explanation.js";
@@ -12,6 +16,155 @@ import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.
 import { policySet } from "./policy.js";
 import type { CliReadModels } from "../read-models/index.js";
 
+const SETUP_MARKER_RELATIVE_PATH = path.join(
+  ".second-nature",
+  "setup",
+  "agent-inner-guide-ack.json",
+);
+
+function safeShortText(value: unknown, maxLen: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  return trimmed.slice(0, maxLen);
+}
+
+function resolveWorkspaceRoot(input?: Record<string, unknown>): string {
+  if (typeof input?.workspaceRoot === "string" && input.workspaceRoot.trim().length > 0) {
+    return path.resolve(input.workspaceRoot as string);
+  }
+  if (typeof process.env.SECOND_NATURE_WORKSPACE_ROOT === "string" && process.env.SECOND_NATURE_WORKSPACE_ROOT.trim().length > 0) {
+    return path.resolve(process.env.SECOND_NATURE_WORKSPACE_ROOT);
+  }
+  return process.cwd();
+}
+
+function readSetupText(fileName: "SKILL.md" | "agent-inner-guide.md"): { ok: true; path: string; content: string } | { ok: false; path: string; error: string } {
+  const candidates = fileName === "SKILL.md"
+    ? [path.resolve(process.cwd(), "SKILL.md"), path.resolve(process.cwd(), "..", "SKILL.md")]
+    : [path.resolve(process.cwd(), "plugin", "agent-inner-guide.md"), path.resolve(process.cwd(), "..", "plugin", "agent-inner-guide.md")];
+  for (const candidate of candidates) {
+    try {
+      const content = fs.readFileSync(candidate, "utf-8");
+      return { ok: true, path: candidate, content };
+    } catch {
+      // try next candidate
+    }
+  }
+  return { ok: false, path: candidates[0] ?? fileName, error: `Could not read ${fileName}` };
+}
+
+function summarizeSetupText(content: string): string {
+  const lines = content.split("\n");
+  const nonEmpty = lines.filter((line) => line.trim().length > 0);
+  const first = nonEmpty.slice(0, 3).join("\n");
+  const marker = content.length > first.length ? "\n\n[...]" : "";
+  return `${first}${marker}`;
+}
+
+function readSetupAckMarker(workspaceRoot: string): { status: "pending" | "acknowledged"; markerPath?: string; acknowledgedAt?: string; placedIn?: string } {
+  const markerPath = path.join(workspaceRoot, SETUP_MARKER_RELATIVE_PATH);
+  try {
+    const raw = fs.readFileSync(markerPath, "utf-8");
+    const marker = JSON.parse(raw) as Record<string, unknown>;
+    if (marker.status === "acknowledged") {
+      return {
+        status: "acknowledged",
+        markerPath,
+        acknowledgedAt: typeof marker.acknowledgedAt === "string" ? marker.acknowledgedAt : undefined,
+        placedIn: typeof marker.placedIn === "string" ? marker.placedIn : undefined,
+      };
+    }
+  } catch {
+    // marker missing or unreadable
+  }
+  return { status: "pending", markerPath };
+}
+
+async function buildSetupHintPayload(input?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const format = input?.format === "full" ? "full" : "summary";
+  const includeSkill = input?.includeSkill !== false;
+  const includeGuide = input?.includeGuide !== false;
+  const workspaceRoot = resolveWorkspaceRoot(input);
+  const ack = readSetupAckMarker(workspaceRoot);
+  const data: Record<string, unknown> = {
+    status: ack.status,
+    workspaceRoot,
+    markerPath: ack.markerPath,
+    acknowledgedAt: ack.acknowledgedAt,
+    placedIn: ack.placedIn,
+    recommendedPlacement: [
+      "agent prompt",
+      "workspace/IDENTITY.md",
+      "workspace/USER.md",
+    ],
+    nextStep:
+      ack.status === "acknowledged"
+        ? "setup_already_acknowledged"
+        : "read_returned_guidance_then_run_setup_ack",
+  };
+
+  if (includeSkill) {
+    const skill = readSetupText("SKILL.md");
+    data.skill = skill.ok
+      ? {
+          path: skill.path,
+          content:
+            format === "full" ? skill.content : summarizeSetupText(skill.content),
+        }
+      : skill;
+  }
+  if (includeGuide) {
+    const guide = readSetupText("agent-inner-guide.md");
+    data.guide = guide.ok
+      ? {
+          path: guide.path,
+          content:
+            format === "full" ? guide.content : summarizeSetupText(guide.content),
+        }
+      : guide;
+  }
+
+  return {
+    ok: true,
+    command: "setup_hint",
+    surfaceMode: "workspace_full_runtime",
+    message:
+      "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
+    data,
+  };
+}
+
+async function buildSetupAckPayload(input?: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const workspaceRoot = resolveWorkspaceRoot(input);
+  const markerPath = path.join(workspaceRoot, SETUP_MARKER_RELATIVE_PATH);
+  const marker = {
+    acknowledgedAt: new Date().toISOString(),
+    acceptedBy: safeShortText(input?.acceptedBy, 80) ?? "agent",
+    placedIn: safeShortText(input?.placedIn, 160) ?? "unspecified",
+    note: safeShortText(input?.note, 240),
+    guideVersion: "0.2.5",
+    source: "second-nature-cli",
+    skillPath: "SKILL.md",
+    guidePath: "plugin/agent-inner-guide.md",
+    status: "acknowledged",
+  };
+
+  fs.mkdirSync(path.dirname(markerPath), { recursive: true });
+  fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`, "utf-8");
+
+  return {
+    ok: true,
+    command: "setup_ack",
+    surfaceMode: "workspace_full_runtime",
+    message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
+    data: {
+      markerPath,
+      ...marker,
+    },
+  };
+}
+
 export interface CliCommandDefinition {
   name: string;
   description: string;
@@ -22,6 +175,8 @@ export interface CliCommandDeps {
   readModels: CliReadModels;
   actionBridge: ActionBridge;
   opsRouter: OpsRouter;
+  stateDb?: StateDatabase;
+  observabilityDb?: ObservabilityDatabase;
 }
 
 const notImplemented = async (command: string) => ({
@@ -49,7 +204,19 @@ function explainSubjectError(
 export function createCliCommands(
   deps: CliCommandDeps,
 ): CliCommandDefinition[] {
-  const { readModels, actionBridge, opsRouter } = deps;
+  const { readModels, actionBridge, opsRouter, stateDb, observabilityDb } = deps;
+  const flush = () => {
+    try {
+      stateDb?.flush();
+    } catch {
+      // ignore flush errors to avoid masking command results
+    }
+    try {
+      observabilityDb?.flush();
+    } catch {
+      // ignore flush errors to avoid masking command results
+    }
+  };
   const opsCommand = (
     name: string,
     description: string,
@@ -58,11 +225,28 @@ export function createCliCommands(
     description,
     execute: async (input) => {
       const surface = await Promise.resolve(opsRouter.dispatch(name, input));
+      flush();
       return surface as Record<string, unknown>;
     },
   });
 
   return [
+    {
+      name: "setup_hint",
+      description:
+        "Return the packaged setup SKILL and agent inner guide for first-run onboarding",
+      execute: async (input) => buildSetupHintPayload(input),
+    },
+    {
+      name: "setup_ack",
+      description:
+        "Persist that the packaged setup guide was read and placed into working anchors",
+      execute: async (input) => {
+        const result = await buildSetupAckPayload(input);
+        flush();
+        return result;
+      },
+    },
     {
       name: "status",
       description:
@@ -81,7 +265,9 @@ export function createCliCommands(
         const action =
           typeof input?.action === "string" ? input.action : "show";
         if (action === "set") {
-          return policySet(actionBridge, input);
+          const result = await policySet(actionBridge, input);
+          flush();
+          return result;
         }
         // T1.2.6 (SN-CODE-01): `policy show` (default) returns the current rhythm policy
         // snapshot. Returns workspace defaults when no policy row has been persisted yet.
@@ -211,6 +397,7 @@ export function createCliCommands(
         const surface = await Promise.resolve(
           opsRouter.dispatch("heartbeat_check", input),
         );
+        flush();
         return surface as Record<string, unknown>;
       },
     },
@@ -228,6 +415,7 @@ export function createCliCommands(
           runRepairFixture,
           workspaceRoot,
         });
+        flush();
         return { ok: true, data };
       },
     },
@@ -275,6 +463,7 @@ export function createCliCommands(
         const surface = await Promise.resolve(
           opsRouter.dispatch("capability_probe", input),
         );
+        flush();
         return surface as Record<string, unknown>;
       },
     },
@@ -286,6 +475,7 @@ export function createCliCommands(
         const surface = await Promise.resolve(
           opsRouter.dispatch("near_real_smoke", input),
         );
+        flush();
         return surface as Record<string, unknown>;
       },
     },
@@ -315,6 +505,7 @@ export function createCliCommands(
               ? input.workspaceRoot
               : undefined,
         });
+        flush();
         return result as unknown as Record<string, unknown>;
       },
     },
@@ -330,13 +521,14 @@ export function createCliCommands(
       },
     },
     {
-      name: "connector_status",
+      name: "credential",
       description:
-        "T1.2.3 — show connector inventory, trust/executable/conflict summary",
+        "T1.4.1 — inspect or verify credential health without exposing plaintext",
       execute: async (input) => {
         const surface = await Promise.resolve(
-          opsRouter.dispatch("connector_status", input),
+          opsRouter.dispatch("credential", input),
         );
+        flush();
         return surface as Record<string, unknown>;
       },
     },
@@ -348,6 +540,7 @@ export function createCliCommands(
         const surface = await Promise.resolve(
           opsRouter.dispatch("connector_test", input),
         );
+        flush();
         return surface as Record<string, unknown>;
       },
     },
@@ -403,6 +596,7 @@ export function createCliCommands(
         const surface = await Promise.resolve(
           opsRouter.dispatch("goal", input),
         );
+        flush();
         return surface as Record<string, unknown>;
       },
     },

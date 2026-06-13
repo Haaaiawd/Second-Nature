@@ -23,3 +23,5 @@ data/
 !.anws/**
 workspace/
 test-results.txt
+
+.second-nature/setup/

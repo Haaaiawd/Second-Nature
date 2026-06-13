@@ -427,3 +427,94 @@ test("T5.2.2 policy set and credential verify return requiredUserInput for non-i
 
   harness.cleanup();
 });
+
+test("flush-after-mutating-ops: heartbeat_check writes are visible to a new router", async () => {
+  const unique = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const statePath = path.join(os.tmpdir(), `sn-cli-state-flush-${unique}.db`);
+  const obsPath = path.join(os.tmpdir(), `sn-cli-obs-flush-${unique}.db`);
+
+  const firstRuntime = createCliRuntimeDeps({
+    stateDb: createStateDatabase(statePath),
+    observabilityDb: createObservabilityDatabase(obsPath),
+  });
+  applyCliOpsTestSchema(firstRuntime);
+  const firstRouter = createCommandRouter({ deps: firstRuntime });
+
+  const heartbeat = getCommand(firstRouter, "heartbeat_check");
+  const heartbeatResult = await heartbeat.execute({ v8SpineEnabled: true });
+  assert.equal(heartbeatResult.ok, true);
+
+  closeCliRuntimeDeps(firstRuntime);
+
+  const secondRuntime = createCliRuntimeDeps({
+    stateDb: createStateDatabase(statePath),
+    observabilityDb: createObservabilityDatabase(obsPath),
+  });
+  const secondRouter = createCommandRouter({ deps: secondRuntime });
+  const loopStatus = getCommand(secondRouter, "loop_status");
+  const statusResult = await loopStatus.execute({});
+  assert.equal(statusResult.ok, true);
+  assert.ok(
+    (statusResult as any).data.stageSummaries.length >= 1,
+    "loop_status should see stages after heartbeat_check flush",
+  );
+  assert.ok(
+    (statusResult as any).data.lastCycleSequence >= 1,
+    "loop_status should see cycle sequence after heartbeat_check flush",
+  );
+
+  closeCliRuntimeDeps(secondRuntime);
+  if (fs.existsSync(statePath)) fs.rmSync(statePath, { force: true });
+  if (fs.existsSync(obsPath)) fs.rmSync(obsPath, { force: true });
+});
+
+test("setup_hint and setup_ack CLI parity", async () => {
+  const harness = buildRuntimeAndRouter();
+  const setupHint = getCommand(harness.router, "setup_hint");
+  const setupAck = getCommand(harness.router, "setup_ack");
+
+  const hintResult = await setupHint.execute({});
+  assert.equal(hintResult.ok, true);
+  assert.ok((hintResult as any).data.skill || (hintResult as any).data.guide || (hintResult as any).data.nextStep);
+
+  const ackResult = await setupAck.execute({ acceptedBy: "test", placedIn: "test-anchor" });
+  assert.equal(ackResult.ok, true);
+  assert.equal((ackResult as any).data.status, "acknowledged");
+  assert.ok((ackResult as any).data.markerPath);
+
+  const markerPath = (ackResult as any).data.markerPath as string;
+  assert.ok(fs.existsSync(markerPath));
+
+  harness.cleanup();
+});
+
+test("narrative:diff auto-resolves last two versions", async () => {
+  const harness = buildRuntimeAndRouter();
+  const snapshotCapture = getCommand(harness.router, "snapshot:capture");
+  const narrativeDiff = getCommand(harness.router, "narrative:diff");
+
+  const firstCapture = await snapshotCapture.execute({ subjectId: "narrative-diff-test-1" });
+  assert.equal(firstCapture.ok, true);
+  const secondCapture = await snapshotCapture.execute({ subjectId: "narrative-diff-test-2" });
+  assert.equal(secondCapture.ok, true);
+
+  const diffResult = await narrativeDiff.execute({});
+  assert.equal(diffResult.ok, true);
+  assert.ok((diffResult as any).data.fromVersion);
+  assert.ok((diffResult as any).data.toVersion);
+  assert.ok(Array.isArray((diffResult as any).data.changes));
+
+  harness.cleanup();
+});
+
+test("narrative:diff with <2 timeline versions returns friendly error", async () => {
+  const harness = buildRuntimeAndRouter();
+  const narrativeDiff = getCommand(harness.router, "narrative:diff");
+
+  const diffResult = await narrativeDiff.execute({});
+  assert.equal(diffResult.ok, false);
+  assert.equal((diffResult as any).error.code, "NARRATIVE_DIFF_REQUIRES_TWO_VERSIONS");
+  assert.ok((diffResult as any).error.nextStep.includes("snapshot_capture"));
+
+  harness.cleanup();
+});

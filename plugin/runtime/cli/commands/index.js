@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { credentialVerify } from "./credential.js";
 import { connectorInit } from "./connector-init.js";
 import { formatExplanation } from "../explain/format-explanation.js";
@@ -5,6 +7,139 @@ import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError, } from "../ops/show-operator-fallback.js";
 import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.js";
 import { policySet } from "./policy.js";
+const SETUP_MARKER_RELATIVE_PATH = path.join(".second-nature", "setup", "agent-inner-guide-ack.json");
+function safeShortText(value, maxLen) {
+    if (typeof value !== "string")
+        return undefined;
+    const trimmed = value.trim();
+    if (trimmed.length === 0)
+        return undefined;
+    return trimmed.slice(0, maxLen);
+}
+function resolveWorkspaceRoot(input) {
+    if (typeof input?.workspaceRoot === "string" && input.workspaceRoot.trim().length > 0) {
+        return path.resolve(input.workspaceRoot);
+    }
+    if (typeof process.env.SECOND_NATURE_WORKSPACE_ROOT === "string" && process.env.SECOND_NATURE_WORKSPACE_ROOT.trim().length > 0) {
+        return path.resolve(process.env.SECOND_NATURE_WORKSPACE_ROOT);
+    }
+    return process.cwd();
+}
+function readSetupText(fileName) {
+    const candidates = fileName === "SKILL.md"
+        ? [path.resolve(process.cwd(), "SKILL.md"), path.resolve(process.cwd(), "..", "SKILL.md")]
+        : [path.resolve(process.cwd(), "plugin", "agent-inner-guide.md"), path.resolve(process.cwd(), "..", "plugin", "agent-inner-guide.md")];
+    for (const candidate of candidates) {
+        try {
+            const content = fs.readFileSync(candidate, "utf-8");
+            return { ok: true, path: candidate, content };
+        }
+        catch {
+            // try next candidate
+        }
+    }
+    return { ok: false, path: candidates[0] ?? fileName, error: `Could not read ${fileName}` };
+}
+function summarizeSetupText(content) {
+    const lines = content.split("\n");
+    const nonEmpty = lines.filter((line) => line.trim().length > 0);
+    const first = nonEmpty.slice(0, 3).join("\n");
+    const marker = content.length > first.length ? "\n\n[...]" : "";
+    return `${first}${marker}`;
+}
+function readSetupAckMarker(workspaceRoot) {
+    const markerPath = path.join(workspaceRoot, SETUP_MARKER_RELATIVE_PATH);
+    try {
+        const raw = fs.readFileSync(markerPath, "utf-8");
+        const marker = JSON.parse(raw);
+        if (marker.status === "acknowledged") {
+            return {
+                status: "acknowledged",
+                markerPath,
+                acknowledgedAt: typeof marker.acknowledgedAt === "string" ? marker.acknowledgedAt : undefined,
+                placedIn: typeof marker.placedIn === "string" ? marker.placedIn : undefined,
+            };
+        }
+    }
+    catch {
+        // marker missing or unreadable
+    }
+    return { status: "pending", markerPath };
+}
+async function buildSetupHintPayload(input) {
+    const format = input?.format === "full" ? "full" : "summary";
+    const includeSkill = input?.includeSkill !== false;
+    const includeGuide = input?.includeGuide !== false;
+    const workspaceRoot = resolveWorkspaceRoot(input);
+    const ack = readSetupAckMarker(workspaceRoot);
+    const data = {
+        status: ack.status,
+        workspaceRoot,
+        markerPath: ack.markerPath,
+        acknowledgedAt: ack.acknowledgedAt,
+        placedIn: ack.placedIn,
+        recommendedPlacement: [
+            "agent prompt",
+            "workspace/IDENTITY.md",
+            "workspace/USER.md",
+        ],
+        nextStep: ack.status === "acknowledged"
+            ? "setup_already_acknowledged"
+            : "read_returned_guidance_then_run_setup_ack",
+    };
+    if (includeSkill) {
+        const skill = readSetupText("SKILL.md");
+        data.skill = skill.ok
+            ? {
+                path: skill.path,
+                content: format === "full" ? skill.content : summarizeSetupText(skill.content),
+            }
+            : skill;
+    }
+    if (includeGuide) {
+        const guide = readSetupText("agent-inner-guide.md");
+        data.guide = guide.ok
+            ? {
+                path: guide.path,
+                content: format === "full" ? guide.content : summarizeSetupText(guide.content),
+            }
+            : guide;
+    }
+    return {
+        ok: true,
+        command: "setup_hint",
+        surfaceMode: "workspace_full_runtime",
+        message: "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
+        data,
+    };
+}
+async function buildSetupAckPayload(input) {
+    const workspaceRoot = resolveWorkspaceRoot(input);
+    const markerPath = path.join(workspaceRoot, SETUP_MARKER_RELATIVE_PATH);
+    const marker = {
+        acknowledgedAt: new Date().toISOString(),
+        acceptedBy: safeShortText(input?.acceptedBy, 80) ?? "agent",
+        placedIn: safeShortText(input?.placedIn, 160) ?? "unspecified",
+        note: safeShortText(input?.note, 240),
+        guideVersion: "0.2.5",
+        source: "second-nature-cli",
+        skillPath: "SKILL.md",
+        guidePath: "plugin/agent-inner-guide.md",
+        status: "acknowledged",
+    };
+    fs.mkdirSync(path.dirname(markerPath), { recursive: true });
+    fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`, "utf-8");
+    return {
+        ok: true,
+        command: "setup_ack",
+        surfaceMode: "workspace_full_runtime",
+        message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
+        data: {
+            markerPath,
+            ...marker,
+        },
+    };
+}
 const notImplemented = async (command) => ({
     ok: false,
     command,
@@ -22,16 +157,45 @@ function explainSubjectError(code, message) {
     };
 }
 export function createCliCommands(deps) {
-    const { readModels, actionBridge, opsRouter } = deps;
+    const { readModels, actionBridge, opsRouter, stateDb, observabilityDb } = deps;
+    const flush = () => {
+        try {
+            stateDb?.flush();
+        }
+        catch {
+            // ignore flush errors to avoid masking command results
+        }
+        try {
+            observabilityDb?.flush();
+        }
+        catch {
+            // ignore flush errors to avoid masking command results
+        }
+    };
     const opsCommand = (name, description) => ({
         name,
         description,
         execute: async (input) => {
             const surface = await Promise.resolve(opsRouter.dispatch(name, input));
+            flush();
             return surface;
         },
     });
     return [
+        {
+            name: "setup_hint",
+            description: "Return the packaged setup SKILL and agent inner guide for first-run onboarding",
+            execute: async (input) => buildSetupHintPayload(input),
+        },
+        {
+            name: "setup_ack",
+            description: "Persist that the packaged setup guide was read and placed into working anchors",
+            execute: async (input) => {
+                const result = await buildSetupAckPayload(input);
+                flush();
+                return result;
+            },
+        },
         {
             name: "status",
             description: "T1.2.6 — Show v6 aggregated Second Nature status (narrative + dream + cycles + runtime)",
@@ -47,7 +211,9 @@ export function createCliCommands(deps) {
             execute: async (input) => {
                 const action = typeof input?.action === "string" ? input.action : "show";
                 if (action === "set") {
-                    return policySet(actionBridge, input);
+                    const result = await policySet(actionBridge, input);
+                    flush();
+                    return result;
                 }
                 // T1.2.6 (SN-CODE-01): `policy show` (default) returns the current rhythm policy
                 // snapshot. Returns workspace defaults when no policy row has been persisted yet.
@@ -159,6 +325,7 @@ export function createCliCommands(deps) {
             description: "Workspace heartbeat_check ops surface (v5 HeartbeatSurfaceResult)",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("heartbeat_check", input));
+                flush();
                 return surface;
             },
         },
@@ -174,6 +341,7 @@ export function createCliCommands(deps) {
                     runRepairFixture,
                     workspaceRoot,
                 });
+                flush();
                 return { ok: true, data };
             },
         },
@@ -218,6 +386,7 @@ export function createCliCommands(deps) {
             description: "T1.2.8 — probe host capabilities and persist report (static unknown adapter in CLI context)",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("capability_probe", input));
+                flush();
                 return surface;
             },
         },
@@ -226,6 +395,7 @@ export function createCliCommands(deps) {
             description: "T3.3.2 — run near-real connector smoke (sentinel Moltbook + EvoMap, no live HTTP)",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("near_real_smoke", input));
+                flush();
                 return surface;
             },
         },
@@ -249,6 +419,7 @@ export function createCliCommands(deps) {
                         ? input.workspaceRoot
                         : undefined,
                 });
+                flush();
                 return result;
             },
         },
@@ -261,10 +432,11 @@ export function createCliCommands(deps) {
             },
         },
         {
-            name: "connector_status",
-            description: "T1.2.3 — show connector inventory, trust/executable/conflict summary",
+            name: "credential",
+            description: "T1.4.1 — inspect or verify credential health without exposing plaintext",
             execute: async (input) => {
-                const surface = await Promise.resolve(opsRouter.dispatch("connector_status", input));
+                const surface = await Promise.resolve(opsRouter.dispatch("credential", input));
+                flush();
                 return surface;
             },
         },
@@ -273,6 +445,7 @@ export function createCliCommands(deps) {
             description: "T1.2.3 — dry-run test a connector by platformId (default dry-run)",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("connector_test", input));
+                flush();
                 return surface;
             },
         },
@@ -292,6 +465,7 @@ export function createCliCommands(deps) {
             description: "T1.2.4 — owner-governed goal operations: set, list, accept, reject",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("goal", input));
+                flush();
                 return surface;
             },
         },

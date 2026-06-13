@@ -1144,24 +1144,30 @@ export function createOpsRouter(deps) {
                     };
                     return envelope;
                 }
-                const fromVersion = typeof input?.from === "string" ? input.from : "";
-                const toVersion = typeof input?.to === "string" ? input.to : "";
+                let fromVersion = typeof input?.from === "string" ? input.from : "";
+                let toVersion = typeof input?.to === "string" ? input.to : "";
                 if (!fromVersion || !toVersion) {
-                    const envelope = {
-                        ok: false,
-                        command: "narrative:diff",
-                        runtimeMode: "workspace_full_runtime",
-                        surfaceMode: "cli",
-                        generatedAt,
-                        error: {
-                            code: "MISSING_VERSIONS",
-                            message: "narrative:diff requires 'from' and 'to' version arguments",
-                            nextStep: "reinvoke_with_from_and_to",
-                        },
-                        warnings: [],
-                        sourceRefs: [],
-                    };
-                    return envelope;
+                    // Auto-resolve the two most recent narrative timeline versions when not provided.
+                    const recent = await deps.narrativeTimelineDeps.stateMemoryPort.listNarrativeTimeline(new Date(0).toISOString(), new Date().toISOString(), { limit: 2 });
+                    if (recent.length < 2) {
+                        const envelope = {
+                            ok: false,
+                            command: "narrative:diff",
+                            runtimeMode: "workspace_full_runtime",
+                            surfaceMode: "cli",
+                            generatedAt,
+                            error: {
+                                code: "NARRATIVE_DIFF_REQUIRES_TWO_VERSIONS",
+                                message: `narrative:diff requires at least two timeline versions; found ${recent.length}. Pass explicit 'from' and 'to', or run snapshot:capture twice.`,
+                                nextStep: "run_snapshot_capture_twice_or_pass_from_and_to",
+                            },
+                            warnings: [],
+                            sourceRefs: [],
+                        };
+                        return envelope;
+                    }
+                    fromVersion = recent[1].version;
+                    toVersion = recent[0].version;
                 }
                 try {
                     const diff = await queryNarrativeDiff(fromVersion, toVersion, deps.narrativeTimelineDeps);

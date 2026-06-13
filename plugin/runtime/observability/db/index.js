@@ -126,6 +126,12 @@ export function createObservabilityDatabase(filename = "observability.db") {
         sqlite,
         db,
         schema,
+        flush() {
+            if (!isMemory) {
+                const data = sqlite.export();
+                fs.writeFileSync(dbPath, Buffer.from(data));
+            }
+        },
         close() {
             if (!isMemory) {
                 const data = sqlite.export();

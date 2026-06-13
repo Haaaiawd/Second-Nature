@@ -290,6 +290,8 @@ export function createCommandRouter(options = {}) {
         readModels: runtime.readModels,
         actionBridge: runtime.actionBridge,
         opsRouter,
+        stateDb: runtime.stateDb,
+        observabilityDb: runtime.observabilityDb,
     });
     return {
         commands,
