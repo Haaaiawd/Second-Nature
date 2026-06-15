@@ -247,6 +247,9 @@ export async function heartbeatCheck(
         } else {
           const spine = v8Result as RealRuntimeSpineResult;
           surfaceResult.v8Spine = spine;
+          surfaceResult.livedExperienceLoopClaimed = Boolean(
+            spine.cycleId && (spine.closureRef || spine.noActionReason),
+          );
           surfaceResult.reasons = [
             ...surfaceResult.reasons,
             `v8_spine_cycle:${spine.cycleId}`,

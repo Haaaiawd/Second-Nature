@@ -226,6 +226,8 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "connector_test",
   "connector_behavior_add",
   "cycle:recent",
+  // v8 ops surface (T-ROS.C.1): causal loop health must be reachable from Claw.
+  "loop_status",
   // v7 ops surface (T-ROS.C.1 / T-ROS.C.2 / T-ROS.C.3 / T-V7C.C.5): self_health, tool_affordance,
   // heartbeat_digest, snapshot:capture, narrative:diff, timeline, restore, runtime_secret_bootstrap,
   // connector:run, guidance_payload
@@ -1232,6 +1234,17 @@ function createHostSafeRouter(spine: ActivationSpine): CommandRouter {
           "run_workspace_second_nature_cli_or_full_runtime_package",
         ),
     },
+    {
+      name: "loop_status",
+      description: "Show v8 causal loop health (workspace runtime required)",
+      execute: async () =>
+        createUnavailableActionError(
+          "HOST_SAFE_LOOP_STATUS_UNAVAILABLE",
+          "loop_status requires workspace state database; provide workspaceRoot so the full workspace bridge can read persisted v8 loop state.",
+          ["workspaceRoot"],
+          "reinvoke_with_workspaceRoot_or_set_SECOND_NATURE_WORKSPACE_ROOT",
+        ),
+    },
   ];
 
   return {
@@ -1472,6 +1485,8 @@ function parseCommandInput(
         command,
         input: rest[0] ? { limit: Number(rest[0]) } : undefined,
       };
+    case "loop_status":
+      return { ok: true, command, input: undefined };
     // v7 ops surface (T-ROS.C.2)
     case "self_health":
       return { ok: true, command, input: undefined };

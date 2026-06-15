@@ -30,6 +30,11 @@ describe("heartbeat-run-v8-spine API", () => {
         result.v8Spine?.closureRef || result.v8Spine?.noActionReason,
         "v8Spine should have closure or no-action"
       );
+      assert.equal(
+        result.livedExperienceLoopClaimed,
+        true,
+        "state-backed v8 spine closure/no-action should claim lived loop completion"
+      );
       assert.ok(
         result.reasons.some((r) => r.startsWith("v8_spine_cycle:")),
         "reasons should reference v8 spine cycle"
@@ -56,6 +61,7 @@ describe("heartbeat-run-v8-spine API", () => {
         undefined,
         "v8Spine should not be present when disabled"
       );
+      assert.equal(result.livedExperienceLoopClaimed, false);
     } finally {
       db.close();
     }
@@ -78,6 +84,7 @@ describe("heartbeat-run-v8-spine API", () => {
         undefined,
         "v8Spine should not be present without workspaceRoot"
       );
+      assert.equal(result.livedExperienceLoopClaimed, false);
     } finally {
       db.close();
     }

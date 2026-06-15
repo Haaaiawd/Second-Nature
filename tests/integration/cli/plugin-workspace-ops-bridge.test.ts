@@ -113,10 +113,16 @@ test("T1.1.4 known workspaceRoot bridges heartbeat_check to workspace_full_runti
     surfaceMode: string;
     status: string;
     livedExperienceLoopClaimed: boolean;
+    v8Spine?: { cycleId?: string; closureRef?: unknown; noActionReason?: string };
   };
   assert.equal(payload.ok, true);
   assert.equal(payload.surfaceMode, "workspace_full_runtime");
-  assert.equal(payload.livedExperienceLoopClaimed, false);
+  assert.equal(payload.livedExperienceLoopClaimed, true);
+  assert.ok(payload.v8Spine?.cycleId, "workspace bridge heartbeat should expose v8 spine cycle");
+  assert.ok(
+    payload.v8Spine?.closureRef || payload.v8Spine?.noActionReason,
+    "workspace bridge heartbeat should expose closure or no-action proof",
+  );
   assert.ok(payload.status !== "runtime_carrier_only");
 });
 
@@ -565,6 +571,7 @@ test("T-ROS.C.2 v7 ops commands are reachable through workspace bridge", async (
     { command: "timeline" },
     { command: "restore" },
     { command: "narrative:diff" },
+    { command: "loop_status" },
     { command: "connector:run", args: { platformId: "moltbook", capabilityId: "feed.read" } },
   ];
 
