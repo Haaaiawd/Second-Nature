@@ -11,12 +11,12 @@
  *
  * Dependencies:
  * - `src/shared/types/v8-contracts.js` (SourceRef, V8ReasonCode)
- * - `src/storage/v8-state-stores.js` (writeEvidenceItem)
+ * - `src/storage/v8-state-stores.js` (writeEvidenceItem, readEvidenceItemById)
  *
  * Boundary:
  * - Does not judge evidence importance.
  * - Does not fabricate evidence on empty or failed connector results.
- * - Deduplicates by content hash within a single normalization run.
+ * - Deduplicates by externalId first, then content hash, across runs.
  *
  * Test coverage: tests/unit/connectors/evidence-normalizer.test.ts
  */
@@ -26,7 +26,8 @@ export interface ConnectorReadResult {
     status: "success" | "failed" | "unavailable" | "timeout";
     platformId: string;
     capabilityId: string;
-    items: ConnectorReadItem[];
+    data?: unknown;
+    items?: ConnectorReadItem[];
     observedAt?: string;
     failureReason?: V8ReasonCode;
 }

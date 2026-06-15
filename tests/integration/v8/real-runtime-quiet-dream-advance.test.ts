@@ -69,7 +69,7 @@ describe("real-runtime-quiet-dream-advance", () => {
       assert.ok(!rhythm.degraded, "rhythm read should not degrade");
       assert.ok(rhythm.row);
       assert.equal(rhythm.row?.quietStatus, "completed");
-      assert.equal(rhythm.row?.dreamStatus, "scheduled");
+      assert.equal(rhythm.row?.dreamStatus, "completed");
 
       // QuietDailyReview written
       const quietId = `quiet_${day}`;
@@ -78,13 +78,13 @@ describe("real-runtime-quiet-dream-advance", () => {
       assert.ok(quiet.row);
       assert.ok((quiet.row?.closureRefsJson ?? "[]").includes("sn://closure"), "review has closure refs");
 
-      // Dream scheduled — rhythm state is the durable evidence
-      assert.equal(rhythm.row?.dreamStatus, "scheduled");
+      // Dream completed immediately — rhythm state is the durable evidence
+      assert.equal(rhythm.row?.dreamStatus, "completed");
 
       // Result also carries rhythm state
       assert.ok(r.rhythmState);
       assert.equal(r.rhythmState?.quietStatus, "completed");
-      assert.equal(r.rhythmState?.dreamStatus, "scheduled");
+      assert.equal(r.rhythmState?.dreamStatus, "completed");
     } finally {
       db.close();
     }
@@ -111,7 +111,7 @@ describe("real-runtime-quiet-dream-advance", () => {
       const rhythm = await readDailyRhythmStateByDay(db, day);
       assert.ok(rhythm.row);
       assert.ok(["completed", "skipped"].includes(rhythm.row?.quietStatus ?? ""), "quiet completed or skipped");
-      assert.ok(["scheduled", "blocked"].includes(rhythm.row?.dreamStatus ?? ""), "dream scheduled or blocked");
+      assert.ok(["completed", "blocked"].includes(rhythm.row?.dreamStatus ?? ""), "dream completed or blocked");
     } finally {
       db.close();
     }

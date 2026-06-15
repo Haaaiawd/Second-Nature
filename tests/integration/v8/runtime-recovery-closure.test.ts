@@ -155,7 +155,7 @@ describe("runtime-recovery-closure", () => {
       assert.ok(!rhythm.degraded, "rhythm read should not degrade");
       assert.ok(rhythm.row, "rhythm state exists");
       assert.equal(rhythm.row?.quietStatus, "completed");
-      assert.equal(rhythm.row?.dreamStatus, "scheduled");
+      assert.equal(rhythm.row?.dreamStatus, "completed");
 
       const quiet = await readQuietDailyReviewById(db, `quiet_${day}`);
       assert.ok(!quiet.degraded, "quiet read should not degrade");
@@ -164,7 +164,7 @@ describe("runtime-recovery-closure", () => {
 
       assert.ok(r.rhythmState, "result carries rhythm state");
       assert.equal(r.rhythmState?.quietStatus, "completed");
-      assert.equal(r.rhythmState?.dreamStatus, "scheduled");
+      assert.equal(r.rhythmState?.dreamStatus, "completed");
     } finally {
       db.close();
     }
@@ -191,7 +191,7 @@ describe("runtime-recovery-closure", () => {
       const rhythm = await readDailyRhythmStateByDay(db, day);
       assert.ok(rhythm.row, "rhythm state exists after no-action closure");
       assert.equal(rhythm.row?.quietStatus, "completed");
-      assert.equal(rhythm.row?.dreamStatus, "scheduled");
+      assert.equal(rhythm.row?.dreamStatus, "completed");
 
       const quiet = await readQuietDailyReviewById(db, `quiet_${day}`);
       assert.ok(quiet.row, "quiet review exists even without evidence");

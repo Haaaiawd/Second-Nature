@@ -63,7 +63,7 @@ function detectSensitiveFieldKey(obj) {
         const lower = key.toLowerCase();
         for (const s of SENSITIVE_FIELD_PATTERNS) {
             if (s.pattern.test(lower)) {
-                return s.reason;
+                return { reason: s.reason, field: key };
             }
         }
     }
@@ -105,35 +105,76 @@ function validateSourceRefs(sourceRefs) {
     return undefined;
 }
 /**
- * Lightweight sensitivity scan: rejects obvious PII or secret patterns
- * in string values.
+ * Returns true if text is a UUID (with or without dashes).
+ * UUIDs are not considered secrets.
  */
-function sensitivityScan(value) {
+function isUuid(text) {
+    return /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{12}$/.test(text);
+}
+const IDENTIFIER_FIELD_NAMES = new Set([
+    "id",
+    "runId",
+    "run_id",
+    "sourceRef",
+    "source_ref",
+    "sourceRefs",
+    "source_refs_json",
+    "uri",
+    "url",
+    "externalId",
+    "external_id",
+    "platform_id",
+    "capability_id",
+    "candidate_id",
+]);
+function looksLikeUriPath(text) {
+    return /^[a-z][a-z0-9+.-]*:\/\//i.test(text) || (text.includes("/") && !text.includes(" "));
+}
+/**
+ * Lightweight sensitivity scan: rejects obvious PII or secret patterns
+ * in string values. UUIDs and URI-style identifiers are exempt because
+ * they appear in normal sourceRefs and are not secrets by themselves.
+ */
+function sensitivityScan(value, fieldPath = "payload") {
     if (typeof value === "string") {
+        const isIdentifierField = IDENTIFIER_FIELD_NAMES.has(fieldPath.split(".").pop() ?? "");
         // Basic secret pattern heuristics
         const secretPatterns = [
-            /\b[A-Za-z0-9_\-]{32,}\b/, // potential API keys / tokens
-            /\b-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/,
-            /\bpassword\s*[:=]\s*\S+/i,
-            /\bapi[_\-]?key\s*[:=]\s*\S+/i,
-            /\bsecret\s*[:=]\s*\S+/i,
+            // 32+ alphanum token only if it is not a UUID and not part of a URI path/fragment
+            { pattern: /\b[A-Za-z0-9_\-]{32,}\b/, exempt: (m) => isUuid(m) },
+            { pattern: /\b-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
+            { pattern: /\bpassword\s*[:=]\s*\S+/i },
+            { pattern: /\bapi[_\-]?key\s*[:=]\s*\S+/i },
+            { pattern: /\bsecret\s*[:=]\s*\S+/i },
+            { pattern: /\bBearer\s+[a-zA-Z0-9_\-._~+/]+/i },
         ];
-        for (const p of secretPatterns) {
-            if (p.test(value)) {
-                return "write_validation_failed:sensitivity_scan_failed";
+        for (const { pattern, exempt } of secretPatterns) {
+            const match = value.match(pattern);
+            if (match) {
+                const matched = match[0];
+                if (exempt && exempt(matched))
+                    continue;
+                if (isIdentifierField || looksLikeUriPath(value))
+                    continue;
+                return {
+                    reason: "write_validation_failed:sensitivity_scan_failed",
+                    field: fieldPath,
+                    pattern: pattern.source,
+                };
             }
         }
     }
     if (Array.isArray(value)) {
-        for (const item of value) {
-            const r = sensitivityScan(item);
+        for (let i = 0; i < value.length; i += 1) {
+            const r = sensitivityScan(value[i], `${fieldPath}[${i}]`);
             if (r)
                 return r;
         }
     }
     else if (value !== null && typeof value === "object") {
-        for (const v of Object.values(value)) {
-            const r = sensitivityScan(v);
+        for (const [key, v] of Object.entries(value)) {
+            const childPath = fieldPath === "payload" ? key : `${fieldPath}.${key}`;
+            const r = sensitivityScan(v, childPath);
             if (r)
                 return r;
         }
@@ -164,7 +205,12 @@ export function validateWritePayload(payload, options = {}) {
     if (scanFieldKeys) {
         const fieldReason = deepScanSensitiveFields(obj);
         if (fieldReason) {
-            return { ok: false, reason: fieldReason };
+            return {
+                ok: false,
+                reason: fieldReason.reason,
+                field: fieldReason.field,
+                details: `sensitive field key detected: ${fieldReason.field}`,
+            };
         }
     }
     // 3. Source refs non-empty for fact-claim-like payloads (DR-022 category 2)
@@ -182,7 +228,13 @@ export function validateWritePayload(payload, options = {}) {
     if (runSensitivityScan) {
         const scanReason = sensitivityScan(obj);
         if (scanReason) {
-            return { ok: false, reason: scanReason };
+            return {
+                ok: false,
+                reason: scanReason.reason,
+                field: scanReason.field,
+                pattern: scanReason.pattern,
+                details: `sensitivity scan matched ${scanReason.pattern} in ${scanReason.field}`,
+            };
         }
     }
     return { ok: true };

@@ -23,6 +23,7 @@
 - 不直接形成长期记忆；只存储 Dream/Quiet 输出和 accepted projection。
 - 不决定 action 是否允许。
 - 不把 raw credential 或 raw private content 写入 artifacts。
+- 不解释 `EvidenceItem.payloadJson` 的语义；只负责其 schema 与 redaction 校验。
 
 ## 2. 输入/输出契约
 
@@ -85,21 +86,23 @@ flowchart TD
 - Writes with unresolved `SourceRef` are rejected or stored as blocked diagnostic, not silently accepted.
 - Accepted memory projection read model only exposes `status=accepted|active`; candidates are not injected into EmbodiedContext.
 - Restore snapshot may roll back state rows, but not rewrite challenge/ADR/design history.
+- `write_validation_gate` must not treat stable identifiers (UUID, runId, sourceRef URI fragments) as secret leakage; field-level attribution is required when a scan fails.
 
 ## 7. 测试策略
 
 | 层级 | 覆盖 |
 | --- | --- |
-| 单元 | schema validation, source ref validation, redaction block。 |
-| API | before/after write-read assertions for all v8 families。 |
-| 集成 | closure -> Quiet input, Dream candidate -> accepted projection read model。 |
+| 单元 | schema validation, source ref validation, redaction block, UUID/sourceRef ID not treated as secret。 |
+| API | before/after write-read assertions for all v8 families; evidence dedupe by externalId/contentHash。 |
+| 集成 | closure -> content-bearing Quiet input, Dream candidate -> accepted projection read model。 |
 
 ## 8. Trade-offs
 
 - **事实存储与语义决策分离**: 遵循 ADR-003，state 存储 memory lifecycle，但不决定什么是长期记忆。
 - **Markdown/JSON + SQLite 双轨**: 延续 ADR-001 栈内演进，提升可审计性但需要 schema/artifact 一致性测试。
 - **bounded read models**: 降低 context 污染风险，代价是需要明确 projection 查询接口。
+- **content-bearing payload without full-text capture**: `EvidenceItem.payloadJson` 保存摘要与 sourceRefs，不默认保存全文；全文走可选 `rawContentRef`。
 
 ## 9. 未决问题
 
-无
+- v7 `LifeEvidence` artifact 双写保留多久？（当前 decision: Wave 109 双写兼容，后续 version 再评估是否淘汰）

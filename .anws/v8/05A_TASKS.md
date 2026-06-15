@@ -1185,28 +1185,28 @@ graph TD
 **涉及任务**: T-CP.R.2 -> T-OBS.R.2 -> INT-R1
 **关键路径**: T-CP.R.2
 **独立可测**: A real workspace heartbeat writes ActionClosureRecord or no-action reason after perception/judgment.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-002: Impulse Context Injection
 **用户反馈**: “Impulse 应该被 injection 进 agent context，而不是作为被动返回的 API 结果。”
 **涉及任务**: T-GVS.R.1 -> T-OBS.R.2 -> INT-R1
 **关键路径**: T-GVS.R.1
 **独立可测**: Agent-facing impulse context artifact exists and setup/heartbeat surfaces expose its freshness without fake context-engine registration.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-003: Safe Hands for Platform Write
 **用户反馈**: “我能看，但我不能碰。”
 **涉及任务**: T-CS.R.1 -> T-OBS.R.2 -> INT-R1
 **关键路径**: T-CS.R.1
 **独立可测**: MoltBook reply/publish dry-run or owner-confirm path carries policy proof, idempotency, connector result, and closure.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-004: Multiple Rhythms and Self Dialogue
 **用户反馈**: “我的节律只有一根线” / “我缺少和自己对话。”
 **涉及任务**: T-DQ.R.2 -> T-OBS.R.2 -> INT-R1
 **关键路径**: T-DQ.R.2
 **独立可测**: Daily Quiet/Dream due/completed/blocked states are visible even when fast heartbeat does not select a quiet intent.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ---
 
@@ -1217,60 +1217,250 @@ graph TD
 **涉及任务**: T-VERIFY.R.1 -> T-OBS.R.3 -> INT-R2
 **关键路径**: T-VERIFY.R.1
 **独立可测**: The repair gate fails when closure/no-action proof is not produced by the runtime path, and required artifacts exist when it passes.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-006: Real-run Health Is Not Operator-facing
 **审查发现**: The real-run health helper exists, but `loop_status` and `heartbeat_digest` do not consume it as the truth gate.
 **涉及任务**: T-OBS.R.3 -> INT-R2
 **关键路径**: T-OBS.R.3
 **独立可测**: `loop_status` and digest report missing closure, stale impulse context, missing rhythm, or missing projection feedback instead of returning false healthy.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-007: PerceptionCard Contract Drift
 **审查发现**: Design says novelty is `new|changed|duplicate|stale` and relevance is `low|medium|high`; code writes `new|recurring|update` and numeric relevance.
 **涉及任务**: T-PJ.R.1 -> INT-R2
 **关键路径**: T-PJ.R.1
 **独立可测**: New PerceptionCards use canonical novelty/relevance fields, and legacy cards are normalized or rejected with drift diagnostics.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-008: Memory Projection Does Not Reliably Feed Back
 **审查发现**: Projection supersession risks insert-only primary-key conflict, and the heartbeat path does not clearly load accepted projections into the next context.
 **涉及任务**: T-DQ.R.3 -> INT-R2
 **关键路径**: T-DQ.R.3
 **独立可测**: Accepting a same-topic projection supersedes the old row and the next heartbeat receives accepted active memory in context.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-009: Quiet Closure Provenance Is Implicit
 **审查发现**: QuietDailyReview design names `closureRefs`, but implementation stores closure provenance only through generic source refs/payload JSON.
 **涉及任务**: T-DQ.R.4 -> INT-R2
 **关键路径**: T-DQ.R.4
 **独立可测**: QuietDailyReview exposes first-class closureRefs consumed by Dream/source grounding without parsing payload JSON.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-010: Runtime Closure Does Not Advance Daily Rhythm
 **用户反馈**: “Pipeline 卡在 Quiet 阶段，无法产出任何内容” / “ActionClosureRecord exists but no QuietDailyReview”。
 **涉及任务**: T-CP.R.3 -> T-DQ.R.5 -> INT-R3
 **关键路径**: T-CP.R.3
 **独立可测**: A real heartbeat closure triggers daily rhythm advancement and produces QuietDailyReview/Dream state or explicit absence reason.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-011: Connector Failure Classes Hide Repair Actions
 **用户反馈**: “Connector 全部不可用，无法获取证据” / “moltbook:feed.read unknown_platform_change”。
 **涉及任务**: T-CS.R.2 -> T-OBS.R.4 -> INT-R3
 **关键路径**: T-CS.R.2
 **独立可测**: MoltBook and Agent-world representative HTTP/auth/config failures map to actionable failure classes and do not fabricate evidence.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-012: Connector Terminal Failures Replay Forever
 **用户反馈**: “每 30 分钟产生一条 intent-exploration-moltbook ... 已重复 50+ 次”。
 **涉及任务**: T-CS.R.3 -> T-OBS.R.4 -> INT-R3
 **关键路径**: T-CS.R.3
 **独立可测**: Repeated terminal failure for the same platform/capability enters cooldown and blocks replay until expiry/reset.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
 
 ### RF-013: Decision Denied Is Over-aggregated
 **用户反馈**: “decision_denied 标记出现了 330 次 ... 被 governance 拒绝”。
 **涉及任务**: T-OBS.R.4 -> INT-R3
 **关键路径**: T-OBS.R.4
 **独立可测**: Denied heartbeat outcomes are attributed to hard guard, cooldown, source absence, quiet suppression, or true policy/governance causes.
-**覆盖状态**: Repair Planned
+**覆盖状态**: Repair Closed
+
+---
+
+## Repair Overlay — Content-Bearing Evidence and Memory Activation Findings (2026-06-14)
+
+### RF-014: Connector Evidence Is Ref-Only
+**诊断发现**: MoltBook `feed.read` returns full items, but SN only extracts `id/kind/uri/observedAt` into `SourceRef`; no title, content, body, text, or author reaches `EvidenceItem`.
+**涉及任务**: T-CS.R.4 -> T-CS.R.5 -> T-PJ.R.2 -> INT-R4
+**关键路径**: T-CS.R.5
+**独立可测**: A real connector success writes v8 `EvidenceItem` with content-bearing `payloadJson`, and `evidence_item` count grows after heartbeat runs.
+**覆盖状态**: Repair Closed
+
+### RF-015: v8 Evidence Pipeline Is Not Fed By Real Heartbeat
+**诊断发现**: `evidence_item` table has 0 rows; real heartbeat still writes v7 `LifeEvidence` artifact via `mapLifeEvidence`/`appendLifeEvidence`. v8 perception reads `evidence_item(status=pending)` and sees nothing.
+**涉及任务**: T-CS.R.5 -> T-PJ.R.2 -> INT-R4
+**关键路径**: T-CS.R.5
+**独立可测**: After real heartbeat with connector success, both v7 `LifeEvidence` artifact and v8 `evidence_item` row exist; v8 perception produces PerceptionCard from `payloadJson`.
+**覆盖状态**: Repair Closed
+
+### RF-016: Quiet Daily Review Is Template Text
+**诊断发现**: `quiet` artifact `title` is "Quiet daily report", `body` is "Source-backed quiet summary (N refs).", and every claim text is "Evidence-backed note 1/2/3...".
+**涉及任务**: T-DQ.R.6 -> INT-R4
+**关键路径**: T-DQ.R.6
+**独立可测**: `QuietDailyReview.payloadJson.reviewSummary` is a readable day summary derived from evidence/perception/closure content, not a fixed template.
+**覆盖状态**: Repair Closed
+
+### RF-017: Dream Consolidation Never Executes
+**诊断发现**: `dream_consolidation_run` rows stay `status=scheduled, lifecycle_status=pending`; `daily-rhythm-scheduler.ts` only schedules but never runs `runDreamConsolidation`.
+**涉及任务**: T-DQ.R.7 -> INT-R4
+**关键路径**: T-DQ.R.7
+**独立可测**: After Quiet completes, Dream run transitions scheduled -> started -> completed/blocked/failed; stale scheduled runs are repaired.
+**覆盖状态**: Repair Closed
+
+### RF-018: Sensitivity Scan Kills UUIDs
+**诊断发现**: `write-validation-gate.ts` uses `/\b[A-Za-z0-9_\-]{32,}\b/`, which matches UUID-like item IDs; Dream/artifact writes may be silently rejected.
+**涉及任务**: T-OBS.R.5 -> INT-R4
+**关键路径**: T-OBS.R.5
+**独立可测**: UUID/sourceRef ID values pass write validation; credential-shaped values (Bearer token, API key assignment, private key) still fail with field-level attribution.
+**覆盖状态**: Repair Closed
+
+### RF-019: Evidence Is Repeated Without Deduplication
+**诊断发现**: 16,167 sourceRef entries, 2,619 unique IDs, 83.8% duplicates; feed returns the same top-20 items every 30 minutes but `observedAt` changes, so they are stored as new evidence.
+**涉及任务**: T-CS.R.4 -> T-CS.R.5 -> INT-R4
+**关键路径**: T-CS.R.4
+**独立可测**: Same `platformId + capabilityId + externalId` or same `contentHash` does not create duplicate `EvidenceItem`; repeat increments seen count or updates lastObservedAt.
+**覆盖状态**: Repair Closed
+
+### RF-020: INT-V8 Is Contract Smoke, Not Content Loop
+**诊断发现**: `tests/integration/v8/living-perception-loop.test.ts` asserts registry and shape only; it does not exercise connector -> evidence -> perception -> judgment -> closure -> quiet -> dream -> projection with real DB writes.
+**涉及任务**: INT-R4
+**关键路径**: INT-R4
+**独立可测**: New integration test runs the full loop with real in-memory DB, content-bearing connector fixture, and asserts evidence > 0, perception > 0, closure exists, quiet payload is non-template, dream advances past scheduled, projection candidate or blocked reason exists.
+**覆盖状态**: Repair Closed
+
+---
+
+## Wave 109 — Content-Bearing Evidence and Memory Activation Repair
+
+- [x] **T-CS.R.4** [REQ-001, REQ-007]: Add generic `NormalizedEvidenceContent` envelope and platform-agnostic extractor
+  - **描述**: Define a cross-platform evidence content envelope (title, summary, excerpt, actor, url, occurredAt, tags, entities, metrics, rawContentRef, summaryProducer) and an extractor that maps arbitrary connector payloads into this shape without platform-specific judgment.
+  - **输入**: `04_SYSTEM_DESIGN/connector-system.md`, `04_SYSTEM_DESIGN/perception-judgment-system.md`, real MoltBook feed shape
+  - **输出**: `src/connectors/base/normalized-evidence-content.ts`, extractor unit tests, fixture coverage for post/comment/profile/task/event/game_state/notification/document/unknown.
+  - **契约承接**: `NormalizedEvidenceContent`, `EvidenceItem.payloadJson`, source-backed evidence summary
+  - **参考**: `01_PRD.md` US-001, ADR-002
+  - **验收标准**:
+    - Given a MoltBook-like feed payload with title/content/author/url
+    - When the extractor runs
+    - Then it produces a `NormalizedEvidenceContent` with non-empty summary, actor, url, sourceKind="post", and summaryProducer="connector_rules"
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Validate extractor handles nested arrays, missing fields, unknown shapes, and credential-shaped values in content (should not crash; sensitivity classifier handles blocking later).
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-4`
+  - **证据产出**: `tests/unit/connectors/normalized-evidence-content.test.ts`, `tests/api/connectors/evidence-extractor-port.test.ts`
+  - **估时**: 6h
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [x] **T-CS.R.5** [REQ-001, REQ-008, REQ-009]: Bridge real heartbeat to write content-bearing v8 EvidenceItem with idempotency
+  - **描述**: After connector success in `heartbeat-loop.ts`, call `normalizeConnectorEvidence` to write v8 `EvidenceItem` rows. Keep v7 `LifeEvidence` artifact as compatibility double-write. Deduplicate by `platformId + capabilityId + externalId` first, then by `contentHash(summary|excerpt|canonicalText)`. Repeated items update `lastObservedAt`/`seenCount` instead of creating duplicates.
+  - **输入**: `src/connectors/evidence-normalizer.ts`, `src/core/second-nature/heartbeat/heartbeat-loop.ts`, T-CS.R.4 output
+  - **输出**: Updated heartbeat evidence path, `evidence_item` rows with payloadJson, dedupe unit/integration tests.
+  - **契约承接**: `EvidenceItem`, content hash, source refs, connector result mapping
+  - **参考**: `01_PRD.md` US-001, `04_SYSTEM_DESIGN/state-memory-system.md`
+  - **验收标准**:
+    - Given a heartbeat with successful MoltBook feed.read returning 20 items
+    - When the cycle completes
+    - Then `evidence_item` has <=20 new rows (deduped), each with content-bearing payloadJson and sourceRefs traceable to platform item
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: INT-R4
+  - **验证摘要**: Assert v7 artifact and v8 evidence_item both exist; assert duplicate 30-minute reruns do not inflate row count; assert no evidence fabrication on empty/failed connector results.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-5`
+  - **证据产出**: `tests/integration/v8/real-evidence-ingestion.test.ts`, `tests/unit/connectors/evidence-dedupe.test.ts`
+  - **估时**: 8h
+  - **依赖**: T-CS.R.4
+  - **优先级**: P0
+
+- [x] **T-PJ.R.2** [REQ-002, REQ-007]: Build readable PerceptionCard from content-bearing EvidenceItem
+  - **描述**: Update `perception-builder.ts` to read `EvidenceItem.payloadJson.summary/excerpt/entities/tags/title`, produce readable `summary` and `topic`, and mark ref-only evidence with `contentMissing`. Dedupe by externalId/contentHash and update novelty class to duplicate/stale.
+  - **输入**: `src/core/second-nature/perception/perception-builder.ts`, T-CS.R.5 output
+  - **输出**: Readable PerceptionCard generation, duplicate/stale novelty handling, contentMissing flag.
+  - **契约承接**: `PerceptionCard`, `NoveltyClass`, content-bearing evidence consumption
+  - **参考**: `01_PRD.md` US-002, `04_SYSTEM_DESIGN/perception-judgment-system.md`
+  - **验收标准**:
+    - Given EvidenceItems with payloadJson summary "React 19 compiler discussion"
+    - When buildPerceptionCards runs
+    - Then output card summary contains the evidence content and topic is "React 19 compiler discussion"
+  - **验证类型**: 单元测试 / 集成测试
+  - **E2E触发设想**: INT-R4
+  - **验证摘要**: Assert ref-only evidence produces contentMissing or rules-only stall; assert duplicate evidence by same externalId collapses to one card with novelty=duplicate/stale.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-pj-r-2`
+  - **证据产出**: `tests/unit/perception/perception-content-bearing.test.ts`, `tests/integration/v8/perception-from-evidence.test.ts`
+  - **估时**: 6h
+  - **依赖**: T-CS.R.5
+  - **优先级**: P0
+
+- [x] **T-DQ.R.6** [REQ-005, REQ-009]: Generate non-template QuietDailyReview from evidence/perception/closure content
+  - **描述**: Rewrite `quiet-daily-review-builder.ts` to load content-bearing EvidenceItem and PerceptionCard rows for the day, build a readable `reviewSummary`, `notableSignals`, and `memoryCandidates` with sourceRefs. Remove hard-coded "Quiet daily report" / "Source-backed quiet summary (N refs)." / "Evidence-backed note N" placeholders.
+  - **输入**: `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts`, T-PJ.R.2 output
+  - **输出**: Readable Quiet review with `QuietReviewPayload` schema, v8 state store read helpers for evidence/perception by day.
+  - **契约承接**: `QuietDailyReview`, `QuietReviewPayload`, source-backed daily summary
+  - **参考**: `01_PRD.md` US-005, `04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
+  - **验收标准**:
+    - Given a day with 3 content-bearing evidence/perception and 2 closures
+    - When `buildQuietDailyReview` runs
+    - Then `payloadJson.reviewSummary` is a readable sentence, `memoryCandidates` have non-template text, and all claims have sourceRefs
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: INT-R4
+  - **验证摘要**: Assert template strings do not appear in payloadJson; assert source coverage maps every memoryCandidate back to evidence/perception/closure; assert empty input still returns honest empty reason.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-6`
+  - **证据产出**: `tests/unit/quiet/quiet-review-content.test.ts`, `tests/api/quiet/quiet-review-content-port.test.ts`
+  - **估时**: 8h
+  - **依赖**: T-PJ.R.2
+  - **优先级**: P0
+
+- [x] **T-DQ.R.7** [REQ-005, REQ-006]: Execute Dream consolidation after scheduling and repair stale scheduled runs
+  - **描述**: Update `daily-rhythm-scheduler.ts` to call `runDreamConsolidation` after scheduling a run, transitioning status scheduled -> started -> completed/blocked/failed. Add a `dreamIntervalDays` default of 7 (MiMo-style) and a stale-scheduled repair path: if a run has been scheduled longer than a threshold, mark it `dream_scheduled_stalled` and re-attempt.
+  - **输入**: `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts`, `src/core/second-nature/quiet-dream/dream-consolidation-runner.ts`, T-DQ.R.6 output
+  - **输出**: Dream runner execution wiring, stale scheduled repair, lifecycle trace events.
+  - **契约承接**: `DreamConsolidationRun` lifecycle, `dream_scheduled_stalled` reason code
+  - **参考**: `01_PRD.md` US-005, US-006, `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md`
+  - **验收标准**:
+    - Given a completed QuietDailyReview and no recent Dream run
+    - When daily rhythm advances
+    - Then a DreamConsolidationRun is scheduled, started, and completes/blocks/fails with durable status and reason
+  - **验证类型**: 单元测试 / 集成测试 / API接口功能测试
+  - **E2E触发设想**: INT-R4
+  - **验证摘要**: Assert no run stays in `scheduled` after execution; assert stale scheduled run is repaired; assert blocked/failed reasons are persisted with field-level attribution.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-7`
+  - **证据产出**: `tests/unit/dream/dream-runner-lifecycle.test.ts`, `tests/integration/v8/dream-execution-after-quiet.test.ts`
+  - **估时**: 8h
+  - **依赖**: T-DQ.R.6
+  - **优先级**: P0
+
+- [x] **T-OBS.R.5** [REQ-007, REQ-008]: Fix UUID/sourceRef ID false positives in write-validation sensitivity scan
+  - **描述**: Narrow the high-entropy secret pattern so UUID-like identifiers, sourceRef IDs, run IDs, and URI fragments are not treated as leaked secrets. Add field-level attribution when a scan fails (which field, which pattern). Keep blocking for Bearer tokens, API key assignments, private key headers, and other value-like secrets.
+  - **输入**: `src/storage/services/write-validation-gate.ts`, diagnostic tests
+  - **输出**: Updated sensitivity scan with identifier exemption and field-level attribution.
+  - **契约承接**: `write_validation_failed:sensitivity_scan_failed`, diagnostic attribution
+  - **参考**: `01_PRD.md` US-007, `04_SYSTEM_DESIGN/state-memory-system.md`
+  - **验收标准**:
+    - Given a payload containing UUID "d7903d94-a6df-40e4-8cee-c2ff80c0ade1"
+    - When write validation runs
+    - Then it passes (or is attributed as identifier, not secret)
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **E2E触发设想**: INT-R4
+  - **验证摘要**: Assert UUID in id/sourceRef/uri passes; assert Bearer token and API key assignment still fail with field attribution; assert diagnostic redaction maps to `storage_validation_block`.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-5`
+  - **证据产出**: `tests/unit/storage/write-validation-gate-uuid.test.ts`, `tests/api/observability/sensitivity-attribution-port.test.ts`
+  - **估时**: 4h
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [x] **INT-R4** [MILESTONE]: Content-Bearing Living Loop Gate
+  - **描述**: End-to-end integration gate that exercises the full v8 loop with a content-bearing connector fixture and real in-memory DB: connector success -> v8 EvidenceItem -> PerceptionCard -> JudgmentVerdict -> ActionClosureRecord -> QuietDailyReview -> DreamConsolidationRun -> LongTermMemoryProjection candidate or explicit blocked reason.
+  - **输入**: T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5 outputs
+  - **输出**: `reports/int-r4-v8-content-bearing-loop.md`
+  - **契约承接**: INT-V8 real-loop exit gate
+  - **参考**: `01_PRD.md` US-001..US-006, `04_SYSTEM_DESIGN/02_ARCHITECTURE_OVERVIEW.md`
+  - **验收标准**:
+    - Given a heartbeat with content-bearing MoltBook fixture
+    - When the full loop runs
+    - Then evidence_item > 0, perception_card > 0, action_closure_record exists, quiet_daily_review.payloadJson is non-template, dream_consolidation_run status reaches completed/blocked/failed (not stuck in scheduled), and either long_term_memory_projection candidate exists or a precise blocked reason is recorded
+  - **验证类型**: 集成测试 / 冒烟测试 / 编译检查
+  - **E2E触发设想**: 本 gate 使用真实 DB，不依赖外部 platform；可作为 INT-V8 的强化替代。
+  - **验证摘要**: Run `tests/integration/v8/content-bearing-living-loop.test.ts` and document pass/fail table; if blocked, record blocked reason and source attribution.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r4`
+  - **证据产出**: `tests/integration/v8/content-bearing-living-loop.test.ts`, `reports/int-r4-v8-content-bearing-loop.md`, `logs/int-r4-loop-status.json`
+  - **估时**: 6h
+  - **依赖**: T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5
+  - **优先级**: P0

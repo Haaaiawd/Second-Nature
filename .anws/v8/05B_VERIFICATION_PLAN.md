@@ -573,6 +573,17 @@
 - **断言**: a real heartbeat cannot pass while stuck at Quiet without a precise absence reason; connector failures cannot all collapse into `unknown_platform_change`; repeated failures cannot replay indefinitely.
 - **证据**: `reports/int-r3-v8-runtime-recovery-closure.md`, `tests/integration/v8/runtime-recovery-closure.test.ts`, `logs/int-r3-loop-status.json`
 
+### INT-R4
+- **关联需求**: REQ-001, REQ-002, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009
+- **关联契约**: content-bearing EvidenceItem, readable PerceptionCard, non-template QuietDailyReview, Dream execution lifecycle, UUID sensitivity false-positive fix
+- **风险类别**: ref-only evidence / empty Quiet / Dream stuck scheduled / sensitivity scan over-blocking / real loop not producing memory
+- **单元测试覆盖**: extractor, dedupe, perception content, Quiet review content, Dream runner lifecycle, write-validation identifier exemption.
+- **API接口功能测试覆盖**: evidence normalization port, perception port, Quiet review port, Dream schedule/run port, sensitivity attribution port.
+- **集成/E2E/冒烟覆盖**: one integration gate exercises connector fixture -> v8 EvidenceItem -> PerceptionCard -> ActionClosureRecord -> QuietDailyReview -> DreamConsolidationRun -> LongTermMemoryProjection candidate or explicit blocked reason, all with real DB.
+- **前置数据**: T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5 completed.
+- **断言**: evidence_item > 0 after connector success; perception_card > 0; closure written; quiet_daily_review.payloadJson has no template placeholders; dream_consolidation_run status reaches completed/blocked/failed (not stuck in scheduled); either projection candidate exists or a precise blocked reason is recorded.
+- **证据**: `reports/int-r4-v8-content-bearing-loop.md`, `tests/integration/v8/content-bearing-living-loop.test.ts`, `logs/int-r4-loop-status.json`
+
 ### T-REG.C.1
 - **关联需求**: Definition of Done
 - **关联契约**: build/lint/regression gate
@@ -636,6 +647,77 @@
 | denial and replay attribution | observability / root cause | T-OBS.R.4 | T-OBS.R.4 单元 + API接口功能测试 + 集成 | ✅ |
 | Runtime Recovery Closure Gate | 集成契约 | INT-R3 | INT-R3 集成 + 冒烟 + 静态审查 | ✅ |
 | Full living loop DoD | 集成契约 | INT-V8 | INT-V8 集成/E2E/冒烟 | ✅ |
+| Content-bearing Evidence and Memory Activation Gate | 集成契约 | INT-R4 | INT-R4 集成 + 冒烟 + 静态审查 | ✅ |
+
+---
+
+## 7. Wave 109 Verification Addendum
+
+### T-CS.R.4
+- **关联需求**: REQ-001, REQ-007
+- **关联契约**: `NormalizedEvidenceContent`, connector result extractor
+- **风险类别**: platform-specific extraction / missing fields / raw payload leakage
+- **单元测试覆盖**: post, comment, profile, task, event, game_state, notification, document, unknown shapes; missing title/content; nested arrays.
+- **API接口功能测试覆盖**: extractor port returns summary, actor, url, sourceKind, summaryProducer for representative payloads.
+- **集成/E2E/冒烟覆盖**: INT-R4.
+- **前置数据**: connector-system design.
+- **断言**: extractor never throws on unknown shape; credential-shaped content is preserved as string but not blocked at extraction stage.
+- **证据**: `tests/unit/connectors/normalized-evidence-content.test.ts`
+
+### T-CS.R.5
+- **关联需求**: REQ-001, REQ-008, REQ-009
+- **关联契约**: EvidenceItem normalization, deduplication, v7/v8 double-write
+- **风险类别**: evidence fabrication / duplicate explosion / v7 compatibility break
+- **单元测试覆盖**: externalId dedupe, contentHash dedupe, repeat observedAt update, empty/failed result no-fabrication.
+- **API接口功能测试覆盖**: evidence normalization port with real DB before/after counts.
+- **集成/E2E/冒烟覆盖**: INT-R4, v7 regression.
+- **前置数据**: T-CS.R.4.
+- **断言**: same `externalId` does not create second row; same content repeated every 30 min updates seen count; v7 LifeEvidence artifact still exists.
+- **证据**: `tests/integration/v8/real-evidence-ingestion.test.ts`
+
+### T-PJ.R.2
+- **关联需求**: REQ-002, REQ-007
+- **关联契约**: `PerceptionCard` readable summary, duplicate/stale novelty, contentMissing flag
+- **风险类别**: ref-only perception / false novelty / missing content signal
+- **单元测试覆盖**: payload-driven summary/topic/entities, ref-only contentMissing, duplicate novelty.
+- **API接口功能测试覆盖**: perception port returns readable cards from content-bearing evidence.
+- **集成/E2E/冒烟覆盖**: INT-R4.
+- **前置数据**: T-CS.R.5.
+- **断言**: card summary is derived from evidence payload; duplicate evidence collapses to one card.
+- **证据**: `tests/unit/perception/perception-content-bearing.test.ts`
+
+### T-DQ.R.6
+- **关联需求**: REQ-005, REQ-009
+- **关联契约**: `QuietReviewPayload`, non-template review, memory candidates
+- **风险类别**: template text / fabricated claims / missing source coverage
+- **单元测试覆盖**: reviewSummary from evidence/perception/closure, memoryCandidates with sourceRefs, empty input honest reason.
+- **API接口功能测试覆盖**: Quiet review port returns readable payload.
+- **集成/E2E/冒烟覆盖**: INT-R4.
+- **前置数据**: T-PJ.R.2.
+- **断言**: payloadJson does not contain "Quiet daily report", "Source-backed quiet summary", or "Evidence-backed note".
+- **证据**: `tests/unit/quiet/quiet-review-content.test.ts`
+
+### T-DQ.R.7
+- **关联需求**: REQ-005, REQ-006
+- **关联契约**: Dream lifecycle scheduled → started → completed/blocked/failed, stale scheduled repair
+- **风险类别**: Dream stuck scheduled / silent failure / missing lifecycle trace
+- **单元测试覆盖**: scheduled → started → completed, blocked redaction, failed execution, stale repair.
+- **API接口功能测试覆盖**: Dream run port transitions status and returns reason.
+- **集成/E2E/冒烟覆盖**: INT-R4.
+- **前置数据**: T-DQ.R.6.
+- **断言**: no run remains `scheduled` after execution; stale scheduled run is repaired; blocked/failed reasons persisted.
+- **证据**: `tests/unit/dream/dream-runner-lifecycle.test.ts`
+
+### T-OBS.R.5
+- **关联需求**: REQ-007, REQ-008
+- **关联契约**: write-validation sensitivity scan, field-level attribution, UUID exemption
+- **风险类别**: false positive secret detection / silent rejection / missing diagnostic
+- **单元测试覆盖**: UUID passes, sourceRef ID passes, Bearer token fails, API key assignment fails, private key fails, field attribution returned.
+- **API接口功能测试覆盖**: sensitivity attribution port returns field and pattern.
+- **集成/E2E/冒烟覆盖**: INT-R4.
+- **前置数据**: state-memory-system design.
+- **断言**: `d7903d94-a6df-40e4-8cee-c2ff80c0ade1` passes validation; `Bearer eyJ...` fails with attribution.
+- **证据**: `tests/unit/storage/write-validation-gate-uuid.test.ts`
 
 ---
 

@@ -169,6 +169,26 @@ interface QuietDailyReview {
   reviewSummary: string;
   importanceSignals: string[];
   createdAt: string;
+  payloadJson: string; // contains detailed summary, notable signals, memory candidates, input stats
+}
+
+interface QuietReviewPayload {
+  reviewSummary: string;
+  notableSignals: string[];
+  memoryCandidates: Array<{
+    text: string;
+    reason: string;
+    sourceRefs: SourceRef[];
+    confidence: number;
+  }>;
+  unresolvedRefs: SourceRef[];
+  inputStats: {
+    evidenceCount: number;
+    perceptionCount: number;
+    closureCount: number;
+    duplicateCount: number;
+    truncated: boolean;
+  };
 }
 
 interface DreamConsolidationRun {
@@ -226,18 +246,25 @@ stateDiagram-v2
     [*] --> QuietInputReady
     QuietInputReady --> QuietCompleted: review written
     QuietInputReady --> QuietBlocked: no readable inputs or validation failure
-    QuietCompleted --> DreamScheduled
-    DreamScheduled --> DreamStarted
-    DreamStarted --> DreamCompleted: candidate generated
-    DreamStarted --> DreamBlocked: redaction/model/input blocked
-    DreamStarted --> DreamFailed: execution failure
-    DreamCompleted --> CandidateValidated
-    CandidateValidated --> ProjectionAccepted
-    CandidateValidated --> CandidateRejected
-    ProjectionAccepted --> ProjectionActive
-    ProjectionActive --> ProjectionSuperseded
-    ProjectionActive --> ProjectionRetired
+  QuietCompleted --> DreamScheduled
+  DreamScheduled --> DreamStarted
+  DreamStarted --> DreamCompleted: candidate generated
+  DreamStarted --> DreamBlocked: redaction/model/input blocked
+  DreamStarted --> DreamFailed: execution failure
+  DreamCompleted --> CandidateValidated
+  CandidateValidated --> ProjectionAccepted
+  CandidateValidated --> CandidateRejected
+  ProjectionAccepted --> ProjectionActive
+  ProjectionActive --> ProjectionSuperseded
+  ProjectionActive --> ProjectionRetired
 ```
+
+### 6.4 Dream Periodicity
+
+- Quiet runs daily after the first closure of the day.
+- Dream runs no more frequently than the configured `dreamIntervalDays` (default 7 days), or on manual force.
+- A scheduled Dream run must move to `started` within a bounded time; stale `scheduled` runs are surfaced by `loop_status` as `dream_scheduled_stalled`.
+- Long-term memory projection is formed from a window of Quiet reviews, not from a single heartbeat.
 
 ## 7. 技术选型 (Technology Stack)
 
@@ -282,6 +309,7 @@ stateDiagram-v2
 | real-time noise 污染长期记忆 | High | only Quiet/Dream accepted candidate can project memory。 |
 | Dream failure 静默丢失 | High | scheduled/started/failed/blocked/completed durable trace。 |
 | supersession 缺失导致记忆冲突 | Medium | projection lifecycle requires `supersedesProjectionId` when replacing same fact。 |
+| Dream run 长期停留在 scheduled | High | `loop_status` surfaces `dream_scheduled_stalled`; runner transitions stale scheduled runs to `failed` on next attempt. |
 
 ## 10. 性能考虑 (Performance Considerations)
 
@@ -293,22 +321,24 @@ stateDiagram-v2
 
 ### 11.1 Unit Testing
 
-- Quiet review consumes closure records and important perception refs。
-- Dream validation rejects candidate without source refs。
-- Projection supersession moves old active projection to superseded。
+- Quiet review consumes closure records, important perception refs, and evidence summaries.
+- Quiet review builds readable `reviewSummary` and `notableSignals`, not template placeholders.
+- Dream validation rejects candidate without source refs.
+- Projection supersession moves old active projection to superseded.
+- Stale `scheduled` Dream run is surfaced as `dream_scheduled_stalled` in health.
 
 ### 11.2 Integration Testing
 
-- closure + perception day slice -> QuietDailyReview -> Dream candidate -> accepted projection。
-- redaction blocked Dream -> explicit blocked output and health event。
-- accepted projection loaded into EmbodiedContext through state read model。
+- closure + perception + evidence day slice -> `QuietDailyReview` with content-bearing payload -> `DreamConsolidationRun` moves to started -> candidate memory -> accepted projection.
+- redaction blocked Dream -> explicit blocked output and health event.
+- accepted projection loaded into EmbodiedContext through state read model.
 
 ### 11.3 Contract Verification Matrix
 
 | 契约 | 风险级别 | 正常态验证 | 失败态验证 | 回归责任 |
 | --- | --- | --- | --- | --- |
-| `runQuietDailyReview` | P0 | closure inputs produce review | empty/unreadable input writes blocked reason | quiet integration |
-| `runDreamConsolidation` | P0 | review produces candidate | redaction/model failure records blocked/failed | dream integration |
+| `runQuietDailyReview` | P0 | closure + evidence inputs produce readable review with memory candidates | empty/unreadable input writes blocked reason | quiet integration |
+| `runDreamConsolidation` | P0 | review produces candidate; run status advances from scheduled to started to completed/blocked/failed | redaction/model failure records blocked/failed; stale scheduled surfaced | dream integration |
 | `projectAcceptedMemory` | P0 | accepted candidate becomes active projection | duplicate fact supersedes old projection | projection unit |
 
 ## 12. 部署与运维 (Deployment & Operations)
@@ -319,6 +349,7 @@ N/A - 内部 async pipeline；manual trigger 和 status 由 `runtime-ops-system`
 
 - 可引入 richer memory conflict resolution，但必须保留 source refs 和 supersession。
 - 可扩展 quiet review 到 multiple daily windows，但仍必须产生单一 day-level consolidation input。
+- 可借鉴 MiMo Code 的 Dream/Distill 周期模型：Dream 7 天 consolidation，Distill 30 天 workflow packaging。SN v8 先实现 Dream 7 天周期与每日 Quiet review。
 
 ## 14. Appendix (附录)
 
@@ -327,6 +358,7 @@ N/A - 内部 async pipeline；manual trigger 和 status 由 `runtime-ops-system`
 - [_research/dream-quiet-memory-system-research.md](./_research/dream-quiet-memory-system-research.md)
 - [dream-quiet-memory-system.detail.md](./dream-quiet-memory-system.detail.md)
 - [shared-v8-contracts.md](./shared-v8-contracts.md)
+- [MiMo Code Dream/Distill Workflows](https://zread.ai/XiaomiMiMo/MiMo-Code/11-dream-and-distill-workflows), accessed 2026-06-14
 
 ### 14.2 未决问题
 

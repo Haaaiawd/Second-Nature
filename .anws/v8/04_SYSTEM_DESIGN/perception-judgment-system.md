@@ -123,6 +123,8 @@ sequenceDiagram
 **关键数据流说明**:
 1. Evidence 先形成 `PerceptionCard`，再进入 judgment；不得从 raw connector result 直接生成 write action。
 2. `JudgmentVerdict` 可以是 ignore/watch/no_action，仍要写入 reason，供 closure 与 health 使用。
+3. `PerceptionCard.summary/topic/entities` 必须从 `EvidenceItem.payloadJson` 中 content-bearing 字段提取；空壳 ref-only evidence 必须标记 `perception_rules_only` 或 `evidence_content_missing`。
+4. EvidenceBatchSelector 按 `externalId`/`contentHash` 去重，更新 novelty class 为 `duplicate` 或 `stale`，而不是重复生成卡片。
 
 ## 5. 接口设计 (Interface Design)
 
@@ -130,7 +132,7 @@ sequenceDiagram
 
 | 操作 | [REQ] | 前置条件 | 消耗/输入 | 产出/副作用 | 实现细节 |
 | --- | :---: | --- | --- | --- | --- |
-| `buildPerceptionCards(cycleId)` | [REQ-002], [REQ-007] | pending evidence exists; state readable | EvidenceItem batch, goals, memory projection | writes `PerceptionCard[]` or `perception_rules_only`/stall reason | [L1 §3.1](./perception-judgment-system.detail.md#31-buildperceptioncards) |
+| `buildPerceptionCards(cycleId)` | [REQ-002], [REQ-007] | pending evidence exists; state readable | EvidenceItem batch, goals, memory projection | writes `PerceptionCard[]` or `perception_rules_only`/stall reason; consumes `payloadJson.summary/excerpt/entities/tags` | [L1 §3.1](./perception-judgment-system.detail.md#31-buildperceptioncards) |
 | `classifyEvidenceSensitivity(evidenceId)` | [REQ-007] | evidence has text or metadata summary | content shape, field context, source kind | risk flags and `sensitivityClass` | [L1 §3.2](./perception-judgment-system.detail.md#32-classifyevidencesensitivity) |
 | `runAgentJudgment(perceptionCardId)` | [REQ-003] | perception card has source refs | perception, goals, affordance, memory | writes `JudgmentVerdict` | [L1 §3.3](./perception-judgment-system.detail.md#33-runagentjudgment) |
 | `emitPerceptionJudgmentHealth(cycleId)` | [REQ-008] | stage outcome exists | stage result, latency, reason | stage events for loop health | [L1 §3.4](./perception-judgment-system.detail.md#34-emitperceptionjudgmenthealth) |
@@ -161,20 +163,37 @@ N/A - 本系统不暴露 HTTP API；由 runtime ops/control-plane 通过内部 p
 ```ts
 type SensitivityClass = "public_technical" | "public_general" | "private_context" | "sensitive";
 
+type NoveltyClass = "new" | "changed" | "duplicate" | "stale";
+type RelevanceClass = "low" | "medium" | "high";
+type ReviewPriority = "low" | "medium" | "high";
+
+interface EvidenceItem {
+  id: string;
+  platformId: string;
+  contentHash: string;
+  observedAt: string;
+  sensitivityHint?: string;
+  sourceRefs: SourceRef[];
+  payloadJson?: string | null;
+  lifecycleStatus: "pending" | "perceived" | "archived";
+}
+
 interface PerceptionCard {
   id: string;
   cycleId: string;
   evidenceRefs: SourceRef[];
   topic: string;
   entities: string[];
-  novelty: "new" | "changed" | "duplicate" | "stale";
-  relevance: "low" | "medium" | "high";
+  novelty: NoveltyClass;
+  relevance: RelevanceClass;
   summary: string;
   possibleIntents: PlatformNeutralActionKind[];
-  reviewPriority?: "low" | "medium" | "high";
+  reviewPriority?: ReviewPriority;
   riskFlags: string[];
   confidence: number;
   createdAt: string;
+  /** True when the evidence payload lacked readable content and only refs are present. */
+  contentMissing?: boolean;
 }
 
 interface JudgmentVerdict {
@@ -291,18 +310,20 @@ stateDiagram-v2
 - public technical fixture 中包含 `token`、`secret`、`credential` 词汇但无真实值时 classified as `public_technical`。
 - `Bearer <high-entropy-token>`、private key header、assignment-like secret 被标记 sensitive。
 - 低 confidence 或缺 source refs 的 judgment 不产生 external write action。
+- Ref-only evidence produces `contentMissing=true` perception or rules-only stall reason.
+- Duplicate evidence by `externalId`/`contentHash` updates novelty to `duplicate`/`stale`.
 
 ### 11.2 Integration Testing
 
-- MoltBook read fixture -> `EvidenceItem` -> `PerceptionCard` -> `JudgmentVerdict`。
-- ModelAssistPort timeout -> rules-only perception -> stage event emitted。
-- Duplicate evidence -> one aggregated perception card。
+- MoltBook read fixture -> `EvidenceItem` (content-bearing payload) -> `PerceptionCard` -> `JudgmentVerdict`.
+- ModelAssistPort timeout -> rules-only perception -> stage event emitted.
+- Duplicate evidence -> one aggregated perception card.
 
 ### 11.3 Contract Verification Matrix
 
 | 契约 | 风险级别 | 正常态验证 | 失败态验证 | 回归责任 |
 | --- | --- | --- | --- | --- |
-| `buildPerceptionCards` | P0 | Evidence batch produces cards with source refs | model unavailable returns rules-only reason | perception unit + integration |
+| `buildPerceptionCards` | P0 | Evidence batch produces cards with source refs and readable summary | model unavailable returns rules-only reason; ref-only evidence returns content_missing | perception unit + integration |
 | `runAgentJudgment` | P0 | high relevance card produces sourced verdict | missing source refs downgrades to ignore/watch | judgment unit |
 | sensitivity classification | P1 | public technical stays non-sensitive | credential-shaped value blocks raw exposure | classifier fixtures |
 

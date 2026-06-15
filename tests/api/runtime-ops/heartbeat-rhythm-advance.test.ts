@@ -37,8 +37,8 @@ describe("heartbeat-rhythm-advance API", () => {
         "quiet should be completed or skipped"
       );
       assert.ok(
-        ["scheduled", "blocked"].includes(result.v8Spine?.rhythmState?.dreamStatus ?? ""),
-        "dream should be scheduled or blocked"
+        ["completed", "blocked"].includes(result.v8Spine?.rhythmState?.dreamStatus ?? ""),
+        "dream should be completed or blocked"
       );
 
       const rhythm = await readDailyRhythmStateByDay(db, day);

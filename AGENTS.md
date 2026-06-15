@@ -84,8 +84,8 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-13` (v0.2.6 patch — CLI state flush, narrative:diff UX, setup CLI parity, E2E guide)
-- **当前波次**: Wave 108 + v0.2.6 patch
+- **最近一次更新**: `2026-06-15` (Wave 109 — Content-Bearing Evidence and Memory Activation Repair completed; v0.2.6 plugin rebuilt)
+- **当前波次**: Wave 109
 - **下一步**: 等待用户指令进入发布 / 下一轮 / 实机 E2E 回填
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
@@ -240,6 +240,29 @@ T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3
 - **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；Wave 108 targeted 79/79 PASS（含 INT-V8 + declarative-http 回归）；`real-runtime-living-loop` 2/2 PASS
 - **最高严重度**: none blocking (H-1, H-2, H-3 fixed during review; M-1, M-3, M-4 fixed; M-2 + generic connector target derivation accepted residual)
 - **下一步**: 等待用户指令进入发布 / 下一轮
+
+### 🌊 Wave 109 🧭 — v8 Change: Content-Bearing Evidence and Memory Activation Repair
+T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5, INT-R4
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 109 全部完成（T-CS.R.4 + T-CS.R.5 + T-PJ.R.2 + T-DQ.R.6 + T-DQ.R.7 + T-OBS.R.5 + INT-R4）
+- **产出**:
+  - `src/connectors/base/normalized-evidence-content.ts` — generic `NormalizedEvidenceContent` envelope + extractor
+  - `src/connectors/evidence-normalizer.ts` — content-bearing v8 `EvidenceItem` dedup + upsert (v7 double-write preserved)
+  - `src/core/second-nature/heartbeat/heartbeat-loop.ts` — v8 evidence normalization double-write after v7 append
+  - `src/core/second-nature/perception/perception-builder.ts` — content-bearing perception + lifecycle advance to `perceived`
+  - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts` — readable daily review from evidence/perception/closure rows
+  - `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts` — immediate Dream execution, 7-day interval, stale repair
+  - `src/storage/services/write-validation-gate.ts` — UUID/identifier exemption + field-level attribution
+  - `src/storage/db/migrations/v8-003-quiet-closure-refs.ts` — no-op migration (bootstrap schema already includes column)
+  - `src/cli/commands/index.ts` — `connector_status` CLI registration (fixes plugin bridge v6 ops surface)
+  - `tests/integration/v8/content-bearing-living-loop.test.ts` — INT-R4 4 cases
+  - `reports/int-r4-v8-content-bearing-loop.md` — INT-R4 verification report
+  - `.anws/v8/wave-reviews/wave-109-review.md` — code review report, final verdict Pass
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；INT-R4 4/4 PASS；Wave 109 targeted unit 24/24 PASS；Wave 108 regression 9/9 PASS；`plugin-workspace-ops-bridge` 17/17 PASS；`proof-memory-closure` 6/6 PASS；`real-runtime-quiet-dream-advance` 3/3 PASS；`quiet-dream-runtime-chain` 4/4 PASS；`heartbeat-rhythm-advance` 2/2 PASS；`commands.test.ts` narrative:diff 5/5 PASS
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: 等待用户指令进入发布 / 下一轮 / 实机 E2E 回填
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2

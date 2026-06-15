@@ -51,6 +51,7 @@ import { updateNarrativeAfterEffect } from "../orchestrator/narrative-update.js"
 import type { NarrativeTracePayload } from "../../../observability/services/lived-experience-audit.js";
 import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
+import { normalizeConnectorEvidence } from "../../../connectors/evidence-normalizer.js";
 import type { ExperienceWriter } from "../body/tool-experience/experience-writer.js";
 import type { QuietDreamSchedulePort } from "../quiet/run-source-backed-quiet.js";
 import type { AppendOnlyAuditStore } from "../../../observability/audit/append-only-audit-store.js";
@@ -216,6 +217,20 @@ export async function resolveAllowedIntentResult(
         // Missing evidence will be reflected in the next snapshot load.
         const errorMessage = err instanceof Error ? err.message : String(err);
         console.warn(`[heartbeat] evidence append failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
+      }
+
+      // Wave 109 T-CS.R.5: also normalize into v8 EvidenceItem with content-bearing payload.
+      try {
+        await normalizeConnectorEvidence(deps.state, {
+          status: "success",
+          platformId: intent.platformId,
+          capabilityId: toCapabilityIntent(intent),
+          data: result.data,
+          observedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.warn(`[heartbeat] v8 evidence normalization failed for ${intent.platformId ?? "unknown"}: ${errorMessage}`);
       }
     }
 

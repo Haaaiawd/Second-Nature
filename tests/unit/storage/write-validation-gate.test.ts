@@ -38,6 +38,7 @@ describe("WriteValidationGate — sensitive field detection", () => {
       result.reason,
       "write_validation_failed:token_detected" as WriteValidationFailureReason,
     );
+    assert.strictEqual(result.field, "apiToken");
   });
 
   it("rejects payload with raw_private_content field", () => {

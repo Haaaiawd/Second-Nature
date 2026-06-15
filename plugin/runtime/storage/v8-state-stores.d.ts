@@ -42,12 +42,26 @@ export declare function readEvidenceItemsByStatus(db: StateDatabase, lifecycleSt
     rows: EvidenceItemRecord[];
     degraded?: DegradedOperationResult;
 }>;
+export declare function readEvidenceItemsByDay(db: StateDatabase, day: string): Promise<{
+    rows: EvidenceItemRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function updateEvidenceItemLifecycleStatus(db: StateDatabase, id: string, lifecycleStatus: EvidenceItemRecord["lifecycleStatus"]): Promise<{
+    id: string;
+} | DegradedOperationResult>;
+export declare function readEvidenceItemById(db: StateDatabase, id: string): Promise<{
+    row: EvidenceItemRecord | undefined;
+} | DegradedOperationResult>;
 export declare function writePerceptionCard(db: StateDatabase, row: Omit<NewPerceptionCardRecord, "sourceRefsJson"> & {
     sourceRefs: SourceRef[];
 }): Promise<{
     id: string;
 } | DegradedOperationResult>;
 export declare function readPerceptionCardsByCycle(db: StateDatabase, cycleId: string): Promise<{
+    rows: PerceptionCardRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function readPerceptionCardsByDay(db: StateDatabase, day: string): Promise<{
     rows: PerceptionCardRecord[];
     degraded?: DegradedOperationResult;
 }>;
@@ -97,6 +111,17 @@ export declare function readQuietDailyReviewsByDay(db: StateDatabase, day: strin
 }>;
 export declare function writeDreamConsolidationRun(db: StateDatabase, row: Omit<NewDreamConsolidationRunRecord, "sourceRefsJson"> & {
     sourceRefs: SourceRef[];
+}): Promise<{
+    id: string;
+} | DegradedOperationResult>;
+/**
+ * Update an existing DreamConsolidationRun status and payload without
+ * primary-key conflict. Used by the scheduler after consolidation completes.
+ */
+export declare function updateDreamConsolidationRunStatus(db: StateDatabase, id: string, status: DreamConsolidationRunRecord["status"], options?: {
+    reason?: DreamConsolidationRunRecord["reason"];
+    lifecycleStatus?: DreamConsolidationRunRecord["lifecycleStatus"];
+    payloadJson?: string;
 }): Promise<{
     id: string;
 } | DegradedOperationResult>;

@@ -449,6 +449,15 @@ export function createCliCommands(deps) {
                 return surface;
             },
         },
+        {
+            name: "connector_status",
+            description: "T1.2.5 — show connector inventory status, trust, and health conflicts",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("connector_status", input));
+                flush();
+                return surface;
+            },
+        },
         opsCommand("connector:run", "T-ROS.C.3 — manually execute a connector capability outside heartbeat cadence"),
         opsCommand("loop_status", "T-ROS.C.1 — show v8 causal loop health: stalled stage, next action, and stage summaries"),
         opsCommand("self_health", "T-ROS.C.1 — show v7 self-health snapshot and degraded dimensions"),

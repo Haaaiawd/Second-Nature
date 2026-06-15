@@ -23,6 +23,8 @@ export interface WriteValidationResult {
     ok: boolean;
     reason?: WriteValidationFailureReason;
     details?: string;
+    field?: string;
+    pattern?: string;
 }
 export interface WriteValidationGateOptions {
     /** If true, fact-claim-like payloads require sourceRefs. Default true. */

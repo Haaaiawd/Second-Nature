@@ -95,3 +95,46 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - **Guardrails**: No `05A` checkbox backfill, no `[REQ-*]` binding changes, no PRD or ADR premise edits.
 - **Code review**: `.anws/v8/wave-reviews/wave-108-review.md` — H-1 fixed during review, final verdict Pass.
 - **Test Results**: 57/57 Wave 108 targeted tests PASS (0 fail); `pnpm typecheck` ✅; `pnpm build` ✅.
+
+## Wave 109 — Content-Bearing Evidence and Memory Activation Repair — 2026-06-14
+
+- **Change source**: Deep diagnostic report (2026-06-14) found SN heartbeat stable but producing ref-only evidence, v8 `evidence_item` table empty, Quiet artifacts filled with template text, Dream runs stuck at `scheduled/pending`, sensitivity scan killing UUIDs, and 83.8% duplicate sourceRef entries.
+- **External reference**: MiMo Code Dream/Distill workflows (`https://zread.ai/XiaomiMiMo/MiMo-Code/11-dream-and-distill-workflows`, accessed 2026-06-14) informed Dream periodicity and raw-history-as-source-of-truth constraints.
+- **Classification**: `/change` controlled extension inside v8; no PRD/ADR premise change. Design docs updated to reflect the new evidence envelope and Dream lifecycle invariants.
+- **Tasks completed**:
+  - `T-CS.R.4` — Added generic `NormalizedEvidenceContent` envelope and platform-agnostic extractor in `src/connectors/base/normalized-evidence-content.ts`.
+  - `T-CS.R.5` — Real heartbeat now double-writes content-bearing v8 `EvidenceItem` (v7 `LifeEvidence` preserved); dedupe by `(platformId, capabilityId, externalId)` then `contentHash`; idempotent upsert refreshes `observedAt`/`seenCount`.
+  - `T-PJ.R.2` — `perception-builder.ts` reads `payloadJson.summary/title/entities`, marks `contentMissing`, lowers confidence to 0.3 for missing content, advances `EvidenceItem.lifecycleStatus` to `perceived`.
+  - `T-DQ.R.6` — `quiet-daily-review-builder.ts` loads daily `EvidenceItem`/`PerceptionCard` rows and produces readable sections (`headline`, `completed`, `deferred`, `failed`, `memory_candidates`, `notable_signals`).
+  - `T-DQ.R.7` — `daily-rhythm-scheduler.ts` executes Dream immediately after scheduling, enforces 7-day minimum interval, repairs stale scheduled runs after 5 minutes, adds `dream_scheduled_stalled` reason code.
+  - `T-OBS.R.5` — `write-validation-gate.ts` exempts UUIDs and identifier/URI fields; failures now report offending `field` + `pattern`.
+  - `INT-R4` — Content-Bearing Living Loop Gate passed.
+- **Additional fixes discovered during regression**:
+  - `connector_status` CLI command was registered in ops-router but missing from `src/cli/commands/index.ts`; added so the v6 ops surface works through the plugin bridge.
+  - Tests updated to expect immediate Dream `completed` status (T-DQ.R.7): `quiet-dream-runtime-chain.test.ts`, `heartbeat-rhythm-advance.test.ts`, `real-runtime-quiet-dream-advance.test.ts`.
+  - `narrative:diff` test aligned with v0.2.6 auto-resolve behavior.
+  - `v8-003-quiet-closure-refs` migration made a no-op because bootstrap schema already includes `closure_refs_json`.
+- **Design doc updates**:
+  - `04_SYSTEM_DESIGN/connector-system.md` — added `NormalizedEvidenceContent` envelope, dedupe rules, rawContentRef policy.
+  - `04_SYSTEM_DESIGN/state-memory-system.md` — added UUID/sourceRef exemption and content-bearing payload guidance.
+  - `04_SYSTEM_DESIGN/perception-judgment-system.md` — added content-bearing evidence consumption, duplicate/stale novelty, `contentMissing` flag.
+  - `04_SYSTEM_DESIGN/dream-quiet-memory-system.md` — added `QuietReviewPayload`, Dream 7-day periodicity, stale scheduled repair.
+  - `04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md` — updated constants, reason codes, lifecycle invariants, test fixtures.
+- **Verification plan updated**: Added Wave 109 task entries, `INT-R4` integration gate, and contract coverage rows; all Wave 109 gates checked.
+- **Test results**:
+  - `INT-R4` 4/4 PASS
+  - `runtime-recovery-closure` 9/9 PASS (Wave 108 regression)
+  - Wave 109 targeted unit tests 24/24 PASS
+  - `quiet-dream-runtime-chain` 4/4 PASS
+  - `heartbeat-rhythm-advance` 2/2 PASS
+  - `plugin-workspace-ops-bridge` (v6 ops) 17/17 PASS
+  - `proof-memory-closure` 6/6 PASS
+  - `real-runtime-quiet-dream-advance` 3/3 PASS
+  - `commands.test.ts` narrative:diff 5/5 PASS
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅
+- **Artifacts**:
+  - `reports/int-r4-v8-content-bearing-loop.md` — INT-R4 verification report.
+  - `.anws/v8/wave-reviews/wave-109-review.md` — code review verdict Pass.
+- **Guardrails**: No `[REQ-*]` binding changes, no ADR premise edits, no destructive v7 migration.
+
+---

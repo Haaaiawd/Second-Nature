@@ -1,7 +1,7 @@
 /**
  * PerceptionBuilder — Generate PerceptionCard records from EvidenceItem batches.
  *
- * Core logic: Read pending evidence, deduplicate by content hash, build
+ * Core logic: Read pending evidence, deduplicate by externalId/content hash, build
  * PerceptionCard with topic, entities, novelty, relevance, summary, risk
  * flags, confidence, and reviewPriority. Rules-only fallback when model
  * assist is unavailable.
@@ -51,6 +51,8 @@ export interface PerceptionCardResult {
     confidence: number;
     evidenceRefs: SourceRef[];
     createdAt: string;
+    /** True when the evidence payload lacked readable content and only refs are present. */
+    contentMissing?: boolean;
 }
 export interface BuildPerceptionCardsResult {
     status: "completed" | "rules_only" | "blocked" | "empty" | "degraded";

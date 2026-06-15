@@ -61,9 +61,9 @@ describe("daily-rhythm-scheduler", () => {
         assert.equal(result.state.quietStatus, "completed");
         assert.equal(result.state.quietReason, "quiet_completed");
         assert.ok(result.state.quietCompletedAt);
-        // Dream should be scheduled after Quiet
-        assert.equal(result.state.dreamStatus, "scheduled");
-        assert.equal(result.state.dreamReason, "dream_scheduled");
+        // Dream is scheduled and immediately executed after Quiet (T-DQ.R.7)
+        assert.equal(result.state.dreamStatus, "completed");
+        assert.equal(result.state.dreamReason, "dream_completed");
       }
     } finally {
       db.close();
@@ -105,7 +105,7 @@ describe("daily-rhythm-scheduler", () => {
       assert.equal(r2.status, "checked");
       if (r2.status === "checked") {
         assert.equal(r2.state.quietStatus, "completed");
-        assert.equal(r2.state.dreamStatus, "scheduled");
+        assert.equal(r2.state.dreamStatus, "completed");
       }
     } finally {
       db.close();

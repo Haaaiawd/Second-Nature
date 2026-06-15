@@ -192,6 +192,7 @@ const STATE_SCHEMA_SQL = `
     payload_json TEXT,
     lifecycle_status TEXT NOT NULL DEFAULT 'pending'
   );
+  CREATE UNIQUE INDEX IF NOT EXISTS evidence_item_platform_content_hash_idx ON evidence_item(platform_id, content_hash);
   CREATE TABLE IF NOT EXISTS perception_card (
     id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,
@@ -246,6 +247,7 @@ const STATE_SCHEMA_SQL = `
     closure_count INTEGER NOT NULL DEFAULT 0,
     memory_candidate_count INTEGER NOT NULL DEFAULT 0,
     source_refs_json TEXT NOT NULL,
+    closure_refs_json TEXT,
     redaction_class TEXT NOT NULL DEFAULT 'none',
     payload_json TEXT,
     lifecycle_status TEXT NOT NULL DEFAULT 'pending'

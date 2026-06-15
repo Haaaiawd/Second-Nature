@@ -4,29 +4,137 @@
  * Core logic: Check if today's Quiet review is due (closures exist but no review
  * yet), schedule/run it, then check Dream status. Records durable states so
  * loop_status can report exact missing stages even when heartbeat does not
- * select a quiet intent.
+ * select a quiet intent. Also executes stale Dream consolidation runs that
+ * were left at "scheduled" because no runner picked them up.
  *
  * Design authority:
  * - `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`
  * - `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`
  *
  * Dependencies:
- * - `src/storage/v8-state-stores.js` (write/read DailyRhythmState)
+ * - `src/storage/v8-state-stores.js` (write/read DailyRhythmState, readDreamConsolidationRunById, writeDreamConsolidationRun)
  * - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.js`
  * - `src/core/second-nature/quiet-dream/dream-scheduler.js`
+ * - `src/core/second-nature/quiet-dream/dream-consolidation-runner.js`
  *
  * Boundary:
- * - Does not run consolidation; only schedules and records lifecycle.
+ * - Schedules and records lifecycle; additionally executes stale scheduled runs
+ *   so `dreamStatus` reaches completed/blocked.
  * - Does not bypass Dream runner; only records due/completed/blocked.
  */
-import { writeDailyRhythmState, readDailyRhythmStateByDay, readActionClosuresByDay, } from "../../../storage/v8-state-stores.js";
+import { writeDailyRhythmState, readDailyRhythmStateByDay, readActionClosuresByDay, readDreamConsolidationRunById, readDreamConsolidationRunsByQuietId, updateDreamConsolidationRunStatus, } from "../../../storage/v8-state-stores.js";
 import { buildQuietDailyReview } from "./quiet-daily-review-builder.js";
 import { scheduleDreamAfterQuiet } from "./dream-scheduler.js";
+import { runDreamConsolidation } from "./dream-consolidation-runner.js";
+// ───────────────────────────────────────────────────────────────
+// Config
+// ───────────────────────────────────────────────────────────────
+const DREAM_DEFAULT_INTERVAL_DAYS = 7;
+const STALE_SCHEDULED_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
 function todayString(now) {
     return now.slice(0, 10);
+}
+function parsePayloadJson(json) {
+    if (!json)
+        return {};
+    try {
+        return JSON.parse(json);
+    }
+    catch {
+        return {};
+    }
+}
+function isWithinDays(isoDate, now, days) {
+    const then = new Date(isoDate).getTime();
+    const current = new Date(now).getTime();
+    if (Number.isNaN(then) || Number.isNaN(current))
+        return false;
+    return current - then < days * 24 * 60 * 60 * 1000;
+}
+function isStaleScheduled(run, now) {
+    const created = new Date(run.createdAt).getTime();
+    const current = new Date(now).getTime();
+    if (Number.isNaN(created) || Number.isNaN(current))
+        return false;
+    return current - created > STALE_SCHEDULED_THRESHOLD_MS;
+}
+async function loadLatestDreamRunForQuiet(db, quietId) {
+    const runsRead = await readDreamConsolidationRunsByQuietId(db, quietId);
+    if (runsRead.degraded) {
+        return { degraded: runsRead.degraded };
+    }
+    return { row: runsRead.rows[0] };
+}
+async function executeStaleScheduledDreams(db, state, now) {
+    // Look for any scheduled dream runs for today and execute them.
+    const quietId = `quiet_${state.day}`;
+    const knownRunIds = [];
+    // Direct lookup by quiet review id is more reliable than rhythm payload cache.
+    const runsRead = await readDreamConsolidationRunsByQuietId(db, quietId);
+    if (runsRead.degraded) {
+        return runsRead.degraded;
+    }
+    for (const run of runsRead.rows) {
+        knownRunIds.push(run.id);
+    }
+    // Also read the rhythm payload for any ids that may have been recorded before.
+    const rhythmRead = await readDailyRhythmStateByDay(db, state.day);
+    if (!rhythmRead.degraded && rhythmRead.row?.payloadJson) {
+        const payload = parsePayloadJson(rhythmRead.row.payloadJson);
+        if (payload.dreamRunId) {
+            knownRunIds.push(String(payload.dreamRunId));
+        }
+        if (Array.isArray(payload.dreamRunIds)) {
+            knownRunIds.push(...payload.dreamRunIds);
+        }
+    }
+    const uniqueRunIds = [...new Set(knownRunIds)];
+    if (uniqueRunIds.length === 0) {
+        return { completed: false };
+    }
+    let lastResult = { completed: false };
+    for (const runId of uniqueRunIds) {
+        const runRead = await readDreamConsolidationRunById(db, runId);
+        if (runRead.degraded) {
+            return runRead.degraded;
+        }
+        const run = runRead.row;
+        if (!run)
+            continue;
+        if ((run.status === "scheduled" || run.status === "started") && isStaleScheduled(run, now)) {
+            const consolidateResult = await runDreamConsolidation(db, runId, { now });
+            if ("status" in consolidateResult && consolidateResult.status !== "degraded") {
+                const dreamResult = consolidateResult;
+                const finalStatus = dreamResult.status;
+                const finalReason = dreamResult.reason ?? undefined;
+                const updateResult = await updateDreamConsolidationRunStatus(db, runId, finalStatus, {
+                    reason: finalReason ?? null,
+                    lifecycleStatus: finalStatus === "completed" ? "completed" : "archived",
+                    payloadJson: JSON.stringify({
+                        ...parsePayloadJson(run.payloadJson),
+                        consolidatedAt: now,
+                        candidateCount: dreamResult.candidates.length,
+                        staleRepairedAt: now,
+                    }),
+                });
+                if ("reason" in updateResult) {
+                    return updateResult;
+                }
+                lastResult = { completed: true, reason: finalReason ?? "dream_scheduled_stalled" };
+            }
+            else {
+                const degraded = consolidateResult;
+                return degraded;
+            }
+        }
+        else if (run.status === "completed") {
+            lastResult = { completed: true, reason: run.reason ?? undefined };
+        }
+    }
+    return lastResult;
 }
 // ───────────────────────────────────────────────────────────────
 // Public API
@@ -90,33 +198,96 @@ export async function checkDailyRhythm(db, options) {
             }
         }
     }
+    // Track scheduled dream run ids across attempts
+    const dreamRunIds = [];
     // Determine Dream status based on Quiet outcome
     if (state.quietStatus === "completed") {
-        if (state.dreamStatus === "completed" ||
-            state.dreamStatus === "scheduled" ||
-            state.dreamStatus === "blocked") {
+        if (state.dreamStatus === "completed") {
+            // Already completed; nothing to do
+        }
+        else if (state.dreamStatus === "scheduled") {
+            // Stale scheduled run: try to execute consolidation now
+            const staleResult = await executeStaleScheduledDreams(db, state, now);
+            if ("status" in staleResult && staleResult.status === "degraded") {
+                return staleResult;
+            }
+            const { completed, reason } = staleResult;
+            if (completed) {
+                state.dreamStatus = "completed";
+                state.dreamReason = reason ?? "dream_completed";
+                state.dreamCompletedAt = now;
+            }
+            else {
+                // Still cannot locate/run scheduled dream; remain scheduled
+                state.dreamReason = state.dreamReason ?? "dream_scheduled";
+            }
+        }
+        else if (state.dreamStatus === "blocked") {
             // Already handled; do not re-schedule
         }
         else {
-            state.dreamStatus = "due";
-            state.dreamReason = "dream_scheduled";
-            // Schedule Dream
             const quietId = `quiet_${day}`;
-            const dreamResult = await scheduleDreamAfterQuiet(db, quietId, {
-                now,
-                schedulerAvailable: options?.schedulerAvailable ?? true,
-            });
-            if ("reason" in dreamResult) {
-                state.dreamStatus = "blocked";
-                state.dreamReason = dreamResult.reason;
+            const latestRun = await loadLatestDreamRunForQuiet(db, quietId);
+            if (latestRun.degraded) {
+                return latestRun.degraded;
             }
-            else if (dreamResult.status === "blocked") {
-                state.dreamStatus = "blocked";
-                state.dreamReason = dreamResult.reason ?? "dream_scheduler_unavailable";
+            // If a completed/blocked run already exists within the 7-day interval, honor it.
+            if (latestRun.row &&
+                (latestRun.row.status === "completed" || latestRun.row.status === "blocked") &&
+                isWithinDays(latestRun.row.createdAt, now, DREAM_DEFAULT_INTERVAL_DAYS)) {
+                state.dreamStatus = latestRun.row.status;
+                state.dreamReason = latestRun.row.reason ?? "dream_completed";
+                if (latestRun.row.status === "completed") {
+                    state.dreamCompletedAt = now;
+                }
             }
             else {
-                state.dreamStatus = "scheduled";
+                state.dreamStatus = "due";
                 state.dreamReason = "dream_scheduled";
+                // Schedule Dream
+                const dreamResult = await scheduleDreamAfterQuiet(db, quietId, {
+                    now,
+                    schedulerAvailable: options?.schedulerAvailable ?? true,
+                });
+                if ("reason" in dreamResult) {
+                    state.dreamStatus = "blocked";
+                    state.dreamReason = dreamResult.reason;
+                }
+                else if (dreamResult.status === "blocked") {
+                    state.dreamStatus = "blocked";
+                    state.dreamReason = dreamResult.reason ?? "dream_scheduler_unavailable";
+                }
+                else {
+                    state.dreamStatus = "scheduled";
+                    state.dreamReason = "dream_scheduled";
+                    dreamRunIds.push(dreamResult.id);
+                    // Immediately execute the freshly scheduled dream so it does not sit
+                    // pending forever (T-DQ.R.7).
+                    const consolidateResult = await runDreamConsolidation(db, dreamResult.id, { now });
+                    if ("status" in consolidateResult && consolidateResult.status !== "degraded") {
+                        const dreamOutcome = consolidateResult;
+                        const updateResult = await updateDreamConsolidationRunStatus(db, dreamResult.id, dreamOutcome.status, {
+                            reason: dreamOutcome.reason ?? null,
+                            lifecycleStatus: dreamOutcome.status === "completed" ? "completed" : "archived",
+                            payloadJson: JSON.stringify({
+                                consolidatedAt: now,
+                                candidateCount: dreamOutcome.candidates.length,
+                            }),
+                        });
+                        if ("reason" in updateResult) {
+                            return updateResult;
+                        }
+                        state.dreamStatus = dreamOutcome.status === "completed" ? "completed" : "blocked";
+                        state.dreamReason = dreamOutcome.reason ?? (dreamOutcome.status === "completed" ? "dream_completed" : "dream_failed");
+                        if (dreamOutcome.status === "completed") {
+                            state.dreamCompletedAt = now;
+                        }
+                    }
+                    else {
+                        const degraded = consolidateResult;
+                        return degraded;
+                    }
+                }
             }
         }
     }
@@ -134,6 +305,11 @@ export async function checkDailyRhythm(db, options) {
         state.dreamReason = state.quietReason ?? "dream_blocked_redaction";
     }
     // Persist state
+    const payload = { checkedAt: now, hasClosures: closuresRead.rows.length };
+    if (dreamRunIds.length > 0) {
+        payload.dreamRunId = dreamRunIds[0];
+        payload.dreamRunIds = dreamRunIds;
+    }
     const writeResult = await writeDailyRhythmState(db, {
         id: `rhythm_${day}`,
         day,
@@ -152,7 +328,7 @@ export async function checkDailyRhythm(db, options) {
                 resolveStatus: "resolvable",
             },
         ],
-        payloadJson: JSON.stringify({ checkedAt: now, hasClosures: closuresRead.rows.length }),
+        payloadJson: JSON.stringify(payload),
         updatedAt: now,
     });
     if ("reason" in writeResult) {

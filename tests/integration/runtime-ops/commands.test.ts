@@ -490,11 +490,18 @@ describe("T-ROS.C.1 #5: narrative:diff", () => {
     assert.strictEqual(result.error?.code, "NARRATIVE_TIMELINE_PORT_UNAVAILABLE");
   });
 
-  it("returns ok=false + MISSING_VERSIONS when from/to absent", async () => {
+  it("returns ok=true + diff of two most recent versions when from/to absent", async () => {
     const router = createOpsRouter({ runtimeAvailable: true, narrativeTimelineDeps: makeNarrativeTimelineDeps() });
     const result = await router.dispatch("narrative:diff") as RuntimeOpsEnvelope;
+    assert.strictEqual(result.ok, true);
+    assert.ok(result.data && "changes" in (result.data as object), "diff must have changes");
+  });
+
+  it("returns ok=false + NARRATIVE_DIFF_REQUIRES_TWO_VERSIONS when fewer than two versions exist", async () => {
+    const router = createOpsRouter({ runtimeAvailable: true, narrativeTimelineDeps: makeNarrativeTimelineDeps(1) });
+    const result = await router.dispatch("narrative:diff") as RuntimeOpsEnvelope;
     assert.strictEqual(result.ok, false);
-    assert.strictEqual(result.error?.code, "MISSING_VERSIONS");
+    assert.strictEqual(result.error?.code, "NARRATIVE_DIFF_REQUIRES_TWO_VERSIONS");
   });
 
   it("returns ok=true + diff data for valid versions", async () => {

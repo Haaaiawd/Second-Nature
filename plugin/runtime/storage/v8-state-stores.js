@@ -73,7 +73,16 @@ export async function writeEvidenceItem(db, row) {
             ...row,
             sourceRefsJson: serializeSourceRefs(validated.record),
         };
-        await db.db.insert(evidenceItem).values(record);
+        await db.db
+            .insert(evidenceItem)
+            .values(record)
+            .onConflictDoUpdate({
+            target: [evidenceItem.platformId, evidenceItem.contentHash],
+            set: {
+                payloadJson: record.payloadJson,
+                observedAt: record.observedAt,
+            },
+        });
         return { id: row.id };
     }
     catch {
@@ -94,6 +103,47 @@ export async function readEvidenceItemsByStatus(db, lifecycleStatus) {
             rows: [],
             degraded: makeDegraded("state_unreadable", "ingestion", "Check state database connectivity"),
         };
+    }
+}
+export async function readEvidenceItemsByDay(db, day) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(evidenceItem)
+            .where(like(evidenceItem.observedAt, `${day}%`))
+            .orderBy(desc(evidenceItem.observedAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "ingestion", `Check state database connectivity for evidence day=${day}`),
+        };
+    }
+}
+export async function updateEvidenceItemLifecycleStatus(db, id, lifecycleStatus) {
+    try {
+        await db.db
+            .update(evidenceItem)
+            .set({ lifecycleStatus })
+            .where(eq(evidenceItem.id, id));
+        return { id };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "ingestion", `Retry evidence lifecycle update for ${id} after DB recovery`);
+    }
+}
+export async function readEvidenceItemById(db, id) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(evidenceItem)
+            .where(eq(evidenceItem.id, id))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "ingestion", "Check state database connectivity");
     }
 }
 // ───────────────────────────────────────────────────────────────
@@ -180,6 +230,22 @@ export async function readPerceptionCardsByCycle(db, cycleId) {
         return {
             rows: [],
             degraded: makeDegraded("state_unreadable", "perception", "Check state database connectivity"),
+        };
+    }
+}
+export async function readPerceptionCardsByDay(db, day) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(perceptionCard)
+            .where(like(perceptionCard.createdAt, `${day}%`))
+            .orderBy(desc(perceptionCard.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "perception", `Check state database connectivity for perception day=${day}`),
         };
     }
 }
@@ -367,6 +433,26 @@ export async function writeDreamConsolidationRun(db, row) {
     }
     catch {
         return makeDegraded("state_unreadable", "dream", "Retry Dream write after DB recovery", validated.record);
+    }
+}
+/**
+ * Update an existing DreamConsolidationRun status and payload without
+ * primary-key conflict. Used by the scheduler after consolidation completes.
+ */
+export async function updateDreamConsolidationRunStatus(db, id, status, options) {
+    try {
+        const updateData = { status };
+        if (options?.reason !== undefined)
+            updateData.reason = options.reason;
+        if (options?.lifecycleStatus !== undefined)
+            updateData.lifecycleStatus = options.lifecycleStatus;
+        if (options?.payloadJson !== undefined)
+            updateData.payloadJson = options.payloadJson;
+        await db.db.update(dreamConsolidationRun).set(updateData).where(eq(dreamConsolidationRun.id, id));
+        return { id };
+    }
+    catch {
+        return makeDegraded("state_unreadable", "dream", `Retry Dream status update for ${id} after DB recovery`);
     }
 }
 export async function readDreamConsolidationRunById(db, id) {

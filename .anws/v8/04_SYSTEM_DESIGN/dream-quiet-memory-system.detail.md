@@ -10,6 +10,7 @@
 | 版本 | 日期 | Changelog |
 | --- | --- | --- |
 | v1.0 | 2026-06-01 | 初始 L1：补 Quiet/Dream/projection 接口、生命周期和失败语义。 |
+| v1.1 | 2026-06-14 | Wave 109：补充 content-bearing Quiet review、Dream 7 天周期、stale scheduled 修复、UUID 误杀避免。 |
 
 ## 本文件章节索引
 
@@ -33,7 +34,9 @@
 | `QUIET_REVIEW_LOOKBACK_DAYS` | 1 | 默认日回顾窗口。 |
 | `QUIET_MAX_CLOSURES_PER_DAY` | 200 | 单次 review 最多消费 closure 数。 |
 | `QUIET_MAX_PERCEPTIONS_PER_DAY` | 200 | 单次 review 最多消费 important perception 数。 |
+| `QUIET_MAX_EVIDENCE_PER_DAY` | 200 | 单次 review 最多消费 evidence 数。 |
 | `DREAM_MODEL_TIMEOUT_MS` | 15000 | Dream model assist 超时后 rules-only 或 blocked。 |
+| `DREAM_DEFAULT_INTERVAL_DAYS` | 7 | Dream 默认最小间隔（参考 MiMo Code Dream/Distill 周期模型）。 |
 | `PROJECTION_MAX_ACTIVE_PER_TOPIC` | 3 | 同主题 active projection 上限，超出需 supersede/retire。 |
 
 ### §1.2 Reason Codes
@@ -41,7 +44,7 @@
 | 类别 | Reason codes |
 | --- | --- |
 | quiet | `quiet_completed`, `quiet_empty_input`, `quiet_state_unreadable`, `quiet_validation_failed`, `quiet_redaction_blocked` |
-| dream | `dream_scheduled`, `dream_scheduler_unavailable`, `dream_started`, `dream_completed`, `dream_failed`, `dream_blocked_redaction`, `dream_rules_only`, `dream_model_timeout` |
+| dream | `dream_scheduled`, `dream_scheduler_unavailable`, `dream_started`, `dream_completed`, `dream_failed`, `dream_blocked_redaction`, `dream_rules_only`, `dream_model_timeout`, `dream_scheduled_stalled` |
 | projection | `projection_candidate_created`, `projection_accepted`, `projection_rejected`, `projection_superseded`, `projection_retired`, `projection_source_missing` |
 
 ### §1.3 Shared Contracts
@@ -137,29 +140,30 @@ interface LongTermMemoryProjection {
 
 | 步骤 | 契约 |
 | --- | --- |
-| input load | 读取 day window 内 closure、important perception、tool experience、relationship signals。 |
+| input load | 读取 day window 内 closure、important perception、tool experience、relationship signals、content-bearing `EvidenceItem`。 |
 | memory review candidates | 读取 `ActionClosureRecord.memoryReviewCandidate` 并保持 `remember_for_review` reason。 |
 | empty handling | 无有效输入时写 empty/blocked reason，不伪造 diary。 |
-| review build | 生成 source-backed review summary 和 unresolved refs。 |
-| persistence | 写 DailyDiary artifact、review row、quiet stage event。 |
+| review build | 生成 source-backed review summary、notable signals、memory candidates、unresolved refs；禁止模板占位文本。 |
+| persistence | 写 DailyDiary artifact、review row（含完整 payloadJson）、quiet stage event。 |
 
 ### §3.2 scheduleDreamAfterQuiet
 
 | 条件 | 输出 |
 | --- | --- |
 | quiet completed | 写 `dream_scheduled` run lifecycle。 |
-| dream already scheduled for review | 返回 existing run，不重复调度。 |
+| dream already scheduled for review | 若 run 仍在 `scheduled` 且未超时，返回 existing run；若已 stale，标记 `dream_scheduled_stalled` 并触发新 run。 |
 | scheduler unavailable | 写 canonical `dream_scheduler_unavailable` diagnostic event。 |
+| interval not elapsed | 默认 7 天内不重复自动触发；可手动 `force`。 |
 
 ### §3.3 runDreamConsolidation
 
 | 步骤 | 契约 |
 | --- | --- |
-| start | run status 从 scheduled 到 started。 |
-| redaction | raw private/sensitive input blocked；public technical 不因关键词阻断。 |
+| start | run status 从 scheduled 到 started；runner 必须显式 claim run，防止多个进程重复执行。 |
+| redaction | raw private/sensitive input blocked；public technical 不因关键词阻断；UUID/sourceRef IDs 不得被误杀。 |
 | candidate | 生成 `DreamMemoryCandidate[]` 或 explicit blocked output。 |
 | validation | source refs、confidence、duplicate/supersession 检查。 |
-| close | run status completed/failed/blocked 必须落盘。 |
+| close | run status completed/failed/blocked 必须落盘；stale scheduled run 下次检查时被标记为 `dream_scheduled_stalled` 并重新启动。 |
 
 ### §3.4 acceptMemoryProjection
 
@@ -212,16 +216,20 @@ stateDiagram-v2
 | 场景 | 风险 | 处理方式 |
 | --- | --- | --- |
 | Quiet 成功但 Dream schedule 失败 | health 无法解释 projection 缺失 | 写 durable `dream_failed` event。 |
-| Dream redaction blocked | 用户误以为没运行 | 写 blocked output 和 stage reason。 |
+| Dream redaction blocked | 用户误以为没运行 | 写 blocked output 和 stage reason；字段级 attribution。 |
 | closure record 很多 | review 过长污染 Dream | bounded load + truncation reason。 |
 | 同一事实重复出现 | projection 无限追加 | topicKey + supersession。 |
 | remember candidate missing priority | Quiet 选择不稳定 | 降级为 medium priority 并写 diagnostic reason。 |
+| Dream run 长期 scheduled | health 无法判断是没跑还是卡住 | `dream_scheduled_stalled` reason + runner repair on next trigger。 |
+| UUID 被 sensitivity scan 误杀 | 正常 platform ID 导致写入失败 | sourceRef/ID fields exempted from high-entropy secret patterns; scan reports field attribution。 |
 
 ## §6 测试辅助 (Test Helpers)
 
 | Fixture | 用途 |
 | --- | --- |
 | `dayWithCompletedClosureAndImportantPerception` | 验证 Quiet review 正常生成。 |
+| `dayWithContentBearingEvidence` | 验证 Quiet review 消费 evidence payload 生成可读 summary。 |
 | `quietCompletedDreamSchedulerMissing` | 验证 durable failure event。 |
 | `redactionBlockedDreamInput` | 验证 blocked output。 |
 | `duplicateProjectionCandidate` | 验证 supersession。 |
+| `staleScheduledDreamRun` | 验证 `dream_scheduled_stalled` 修复路径。 |

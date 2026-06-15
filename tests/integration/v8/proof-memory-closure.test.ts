@@ -111,10 +111,19 @@ describe("int-r2-proof-memory-closure", () => {
         contentHash: "hash_canon",
         observedAt: now,
         createdAt: now,
-        sensitivityHint: "public_technical",
+        sensitivityHint: "public_general",
         sourceRefs: [makeRef("ev_canon")],
         redactionClass: "none",
         lifecycleStatus: "pending",
+        payloadJson: JSON.stringify({
+          schemaVersion: 1,
+          sourceKind: "post",
+          platformId: "moltbook",
+          capabilityId: "feed.read",
+          summary: "Canonical content for perception contract test",
+          observedAt: now,
+          summaryProducer: "connector_rules",
+        }),
       });
 
       const result = await buildPerceptionCards(db, { cycleId: "cyc_canon", now });

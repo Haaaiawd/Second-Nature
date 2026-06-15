@@ -544,6 +544,18 @@ export function createCliCommands(
         return surface as Record<string, unknown>;
       },
     },
+    {
+      name: "connector_status",
+      description:
+        "T1.2.5 — show connector inventory status, trust, and health conflicts",
+      execute: async (input) => {
+        const surface = await Promise.resolve(
+          opsRouter.dispatch("connector_status", input),
+        );
+        flush();
+        return surface as Record<string, unknown>;
+      },
+    },
     opsCommand(
       "connector:run",
       "T-ROS.C.3 — manually execute a connector capability outside heartbeat cadence",

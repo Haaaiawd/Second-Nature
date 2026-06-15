@@ -1,7 +1,7 @@
 /**
  * PerceptionBuilder — Generate PerceptionCard records from EvidenceItem batches.
  *
- * Core logic: Read pending evidence, deduplicate by content hash, build
+ * Core logic: Read pending evidence, deduplicate by externalId/content hash, build
  * PerceptionCard with topic, entities, novelty, relevance, summary, risk
  * flags, confidence, and reviewPriority. Rules-only fallback when model
  * assist is unavailable.
@@ -21,7 +21,7 @@
  *
  * Test coverage: tests/unit/perception/perception-builder.test.ts
  */
-import { readEvidenceItemsByStatus, writePerceptionCard, } from "../../../storage/v8-state-stores.js";
+import { readEvidenceItemsByStatus, writePerceptionCard, updateEvidenceItemLifecycleStatus, } from "../../../storage/v8-state-stores.js";
 // ───────────────────────────────────────────────────────────────
 // Config
 // ───────────────────────────────────────────────────────────────
@@ -38,46 +38,64 @@ function parseSourceRefs(json) {
         return [];
     }
 }
+function parsePayload(json) {
+    if (!json)
+        return undefined;
+    try {
+        const parsed = JSON.parse(json);
+        if (parsed && typeof parsed === "object" && "schemaVersion" in parsed) {
+            return parsed;
+        }
+        if (parsed && typeof parsed === "object" && "summary" in parsed) {
+            // Legacy payload or direct summary object
+            return {
+                schemaVersion: 1,
+                sourceKind: "unknown",
+                platformId: "",
+                capabilityId: "",
+                summary: String(parsed.summary ?? ""),
+                observedAt: new Date().toISOString(),
+                summaryProducer: "connector_rules",
+                ...parsed,
+            };
+        }
+    }
+    catch {
+        /* ignore */
+    }
+    return undefined;
+}
 function extractTopic(evidence) {
-    if (evidence.payloadJson) {
-        try {
-            const payload = JSON.parse(evidence.payloadJson);
-            if (payload.topic)
-                return String(payload.topic);
-            if (payload.title)
-                return String(payload.title);
-            if (payload.subject)
-                return String(payload.subject);
-        }
-        catch {
-            /* ignore */
-        }
+    const payload = parsePayload(evidence.payloadJson);
+    if (payload?.title)
+        return String(payload.title);
+    if (payload?.summary) {
+        const summary = String(payload.summary);
+        return summary.length > 60 ? `${summary.slice(0, 60)}…` : summary;
     }
     return `${evidence.platformId}_observation`;
 }
 function extractEntities(evidence) {
     const entities = [evidence.platformId];
-    if (evidence.payloadJson) {
-        try {
-            const payload = JSON.parse(evidence.payloadJson);
-            if (payload.entities && Array.isArray(payload.entities)) {
-                entities.push(...payload.entities.map(String));
-            }
-            if (payload.tags && Array.isArray(payload.tags)) {
-                entities.push(...payload.tags.map(String));
-            }
-            if (payload.mentions && Array.isArray(payload.mentions)) {
-                entities.push(...payload.mentions.map(String));
-            }
-        }
-        catch {
-            /* ignore */
-        }
+    const payload = parsePayload(evidence.payloadJson);
+    if (payload?.entities && Array.isArray(payload.entities)) {
+        entities.push(...payload.entities.map(String));
     }
-    return [...new Set(entities)];
+    if (payload?.tags && Array.isArray(payload.tags)) {
+        entities.push(...payload.tags.map(String));
+    }
+    if (payload?.actor?.displayName) {
+        entities.push(payload.actor.displayName);
+    }
+    return [...new Set(entities.filter((e) => e.length > 0))];
 }
-function inferNoveltyClass(evidence) {
-    // Canonical novelty classification
+function inferNoveltyClass(evidence, duplicateKey, seenKeys) {
+    if (seenKeys.has(duplicateKey)) {
+        const firstObserved = seenKeys.get(duplicateKey);
+        const current = evidence.observedAt;
+        // If same calendar day, treat as duplicate; otherwise stale.
+        return firstObserved.slice(0, 10) === current.slice(0, 10) ? "duplicate" : "stale";
+    }
     if (evidence.sensitivityHint === "public_technical")
         return "changed";
     return "new";
@@ -99,9 +117,17 @@ function inferRelevanceClass(score) {
     return "low";
 }
 function inferSummary(evidence) {
-    const platform = evidence.platformId;
-    const topic = extractTopic(evidence);
-    return `Observation from ${platform}: ${topic}`;
+    const payload = parsePayload(evidence.payloadJson);
+    if (payload?.summary && String(payload.summary).trim().length > 0) {
+        return { summary: String(payload.summary), contentMissing: false };
+    }
+    if (payload?.title) {
+        return { summary: `Observation from ${evidence.platformId}: ${payload.title}`, contentMissing: false };
+    }
+    return {
+        summary: `Ref-only observation from ${evidence.platformId}: no readable content`,
+        contentMissing: true,
+    };
 }
 function inferPossibleIntents(evidence) {
     const intents = ["watch"];
@@ -130,25 +156,35 @@ function inferRiskFlags(evidence) {
     }
     return flags;
 }
-function buildCardFromEvidence(evidence, cycleId, now) {
+function duplicateKey(evidence) {
+    const payload = parsePayload(evidence.payloadJson);
+    if (payload?.externalId) {
+        return `${evidence.platformId}:${evidence.contentHash}:${payload.externalId}`;
+    }
+    return `${evidence.platformId}:${evidence.contentHash}`;
+}
+function buildCardFromEvidence(evidence, cycleId, now, seenKeys) {
     const sourceRefs = parseSourceRefs(evidence.sourceRefsJson);
     const relevanceScore = inferRelevanceScore(evidence);
+    const key = duplicateKey(evidence);
+    const { summary, contentMissing } = inferSummary(evidence);
     return {
         id: `per_${evidence.id}`,
         cycleId,
         topic: extractTopic(evidence),
         entities: extractEntities(evidence),
-        noveltyClass: inferNoveltyClass(evidence),
+        noveltyClass: inferNoveltyClass(evidence, key, seenKeys),
         relevanceScore,
         relevanceClass: inferRelevanceClass(relevanceScore),
-        summary: inferSummary(evidence),
+        summary,
         possibleIntents: inferPossibleIntents(evidence),
         reviewPriority: inferReviewPriority(evidence),
         sensitivityClass: evidence.sensitivityHint || "public_general",
         riskFlags: inferRiskFlags(evidence),
-        confidence: 0.6,
+        confidence: contentMissing ? 0.3 : 0.6,
         evidenceRefs: sourceRefs,
         createdAt: now,
+        contentMissing,
     };
 }
 export async function buildPerceptionCards(db, options) {
@@ -169,6 +205,7 @@ export async function buildPerceptionCards(db, options) {
     const truncated = evidenceItems.length > maxEvidence;
     const selectedEvidence = evidenceItems.slice(0, maxEvidence);
     const cards = [];
+    const seenKeys = new Map();
     for (const evidence of selectedEvidence) {
         const card = buildCardFromEvidence({
             id: evidence.id,
@@ -178,9 +215,21 @@ export async function buildPerceptionCards(db, options) {
             sensitivityHint: evidence.sensitivityHint ?? undefined,
             sourceRefsJson: evidence.sourceRefsJson,
             payloadJson: evidence.payloadJson,
-        }, options.cycleId, now);
+        }, options.cycleId, now, seenKeys);
         cards.push(card);
-        // Write card to state
+        // Track first observation timestamp for duplicate/stale classification
+        const key = duplicateKey({
+            id: evidence.id,
+            platformId: evidence.platformId,
+            contentHash: evidence.contentHash,
+            observedAt: evidence.observedAt,
+            sourceRefsJson: evidence.sourceRefsJson,
+            payloadJson: evidence.payloadJson,
+        });
+        if (!seenKeys.has(key)) {
+            seenKeys.set(key, evidence.observedAt);
+        }
+        // Write card to state and advance evidence lifecycle
         const writeResult = await writePerceptionCard(db, {
             id: card.id,
             createdAt: now,
@@ -200,6 +249,7 @@ export async function buildPerceptionCards(db, options) {
             payloadJson: JSON.stringify({
                 possibleIntents: card.possibleIntents,
                 sensitivityClass: card.sensitivityClass,
+                contentMissing: card.contentMissing,
             }),
         });
         if ("reason" in writeResult) {
@@ -209,11 +259,15 @@ export async function buildPerceptionCards(db, options) {
                 reason: writeResult.reason,
             };
         }
+        await updateEvidenceItemLifecycleStatus(db, evidence.id, "perceived");
     }
+    const hasContentMissing = cards.some((c) => c.contentMissing);
+    const allContentMissing = cards.length > 0 && cards.every((c) => c.contentMissing);
+    const status = allContentMissing ? "rules_only" : "completed";
     return {
-        status: "completed",
+        status,
         cards,
         truncated,
-        reason: truncated ? "evidence_batch_truncated" : undefined,
+        reason: status === "rules_only" ? "evidence_content_missing" : (truncated ? "evidence_batch_truncated" : undefined),
     };
 }

@@ -4,19 +4,22 @@
  * Core logic: Check if today's Quiet review is due (closures exist but no review
  * yet), schedule/run it, then check Dream status. Records durable states so
  * loop_status can report exact missing stages even when heartbeat does not
- * select a quiet intent.
+ * select a quiet intent. Also executes stale Dream consolidation runs that
+ * were left at "scheduled" because no runner picked them up.
  *
  * Design authority:
  * - `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4`
  * - `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.detail.md §3.1-§3.4`
  *
  * Dependencies:
- * - `src/storage/v8-state-stores.js` (write/read DailyRhythmState)
+ * - `src/storage/v8-state-stores.js` (write/read DailyRhythmState, readDreamConsolidationRunById, writeDreamConsolidationRun)
  * - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.js`
  * - `src/core/second-nature/quiet-dream/dream-scheduler.js`
+ * - `src/core/second-nature/quiet-dream/dream-consolidation-runner.js`
  *
  * Boundary:
- * - Does not run consolidation; only schedules and records lifecycle.
+ * - Schedules and records lifecycle; additionally executes stale scheduled runs
+ *   so `dreamStatus` reaches completed/blocked.
  * - Does not bypass Dream runner; only records due/completed/blocked.
  */
 import type { StateDatabase } from "../../../storage/db/index.js";

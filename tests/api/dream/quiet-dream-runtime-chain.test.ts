@@ -47,8 +47,8 @@ describe("quiet-dream-runtime-chain API", () => {
 
       assert.equal(result.state.quietStatus, "completed");
       assert.equal(result.state.quietReason, "quiet_completed");
-      assert.equal(result.state.dreamStatus, "scheduled");
-      assert.equal(result.state.dreamReason, "dream_scheduled");
+      assert.equal(result.state.dreamStatus, "completed");
+      assert.equal(result.state.dreamReason, "dream_completed");
     } finally {
       db.close();
     }
@@ -106,14 +106,14 @@ describe("quiet-dream-runtime-chain API", () => {
       const r1 = await checkDailyRhythm(db, { now, forceQuiet: true });
       assert.equal(r1.status, "checked");
       if (r1.status !== "checked") return;
-      assert.equal(r1.state.dreamStatus, "scheduled");
+      assert.equal(r1.state.dreamStatus, "completed");
 
       // Second check with same timestamp should not crash on duplicate dream run
       const r2 = await checkDailyRhythm(db, { now });
       assert.equal(r2.status, "checked");
       if (r2.status !== "checked") return;
-      assert.equal(r2.state.dreamStatus, "scheduled");
-      assert.equal(r2.state.dreamReason, "dream_scheduled");
+      assert.equal(r2.state.dreamStatus, "completed");
+      assert.equal(r2.state.dreamReason, "dream_completed");
     } finally {
       db.close();
     }
