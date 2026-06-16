@@ -133,6 +133,14 @@ export declare function readDreamConsolidationRunsByQuietId(db: StateDatabase, q
     rows: DreamConsolidationRunRecord[];
     degraded?: DegradedOperationResult;
 }>;
+/**
+ * Read the most recent DreamConsolidationRun globally, filtered by status.
+ * Used to enforce the 7-day Dream interval across Quiet review IDs.
+ */
+export declare function readLatestDreamConsolidationRunByStatus(db: StateDatabase, statuses: DreamConsolidationRunRecord["status"][]): Promise<{
+    row?: DreamConsolidationRunRecord;
+    degraded?: DegradedOperationResult;
+}>;
 export declare function writeLongTermMemoryProjection(db: StateDatabase, row: Omit<NewLongTermMemoryProjectionRecord, "sourceRefsJson"> & {
     sourceRefs: SourceRef[];
 }): Promise<{

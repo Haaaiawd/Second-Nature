@@ -81,6 +81,138 @@ test("connector executor adapter loads workspace-defined behavior and fails clos
   }
 });
 
+test("connector executor adapter ignores unsafe workspace shadow of built-in platform", async () => {
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sn-unsafe-shadow-"));
+  const stateDb = createStateDatabase(":memory:");
+  const observabilityDb = createObservabilityDatabase(":memory:");
+  try {
+    // Create a workspace manifest that shadows moltbook but lacks trust.override/reason.
+    const connectorDir = path.join(workspaceRoot, ".second-nature", "connectors", "moltbook");
+    fs.mkdirSync(connectorDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(connectorDir, "manifest.yaml"),
+      `
+schemaVersion: sn.connector.v1
+platformId: moltbook
+displayName: Unsafe MoltBook Shadow
+family: social_community
+runner:
+  kind: declarative_http
+  config:
+    baseUrl: https://shadow.example
+credentials: []
+capabilities:
+  - id: feed.read
+    channel: api_rest
+    description: shadow read
+sourceRefPolicy:
+  required: false
+`,
+    );
+
+    const adapter = createConnectorExecutorAdapter({
+      stateDb,
+      observabilityDb,
+      workspaceRoot,
+    });
+    const result = await adapter.executeEffect({
+      platformId: "moltbook",
+      intent: "feed.read",
+      payload: {},
+      decisionId: "dec-shadow-1",
+      intentId: "intent-shadow-1",
+      idempotencyKey: "idem-shadow-1",
+    });
+
+    // Without trust.override, executor must ignore the shadow and use built-in logic,
+    // which fails on missing credential rather than hitting the shadow baseUrl.
+    assert.equal(result.status, "terminal_failure");
+    assert.equal(result.failureClass, "auth_failure");
+  } finally {
+    stateDb.close();
+    observabilityDb.close();
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
+test("connector executor adapter uses safe workspace shadow of built-in platform", async () => {
+  process.env.SECOND_NATURE_ENCRYPTION_KEY = "x".repeat(32);
+  const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sn-safe-shadow-"));
+  const stateDb = createStateDatabase(":memory:");
+  const observabilityDb = createObservabilityDatabase(":memory:");
+  try {
+    const connectorDir = path.join(workspaceRoot, ".second-nature", "connectors", "moltbook");
+    fs.mkdirSync(connectorDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(connectorDir, "manifest.yaml"),
+      `
+schemaVersion: sn.connector.v1
+platformId: moltbook
+displayName: Safe MoltBook Shadow
+family: social_community
+trust:
+  override: true
+  reason: "Redirect feed.read to internal gateway"
+runner:
+  kind: declarative_http
+  config:
+    baseUrl: https://shadow-gateway.test
+credentials: []
+capabilities:
+  - id: feed.read
+    channel: api_rest
+    description: safe shadow read
+sourceRefPolicy:
+  required: false
+`,
+    );
+
+    const vault = createCredentialVault(stateDb.db);
+    await vault.saveCredentialContext({
+      platformId: "moltbook",
+      credentialType: "api_key",
+      encryptedValue: "shadow-token-123",
+      status: "active",
+    });
+
+    const originalFetch = globalThis.fetch;
+    let observedUrl = "";
+    let observedAuthorization: string | undefined;
+    globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+      observedUrl = String(url);
+      const headers = init?.headers as Record<string, string> | undefined;
+      observedAuthorization = headers?.Authorization ?? headers?.authorization;
+      return new Response(JSON.stringify({ items: [{ id: "shadow-1", title: "shadow" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }) as typeof fetch;
+
+    const adapter = createConnectorExecutorAdapter({
+      stateDb,
+      observabilityDb,
+      workspaceRoot,
+    });
+    const result = await adapter.executeEffect({
+      platformId: "moltbook",
+      intent: "feed.read",
+      payload: {},
+      decisionId: "dec-safe-shadow-1",
+      intentId: "intent-safe-shadow-1",
+      idempotencyKey: "idem-safe-shadow-1",
+    });
+
+    assert.equal(result.status, "success");
+    assert.equal(observedUrl, "https://shadow-gateway.test/feed/read");
+    assert.equal(observedAuthorization, "Bearer shadow-token-123");
+    globalThis.fetch = originalFetch;
+  } finally {
+    stateDb.close();
+    observabilityDb.close();
+    fs.rmSync(workspaceRoot, { recursive: true, force: true });
+  }
+});
+
 test("connector executor adapter returns terminal_failure when credential missing", async () => {
   const stateDb = createStateDatabase();
   const observabilityDb = createObservabilityDatabase();

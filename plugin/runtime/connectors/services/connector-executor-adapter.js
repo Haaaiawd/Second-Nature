@@ -51,7 +51,13 @@ function channelPriorityForRunner(manifest) {
         return ["browser"];
     return ["api_rest"];
 }
-function registerWorkspaceManifests(registry, workspaceRoot) {
+function isSafeBuiltInShadow(manifest) {
+    const reason = manifest.trust?.reason?.trim();
+    if (!manifest.trust?.override || !reason)
+        return false;
+    return manifest.runner.kind === "declarative_http" || manifest.runner.kind === "scriptable_node";
+}
+function registerWorkspaceManifests(registry, builtInPlatformIds, workspaceRoot) {
     if (!workspaceRoot)
         return;
     for (const file of scanConnectorManifests(workspaceRoot)) {
@@ -59,6 +65,12 @@ function registerWorkspaceManifests(registry, workspaceRoot) {
         if (!parsed.ok)
             continue;
         const manifest = parsed.manifest;
+        // Built-in platforms may only be shadowed by auditable, trusted-runner manifests.
+        // Unsafe shadows are ignored by execution registry; they remain visible in
+        // DynamicConnectorRegistry conflicts for diagnostics.
+        if (builtInPlatformIds.has(manifest.platformId) && !isSafeBuiltInShadow(manifest)) {
+            continue;
+        }
         try {
             registry.register({
                 platformId: manifest.platformId,
@@ -201,8 +213,8 @@ function createMoltbookMockRunner(workspaceRoot) {
                     latencyMs: Date.now() - started,
                     success: false,
                     error: {
-                        code: "mock_read_error",
-                        detail: String(err),
+                        code: "configuration_missing",
+                        detail: `moltbook mock unreadable: ${err instanceof Error ? err.message : String(err)}`,
                     },
                 };
             }
@@ -424,9 +436,13 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
             const workspaceManifest = workspaceManifestResult?.manifest;
             const isBuiltInPlatform = platformId === "moltbook" ||
                 platformId === "evomap" ||
-                platformId === "agent-world";
+                platformId === "agent-world" ||
+                platformId === "instreet";
+            const effectiveWorkspaceManifest = workspaceManifest && (!isBuiltInPlatform || isSafeBuiltInShadow(workspaceManifest))
+                ? workspaceManifest
+                : undefined;
             const requiresCredential = isBuiltInPlatform ||
-                Boolean(workspaceManifest?.credentials.some((credential) => credential.required !== false));
+                Boolean(effectiveWorkspaceManifest?.credentials.some((credential) => credential.required !== false));
             const credential = requiresCredential
                 ? await vault.loadCredentialContext(platformId)
                 : undefined;
@@ -448,6 +464,27 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
             const activeCredential = credential?.status === "active" && credential.encryptedValue
                 ? { encryptedValue: credential.encryptedValue }
                 : undefined;
+            // Safe workspace shadows of built-in platforms take precedence over built-in runners.
+            if (effectiveWorkspaceManifest && effectiveWorkspaceManifest.runner.kind === "declarative_http") {
+                const httpRunner = createDeclarativeHttpRunner(effectiveWorkspaceManifest, activeCredential);
+                return httpRunner.run(_plan, request);
+            }
+            if (effectiveWorkspaceManifest && effectiveWorkspaceManifest.runner.kind === "scriptable_node") {
+                if (!workspaceManifestResult) {
+                    return {
+                        platformId,
+                        channel: request.preferredChannel ?? "api_rest",
+                        latencyMs: Date.now() - started,
+                        success: false,
+                        error: {
+                            code: "configuration_missing",
+                            detail: "scriptable_node requires workspace manifest with manifestDir",
+                        },
+                    };
+                }
+                const scriptRunner = createScriptableNodeRunner(effectiveWorkspaceManifest, workspaceManifestResult.manifestDir, activeCredential);
+                return scriptRunner.run(_plan, request);
+            }
             if (platformId === "moltbook") {
                 const baseUrl = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
                 if (baseUrl) {
@@ -586,28 +623,6 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
                     },
                 };
             }
-            // Wave 83: workspace declarative_http connector fallback
-            if (workspaceManifest && workspaceManifest.runner.kind === "declarative_http") {
-                const httpRunner = createDeclarativeHttpRunner(workspaceManifest, activeCredential);
-                return httpRunner.run(_plan, request);
-            }
-            // Wave 90: workspace scriptable_node connector
-            if (workspaceManifest && workspaceManifest.runner.kind === "scriptable_node") {
-                if (!workspaceManifestResult) {
-                    return {
-                        platformId,
-                        channel: request.preferredChannel ?? "api_rest",
-                        latencyMs: Date.now() - started,
-                        success: false,
-                        error: {
-                            code: "configuration_missing",
-                            detail: "scriptable_node requires workspace manifest with manifestDir",
-                        },
-                    };
-                }
-                const scriptRunner = createScriptableNodeRunner(workspaceManifest, workspaceManifestResult.manifestDir, activeCredential);
-                return scriptRunner.run(_plan, request);
-            }
             return {
                 platformId,
                 channel: request.preferredChannel ?? "api_rest",
@@ -624,11 +639,12 @@ function createAdaptiveExecutionRunner(vault, workspaceRoot) {
 export function createConnectorExecutorAdapter(options) {
     const vault = createCredentialVault(options.stateDb.db);
     const registry = new CapabilityContractRegistry();
-    registry.register({ ...moltbookManifest });
-    registry.register({ ...evomapManifest });
-    registry.register({ ...agentWorldManifest });
-    registry.register({ ...instreetManifest });
-    registerWorkspaceManifests(registry, options.workspaceRoot);
+    const builtInManifests = [moltbookManifest, evomapManifest, agentWorldManifest, instreetManifest];
+    const builtInPlatformIds = new Set(builtInManifests.map((m) => m.platformId));
+    for (const manifest of builtInManifests) {
+        registry.register({ ...manifest });
+    }
+    registerWorkspaceManifests(registry, builtInPlatformIds, options.workspaceRoot);
     const cooldownPort = createConnectorCooldownPort(options.stateDb);
     const routeContextPort = createCredentialRouteContextPort(vault, options.stateDb);
     const routePlanner = new ConnectorRoutePlanner(registry, routeContextPort, new ChannelHealthStore());
@@ -644,7 +660,7 @@ export function createConnectorExecutorAdapter(options) {
     });
     return {
         async executeEffect(input) {
-            registerWorkspaceManifests(registry, options.workspaceRoot);
+            registerWorkspaceManifests(registry, builtInPlatformIds, options.workspaceRoot);
             return policy.executeWithPolicy(input.intent, {
                 platformId: input.platformId,
                 intent: input.intent,

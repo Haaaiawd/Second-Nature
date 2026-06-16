@@ -26,7 +26,6 @@
 import type { StateDatabase } from "../../../storage/db/index.js";
 import {
   readJudgmentVerdictById,
-  writeActionClosureRecord,
 } from "../../../storage/v8-state-stores.js";
 import type {
   SourceRef,
@@ -168,7 +167,7 @@ export async function buildActionProposal(
 
   const sourceRefs = parseVerdictSourceRefs(verdict.sourceRefsJson);
 
-  // remember → memory review candidate closure (no direct projection)
+  // remember → memory review candidate (no direct projection; orchestrator writes closure)
   if (actionKind === "remember") {
     const candidate: MemoryReviewCandidateClosure = {
       closureSubtype: "remember_for_review",
@@ -200,29 +199,10 @@ export async function buildActionProposal(
       ]) as [SourceRef, ...SourceRef[]],
     };
 
-    const closureId = `cls_remember_${judgmentVerdictId}_${now.replace(/[:.]/g, "")}`;
-    const writeResult = await writeActionClosureRecord(db, {
-      id: closureId,
-      createdAt: now,
-      cycleId,
-      platformId: "heartbeat",
-      status: "completed",
-      reason: "remember_for_review",
-      nextState: "pending_daily_review",
-      sourceRefs: candidate.sourceRefs,
-      redactionClass: "none",
-      lifecycleStatus: "closed",
-      payloadJson: JSON.stringify({ memoryReviewCandidate: candidate }),
-    });
-
-    if ("reason" in writeResult) {
-      return writeResult;
-    }
-
     return {
       status: "remember_for_review",
       memoryReviewCandidate: candidate,
-      closureId,
+      closureId: `cls_remember_${judgmentVerdictId}_${now.replace(/[:.]/g, "")}`,
     };
   }
 

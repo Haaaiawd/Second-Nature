@@ -31,5 +31,7 @@ export interface RealRuntimeSpineResult {
     noActionReason?: V8ReasonCode;
     degraded?: DegradedOperationResult;
     rhythmState?: DailyRhythmState;
+    rhythmDegraded?: DegradedOperationResult;
+    impulseContextArtifactId?: string;
 }
 export declare function runRealRuntimeHeartbeatCycle(options: RealRuntimeSpineOptions): Promise<RealRuntimeSpineResult | DegradedOperationResult>;

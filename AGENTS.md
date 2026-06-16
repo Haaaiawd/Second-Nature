@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-15` (Wave 109 — Content-Bearing Evidence and Memory Activation Repair completed; v0.2.6 plugin rebuilt)
-- **当前波次**: Wave 109
-- **下一步**: 等待用户指令进入发布 / 下一轮 / 实机 E2E 回填
+- **最近一次更新**: `2026-06-16` (Wave 111 — v0.2.10 review-closure repair completed; v0.2.11 release tagged)
+- **当前波次**: Wave 111
+- **下一步**: v0.2.11 published; monitor host E2E / begin next cycle on user signal
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -263,6 +263,35 @@ T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5, INT-R4
 - **最高严重度**: none
 - **残留待跟进**: 无
 - **下一步**: 等待用户指令进入发布 / 下一轮 / 实机 E2E 回填
+
+### 🌊 Wave 111 🧭 — v8 Change: v0.2.10 Review-Closure Repair
+T-SMS.R.2, T-CP.R.4, T-DQ.R.8, T-AC.R.1, T-CS.R.8, T-GVS.R.3, INT-R6
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 111 全部完成（T-SMS.R.2 + T-CP.R.4 + T-DQ.R.8 + T-AC.R.1 + T-CS.R.8 + T-GVS.R.3 + INT-R6）
+- **产出**:
+  - `src/storage/db/migrations/v8-004-schema-closure.ts` — v8 schema closure migration with idempotent daily_rhythm_state, impulse_context_artifact, connector_cooldown_state
+  - `src/storage/db/index.ts` — defensive `applyStateSchemaMigrations` for `platform_id`, `capability_id`, `terminal_count`, `closure_refs_json`, composite index
+  - `src/storage/db/schema/v8-entities.ts` — evidence_item platform/content-hash unique index
+  - `tests/integration/storage/schema-migration.test.ts` — v8-004 upgrade + idempotency coverage
+  - `src/core/second-nature/control-plane/heartbeat-orchestrator.ts` — `rhythmDegraded` propagated to cycle result; impulse context refresh removed from orchestrator
+  - `src/core/second-nature/control-plane/real-runtime-spine.ts` — `rhythmDegraded` and `impulseContextArtifactId` handoff
+  - `src/cli/ops/heartbeat-surface.ts` — owns single impulse context refresh; exposes `expressionBoundaryConstraints`/`expressionBoundaryStyle`
+  - `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts` — global 7-day Dream interval via latest run query
+  - `src/storage/v8-state-stores.ts` — `readLatestDreamConsolidationRunByStatus` read port
+  - `src/shared/types/v8-contracts.ts` — canonical `dream_interval_active` reason
+  - `src/core/second-nature/action/action-proposal-builder.ts` — removed remember closure write
+  - `src/core/second-nature/action/action-closure-recorder.ts` — optional `platformId`/`capabilityId` on `RecordClosureOptions`
+  - `src/connectors/services/connector-executor-adapter.ts` — unified safe-shadow precedence + built-in shadow trust gate + `configuration_missing` mapping
+  - `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` — safe/unsafe shadow tests
+  - `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` — surface-owned impulse artifact id assertion
+  - `tests/api/runtime-ops/loop-status-real-run-gate.test.ts` — surface-owned impulse context test
+  - `reports/int-r6-wave-111-repair-gate.md` — INT-R6 verification report
+  - `package.json` / `plugin/package.json` / `plugin/openclaw.plugin.json` — version bump to `0.2.11`
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；Wave 111 targeted 32/32 PASS + 3 justified skips；Wave 108-109 regression 35/35 PASS；`reports/int-r6-wave-111-repair-gate.md` 记录实测证据
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: v0.2.11 published; monitor host E2E / begin next cycle on user signal
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2

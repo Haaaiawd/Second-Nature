@@ -35,6 +35,7 @@ export interface HeartbeatOrchestrationResult {
     closureRef?: SourceRef;
     noActionReason?: V8ReasonCode;
     degraded?: DegradedOperationResult;
+    rhythmDegraded?: DegradedOperationResult;
     rhythmState?: DailyRhythmState;
 }
 export declare function runHeartbeatCycle(db: StateDatabase, request: HeartbeatOrchestrationRequest): Promise<HeartbeatOrchestrationResult | DegradedOperationResult>;

@@ -38,5 +38,6 @@ export async function runRealRuntimeHeartbeatCycle(options) {
         noActionReason: orchestrationResult.noActionReason,
         degraded: orchestrationResult.degraded,
         rhythmState: orchestrationResult.rhythmState,
+        rhythmDegraded: orchestrationResult.rhythmDegraded,
     };
 }

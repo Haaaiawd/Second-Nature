@@ -128,6 +128,11 @@ export async function heartbeatCheck(input) {
                 }
                 else {
                     const spine = v8Result;
+                    const artifactId = await refreshHeartbeatImpulseContext(input.state, timestamp);
+                    if (artifactId) {
+                        spine.impulseContextArtifactId = artifactId;
+                        surfaceResult.reasons.push(`impulse_context_refreshed:${artifactId}`);
+                    }
                     surfaceResult.v8Spine = spine;
                     surfaceResult.livedExperienceLoopClaimed = Boolean(spine.cycleId && (spine.closureRef || spine.noActionReason));
                     surfaceResult.reasons = [
@@ -137,16 +142,6 @@ export async function heartbeatCheck(input) {
                             ? "v8_closure_recorded"
                             : `v8_no_action:${spine.noActionReason ?? "unknown"}`,
                     ];
-                    try {
-                        const artifactId = await refreshHeartbeatImpulseContext(input.state, timestamp);
-                        if (artifactId) {
-                            surfaceResult.reasons.push(`impulse_context_refreshed:${artifactId}`);
-                        }
-                    }
-                    catch (impulseErr) {
-                        const impulseMsg = impulseErr instanceof Error ? impulseErr.message : String(impulseErr);
-                        surfaceResult.reasons.push(`impulse_context_refresh_failed:${impulseMsg.slice(0, 120)}`);
-                    }
                 }
             }
             catch (v8Err) {
@@ -169,6 +164,8 @@ export async function heartbeatCheck(input) {
                         capabilityClass: ctx.artifact.capabilityClass,
                         impulseText: ctx.artifact.impulseText,
                         atmosphereText: ctx.artifact.atmosphereText,
+                        expressionBoundaryConstraints: ctx.artifact.expressionBoundaryConstraints,
+                        expressionBoundaryStyle: ctx.artifact.expressionBoundaryStyle,
                         freshnessMs: ctx.freshnessMs,
                     };
                     surfaceResult.reasons.push(`impulse_context:${ctx.artifact.id}`);
@@ -181,8 +178,13 @@ export async function heartbeatCheck(input) {
                     surfaceResult.reasons.push(`impulse_context_missing:${ctx.reason}`);
                 }
             }
-            catch {
-                // Non-fatal: impulse context is advisory
+            catch (readErr) {
+                const msg = readErr instanceof Error ? readErr.message : String(readErr);
+                surfaceResult.impulseContext = {
+                    available: false,
+                    missingReason: `read_exception:${msg.slice(0, 120)}`,
+                };
+                surfaceResult.reasons.push(`impulse_context_read_failed:${msg.slice(0, 120)}`);
             }
         }
         return surfaceResult;

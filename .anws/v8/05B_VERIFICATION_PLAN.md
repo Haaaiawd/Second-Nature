@@ -785,6 +785,83 @@
 - **断言**: `second_nature_ops` visible in host tool list and heartbeat no longer stalls on missing impulse artifact.
 - **证据**: targeted test logs, plugin tarball, tag `v0.2.10`, `.anws/v8/wave-reviews/wave-110-e2e.md`
 
+### T-SMS.R.2
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: v8 schema durability and upgrade path
+- **风险类别**: DB initialized at older migration missing tables/columns; bootstrap vs migration drift
+- **单元测试覆盖**: migration runner idempotency and schema introspection.
+- **API接口功能测试覆盖**: state store port round-trip after upgrade.
+- **集成/E2E/冒烟覆盖**: schema-migration integration fixture simulating pre-v8-004 DB.
+- **前置数据**: SQL DDL for v8-001..v8-003 tables.
+- **断言**: pre-v8-004 DB upgraded to current schema; fresh DB remains idempotent.
+- **证据**: `tests/integration/storage/schema-migration.test.ts`
+
+### T-CP.R.4
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: `HeartbeatOrchestrationResult`, `RealRuntimeSpineResult`, daily rhythm health
+- **风险类别**: rhythm write failure hidden; loop_status false-green
+- **单元测试覆盖**: degraded rhythm state propagated to cycle result.
+- **API接口功能测试覆盖**: heartbeat-run-v8-spine surfaces `rhythmDegraded`.
+- **集成/E2E/冒烟覆盖**: INT-R6 regression gate.
+- **前置数据**: T-SMS.R.2.
+- **断言**: `advanceAndRecordDailyRhythm` degraded result is not swallowed.
+- **证据**: `tests/unit/control-plane/heartbeat-cycle-trace.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`
+
+### T-DQ.R.8
+- **关联需求**: REQ-003, REQ-008
+- **关联契约**: Quiet/Dream cadence contract (L0 §6.4)
+- **风险类别**: Dream runs more than once per 7 days across consecutive daily Quiet reviews
+- **单元测试覆盖**: global latest Dream run query; interval boundary.
+- **API接口功能测试覆盖**: daily rhythm state reason `dream_interval_active`.
+- **集成/E2E/冒烟覆盖**: INT-R6.
+- **前置数据**: T-SMS.R.2.
+- **断言**: second Quiet review within 7 days does not trigger a new Dream run.
+- **证据**: `tests/unit/dream/daily-rhythm-scheduler.test.ts`
+
+### T-AC.R.1
+- **关联需求**: REQ-008
+- **关联契约**: exactly-one-closure-per-cycle, `ActionClosureRecord` schema
+- **风险类别**: duplicate remember closure; missing `platform_id` attribution
+- **单元测试覆盖**: single remember closure per verdict; `platform_id="heartbeat"`.
+- **API接口功能测试覆盖**: action closure port idempotency.
+- **集成/E2E/冒烟覆盖**: INT-R6.
+- **前置数据**: T-SMS.R.2.
+- **断言**: one `action_closure_record` per remember verdict with populated `platform_id`.
+- **证据**: `tests/unit/action/action-proposal-builder.test.ts`, `tests/unit/action/action-closure-recorder.test.ts`
+
+### T-CS.R.8
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: Connector shadow trust policy
+- **风险类别**: inventory registry allows safe shadow but executor ignores policy; unsafe shadow bypasses built-in runner
+- **单元测试覆盖**: safe/unsafe shadow classification.
+- **API接口功能测试覆盖**: executor adapter uses built-in runner for unsafe shadow and workspace runner for safe shadow.
+- **集成/E2E/冒烟覆盖**: INT-R6.
+- **前置数据**: built-in manifest plus workspace manifests with/without `trust.override`/`trust.reason`.
+- **断言**: executor behavior matches registry trust policy.
+- **证据**: `tests/unit/connectors/t3-1-1-dynamic-registry.test.ts`, `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts`
+
+### T-GVS.R.3
+- **关联需求**: REQ-005, REQ-008
+- **关联契约**: `RealRuntimeSpineResult`, `HeartbeatSurfaceResult.impulseContext`
+- **风险类别**: double refresh; missing artifact handoff; silent read failures
+- **单元测试覆盖**: impulse context refresh only on surface.
+- **API接口功能测试覆盖**: `v8Spine.impulseContextArtifactId` set; expression boundary exposed.
+- **集成/E2E/冒烟覆盖**: INT-R6.
+- **前置数据**: T-CP.R.4.
+- **断言**: single refresh point; read failures return honest missing reason.
+- **证据**: `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`
+
+### INT-R6
+- **关联需求**: REQ-001, REQ-003, REQ-005, REQ-008, REQ-009
+- **关联契约**: v8 runtime recovery closure
+- **风险类别**: Wave 111 fixes regress Wave 108-110 or fail typecheck/build
+- **单元测试覆盖**: all Wave 111 task suites.
+- **API接口功能测试覆盖**: all Wave 111 API suites.
+- **集成/E2E/冒烟覆盖**: Wave 108-110 targeted regression.
+- **前置数据**: v0.2.11 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r6-wave-111-repair-gate.md` (to be generated)
+
 ---
 
 ## 7. Testing Coverage Overlay
@@ -832,6 +909,13 @@
 | MoltBook read routing truth | connector truth | integration + plugin bridge | T-CS.R.6 | `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` | ✅ |
 | Built-in connector shadowing | registry trust | unit + API接口功能测试 | T-CS.R.7 | `tests/unit/connectors/t3-1-1-dynamic-registry.test.ts` | ✅ |
 | Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ✅ |
+| v8 schema migration alignment | upgrade path | integration + schema introspection | T-SMS.R.2 | `tests/integration/storage/schema-migration.test.ts` | ✅ |
+| Daily rhythm failure propagation | false healthy | unit + API接口功能测试 | T-CP.R.4 | `tests/unit/control-plane/heartbeat-cycle-trace.test.ts` | ✅ |
+| Global 7-day Dream interval | over-frequent Dream | unit | T-DQ.R.8 | `tests/unit/dream/daily-rhythm-scheduler.test.ts` | ✅ |
+| Remember closure duplicate elimination | closure attribution | unit | T-AC.R.1 | `tests/unit/action/action-closure-recorder.test.ts` | ✅ |
+| Connector shadow execution consistency | unsafe override | integration | T-CS.R.8 | `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` | ✅ |
+| Heartbeat impulse context handoff | double refresh / missing artifact | API接口功能测试 | T-GVS.R.3 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | ✅ |
+| Wave 111 repair gate | regression | compile + targeted regression | INT-R6 | `reports/int-r6-wave-111-repair-gate.md` | ✅ |
 
 ---
 

@@ -44,6 +44,10 @@ describe("heartbeat-run-v8-spine API", () => {
         result.reasons.some((r) => r.startsWith("impulse_context_refreshed:")),
         "heartbeat should refresh heartbeat-scoped impulse context"
       );
+      assert.ok(
+        result.v8Spine?.impulseContextArtifactId,
+        "v8Spine should hand off impulse context artifact id"
+      );
       const impulse = await readImpulseContext(db, "heartbeat");
       assert.equal(impulse.available, true, "heartbeat impulse context should be persisted");
     } finally {

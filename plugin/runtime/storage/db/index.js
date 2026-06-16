@@ -366,10 +366,15 @@ function bootstrapStateSchema(sqlite) {
     runMigrations(sqlite, ALL_MIGRATIONS);
 }
 function applyStateSchemaMigrations(sqlite) {
+    // Defensive column/index additions for DBs that were initialized before
+    // v8-004-schema-closure. Fresh DBs already have these from bootstrap SQL.
+    // Each statement is wrapped individually so duplicate-column errors are
+    // harmless and do not block startup.
     const migrations = [
         "ALTER TABLE policy_records ADD COLUMN outreach_daily_budget INTEGER NOT NULL DEFAULT 2",
         "ALTER TABLE action_closure_record ADD COLUMN platform_id TEXT",
         "ALTER TABLE action_closure_record ADD COLUMN capability_id TEXT",
+        "ALTER TABLE quiet_daily_review ADD COLUMN closure_refs_json TEXT",
         "ALTER TABLE connector_cooldown_state ADD COLUMN terminal_count INTEGER NOT NULL DEFAULT 0",
         "CREATE INDEX IF NOT EXISTS connector_cooldown_state_platform_capability_idx ON connector_cooldown_state(platform_id, capability_id)",
     ];

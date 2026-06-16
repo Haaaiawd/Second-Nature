@@ -10,7 +10,11 @@ import assert from "node:assert";
 
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { checkDailyRhythm } from "../../../src/core/second-nature/quiet-dream/daily-rhythm-scheduler.js";
-import { writeActionClosureRecord } from "../../../src/storage/v8-state-stores.js";
+import {
+  writeActionClosureRecord,
+  writeDreamConsolidationRun,
+  updateDreamConsolidationRunStatus,
+} from "../../../src/storage/v8-state-stores.js";
 
 describe("daily-rhythm-scheduler", () => {
   function makeClosure(day: string, overrides?: Record<string, unknown>) {
@@ -106,6 +110,31 @@ describe("daily-rhythm-scheduler", () => {
       if (r2.status === "checked") {
         assert.equal(r2.state.quietStatus, "completed");
         assert.equal(r2.state.dreamStatus, "completed");
+      }
+    } finally {
+      db.close();
+    }
+  });
+
+  it("enforces global 7-day Dream interval across Quiet review IDs", async () => {
+    const db = createStateDatabase(":memory:");
+    try {
+      // Day 1: closure + Quiet + Dream completed
+      await writeActionClosureRecord(db, makeClosure("2026-06-05"));
+      const r1 = await checkDailyRhythm(db, { now: "2026-06-05T10:00:00Z", forceQuiet: true });
+      assert.equal(r1.status, "checked");
+      if (r1.status === "checked") {
+        assert.equal(r1.state.dreamStatus, "completed");
+      }
+
+      // Day 2 (within 7 days): another closure + Quiet, but Dream should honor interval
+      await writeActionClosureRecord(db, makeClosure("2026-06-06"));
+      const r2 = await checkDailyRhythm(db, { now: "2026-06-06T10:00:00Z", forceQuiet: true });
+      assert.equal(r2.status, "checked");
+      if (r2.status === "checked") {
+        assert.equal(r2.state.quietStatus, "completed");
+        assert.equal(r2.state.dreamStatus, "completed");
+        assert.equal(r2.state.dreamReason, "dream_interval_active");
       }
     } finally {
       db.close();

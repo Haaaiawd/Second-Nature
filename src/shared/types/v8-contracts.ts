@@ -199,6 +199,7 @@ export type V8ReasonCode =
   | "dream_completed"
   | "dream_failed"
   | "dream_blocked_redaction"
+  | "dream_interval_active"
   | "dream_rules_only"
   | "dream_model_timeout"
   | "projection_candidate_created"

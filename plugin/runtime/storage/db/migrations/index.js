@@ -8,6 +8,7 @@ import { V7_004_BEHAVIOR_PROMOTION } from "./v7-004-behavior-promotion.js";
 import { V8_001_LIVING_PERCEPTION_LOOP } from "./v8-001-living-perception-loop.js";
 import { V8_002_PERCEPTION_CONTRACT_ALIGNMENT } from "./v8-002-perception-contract-alignment.js";
 import { V8_003_QUIET_CLOSURE_REFS } from "./v8-003-quiet-closure-refs.js";
+import { V8_004_SCHEMA_CLOSURE } from "./v8-004-schema-closure.js";
 export const ALL_MIGRATIONS = [
     V7_001_FOUNDATION,
     V7_002_EFFECT_COMMIT_LEDGER,
@@ -16,4 +17,5 @@ export const ALL_MIGRATIONS = [
     V8_001_LIVING_PERCEPTION_LOOP,
     V8_002_PERCEPTION_CONTRACT_ALIGNMENT,
     V8_003_QUIET_CLOSURE_REFS,
+    V8_004_SCHEMA_CLOSURE,
 ];

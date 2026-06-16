@@ -12,7 +12,7 @@
  * Dependencies: drizzle-orm/sqlite-core
  * Boundary: Schema definitions only; no runtime logic.
  */
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 // ───────────────────────────────────────────────────────────────
 // 1. EvidenceItem
 // ───────────────────────────────────────────────────────────────
@@ -27,7 +27,9 @@ export const evidenceItem = sqliteTable("evidence_item", {
     redactionClass: text("redaction_class").notNull().default("none"),
     payloadJson: text("payload_json"),
     lifecycleStatus: text("lifecycle_status").notNull().default("pending"),
-});
+}, (table) => ({
+    platformContentHashIdx: uniqueIndex("evidence_item_platform_content_hash_idx").on(table.platformId, table.contentHash),
+}));
 // ───────────────────────────────────────────────────────────────
 // 2. PerceptionCard
 // ───────────────────────────────────────────────────────────────

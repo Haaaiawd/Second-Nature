@@ -45,10 +45,6 @@ import {
   type ClosureStatus,
 } from "../action/action-closure-recorder.js";
 import { checkDailyRhythm, type DailyRhythmState } from "../quiet-dream/daily-rhythm-scheduler.js";
-import { assembleImpulseSync } from "../../../guidance/impulse-assembler.js";
-import { buildExpressionBoundary } from "../../../guidance/output-guard.js";
-import { getShortAtmosphereTemplate } from "../../../guidance/template-registry.js";
-import { writeImpulseContext } from "../guidance/impulse-context-writer.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -71,6 +67,7 @@ export interface HeartbeatOrchestrationResult {
   closureRef?: SourceRef;
   noActionReason?: V8ReasonCode;
   degraded?: DegradedOperationResult;
+  rhythmDegraded?: DegradedOperationResult;
   rhythmState?: DailyRhythmState;
 }
 
@@ -156,23 +153,6 @@ async function advanceAndRecordDailyRhythm(
   }
 }
 
-async function refreshHeartbeatImpulseContext(db: StateDatabase, now: string): Promise<void> {
-  const impulseResult = assembleImpulseSync({ sceneType: "heartbeat" });
-  const atmosphere = getShortAtmosphereTemplate("active", "low");
-  const expressionBoundary = buildExpressionBoundary("heartbeat");
-  await writeImpulseContext(
-    db,
-    {
-      sceneType: "heartbeat",
-      impulseResult,
-      atmosphereText: atmosphere.text,
-      expressionBoundaryConstraints: expressionBoundary.constraints,
-      expressionBoundaryStyle: expressionBoundary.style,
-    },
-    { now },
-  );
-}
-
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -226,12 +206,6 @@ export async function runHeartbeatCycle(
     sourceRefs: [cycleRef],
   });
 
-  try {
-    await refreshHeartbeatImpulseContext(db, now);
-  } catch {
-    // Impulse context is diagnostic guidance; it must not block heartbeat closure.
-  }
-
   // ── Perception stage ──
   const perceptionResult = await buildPerceptionCards(db, { cycleId, now });
 
@@ -280,7 +254,7 @@ export async function runHeartbeatCycle(
       sourceRefs: degradedClosureRef ? [degradedClosureRef, cycleRef] : [cycleRef],
     });
 
-    const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+    const { rhythmState, rhythmDegraded } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
 
     return {
       cycleId,
@@ -296,7 +270,8 @@ export async function runHeartbeatCycle(
             operatorNextAction: "Retry heartbeat after perception recovery",
             retryable: true,
           }
-        : undefined,
+        : rhythmDegraded,
+      rhythmDegraded,
       rhythmState,
     };
   }
@@ -339,13 +314,15 @@ export async function runHeartbeatCycle(
       sourceRefs: emptyClosureRef ? [emptyClosureRef, cycleRef] : [cycleRef],
     });
 
-    const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+    const { rhythmState, rhythmDegraded } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
 
     return {
       cycleId,
       cycleSequence,
       closureRef: emptyClosureRef,
       noActionReason: "evidence_batch_empty",
+      degraded: rhythmDegraded,
+      rhythmDegraded,
       rhythmState,
     };
   }
@@ -474,7 +451,7 @@ export async function runHeartbeatCycle(
           memoryReviewCandidate: import("../../../shared/types/v8-contracts.js").MemoryReviewCandidateClosure;
           closureId: string;
         };
-        const closureResult = await recordRememberClosure(db, cycleId, remember.memoryReviewCandidate, { now });
+        const closureResult = await recordRememberClosure(db, cycleId, remember.memoryReviewCandidate, { now, platformId: "heartbeat" });
         if ("closureId" in closureResult) {
           closureRef = {
             uri: `sn://closure/${closureResult.closureId}`,
@@ -681,14 +658,15 @@ export async function runHeartbeatCycle(
   }
 
   // T-CP.R.3: Advance daily rhythm after closure/no-action
-  const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+  const { rhythmState, rhythmDegraded } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
 
   return {
     cycleId,
     cycleSequence,
     closureRef,
     noActionReason,
-    degraded: closureDegraded,
+    degraded: closureDegraded ?? rhythmDegraded,
+    rhythmDegraded,
     rhythmState,
   };
 }

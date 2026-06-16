@@ -22,7 +22,7 @@
  *   so `dreamStatus` reaches completed/blocked.
  * - Does not bypass Dream runner; only records due/completed/blocked.
  */
-import { writeDailyRhythmState, readDailyRhythmStateByDay, readActionClosuresByDay, readDreamConsolidationRunById, readDreamConsolidationRunsByQuietId, updateDreamConsolidationRunStatus, } from "../../../storage/v8-state-stores.js";
+import { writeDailyRhythmState, readDailyRhythmStateByDay, readActionClosuresByDay, readDreamConsolidationRunById, readDreamConsolidationRunsByQuietId, readLatestDreamConsolidationRunByStatus, updateDreamConsolidationRunStatus, } from "../../../storage/v8-state-stores.js";
 import { buildQuietDailyReview } from "./quiet-daily-review-builder.js";
 import { scheduleDreamAfterQuiet } from "./dream-scheduler.js";
 import { runDreamConsolidation } from "./dream-consolidation-runner.js";
@@ -226,18 +226,17 @@ export async function checkDailyRhythm(db, options) {
             // Already handled; do not re-schedule
         }
         else {
+            // Global 7-day interval check: look across all quiet reviews, not just today's.
             const quietId = `quiet_${day}`;
-            const latestRun = await loadLatestDreamRunForQuiet(db, quietId);
-            if (latestRun.degraded) {
-                return latestRun.degraded;
+            const globalLatest = await readLatestDreamConsolidationRunByStatus(db, ["completed", "blocked"]);
+            if (globalLatest.degraded) {
+                return globalLatest.degraded;
             }
-            // If a completed/blocked run already exists within the 7-day interval, honor it.
-            if (latestRun.row &&
-                (latestRun.row.status === "completed" || latestRun.row.status === "blocked") &&
-                isWithinDays(latestRun.row.createdAt, now, DREAM_DEFAULT_INTERVAL_DAYS)) {
-                state.dreamStatus = latestRun.row.status;
-                state.dreamReason = latestRun.row.reason ?? "dream_completed";
-                if (latestRun.row.status === "completed") {
+            if (globalLatest.row &&
+                isWithinDays(globalLatest.row.createdAt, now, DREAM_DEFAULT_INTERVAL_DAYS)) {
+                state.dreamStatus = globalLatest.row.status;
+                state.dreamReason = "dream_interval_active";
+                if (globalLatest.row.status === "completed") {
                     state.dreamCompletedAt = now;
                 }
             }

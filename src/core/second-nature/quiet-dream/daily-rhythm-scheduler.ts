@@ -30,6 +30,7 @@ import {
   readActionClosuresByDay,
   readDreamConsolidationRunById,
   readDreamConsolidationRunsByQuietId,
+  readLatestDreamConsolidationRunByStatus,
   updateDreamConsolidationRunStatus,
   writeDreamConsolidationRun,
 } from "../../../storage/v8-state-stores.js";
@@ -286,21 +287,20 @@ export async function checkDailyRhythm(
     } else if (state.dreamStatus === "blocked") {
       // Already handled; do not re-schedule
     } else {
+      // Global 7-day interval check: look across all quiet reviews, not just today's.
       const quietId = `quiet_${day}`;
-      const latestRun = await loadLatestDreamRunForQuiet(db, quietId);
-      if (latestRun.degraded) {
-        return latestRun.degraded;
+      const globalLatest = await readLatestDreamConsolidationRunByStatus(db, ["completed", "blocked"]);
+      if (globalLatest.degraded) {
+        return globalLatest.degraded;
       }
 
-      // If a completed/blocked run already exists within the 7-day interval, honor it.
       if (
-        latestRun.row &&
-        (latestRun.row.status === "completed" || latestRun.row.status === "blocked") &&
-        isWithinDays(latestRun.row.createdAt, now, DREAM_DEFAULT_INTERVAL_DAYS)
+        globalLatest.row &&
+        isWithinDays(globalLatest.row.createdAt, now, DREAM_DEFAULT_INTERVAL_DAYS)
       ) {
-        state.dreamStatus = latestRun.row.status as RhythmStatus;
-        state.dreamReason = (latestRun.row.reason as V8ReasonCode) ?? "dream_completed";
-        if (latestRun.row.status === "completed") {
+        state.dreamStatus = globalLatest.row.status as RhythmStatus;
+        state.dreamReason = "dream_interval_active";
+        if (globalLatest.row.status === "completed") {
           state.dreamCompletedAt = now;
         }
       } else {

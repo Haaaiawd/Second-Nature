@@ -31,10 +31,6 @@ import { evaluateActionPolicy } from "../action/autonomy-policy-evaluator.js";
 import { dispatchAllowedAction } from "../action/policy-bound-dispatch.js";
 import { recordNoActionClosure, recordRememberClosure, recordPolicyOutcomeClosure, recordExecutionClosure, } from "../action/action-closure-recorder.js";
 import { checkDailyRhythm } from "../quiet-dream/daily-rhythm-scheduler.js";
-import { assembleImpulseSync } from "../../../guidance/impulse-assembler.js";
-import { buildExpressionBoundary } from "../../../guidance/output-guard.js";
-import { getShortAtmosphereTemplate } from "../../../guidance/template-registry.js";
-import { writeImpulseContext } from "../guidance/impulse-context-writer.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -108,18 +104,6 @@ async function advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef,
         return { rhythmDegraded: degraded };
     }
 }
-async function refreshHeartbeatImpulseContext(db, now) {
-    const impulseResult = assembleImpulseSync({ sceneType: "heartbeat" });
-    const atmosphere = getShortAtmosphereTemplate("active", "low");
-    const expressionBoundary = buildExpressionBoundary("heartbeat");
-    await writeImpulseContext(db, {
-        sceneType: "heartbeat",
-        impulseResult,
-        atmosphereText: atmosphere.text,
-        expressionBoundaryConstraints: expressionBoundary.constraints,
-        expressionBoundaryStyle: expressionBoundary.style,
-    }, { now });
-}
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -164,12 +148,6 @@ export async function runHeartbeatCycle(db, request) {
         occurredAt: now,
         sourceRefs: [cycleRef],
     });
-    try {
-        await refreshHeartbeatImpulseContext(db, now);
-    }
-    catch {
-        // Impulse context is diagnostic guidance; it must not block heartbeat closure.
-    }
     // ── Perception stage ──
     const perceptionResult = await buildPerceptionCards(db, { cycleId, now });
     const perceptionDegraded = "status" in perceptionResult && perceptionResult.status === "degraded"
@@ -213,7 +191,7 @@ export async function runHeartbeatCycle(db, request) {
             reason: degradedReason,
             sourceRefs: degradedClosureRef ? [degradedClosureRef, cycleRef] : [cycleRef],
         });
-        const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+        const { rhythmState, rhythmDegraded } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
         return {
             cycleId,
             cycleSequence,
@@ -228,7 +206,8 @@ export async function runHeartbeatCycle(db, request) {
                     operatorNextAction: "Retry heartbeat after perception recovery",
                     retryable: true,
                 }
-                : undefined,
+                : rhythmDegraded,
+            rhythmDegraded,
             rhythmState,
         };
     }
@@ -267,12 +246,14 @@ export async function runHeartbeatCycle(db, request) {
             reason: "evidence_batch_empty",
             sourceRefs: emptyClosureRef ? [emptyClosureRef, cycleRef] : [cycleRef],
         });
-        const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+        const { rhythmState, rhythmDegraded } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
         return {
             cycleId,
             cycleSequence,
             closureRef: emptyClosureRef,
             noActionReason: "evidence_batch_empty",
+            degraded: rhythmDegraded,
+            rhythmDegraded,
             rhythmState,
         };
     }
@@ -387,7 +368,7 @@ export async function runHeartbeatCycle(db, request) {
             }
             else if (proposalResult.status === "remember_for_review") {
                 const remember = proposalResult;
-                const closureResult = await recordRememberClosure(db, cycleId, remember.memoryReviewCandidate, { now });
+                const closureResult = await recordRememberClosure(db, cycleId, remember.memoryReviewCandidate, { now, platformId: "heartbeat" });
                 if ("closureId" in closureResult) {
                     closureRef = {
                         uri: `sn://closure/${closureResult.closureId}`,
@@ -562,13 +543,14 @@ export async function runHeartbeatCycle(db, request) {
         noActionReason = "proposal_no_action";
     }
     // T-CP.R.3: Advance daily rhythm after closure/no-action
-    const { rhythmState } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
+    const { rhythmState, rhythmDegraded } = await advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef, now);
     return {
         cycleId,
         cycleSequence,
         closureRef,
         noActionReason,
-        degraded: closureDegraded,
+        degraded: closureDegraded ?? rhythmDegraded,
+        rhythmDegraded,
         rhythmState,
     };
 }

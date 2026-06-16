@@ -47,6 +47,8 @@ export interface RealRuntimeSpineResult {
   noActionReason?: V8ReasonCode;
   degraded?: DegradedOperationResult;
   rhythmState?: DailyRhythmState;
+  rhythmDegraded?: DegradedOperationResult;
+  impulseContextArtifactId?: string;
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -78,5 +80,6 @@ export async function runRealRuntimeHeartbeatCycle(
     noActionReason: orchestrationResult.noActionReason,
     degraded: orchestrationResult.degraded,
     rhythmState: orchestrationResult.rhythmState,
+    rhythmDegraded: orchestrationResult.rhythmDegraded,
   };
 }

@@ -83,6 +83,8 @@ export interface HeartbeatSurfaceResult {
     capabilityClass?: string | null;
     impulseText?: string | null;
     atmosphereText?: string | null;
+    expressionBoundaryConstraints?: string[] | null;
+    expressionBoundaryStyle?: string | null;
     freshnessMs?: number;
     missingReason?: string;
   };
@@ -270,6 +272,11 @@ export async function heartbeatCheck(
           ];
         } else {
           const spine = v8Result as RealRuntimeSpineResult;
+          const artifactId = await refreshHeartbeatImpulseContext(input.state, timestamp);
+          if (artifactId) {
+            spine.impulseContextArtifactId = artifactId;
+            surfaceResult.reasons.push(`impulse_context_refreshed:${artifactId}`);
+          }
           surfaceResult.v8Spine = spine;
           surfaceResult.livedExperienceLoopClaimed = Boolean(
             spine.cycleId && (spine.closureRef || spine.noActionReason),
@@ -281,15 +288,6 @@ export async function heartbeatCheck(
               ? "v8_closure_recorded"
               : `v8_no_action:${spine.noActionReason ?? "unknown"}`,
           ];
-          try {
-            const artifactId = await refreshHeartbeatImpulseContext(input.state, timestamp);
-            if (artifactId) {
-              surfaceResult.reasons.push(`impulse_context_refreshed:${artifactId}`);
-            }
-          } catch (impulseErr) {
-            const impulseMsg = impulseErr instanceof Error ? impulseErr.message : String(impulseErr);
-            surfaceResult.reasons.push(`impulse_context_refresh_failed:${impulseMsg.slice(0, 120)}`);
-          }
         }
       } catch (v8Err) {
         const v8Msg = v8Err instanceof Error ? v8Err.message : String(v8Err);
@@ -314,6 +312,8 @@ export async function heartbeatCheck(
             capabilityClass: ctx.artifact.capabilityClass,
             impulseText: ctx.artifact.impulseText,
             atmosphereText: ctx.artifact.atmosphereText,
+            expressionBoundaryConstraints: ctx.artifact.expressionBoundaryConstraints,
+            expressionBoundaryStyle: ctx.artifact.expressionBoundaryStyle,
             freshnessMs: ctx.freshnessMs,
           };
           surfaceResult.reasons.push(`impulse_context:${ctx.artifact.id}`);
@@ -324,8 +324,13 @@ export async function heartbeatCheck(
           };
           surfaceResult.reasons.push(`impulse_context_missing:${ctx.reason}`);
         }
-      } catch {
-        // Non-fatal: impulse context is advisory
+      } catch (readErr) {
+        const msg = readErr instanceof Error ? readErr.message : String(readErr);
+        surfaceResult.impulseContext = {
+          available: false,
+          missingReason: `read_exception:${msg.slice(0, 120)}`,
+        };
+        surfaceResult.reasons.push(`impulse_context_read_failed:${msg.slice(0, 120)}`);
       }
     }
 

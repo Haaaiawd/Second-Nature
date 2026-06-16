@@ -43,6 +43,8 @@ export interface ActionClosureRecord {
 }
 export interface RecordClosureOptions {
     now?: string;
+    platformId?: string;
+    capabilityId?: string;
 }
 export type RecordClosureResult = {
     status: "recorded";

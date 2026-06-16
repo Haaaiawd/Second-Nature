@@ -22,7 +22,7 @@
  *
  * Test coverage: tests/unit/action/action-proposal-builder.test.ts
  */
-import { readJudgmentVerdictById, writeActionClosureRecord, } from "../../../storage/v8-state-stores.js";
+import { readJudgmentVerdictById, } from "../../../storage/v8-state-stores.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
@@ -100,7 +100,7 @@ export async function buildActionProposal(db, judgmentVerdictId, options) {
         };
     }
     const sourceRefs = parseVerdictSourceRefs(verdict.sourceRefsJson);
-    // remember → memory review candidate closure (no direct projection)
+    // remember → memory review candidate (no direct projection; orchestrator writes closure)
     if (actionKind === "remember") {
         const candidate = {
             closureSubtype: "remember_for_review",
@@ -131,27 +131,10 @@ export async function buildActionProposal(db, judgmentVerdictId, options) {
                 },
             ]),
         };
-        const closureId = `cls_remember_${judgmentVerdictId}_${now.replace(/[:.]/g, "")}`;
-        const writeResult = await writeActionClosureRecord(db, {
-            id: closureId,
-            createdAt: now,
-            cycleId,
-            platformId: "heartbeat",
-            status: "completed",
-            reason: "remember_for_review",
-            nextState: "pending_daily_review",
-            sourceRefs: candidate.sourceRefs,
-            redactionClass: "none",
-            lifecycleStatus: "closed",
-            payloadJson: JSON.stringify({ memoryReviewCandidate: candidate }),
-        });
-        if ("reason" in writeResult) {
-            return writeResult;
-        }
         return {
             status: "remember_for_review",
             memoryReviewCandidate: candidate,
-            closureId,
+            closureId: `cls_remember_${judgmentVerdictId}_${now.replace(/[:.]/g, "")}`,
         };
     }
     // Actionable verdict → build proposal

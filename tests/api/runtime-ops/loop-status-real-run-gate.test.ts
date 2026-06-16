@@ -31,19 +31,40 @@ describe("loop-status-real-run-gate", () => {
     }
   });
 
-  it("runtime heartbeat auto-advances daily rhythm and owns heartbeat impulse context", async () => {
+  it("runtime heartbeat auto-advances daily rhythm and surface owns heartbeat impulse context", async () => {
     const db = createStateDatabase(":memory:");
     try {
+      const now = new Date().toISOString();
       await runHeartbeatCycle(db, {
         workspaceRoot: "/test",
-        requestedAt: new Date().toISOString(),
+        requestedAt: now,
         trigger: "manual",
+      });
+
+      // T-GVS.R.3: impulse context is refreshed by the heartbeat surface, not the orchestrator.
+      // Seed it here to verify the real-run gate recognizes a complete runtime path.
+      const { writeImpulseContextArtifact } = await import("../../../src/storage/v8-state-stores.js");
+      await writeImpulseContextArtifact(db, {
+        id: `impulse_${now.slice(0, 10)}`,
+        sceneType: "heartbeat",
+        capabilityIntent: null,
+        platformId: null,
+        capabilityClass: null,
+        impulseSource: "runtime_surface",
+        impulseText: "test impulse",
+        atmosphereText: "test atmosphere",
+        expressionBoundaryConstraintsJson: JSON.stringify(["be concise"]),
+        expressionBoundaryStyle: "direct",
+        freshnessVersion: 1,
+        createdAt: now,
+        updatedAt: now,
+        sourceRefs: [{ uri: "sn://impulse", family: "audit" as const, id: "impulse1", redactionClass: "none" as const, resolveStatus: "resolvable" as const }],
       });
 
       const result = await readLoopStatus(db);
       assert.equal(result.ok, true);
       if (result.ok) {
-        // Heartbeat now auto-advances closure → Quiet → Dream and owns heartbeat impulse.
+        // Heartbeat auto-advances closure → Quiet → Dream; surface provides impulse context.
         assert.equal(result.status.realRunHealth.gatePassed, true);
         assert.equal(result.status.realRunHealth.hasRealClosure, true);
         assert.equal(result.status.realRunHealth.seededStateDetected, false);

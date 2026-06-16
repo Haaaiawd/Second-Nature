@@ -45,6 +45,8 @@ export interface HeartbeatSurfaceResult {
         capabilityClass?: string | null;
         impulseText?: string | null;
         atmosphereText?: string | null;
+        expressionBoundaryConstraints?: string[] | null;
+        expressionBoundaryStyle?: string | null;
         freshnessMs?: number;
         missingReason?: string;
     };

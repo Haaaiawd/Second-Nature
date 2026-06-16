@@ -66,6 +66,8 @@ export interface ActionClosureRecord {
 
 export interface RecordClosureOptions {
   now?: string;
+  platformId?: string;
+  capabilityId?: string;
 }
 
 export type RecordClosureResult =
@@ -151,6 +153,8 @@ export async function recordRememberClosure(
     id: closureId,
     createdAt: now,
     cycleId,
+    platformId: options?.platformId ?? "heartbeat",
+    capabilityId: options?.capabilityId,
     status: "completed",
     reason: "remember_for_review",
     nextState: "pending_daily_review",

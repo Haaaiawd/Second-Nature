@@ -1558,3 +1558,115 @@ graph TD
   - **证据产出**: `.anws/v8/wave-reviews/wave-110-e2e.md`, plugin tarball, git tag `v0.2.10`
   - **依赖**: T-ROS.R.6, T-GVS.R.2, T-CS.R.6, T-CS.R.7, T-OBS.R.6
   - **优先级**: P0
+
+---
+
+## Wave 111 — v8 /change Repair: Review Closure Gaps
+
+> 触发：v0.2.10 静态审查发现 High/Medium 级闭环缺口。
+> 目标：在不引入新架构版本的前提下，修复 migration/schema 对齐、rhythm 失败传播、Dream 7 天间隔、connector shadow 执行层一致性、remember closure 重复写入、impulse context 职责。
+
+- [x] **T-SMS.R.2** [REQ-001, REQ-008]: Align v8 migrations with bootstrap schema
+  - **描述**: Add `v8-004-schema-closure` migration to create `daily_rhythm_state`, `impulse_context_artifact`, `connector_cooldown_state` tables for DBs that predate them; ensure `action_closure_record.platform_id/capability_id` and `quiet_daily_review.closure_refs_json` are added idempotently.
+  - **输入**: `src/storage/db/index.ts`, `src/storage/db/schema/v8-entities.ts`, `src/storage/db/migrations/index.ts`
+  - **输出**: `v8-004-schema-closure.ts`, updated `applyStateSchemaMigrations`, Drizzle unique index on `evidence_item(platform_id, content_hash)`
+  - **契约承接**: v8 schema durability and upgrade path
+  - **验收标准**:
+    - Given a DB initialized at v8-003 or earlier
+    - When migrations run
+    - Then all v8 tables/columns/indexes match the current bootstrap schema
+  - **验证类型**: 单元测试 / 集成测试 / 编译检查
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sms-r-2`
+  - **证据产出**: `tests/integration/storage/schema-migration.test.ts` 新增 case, `logs/schema-alignment.log`
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [x] **T-CP.R.4** [REQ-008, REQ-009]: Propagate daily rhythm degraded state through heartbeat cycle result
+  - **描述**: Capture `rhythmDegraded` from `advanceAndRecordDailyRhythm` and merge it into `HeartbeatOrchestrationResult` / `RealRuntimeSpineResult` so `loop_status` can surface rhythm write failures.
+  - **输入**: `src/core/second-nature/control-plane/heartbeat-orchestrator.ts`, `src/core/second-nature/control-plane/real-runtime-spine.ts`
+  - **输出**: `rhythmDegraded` field on cycle/spine results
+  - **契约承接**: `HeartbeatOrchestrationResult`, `RealRuntimeSpineResult`
+  - **验收标准**:
+    - Given `checkDailyRhythm` returns degraded
+    - When `runHeartbeatCycle` returns
+    - Then `result.degraded` or `result.rhythmDegraded` reflects the failure
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-4`
+  - **证据产出**: `tests/unit/control-plane/heartbeat-cycle-trace.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`
+  - **依赖**: T-SMS.R.2
+  - **优先级**: P0
+
+- [x] **T-DQ.R.8** [REQ-003, REQ-008]: Enforce global 7-day Dream interval across Quiet review IDs
+  - **描述**: Replace `loadLatestDreamRunForQuiet` (per-quiet-review) with a global latest-completed/blocked Dream run query so consecutive daily Quiet reviews cannot trigger Dream more than once per 7 days.
+  - **输入**: `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts`, `src/storage/v8-state-stores.ts`
+  - **输出**: `readLatestDreamConsolidationRunByStatus`, updated interval check
+  - **契约承接**: Quiet/Dream cadence contract (L0 §6.4)
+  - **验收标准**:
+    - Given a completed Dream run within 7 days
+    - When tomorrow's Quiet review completes
+    - Then Dream status is `completed`/`blocked` with reason `dream_interval_active`, not `due`
+  - **验证类型**: 单元测试 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-8`
+  - **证据产出**: `tests/unit/quiet/daily-rhythm-scheduler.test.ts`
+  - **依赖**: T-SMS.R.2
+  - **优先级**: P0
+
+- [x] **T-AC.R.1** [REQ-008]: Remove remember closure duplicate write and ensure platform_id
+  - **描述**: `buildActionProposal` currently writes a remember closure and `heartbeat-orchestrator` writes it again. Move the single write to `recordRememberClosure` with explicit `platformId: "heartbeat"`.
+  - **输入**: `src/core/second-nature/action/action-proposal-builder.ts`, `src/core/second-nature/action/action-closure-recorder.ts`, `src/core/second-nature/control-plane/heartbeat-orchestrator.ts`
+  - **输出**: Single remember closure per verdict, `platform_id` populated
+  - **契约承接**: `ActionClosureRecord` schema, exactly-one-closure-per-cycle
+  - **验收标准**:
+    - Given a `remember` verdict
+    - When the cycle completes
+    - Then exactly one `action_closure_record` exists with `platform_id = 'heartbeat'` and `reason = 'remember_for_review'`
+  - **验证类型**: 单元测试 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-r-1`
+  - **证据产出**: `tests/unit/action/action-proposal-builder.test.ts`, `tests/unit/action/action-closure-recorder.test.ts`
+  - **依赖**: T-SMS.R.2
+  - **优先级**: P1
+
+- [x] **T-CS.R.8** [REQ-001, REQ-008]: Unify connector shadow safety between registry and executor
+  - **描述**: `registerWorkspaceManifests` in executor adapter registers workspace manifests without checking `DynamicConnectorRegistry` shadow policy. Add `trust.override` + `trust.reason` + safe runner kind gating, and map `mock_read_error` to `configuration_missing`.
+  - **输入**: `src/connectors/services/connector-executor-adapter.ts`, `src/connectors/registry/dynamic-connector-registry.ts`
+  - **输出**: Shared `isSafeBuiltInShadow` helper, executor adapter skips unsafe built-in shadows
+  - **契约承接**: Connector shadow trust policy
+  - **验收标准**:
+    - Given a workspace manifest shadowing MoltBook without `trust.override`/`reason`
+    - When `executeEffect` runs
+    - Then the built-in MoltBook runner is used, not the workspace manifest
+  - **验证类型**: 单元测试 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-8`
+  - **证据产出**: `tests/unit/connectors/t3-1-1-dynamic-registry.test.ts`, `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts`
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [x] **T-GVS.R.3** [REQ-005, REQ-008]: Unify heartbeat impulse context refresh responsibility
+  - **描述**: `heartbeat-orchestrator` and `heartbeat-surface` both refresh impulse context. Remove refresh from orchestrator; surface refreshes after v8 spine and exposes `impulseContextArtifactId` in `v8Spine` result.
+  - **输入**: `src/core/second-nature/control-plane/heartbeat-orchestrator.ts`, `src/cli/ops/heartbeat-surface.ts`, `src/core/second-nature/control-plane/real-runtime-spine.ts`
+  - **输出**: Single refresh point, `impulseContextArtifactId` handoff
+  - **契约承接**: `RealRuntimeSpineResult`, `HeartbeatSurfaceResult.impulseContext`
+  - **验收标准**:
+    - Given a successful v8 spine
+    - When heartbeat surface returns
+    - Then `impulseContextArtifactId` points to a freshly persisted heartbeat artifact
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-gvs-r-3`
+  - **证据产出**: `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`
+  - **依赖**: T-CP.R.4
+  - **优先级**: P1
+
+- [x] **INT-R6** [MILESTONE]: Wave 111 Repair Gate
+  - **描述**: Verify all Wave 111 repairs pass targeted tests, typecheck, build, and do not regress Wave 108–110.
+  - **输入**: T-SMS.R.2, T-CP.R.4, T-DQ.R.8, T-AC.R.1, T-CS.R.8, T-GVS.R.3 outputs
+  - **输出**: Wave 111 integration report and release candidate
+  - **契约承接**: v8 runtime recovery closure
+  - **验收标准**:
+    - Given Wave 111 code changes
+    - When targeted tests + Wave 108/109/110 regression run
+    - Then 0 blocking failures and typecheck/build pass
+  - **验证类型**: 回归门 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r6`
+  - **证据产出**: `reports/int-r6-wave-111-repair-gate.md`
+  - **依赖**: T-SMS.R.2, T-CP.R.4, T-DQ.R.8, T-AC.R.1, T-CS.R.8, T-GVS.R.3
+  - **优先级**: P0

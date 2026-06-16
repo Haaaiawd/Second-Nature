@@ -21,7 +21,7 @@
  *
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
-import { eq, and, desc, like, isNull } from "drizzle-orm";
+import { eq, and, desc, like, isNull, inArray } from "drizzle-orm";
 import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, connectorCooldownState, } from "./db/schema/v8-entities.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
@@ -482,6 +482,26 @@ export async function readDreamConsolidationRunsByQuietId(db, quietReviewId) {
     catch {
         return {
             rows: [],
+            degraded: makeDegraded("state_unreadable", "dream", "Check state database connectivity"),
+        };
+    }
+}
+/**
+ * Read the most recent DreamConsolidationRun globally, filtered by status.
+ * Used to enforce the 7-day Dream interval across Quiet review IDs.
+ */
+export async function readLatestDreamConsolidationRunByStatus(db, statuses) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(dreamConsolidationRun)
+            .where(inArray(dreamConsolidationRun.status, statuses))
+            .orderBy(desc(dreamConsolidationRun.createdAt))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
             degraded: makeDegraded("state_unreadable", "dream", "Check state database connectivity"),
         };
     }
