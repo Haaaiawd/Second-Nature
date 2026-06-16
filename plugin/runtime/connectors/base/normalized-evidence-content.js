@@ -185,12 +185,15 @@ function extractMetrics(item) {
 // ───────────────────────────────────────────────────────────────
 // Item extraction from connector payload
 // ───────────────────────────────────────────────────────────────
-function extractItems(data) {
+function extractItems(data, depth = 4) {
+    if (depth <= 0)
+        return [];
     if (Array.isArray(data))
         return data;
     if (!isRecord(data))
         return [];
-    for (const key of ["items", "data", "results", "posts", "nodes", "agents", "edges", "entries", "feed"]) {
+    const ARRAY_KEYS = ["items", "data", "results", "posts", "nodes", "agents", "edges", "entries", "feed"];
+    for (const key of ARRAY_KEYS) {
         const candidate = data[key];
         if (Array.isArray(candidate))
             return candidate;
@@ -198,6 +201,16 @@ function extractItems(data) {
     // If the payload itself looks like a single item, treat it as one-item array.
     if ("id" in data || "title" in data || "content" in data)
         return [data];
+    // Recurse into nested record-valued fields (e.g. real connector runners wrap
+    // the platform response in { capability, channel, data: apiResponse }).
+    for (const key of ARRAY_KEYS) {
+        const candidate = data[key];
+        if (isRecord(candidate)) {
+            const nested = extractItems(candidate, depth - 1);
+            if (nested.length > 0)
+                return nested;
+        }
+    }
     return [];
 }
 function normalizeSingleItem(item, options) {

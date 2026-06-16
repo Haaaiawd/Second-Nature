@@ -15,6 +15,7 @@ import {
   readDailyRhythmStateByDay,
   readQuietDailyReviewById,
   readLoopStageEventsByCycle,
+  readMemoryProjectionsByTopic,
 } from "../../../src/storage/v8-state-stores.js";
 import { runHeartbeatCycle } from "../../../src/core/second-nature/control-plane/heartbeat-orchestrator.js";
 import type { SourceRef } from "../../../src/shared/types/v8-contracts.js";
@@ -85,6 +86,14 @@ describe("real-runtime-quiet-dream-advance", () => {
       assert.ok(r.rhythmState);
       assert.equal(r.rhythmState?.quietStatus, "completed");
       assert.equal(r.rhythmState?.dreamStatus, "completed");
+
+      // T-DQ.R.3 followup: Dream candidates must be auto-accepted so they feed
+      // the next heartbeat's EmbodiedContext.
+      const projections = await readMemoryProjectionsByTopic(db, `topic_${day}`);
+      assert.ok(!projections.degraded, "projection read should not degrade");
+      assert.ok(projections.rows.length > 0, "Dream should produce accepted projections");
+      const active = projections.rows.find((p) => p.status === "active" || p.status === "accepted");
+      assert.ok(active, "at least one projection must be active/accepted after Dream completes");
     } finally {
       db.close();
     }

@@ -159,8 +159,8 @@ describe("INT-R4: content-bearing living loop", () => {
       assert.ok(dream.row, "DreamConsolidationRun exists");
       assert.equal(dream.row!.status, "completed", "Dream run completed");
 
-      const projections = await readMemoryProjectionsByStatus(db, "candidate");
-      assert.ok(projections.rows.length > 0, "long-term memory candidates created");
+      const projections = await readMemoryProjectionsByStatus(db, "active");
+      assert.ok(projections.rows.length > 0, "long-term memory projections auto-accepted as active");
     } finally {
       db.close();
     }

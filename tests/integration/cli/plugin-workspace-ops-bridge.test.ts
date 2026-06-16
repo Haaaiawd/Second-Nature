@@ -10,6 +10,12 @@ import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { writeOperatorFallback } from "../../../src/storage/fallback/write-operator-fallback.js";
 import { appendLifeEvidence } from "../../../src/storage/life-evidence/append-life-evidence.js";
 import { createAgentGoalStore } from "../../../src/storage/goal/agent-goal-store.js";
+import { createCredentialVault } from "../../../src/storage/services/credential-vault.js";
+import { evidenceItem } from "../../../src/storage/db/schema/v8-entities.js";
+import { lifeEvidenceIndex } from "../../../src/storage/db/schema/life-evidence-index.js";
+
+const ORIGINAL_MOLTBOOK_URL = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
+const ORIGINAL_ENCRYPTION_KEY = process.env.SECOND_NATURE_ENCRYPTION_KEY;
 
 interface ServiceRegistration {
   id: string;
@@ -124,6 +130,52 @@ test("T1.1.4 known workspaceRoot bridges heartbeat_check to workspace_full_runti
     "workspace bridge heartbeat should expose closure or no-action proof",
   );
   assert.ok(payload.status !== "runtime_carrier_only");
+});
+
+test("T-ROS.C.1 — heartbeat_run is reachable as heartbeat_check alias through workspace bridge", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-hbr-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const text = (
+    await tool.execute("1", {
+      command: "heartbeat_run",
+      args: { timestamp: "2026-05-04T12:00:00.000Z" },
+      workspaceRoot: tmp,
+    })
+  ).content[0]?.text ?? "{}";
+  const payload = JSON.parse(text) as {
+    ok: boolean;
+    surfaceMode: string;
+    livedExperienceLoopClaimed: boolean;
+    v8Spine?: { cycleId?: string; closureRef?: unknown; noActionReason?: string };
+  };
+  assert.equal(payload.ok, true, JSON.stringify(payload));
+  assert.equal(payload.surfaceMode, "workspace_full_runtime");
+  assert.equal(payload.livedExperienceLoopClaimed, true);
+  assert.ok(payload.v8Spine?.cycleId, "heartbeat_run alias should expose v8 spine cycle");
+  assert.ok(
+    payload.v8Spine?.closureRef || payload.v8Spine?.noActionReason,
+    "heartbeat_run alias should expose closure or no-action proof",
+  );
 });
 
 // SKIP (pre-existing, Wave 56+): bridge connector action dispatch not fully wired in packaged runtime.
@@ -610,6 +662,109 @@ test("T-ROS.C.2 v7 ops commands are reachable through workspace bridge", async (
         "narrative:diff should have timeline deps wired",
       );
     }
+  }
+});
+
+test("T-CS.R.5 — bridge connector:run writes v7 life_evidence and v8 EvidenceItem", async () => {
+  process.env.SECOND_NATURE_ENCRYPTION_KEY = "x".repeat(32);
+  delete process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-connector-evidence-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  fs.mkdirSync(path.join(tmp, ".second-nature", "mock"), { recursive: true });
+  fs.writeFileSync(
+    path.join(tmp, ".second-nature", "mock", "moltbook-feed.json"),
+    JSON.stringify({
+      items: [
+        { id: "v8-e-1", title: "Evidence item 1", content: "Hello v8" },
+        { id: "v8-e-2", title: "Evidence item 2", content: "World v8" },
+      ],
+    }),
+    "utf-8",
+  );
+
+  // Seed active credential so moltbook mock runner passes the auth gate
+  const state = createStateDatabase(path.join(tmp, "data", "state.db"));
+  try {
+    const vault = createCredentialVault(state.db);
+    await vault.saveCredentialContext({
+      platformId: "moltbook",
+      credentialType: "api_key",
+      encryptedValue: "mock-token",
+      status: "active",
+    });
+    const loaded = await vault.loadCredentialContext("moltbook");
+    assert.equal(loaded?.status, "active", "seeded credential must be loadable");
+    assert.ok(loaded?.encryptedValue, "seeded credential must have encryptedValue");
+    state.flush();
+
+    const plugin = await loadPlugin();
+    let tool:
+      | {
+          execute: (
+            _id: string,
+            params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+          ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+        }
+      | undefined;
+
+    plugin.register({
+      registerService() {},
+      registerCommand() {},
+      registerTool(entry: unknown) {
+        tool = entry as typeof tool;
+      },
+    });
+
+    assert.ok(tool);
+
+    const result = await tool.execute("1", {
+      command: "connector:run",
+      args: { platformId: "moltbook", capabilityId: "feed.read" },
+      workspaceRoot: tmp,
+    });
+  const payload = JSON.parse(result.content[0]?.text ?? "{}") as {
+    ok: boolean;
+    data?: {
+      evidence?: {
+        v7EvidenceId?: string;
+        v8EvidenceIds?: string[];
+        emptyReason?: string;
+      };
+    };
+  };
+
+    assert.equal(payload.ok, true, JSON.stringify(payload));
+    assert.ok(payload.data?.evidence, "result should include evidence summary");
+    assert.ok(
+      Array.isArray(payload.data?.evidence?.v8EvidenceIds) &&
+        payload.data!.evidence!.v8EvidenceIds!.length > 0,
+      JSON.stringify(payload.data?.evidence),
+    );
+    assert.ok(
+      typeof payload.data?.evidence?.v7EvidenceId === "string" &&
+        payload.data!.evidence!.v7EvidenceId!.length > 0,
+      "v7 life evidence id should be returned",
+    );
+    assert.equal(payload.data?.evidence?.emptyReason, undefined, "emptyReason should be absent when items present");
+
+    // Verify flush: a fresh DB connection from disk can read the persisted rows.
+    // Keep the original `state` handle alive because the workspace bridge may
+    // still hold a reference to the same sql.js connection.
+    const reopened = createStateDatabase(path.join(tmp, "data", "state.db"));
+    try {
+      const v8Rows = reopened.db.select().from(evidenceItem).all();
+      const v7Rows = reopened.db.select().from(lifeEvidenceIndex).all();
+      assert.ok(v8Rows.length > 0, "evidence_item rows must persist after bridge flush");
+      assert.ok(v7Rows.length > 0, "life_evidence_index rows must persist after bridge flush");
+    } finally {
+      reopened.close();
+    }
+  } finally {
+    state.close();
+    if (ORIGINAL_MOLTBOOK_URL === undefined) delete process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
+    else process.env.SECOND_NATURE_MOLTBOOK_BASE_URL = ORIGINAL_MOLTBOOK_URL;
+    if (ORIGINAL_ENCRYPTION_KEY === undefined) delete process.env.SECOND_NATURE_ENCRYPTION_KEY;
+    else process.env.SECOND_NATURE_ENCRYPTION_KEY = ORIGINAL_ENCRYPTION_KEY;
   }
 });
 

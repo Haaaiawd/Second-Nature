@@ -14,6 +14,7 @@ import { createStateDatabase } from "../../../src/storage/index.js";
 import { createObservabilityDatabase } from "../../../src/observability/index.js";
 import { createConnectorExecutorAdapter } from "../../../src/connectors/services/connector-executor-adapter.js";
 import { createCredentialVault } from "../../../src/storage/services/credential-vault.js";
+import { extractNormalizedEvidenceItems } from "../../../src/connectors/base/normalized-evidence-content.js";
 import { connectorInit } from "../../../src/cli/commands/connector-init.js";
 import { connectorBehaviorAdd } from "../../../src/cli/commands/connector-behavior.js";
 
@@ -187,6 +188,17 @@ test("connector executor adapter reads sql.js credential row and reaches Moltboo
     assert.equal(result.status, "success");
     assert.equal(result.metadata.platformId, "moltbook");
     assert.equal(observedAuthorization, "Bearer token-123");
+
+    // T-CS.R.5 followup: real API runner payload must be v8-extractable
+    const v8Items = extractNormalizedEvidenceItems(result.data, {
+      platformId: "moltbook",
+      capabilityId: "feed.read",
+      observedAt: new Date().toISOString(),
+      summaryProducer: "connector_rules",
+    });
+    assert.equal(v8Items.length, 1, "real API runner payload must yield one v8 EvidenceItem candidate");
+    assert.equal(v8Items[0]?.externalId, "mb-1");
+    assert.equal(v8Items[0]?.title, "ok");
   } finally {
     globalThis.fetch = originalFetch;
     stateDb.close();

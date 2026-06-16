@@ -29,6 +29,7 @@ import type { CapabilityContractRegistryV7 } from "../../connectors/base/manifes
 import type { AppendOnlyAuditStore } from "../../observability/audit/append-only-audit-store.js";
 import { type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
 import type { RuntimeOpsEnvelope } from "./ops-router.js";
+import type { StateDatabase } from "../../storage/db/index.js";
 export interface ManualTriggerContext {
     triggerSource: "manual_run";
     affectsHeartbeatCadence: false;
@@ -47,6 +48,11 @@ export interface ConnectorRunResult {
     experienceId: string;
     triggerSource: "manual_run";
     affectsHeartbeatCadence: false;
+    evidence?: {
+        v7EvidenceId?: string;
+        v8EvidenceIds: string[];
+        emptyReason?: string;
+    };
 }
 export interface WetProbeRunInput {
     platformId: string;
@@ -77,5 +83,9 @@ export interface ManualRunDispatcherDeps {
     wetProbeRunner: WetProbeRunner;
     registryV7: CapabilityContractRegistryV7;
     auditStore?: AppendOnlyAuditStore;
+    /** Workspace state database for evidence persistence (v7 life_evidence + v8 EvidenceItem). */
+    state?: StateDatabase;
+    /** Workspace root required for v7 life evidence JSON artifacts. */
+    workspaceRoot?: string;
 }
 export declare function createManualRunDispatcher(deps: ManualRunDispatcherDeps): ManualRunDispatcher;

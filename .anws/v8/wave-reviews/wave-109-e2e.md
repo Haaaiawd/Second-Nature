@@ -3,17 +3,24 @@
 未在用户授权并完成宿主实机回填前：留空或写「待实机」——严禁写任一 verdict，严禁自拟其它档位或同义粉饰。
 -->
 
-# Wave 109 E2E Verification - v0.2.8 Content-Bearing Living Loop for Claw
+# Wave 109 E2E Verification - v0.2.9 Content-Bearing Living Loop for Claw
+
+> Hotfix delta from v0.2.8 cloud E2E:
+> 1. `connector:run` now double-writes v8 `EvidenceItem`, not only v7 `LifeEvidence`.
+> 2. Real connector runner envelopes (`capability`/`channel`/`data.items`) are recursively unpacked into evidence items.
+> 3. `heartbeat_run` is exposed through the OpenClaw plugin bridge as an alias to `heartbeat_check`.
+> 4. The workspace bridge flushes sql.js state after every command so multi-process hosts see persisted rows.
+> 5. Dream immediately accepts valid memory projections so they become `active`/`accepted` long-term memory.
 
 ## E2E Verification
 
 ### Scope
 - **PRD / 需求来源**: `.anws/v8/01_PRD.md` §3.1 G1, G2, G5, G7, G8; §4 US-001, US-002, US-005, US-006, US-007, US-008, US-009; `.anws/v8/05A_TASKS.md` Wave 109 (T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5, INT-R4)
-- **Target**: Cloud OpenClaw / Claw host loading Second Nature plugin `@haaaiawd/second-nature@0.2.8`
+- **Target**: Cloud OpenClaw / Claw host loading Second Nature plugin `@haaaiawd/second-nature@0.2.9`
 - **Environment**: Dedicated cloud OpenClaw test workspace with `second_nature_ops` visible and workspace state isolated from production use
 - **Browser / Viewport（计划）**: N/A; Second Nature v8 is a runtime/plugin surface, not a browser UI. Evidence is collected from OpenClaw tool JSON, workspace artifacts, and optional state DB readback.
 - **User Role**: owner/operator; Claw executes the guide and records Evidence, human reviews before npm publish
-- **Build / Commit**: `0.2.8` hotfix candidate after cloud `v0.2.7` E2E findings; commit/tag to be filled after settlement
+- **Build / Commit**: `0.2.9` hotfix candidate after cloud `v0.2.8` E2E findings; fixes real-API evidence extraction, `heartbeat_run` surface, workspace bridge flush, and Dream memory activation.
 - **Side effects**: `setup_ack`, `heartbeat_check` / `heartbeat_run`, connector execution, Quiet/Dream rhythm advancement, and state inspection write or read workspace state. Use a disposable workspace. Do not perform real external write actions.
 
 ### PRD traceability (RTM)
@@ -37,7 +44,7 @@
 ### Surface coverage
 | 功能面 / 入口 | 如何发现 | Journey | PRD ref | Notes |
 | --- | --- | --- | --- | --- |
-| Cloud OpenClaw plugin install | OpenClaw plugin manager / marketplace / GitHub tag install | J0 | Runtime ops | Install from `0.2.8`; npm publish is not required for this guide if tag/tarball install works |
+| Cloud OpenClaw plugin install | OpenClaw plugin manager / marketplace / GitHub tag install | J0 | Runtime ops | Install from `0.2.9`; npm publish is not required for this guide if tag/tarball install works |
 | `second_nature_ops` tool list entry | Claw session tool list | J1 | Runtime ops | If missing, plugin did not load |
 | `setup_hint` | `second_nature_ops` command | J1 | Onboarding | Confirms packaged guidance is available |
 | `setup_ack` | `second_nature_ops` command | J1 | Onboarding | Writes workspace ack marker |
@@ -53,7 +60,7 @@
 ### Journeys（旅程级）
 | ID | PRD ref | User Journey | 旅程结果 | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- |
-| J0 | Release ops | Install Second Nature `0.2.8` in cloud OpenClaw and verify plugin registration | 待实机 | Install log; plugin inspect/list output; tool list | Use tag `v0.2.8` after it exists, or uploaded tarball |
+| J0 | Release ops | Install Second Nature `0.2.9` in cloud OpenClaw and verify plugin registration | 待实机 | Install log; plugin inspect/list output; tool list | Use tag `0.2.9` after release, or uploaded tarball |
 | J1 | Runtime ops / Onboarding | Claw opens a fresh workspace, sees `second_nature_ops`, runs setup and basic command registration checks | 待实机 | Tool list; `setup_hint`; `setup_ack`; `connector_status`; `narrative:diff` output | Confirms host surface parity before loop tests |
 | J2 | REQ-001, REQ-007, T-CS.R.4, T-CS.R.5 | Produce content-bearing read evidence and verify v8 `EvidenceItem` rows exist, are deduped, and do not fabricate on empty/failure | 待实机 | `connector:run` or `heartbeat_run` JSON; `evidence_item` readback; v7 artifact presence | Use read-only fixture/mock connector |
 | J3 | REQ-002, REQ-009, T-PJ.R.2 | Run heartbeat and verify readable `PerceptionCard`, evidence lifecycle advancement, judgment/closure or no-action reason | 待实机 | `heartbeat_run` JSON; `perception_card`; `judgment_verdict`; `action_closure_record`; `loop_status` | Must not be ref-only shell |
@@ -64,8 +71,8 @@
 ### Step breakdown
 | Journey | Step | PRD ref | Step 结果 | Evidence | Notes |
 | --- | --- | --- | --- | --- | --- |
-| J0 | 1. In cloud OpenClaw, install the plugin from GitHub tag `v0.2.8` or the packaged tarball if upload is supported | Release ops | 待实机 | Install log | Preferred source is tag `v0.2.8` after release; fallback tarball is `haaaiawd-second-nature-0.2.8.tgz` |
-| J0 | 2. Inspect installed plugin metadata and confirm version `0.2.8` | Release ops | 待实机 | Plugin inspect/list output | If version is older, stop and reinstall |
+| J0 | 1. In cloud OpenClaw, install the plugin from GitHub tag `v0.2.9` or the packaged tarball if upload is supported | Release ops | 待实机 | Install log | Preferred source is tag `v0.2.9` after release; fallback tarball is `haaaiawd-second-nature-0.2.9.tgz` |
+| J0 | 2. Inspect installed plugin metadata and confirm version `0.2.9` | Release ops | 待实机 | Plugin inspect/list output | If version is older, stop and reinstall |
 | J0 | 3. Open a new Claw session in a disposable workspace | Runtime ops | 待实机 | Session/tool list screenshot or JSON | Do not use production workspace |
 | J1 | 1. Read the tool list and confirm `second_nature_ops` is visible | Runtime ops | 待实机 | Tool list JSON/screenshot | If absent, plugin registration failed |
 | J1 | 2. Call `setup_hint`; output should mention packaged setup guidance / inner guide | Runtime ops | 待实机 | `setup_hint` JSON | Confirms packaged docs are reachable |
@@ -167,7 +174,7 @@ If `heartbeat_run` is not exposed by that host, use `heartbeat_check` and record
 
 ## Evidence checklist for Claw回填
 
-- [ ] Installed plugin reports version `0.2.8`
+- [ ] Installed plugin reports version `0.2.9`
 - [ ] `second_nature_ops` visible in cloud Claw tool list
 - [ ] `setup_hint` returns packaged setup guidance
 - [ ] `setup_ack` succeeds in disposable workspace

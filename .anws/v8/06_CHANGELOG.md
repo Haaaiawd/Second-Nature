@@ -137,4 +137,23 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `.anws/v8/wave-reviews/wave-109-review.md` — code review verdict Pass.
 - **Guardrails**: No `[REQ-*]` binding changes, no ADR premise edits, no destructive v7 migration.
 
+## v0.2.9 Hotfix — Cloud E2E Follow-up — 2026-06-16
+
+- **Change source**: Cloud E2E on `v0.2.8` confirmed `connector:run` persisted v7 `LifeEvidence` but wrote 0 v8 `EvidenceItem`; `heartbeat_run` was not exposed through the OpenClaw plugin bridge; multi-process host lost recent sql.js writes; Dream produced only `candidate` projections that never fed back into EmbodiedContext.
+- **Classification**: `/change` local hotfix; no PRD/ADR premise change.
+- **Fixes**:
+  - `connector:run` v8 EvidenceItem double-write: `src/cli/ops/manual-run-dispatcher.ts` now creates content-bearing `EvidenceItem` via `evidenceNormalizer`, and `src/cli/ops/ops-router.ts` wires `state`/`workspaceRoot` into the dispatcher.
+  - Real API path extraction: `src/connectors/base/normalized-evidence-content.ts` recurses through nested runner envelopes (`capability`/`channel`/`data.items`) up to depth 4, so real HTTP responses (not just flat mock fixtures) produce evidence items.
+  - `heartbeat_run` plugin alias: `plugin/index.ts` exposes `heartbeat_run` and normalizes it to `heartbeat_check`; `plugin/openclaw.plugin.json` description updated to list `heartbeat_check` and `heartbeat_run`.
+  - Workspace bridge flush: `plugin/workspace-ops-bridge.ts` flushes `stateDb` and `observabilityDb` after every dispatched command; failures are warnings, never fatal, so cross-process reads see persisted state.
+  - Dream auto-accept valid projections: `src/core/second-nature/quiet-dream/dream-consolidation-runner.ts` calls `acceptMemoryProjection` for validated candidates, making long-term memory `active`/`accepted` and available to `loadAcceptedProjections`.
+- **Verification**:
+  - Targeted regression: 52/52 PASS, 1 justified skip (`T2.2.3 bridge full-runtime heartbeat wires connectorExecutor`).
+  - `INT-R4` 4/4 PASS; `real-runtime-quiet-dream-advance` 3/3 PASS; `plugin-workspace-ops-bridge` PASS; `connector-executor-adapter-honest-failure` PASS; `normalized-evidence-content` 6/6 PASS.
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅; plugin pack dry-run produces `@haaaiawd/second-nature@0.2.9`.
+- **Version updates**: `package.json`, `plugin/package.json`, `plugin/openclaw.plugin.json` → `0.2.9`.
+- **Artifacts**:
+  - Updated `.anws/v8/wave-reviews/wave-109-e2e.md` to target `0.2.9` and note the four E2E follow-up fixes.
+- **Guardrails**: No `[REQ-*]` binding changes, no ADR premise edits, no destructive v7 migration.
+
 ---

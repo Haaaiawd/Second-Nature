@@ -20,7 +20,8 @@
  *
  * Test coverage: tests/unit/dream/dream-consolidation-runner.test.ts
  */
-import { readDreamConsolidationRunById, readQuietDailyReviewById, writeLongTermMemoryProjection, } from "../../../storage/v8-state-stores.js";
+import { readDreamConsolidationRunById, readQuietDailyReviewById, } from "../../../storage/v8-state-stores.js";
+import { acceptMemoryProjection } from "./memory-projection-lifecycle.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -144,30 +145,21 @@ export async function runDreamConsolidation(db, runId, options) {
             reason: "dream_blocked_redaction",
         };
     }
-    // Write valid candidates as projections (candidate status)
+    // Accept valid candidates as active long-term memory projections.
+    // This completes the Dream→memory lifecycle so accepted projections can be
+    // loaded by EmbodiedContext in subsequent heartbeats (T-DQ.R.3 followup).
     const validCandidates = candidates.filter((c) => c.validationStatus === "valid");
     for (const candidate of validCandidates) {
-        const projectionResult = await writeLongTermMemoryProjection(db, {
-            id: `proj_${candidate.id}`,
-            createdAt: now,
-            candidateId: candidate.id,
-            topicKey: `topic_${review.day}`,
-            status: "candidate",
-            sourceRefs: candidate.sourceRefs,
-            redactionClass: "none",
-            lifecycleStatus: "candidate",
-            payloadJson: JSON.stringify({
-                candidateText: candidate.candidateText,
-                confidence: candidate.confidence,
-                runId,
-            }),
-        });
-        if ("reason" in projectionResult) {
+        const acceptResult = await acceptMemoryProjection(db, candidate.id, `topic_${review.day}`, candidate.candidateText, candidate.sourceRefs, { now });
+        if ("projectionId" in acceptResult) {
+            candidate.acceptedProjectionId = acceptResult.projectionId;
+        }
+        else {
             return {
                 runId,
                 status: "failed",
                 candidates,
-                reason: projectionResult.reason,
+                reason: acceptResult.reason,
             };
         }
     }

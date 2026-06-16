@@ -246,6 +246,10 @@ function createMoltbookMockRunner(workspaceRoot?: string): ExecutionRunner {
               source: "mock",
               items: Array.isArray(data.items) ? data.items : [],
             },
+            // Duplicate items at payload top-level so v8 evidence normalizer
+            // can extract content-bearing evidence without re-implementing
+            // the legacy v7 nested shape.
+            items: Array.isArray(data.items) ? data.items : [],
           },
         };
       } catch (err) {

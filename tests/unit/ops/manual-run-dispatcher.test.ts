@@ -22,6 +22,10 @@ import type { ExperienceWriter } from "../../../src/core/second-nature/body/tool
 import type { WetProbeRunner } from "../../../src/connectors/base/wet-probe-runner.js";
 import type { CapabilityContractRegistryV7 } from "../../../src/connectors/base/manifest-v7.js";
 import { AppendOnlyAuditStore } from "../../../src/observability/audit/append-only-audit-store.js";
+import { createStateDatabase } from "../../../src/storage/db/index.js";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 
 // ─── mocks ──────────────────────────────────────────────────────────────────
 
@@ -126,6 +130,86 @@ test("T-ROS.C.3 AC-1 — runConnector records experience with triggerSource=manu
   assert.equal(mockWriter.calls[0]!.triggerSource, "manual_run");
   assert.equal(mockWriter.calls[0]!.connectorId, "plat1");
   assert.equal(mockWriter.calls[0]!.capabilityId, "cap1");
+});
+
+test("T-CS.R.5 — runConnector writes v7 life_evidence and v8 EvidenceItem on success", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-manual-run-evidence-"));
+  const state = createStateDatabase(path.join(tmp, "state.db"));
+  try {
+    const connectorResult: ConnectorResult<unknown> = {
+      status: "success",
+      data: {
+        items: [
+          {
+            id: "post-1",
+            title: "React 19 compiler",
+            content: "Discussion about React 19 compiler and performance.",
+            url: "https://example.com/post-1",
+          },
+        ],
+      },
+      metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 42, degraded: false },
+    };
+    const mockExecutor = makeMockConnectorExecutor(connectorResult);
+    const mockWriter = makeMockExperienceWriter();
+    const deps: ManualRunDispatcherDeps = {
+      connectorExecutor: mockExecutor as unknown as ManualRunDispatcherDeps["connectorExecutor"],
+      experienceWriter: mockWriter as unknown as ExperienceWriter,
+      wetProbeRunner: makeMockWetProbeRunner() as unknown as WetProbeRunner,
+      registryV7: makeMockRegistryV7(),
+      state,
+      workspaceRoot: tmp,
+    };
+
+    const dispatcher = createManualRunDispatcher(deps);
+    const envelope = await dispatcher.runConnector({
+      platformId: "moltbook",
+      capabilityId: "feed.read",
+    });
+
+    assert.equal(envelope.ok, true);
+    assert.ok(envelope.data?.evidence, "evidence summary should be present");
+    assert.ok(
+      typeof envelope.data?.evidence?.v7EvidenceId === "string",
+      "v7 life evidence should be written",
+    );
+    assert.equal(envelope.data?.evidence?.v8EvidenceIds.length, 1, "v8 EvidenceItem should be written");
+    assert.equal(
+      envelope.data?.evidence?.v8EvidenceIds[0],
+      "ev_moltbook_feed.read_post-1",
+      "v8 evidence id should derive from external id",
+    );
+  } finally {
+    state.close();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("T-CS.R.5 — runConnector v8 evidence write degrades gracefully without state", async () => {
+  const connectorResult: ConnectorResult<unknown> = {
+    status: "success",
+    data: {
+      items: [{ id: "post-1", title: "Test", content: "Content" }],
+    },
+    metadata: { platformId: "moltbook", channel: "api_rest", latencyMs: 42, degraded: false },
+  };
+  const mockExecutor = makeMockConnectorExecutor(connectorResult);
+  const mockWriter = makeMockExperienceWriter();
+  const deps: ManualRunDispatcherDeps = {
+    connectorExecutor: mockExecutor as unknown as ManualRunDispatcherDeps["connectorExecutor"],
+    experienceWriter: mockWriter as unknown as ExperienceWriter,
+    wetProbeRunner: makeMockWetProbeRunner() as unknown as WetProbeRunner,
+    registryV7: makeMockRegistryV7(),
+  };
+
+  const dispatcher = createManualRunDispatcher(deps);
+  const envelope = await dispatcher.runConnector({
+    platformId: "moltbook",
+    capabilityId: "feed.read",
+  });
+
+  assert.equal(envelope.ok, true);
+  assert.deepStrictEqual(envelope.data?.evidence?.v8EvidenceIds, []);
 });
 
 test("T-OBS.R.1 — runConnector writes connector.attempt audit for heartbeat_digest", async () => {

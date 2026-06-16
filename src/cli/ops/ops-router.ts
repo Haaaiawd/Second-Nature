@@ -1037,6 +1037,9 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           wetProbeRunner,
           registryV7,
           auditStore: deps.auditStore,
+          state: deps.state,
+          workspaceRoot:
+            typeof input?.workspaceRoot === "string" ? input.workspaceRoot : process.cwd(),
         });
         return dispatcher.runConnector({
           platformId,

@@ -99,7 +99,35 @@ export async function openWorkspaceOpsBridge(workspaceRoot) {
             const prevCwd = process.cwd();
             try {
                 process.chdir(resolvedRoot);
-                return await def.execute(input);
+                const result = await def.execute(input);
+                // T-ROS.C.3-followup: ensure sql.js in-memory DB is persisted after each
+                // mutating tool call so subsequent calls (possibly in a new process) see
+                // the latest state. Flush failures are reported as warnings, never fatal.
+                try {
+                    if (typeof stateDb.flush === "function") {
+                        stateDb.flush();
+                    }
+                }
+                catch (flushErr) {
+                    const warning = flushErr instanceof Error ? flushErr.message : String(flushErr);
+                    result.warnings = [
+                        ...(result.warnings ?? []),
+                        `state_flush_warning:${warning}`,
+                    ];
+                }
+                try {
+                    if (typeof observabilityDb.flush === "function") {
+                        observabilityDb.flush();
+                    }
+                }
+                catch (flushErr) {
+                    const warning = flushErr instanceof Error ? flushErr.message : String(flushErr);
+                    result.warnings = [
+                        ...(result.warnings ?? []),
+                        `observability_flush_warning:${warning}`,
+                    ];
+                }
+                return result;
             }
             finally {
                 process.chdir(prevCwd);

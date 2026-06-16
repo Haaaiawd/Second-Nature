@@ -31,6 +31,7 @@ export interface DreamMemoryCandidate {
     confidence: number;
     validationStatus: "valid" | "rejected" | "blocked";
     validationReason?: string;
+    acceptedProjectionId?: string;
 }
 export interface RunDreamConsolidationResult {
     runId: string;

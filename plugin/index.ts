@@ -209,6 +209,7 @@ const WORKSPACE_BRIDGE_COMMANDS = new Set([
   "session",
   "explain",
   "heartbeat_check",
+  "heartbeat_run",
   "fallback",
   "storage_smoke",
   // T1.2.8 (SN-CODE-03): capability probe surface via workspace bridge
@@ -274,9 +275,11 @@ async function routeSecondNatureCommand(
   command: string,
   input?: Record<string, unknown>,
 ): Promise<CommandPayload> {
+  // T-ROS.C.1-followup: heartbeat_run is an alias for heartbeat_check on the plugin surface.
+  const normalizedCommand = command === "heartbeat_run" ? "heartbeat_check" : command;
   const wr = spine.workspaceRootContext;
   const useBridge =
-    wr.resolution !== "unknown" && isWorkspaceBridgeCommand(command, input);
+    wr.resolution !== "unknown" && isWorkspaceBridgeCommand(normalizedCommand, input);
   if (useBridge) {
     const bridge = await ensureWorkspaceOpsBridge(spine);
     if (!bridge.ok) {
@@ -293,11 +296,11 @@ async function routeSecondNatureCommand(
         },
       };
     }
-    const payload = (await bridge.dispatch(command, input)) as CommandPayload;
+    const payload = (await bridge.dispatch(normalizedCommand, input)) as CommandPayload;
     return withSetupNudge(spine, command, payload);
   }
 
-  const def = spine.router.resolve(command);
+  const def = spine.router.resolve(normalizedCommand);
   if (!def) {
     return { ok: false, message: `Unknown Second Nature command: ${command}` };
   }
