@@ -884,16 +884,93 @@
 - **断言**: one semantic status column per v8 table; all `sourceRefsJson` round-trip via `src/shared/serialization.ts`.
 - **证据**: `tests/unit/shared/source-ref-serialization.test.ts`, `tests/integration/storage/v8-schema-shape.test.ts`
 
-### INT-R7
-- **关联需求**: REQ-001, REQ-002, REQ-008, REQ-009
+### T-SH.R.3
+- **关联需求**: REQ-001, REQ-002, REQ-008
+- **关联契约**: `SourceRef` canonical shape
+- **风险类别**: kind → family mapping error; missing redactionClass; test drift
+- **单元测试覆盖**: control-plane source refs use canonical shape.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R8.
+- **前置数据**: T-SH.R.2.
+- **断言**: no `ControlPlaneSourceRef` references remain.
+- **证据**: `logs/tsc-control-plane-source-ref.log`
+
+### T-SH.R.4
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: `SourceRef` canonical shape
+- **风险类别**: host capability evidence kind → family mismatch
+- **单元测试覆盖**: host-capability source refs use canonical shape.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R8.
+- **前置数据**: T-SH.R.2.
+- **断言**: no local `SourceRef` in `src/cli/host-capability`.
+- **证据**: updated host-capability tests
+
+### T-SH.R.5
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: `SourceRef` canonical shape
+- **风险类别**: v7 life-evidence collision with canonical `SourceRef`
+- **单元测试覆盖**: life-evidence module uses `LifeEvidenceSourceRef` or canonical `SourceRef`.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R8.
+- **前置数据**: T-SH.R.2.
+- **断言**: no local `SourceRef` named `SourceRef` in `src/storage/life-evidence`.
+- **证据**: updated life-evidence tests
+
+### T-SMS.R.4
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: v8 persistence schema
+- **风险类别**: migration data loss; query filtering wrong column
+- **单元测试覆盖**: schema introspection shows single status column per v8 table.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R9.
+- **前置数据**: T-SMS.R.3.
+- **断言**: one semantic status column per v8 table.
+- **证据**: `tests/integration/storage/v8-schema-shape.test.ts`
+
+### T-SMS.R.5
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: SourceRef JSON serialization contract
+- **风险类别**: residual ad-hoc JSON handling drift
+- **单元测试覆盖**: search confirms only shared serializer implements parse/serialize.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R10.
+- **前置数据**: T-SMS.R.3.
+- **断言**: no ad-hoc `JSON.parse`/`JSON.stringify` of sourceRefsJson in v8 modules.
+- **证据**: search log, updated tests
+
+### INT-R8
+- **关联需求**: REQ-001, REQ-002, REQ-008
 - **关联契约**: v8 canonical contract shape
-- **风险类别**: Wave 112 fixes regress Wave 108-111 or fail typecheck/build
-- **单元测试覆盖**: T-SH.R.2 + T-SMS.R.3 suites.
+- **风险类别**: Wave 113 fixes regress Wave 108-112 or fail typecheck/build
+- **单元测试覆盖**: all Wave 113 task suites.
 - **API接口功能测试覆盖**: N/A.
-- **集成/E2E/冒烟覆盖**: Wave 108-111 targeted regression.
-- **前置数据**: Wave 112 candidate build.
-- **断言**: 0 blocking failures; typecheck/build pass; CH-12 and CH-16 closed.
-- **证据**: `reports/int-r7-wave-112-hemostasis-gate.md`
+- **集成/E2E/冒烟覆盖**: Wave 108-112 targeted regression.
+- **前置数据**: Wave 113 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r8-wave-113-source-ref-clones.md`
+
+### INT-R9
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: v8 persistence schema
+- **风险类别**: Wave 114 fixes regress prior waves or fail typecheck/build
+- **单元测试覆盖**: all Wave 114 task suites.
+- **API接口功能测试覆盖**: N/A.
+- **集成/E2E/冒烟覆盖**: Wave 108-113 targeted regression.
+- **前置数据**: Wave 114 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r9-wave-114-single-status-schema.md`
+
+### INT-R10
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: SourceRef JSON serialization contract
+- **风险类别**: Wave 115 fixes regress prior waves or fail typecheck/build
+- **单元测试覆盖**: all Wave 115 task suites.
+- **API接口功能测试覆盖**: N/A.
+- **集成/E2E/冒烟覆盖**: Wave 108-114 targeted regression.
+- **前置数据**: Wave 115 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r10-wave-115-serialization-completion.md`
 
 ---
 

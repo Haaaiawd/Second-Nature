@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 111 completed; Wave 112 /change canonical contract shape hemostasis opened)
-- **当前波次**: Wave 112
-- **下一步**: Execute T-SH.R.2 then T-SMS.R.3; run INT-R7 gate
+- **最近一次更新**: `2026-06-16` (Wave 112 completed; Waves 113-115 opened for remaining SourceRef clones and single-status cleanup)
+- **当前波次**: Wave 113
+- **下一步**: Execute T-SH.R.3, T-SH.R.4, T-SH.R.5 (remove ControlPlaneSourceRef, host-capability SourceRef, life-evidence SourceRef); run INT-R8 gate
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -292,6 +292,26 @@ T-SMS.R.2, T-CP.R.4, T-DQ.R.8, T-AC.R.1, T-CS.R.8, T-GVS.R.3, INT-R6
 - **最高严重度**: none
 - **残留待跟进**: 无
 - **下一步**: v0.2.11 published; monitor host E2E / begin next cycle on user signal
+
+### 🌊 Wave 112 ✅ — v8 /change Repair: Canonical Contract Shape (Hemostasis)
+T-SH.R.2 (adjusted), T-SMS.R.3 (adjusted), INT-R7
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 112 完成（T-SH.R.2 + T-SMS.R.3 + INT-R7）
+- **产出**:
+  - `src/shared/types/source-ref.ts` — renamed v7 tuple to `SourceRefTuple`
+  - `src/shared/types/index.ts` — re-exports v8 contracts; canonical `SourceRef` object available
+  - `src/shared/types/v7-entities.ts`, `src/shared/types/goal.ts`, `src/storage/services/write-validation-gate.ts` — adapted to `SourceRefTuple`
+  - `src/shared/serialization.ts` — `parseSourceRefs`/`serializeSourceRefs`
+  - `src/storage/v8-state-stores.ts` — uses shared serializer
+  - `tests/unit/shared/source-ref-serialization.test.ts` — serialization round-trip tests
+  - `tests/unit/shared/v7-entities.test.ts` — `SourceRefTuple` compile tests
+  - `reports/int-r7-wave-112-hemostasis-gate.md` — INT-R7 verification report
+  - `.anws/v8/wave-reviews/wave-112-review.md` — code review (Partial Pass, no Critical/High)
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；Wave 112 targeted 41/41 PASS + 3 justified skips；Wave 108-111 regression 34/34 PASS + 3 justified skips
+- **最高严重度**: none
+- **残留待跟进**: Wave 113–115 opened for remaining SourceRef clones and single-status cleanup
+- **下一步**: Execute Wave 113 tasks (T-SH.R.3, T-SH.R.4, T-SH.R.5); run INT-R8 gate
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2

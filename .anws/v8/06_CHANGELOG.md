@@ -205,21 +205,23 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 
 - **Change source**: `07_CHALLENGE_REPORT.md` Round 3 static review identified Critical P0 findings CH-12 (SourceRef name collision / heterogeneous shapes) and CH-16 (dual `status`/`lifecycleStatus` columns + fragmented SourceRef JSON serialization).
 - **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
-- **Tasks opened**: `T-SH.R.2`, `T-SMS.R.3`, `INT-R7`.
-- **Planned fixes**:
-  - Rename the v7 tuple `SourceRef` to `SourceRefTuple` in `src/shared/types/source-ref.ts`.
-  - Remove the local `ControlPlaneSourceRef` clone in `src/core/second-nature/types.ts` and the local `SourceRef` clone in `src/cli/host-capability/types.ts`.
-  - Make `src/shared/types/v8-contracts.ts` the single source of truth for the object-shaped `SourceRef`.
-  - Re-export v8 contracts from `src/shared/types/index.ts` once the name collision is resolved.
-  - For each v8 table, keep exactly one semantic status column and deprecate/remove the redundant one at schema and Drizzle level.
-  - Introduce `src/shared/serialization.ts` with `parseSourceRefs` / `serializeSourceRefs` and replace all ad-hoc SourceRef JSON handling.
+- **Tasks completed**: `T-SH.R.2` (adjusted), `T-SMS.R.3` (adjusted), `INT-R7`.
+- **Fixes implemented**:
+  - Renamed v7 tuple `SourceRef` to `SourceRefTuple` in `src/shared/types/source-ref.ts`.
+  - Re-exported v8 contracts from `src/shared/types/index.ts`; canonical `SourceRef` object now available from shared index.
+  - Adapted `src/shared/types/v7-entities.ts`, `src/shared/types/goal.ts`, `src/storage/services/write-validation-gate.ts`, and `tests/unit/shared/v7-entities.test.ts` to `SourceRefTuple`.
+  - Created `src/shared/serialization.ts` with `parseSourceRefs`/`serializeSourceRefs`.
+  - Wired `src/storage/v8-state-stores.ts` to use the shared serializer.
+  - Added `tests/unit/shared/source-ref-serialization.test.ts`.
+- **Scope adjustment**: Full removal of `ControlPlaneSourceRef`, host-capability local `SourceRef`, and life-evidence local `SourceRef` deferred to Wave 113 (requires kind → family mapping across ~50+ call sites). v8 schema single-status-column cleanup deferred to Wave 114.
 - **Verification**:
-  - Wave 112 targeted: compile + unit + integration.
-  - Wave 108-111 regression: targeted suites.
-  - `pnpm typecheck` / `pnpm build` must pass.
+  - Wave 112 targeted: 41/41 PASS + 3 justified skips.
+  - Wave 108-111 regression: 34/34 PASS + 3 justified skips.
+  - `pnpm typecheck` ✅; `pnpm build` ✅.
 - **Artifacts**:
-  - `reports/int-r7-wave-112-hemostasis-gate.md` (to be generated).
-- **Guardrails**: No `[REQ-*]` binding changes, no ADR premise edits, no external write enablement, no credential exposure.
+  - `reports/int-r7-wave-112-hemostasis-gate.md` — INT-R7 verification report.
+  - `.anws/v8/wave-reviews/wave-112-review.md` — code review (Partial Pass, no Critical/High).
+- **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 - **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
 - **Tasks opened**: `T-SMS.R.2`, `T-CP.R.4`, `T-DQ.R.8`, `T-AC.R.1`, `T-CS.R.8`, `T-GVS.R.3`, `INT-R6`.
 - **Fixes**:
