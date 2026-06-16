@@ -1670,3 +1670,82 @@ graph TD
   - **证据产出**: `reports/int-r6-wave-111-repair-gate.md`
   - **依赖**: T-SMS.R.2, T-CP.R.4, T-DQ.R.8, T-AC.R.1, T-CS.R.8, T-GVS.R.3
   - **优先级**: P0
+
+---
+
+## Repair Overlay — Round 3 Code Health Findings (2026-06-16)
+
+### RF-021: SourceRef Homonym Heterogeneity
+**审查发现**: `SourceRef` is defined in at least four incompatible shapes across the codebase (v7 tuple, v8 canonical object, control-plane local clone, host-capability local clone). `shared/types/index.ts` deliberately avoids re-exporting v8 contracts to prevent collision.
+**涉及任务**: T-SH.R.2 -> T-SMS.R.3 -> INT-R7
+**关键路径**: T-SH.R.2
+**独立可测**: After Wave 112, `shared/types/index.ts` re-exports v8 contracts and only one object-shaped `SourceRef` remains in v8 space.
+**覆盖状态**: Open
+
+### RF-022: Dual Status Columns and Fragmented SourceRef Serialization
+**审查发现**: Six v8 tables carry both `status` and `lifecycleStatus`; `sourceRefsJson` parsing and serialization is implemented independently in every consumer module.
+**涉及任务**: T-SMS.R.3 -> INT-R7
+**关键路径**: T-SMS.R.3
+**独立可测**: Schema introspection shows a single semantic status column per v8 table and all SourceRef JSON round-trips go through `src/shared/serialization.ts`.
+**覆盖状态**: Open
+
+---
+
+## Wave 112 — v8 /change Repair: Canonical Contract Shape (Hemostasis)
+
+> 触发：`07_CHALLENGE_REPORT.md` Round 3 静态审查发现 Critical P0 阻断项 CH-12（SourceRef 同名异构）与 CH-16（双 status + SourceRef 序列化碎片化）。
+> 目标：在不引入新架构版本的前提下，止血最关键的契约漂移，为后续 Wave 113–117 的结构化重构奠定基础。
+
+- [ ] **T-SH.R.2** [REQ-001, REQ-002, REQ-008]: Unify `SourceRef` canonical object shape
+  - **描述**: Rename the v7 tuple type in `src/shared/types/source-ref.ts` to `SourceRefTuple`; remove the local `ControlPlaneSourceRef` clone in `src/core/second-nature/types.ts` and the local `SourceRef` clone in `src/cli/host-capability/types.ts`; make `src/shared/types/v8-contracts.ts` the single source of truth for the object-shaped `SourceRef`; re-export v8 contracts from `src/shared/types/index.ts` once the name collision is resolved. Update all call sites that currently assume tuple or local object shapes.
+  - **输入**: `src/shared/types/source-ref.ts`, `src/shared/types/v8-contracts.ts`, `src/core/second-nature/types.ts`, `src/cli/host-capability/types.ts`, `src/shared/types/index.ts`, `07_CHALLENGE_REPORT.md` CH-12
+  - **输出**: Canonical `SourceRef` object type, renamed v7 tuple, no local clones, re-exported v8 contracts.
+  - **契约承接**: `SourceRef` canonical shape, source grounding contract
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`, `03_ADR/ADR_002_LIVING_PERCEPTION_LOOP.md`
+  - **验收标准**:
+    - Given the codebase before Wave 112
+    - When TypeScript compiles after the rename and removal
+    - Then only one `SourceRef` object shape exists in v8 space, v7 tuple is reachable as `SourceRefTuple`, and `shared/types/index.ts` re-exports v8 contracts
+  - **验证类型**: 编译检查 / 单元测试 / 回归测试
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Compile-time proof that no two `SourceRef` definitions collide; unit tests for tuple/object conversion helpers if v7 code still consumes the tuple.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sh-r-2`
+  - **证据产出**: `logs/tsc-source-ref-unification.log`, updated contract tests
+  - **估时**: 6h
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [ ] **T-SMS.R.3** [REQ-008, REQ-009]: Single status column per v8 table and centralized SourceRef serialization
+  - **描述**: For each v8 table (`action_closure_record`, `quiet_daily_review`, `dream_consolidation_run`, `long_term_memory_projection`, `heartbeat_cycle_trace`, `loop_stage_event`), keep exactly one semantic status column and deprecate/remove the redundant one at the schema and Drizzle level. Introduce `src/shared/serialization.ts` with `parseSourceRefs` and `serializeSourceRefs` helpers, and replace all ad-hoc `JSON.parse`/`JSON.stringify` of `sourceRefsJson` / `source_refs_json` in storage and core modules.
+  - **输入**: `src/storage/db/schema/v8-entities.ts`, `src/storage/v8-state-stores.ts`, `src/core/second-nature/**`, `07_CHALLENGE_REPORT.md` CH-16
+  - **输出**: Schema with single status semantics, `src/shared/serialization.ts`, no scattered SourceRef JSON handling.
+  - **契约承接**: v8 persistence schema, SourceRef JSON serialization contract
+  - **参考**: `04_SYSTEM_DESIGN/state-memory-system.md`, `04_SYSTEM_DESIGN/shared-v8-contracts.md`
+  - **验收标准**:
+    - Given any v8 table row
+    - When code reads or writes status / sourceRefsJson
+    - Then exactly one status column has business meaning and SourceRef round-trip uses the shared serializer
+  - **验证类型**: 单元测试 / 集成测试 / 编译检查
+  - **E2E触发设想**: 不触发 E2E。
+  - **验证摘要**: Schema introspection asserts no dual-status columns remain active; serialization unit tests cover malformed JSON, empty arrays, and canonical object shapes.
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sms-r-3`
+  - **证据产出**: `tests/unit/shared/source-ref-serialization.test.ts`, `tests/integration/storage/v8-schema-shape.test.ts`
+  - **估时**: 8h
+  - **依赖**: T-SH.R.2
+  - **优先级**: P0
+
+- [ ] **INT-R7** [MILESTONE]: Wave 112 Hemostasis Gate
+  - **描述**: Verify Wave 112 closes CH-12 and CH-16 without regressing Wave 108–111 behavior.
+  - **输入**: T-SH.R.2, T-SMS.R.3 outputs
+  - **输出**: `reports/int-r7-wave-112-hemostasis-gate.md`
+  - **契约承接**: v8 canonical contract shape
+  - **验收标准**:
+    - Given Wave 112 code changes
+    - When targeted tests + Wave 108/109/110/111 regression run
+    - Then 0 blocking failures and typecheck/build pass
+  - **验证类型**: 回归门 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r7`
+  - **证据产出**: `reports/int-r7-wave-112-hemostasis-gate.md`
+  - **依赖**: T-SH.R.2, T-SMS.R.3
+  - **优先级**: P0
+

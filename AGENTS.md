@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 111 — v0.2.10 review-closure repair completed; v0.2.11 release tagged)
-- **当前波次**: Wave 111
-- **下一步**: v0.2.11 published; monitor host E2E / begin next cycle on user signal
+- **最近一次更新**: `2026-06-16` (Wave 111 completed; Wave 112 /change canonical contract shape hemostasis opened)
+- **当前波次**: Wave 112
+- **下一步**: Execute T-SH.R.2 then T-SMS.R.3; run INT-R7 gate
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 

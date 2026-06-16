@@ -860,7 +860,40 @@
 - **集成/E2E/冒烟覆盖**: Wave 108-110 targeted regression.
 - **前置数据**: v0.2.11 candidate build.
 - **断言**: 0 blocking failures; typecheck/build pass.
-- **证据**: `reports/int-r6-wave-111-repair-gate.md` (to be generated)
+- **证据**: `reports/int-r6-wave-111-repair-gate.md`
+
+### T-SH.R.2
+- **关联需求**: REQ-001, REQ-002, REQ-008
+- **关联契约**: `SourceRef` canonical shape, source grounding contract
+- **风险类别**: name collision; silent type mismatch; refactor unreliability
+- **单元测试覆盖**: v7 tuple renamed; v8 object remains canonical; `shared/types/index.ts` re-exports v8 contracts.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R7.
+- **前置数据**: 无.
+- **断言**: only one object-shaped `SourceRef` exists in v8 space; v7 tuple is `SourceRefTuple`.
+- **证据**: `logs/tsc-source-ref-unification.log`, updated contract tests
+
+### T-SMS.R.3
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: v8 persistence schema, SourceRef JSON serialization contract
+- **风险类别**: stale reads from wrong status column; malformed JSON interpreted differently across modules
+- **单元测试覆盖**: serialization round-trip for malformed/empty/canonical shapes; schema shape introspection.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R7.
+- **前置数据**: T-SH.R.2.
+- **断言**: one semantic status column per v8 table; all `sourceRefsJson` round-trip via `src/shared/serialization.ts`.
+- **证据**: `tests/unit/shared/source-ref-serialization.test.ts`, `tests/integration/storage/v8-schema-shape.test.ts`
+
+### INT-R7
+- **关联需求**: REQ-001, REQ-002, REQ-008, REQ-009
+- **关联契约**: v8 canonical contract shape
+- **风险类别**: Wave 112 fixes regress Wave 108-111 or fail typecheck/build
+- **单元测试覆盖**: T-SH.R.2 + T-SMS.R.3 suites.
+- **API接口功能测试覆盖**: N/A.
+- **集成/E2E/冒烟覆盖**: Wave 108-111 targeted regression.
+- **前置数据**: Wave 112 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass; CH-12 and CH-16 closed.
+- **证据**: `reports/int-r7-wave-112-hemostasis-gate.md`
 
 ---
 
@@ -916,6 +949,9 @@
 | Connector shadow execution consistency | unsafe override | integration | T-CS.R.8 | `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` | ✅ |
 | Heartbeat impulse context handoff | double refresh / missing artifact | API接口功能测试 | T-GVS.R.3 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | ✅ |
 | Wave 111 repair gate | regression | compile + targeted regression | INT-R6 | `reports/int-r6-wave-111-repair-gate.md` | ✅ |
+| SourceRef canonical shape | contract drift / name collision | compile + unit | T-SH.R.2 | `logs/tsc-source-ref-unification.log` | ⬜ |
+| Single status column and centralized serialization | schema drift / lifecycle ambiguity | unit + integration | T-SMS.R.3 | `tests/unit/shared/source-ref-serialization.test.ts` | ⬜ |
+| Wave 112 hemostasis gate | regression | compile + targeted regression | INT-R7 | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
 
 ---
 
@@ -952,3 +988,7 @@
 | Connector replay cooldown | T-CS.R.3, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | replay diagnostics report | ✅ |
 | Quiet runtime recovery | T-CP.R.3, T-DQ.R.5, T-OBS.R.4 | API接口功能测试 + 集成 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | `logs/int-r3-loop-status.json` | ✅ |
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |
+| SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3 | 编译 + 单元 + 集成 | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
+| v8 schema status/serialization hygiene | T-SMS.R.3 | 单元 + 集成 | `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
+
+---

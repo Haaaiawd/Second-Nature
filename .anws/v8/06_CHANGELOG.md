@@ -200,3 +200,44 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 
 ---
+
+## Wave 112 — v8 /change Repair: Canonical Contract Shape (Hemostasis) — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 static review identified Critical P0 findings CH-12 (SourceRef name collision / heterogeneous shapes) and CH-16 (dual `status`/`lifecycleStatus` columns + fragmented SourceRef JSON serialization).
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks opened**: `T-SH.R.2`, `T-SMS.R.3`, `INT-R7`.
+- **Planned fixes**:
+  - Rename the v7 tuple `SourceRef` to `SourceRefTuple` in `src/shared/types/source-ref.ts`.
+  - Remove the local `ControlPlaneSourceRef` clone in `src/core/second-nature/types.ts` and the local `SourceRef` clone in `src/cli/host-capability/types.ts`.
+  - Make `src/shared/types/v8-contracts.ts` the single source of truth for the object-shaped `SourceRef`.
+  - Re-export v8 contracts from `src/shared/types/index.ts` once the name collision is resolved.
+  - For each v8 table, keep exactly one semantic status column and deprecate/remove the redundant one at schema and Drizzle level.
+  - Introduce `src/shared/serialization.ts` with `parseSourceRefs` / `serializeSourceRefs` and replace all ad-hoc SourceRef JSON handling.
+- **Verification**:
+  - Wave 112 targeted: compile + unit + integration.
+  - Wave 108-111 regression: targeted suites.
+  - `pnpm typecheck` / `pnpm build` must pass.
+- **Artifacts**:
+  - `reports/int-r7-wave-112-hemostasis-gate.md` (to be generated).
+- **Guardrails**: No `[REQ-*]` binding changes, no ADR premise edits, no external write enablement, no credential exposure.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks opened**: `T-SMS.R.2`, `T-CP.R.4`, `T-DQ.R.8`, `T-AC.R.1`, `T-CS.R.8`, `T-GVS.R.3`, `INT-R6`.
+- **Fixes**:
+  - Added `v8-004-schema-closure` migration to create `daily_rhythm_state`, `impulse_context_artifact`, and `connector_cooldown_state` for DBs initialized before the current bootstrap schema; made `action_closure_record.platform_id/capability_id` and `quiet_daily_review.closure_refs_json` idempotently additive.
+  - Added Drizzle unique-index declaration for `evidence_item(platform_id, content_hash)` to match bootstrap SQL.
+  - `HeartbeatOrchestrationResult` now carries `rhythmDegraded`; `runHeartbeatCycle` merges rhythm write failures into the returned degraded diagnostic so `loop_status` cannot false-green on a failed daily rhythm write.
+  - Replaced per-quiet-review Dream interval lookup with a global latest-completed/blocked query, enforcing the 7-day Dream interval across all `quiet_review_id`s; added canonical reason `dream_interval_active`.
+  - Removed the duplicate remember closure write from `action-proposal-builder`; the orchestrator now writes exactly one remember closure via `recordRememberClosure` with `platform_id = "heartbeat"`.
+  - Unified connector shadow safety: executor adapter now skips unsafe workspace shadows of built-in platforms and gives safe shadows (`trust.override` + `trust.reason` + `declarative_http`/`scriptable_node`) precedence over built-in runners.
+  - Mapped corrupted MoltBook mock file reads to `configuration_missing` instead of the unclassified `mock_read_error`.
+  - Removed impulse-context refresh from `heartbeat-orchestrator`; `heartbeat-surface` now owns the single refresh after a successful v8 spine and exposes `impulseContextArtifactId` plus `expressionBoundaryConstraints`/`expressionBoundaryStyle`.
+- **Verification**:
+  - Wave 111 targeted: 32/32 PASS + 3 justified historical skips (schema-migration v7-001); see `reports/int-r6-wave-111-repair-gate.md`.
+  - Wave 108-109 regression: 35/35 PASS.
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+- **Artifacts**:
+  - `reports/int-r6-wave-111-repair-gate.md` — INT-R6 verification report.
+- **Version updates**: `package.json`, `plugin/package.json`, `plugin/openclaw.plugin.json` → `0.2.11`.
+- **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
+
+---
