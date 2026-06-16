@@ -163,7 +163,6 @@ export async function recordLoopStageEvent(
     occurredAt: event.occurredAt!,
     expectedDownstreamByCycle: event.expectedDownstreamByCycle,
     payloadJson: event.payloadJson ?? null,
-    lifecycleStatus: "completed" as const,
   };
 
   const result = await writeLoopStageEvent(db, record);

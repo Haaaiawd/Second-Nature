@@ -65,7 +65,6 @@ export async function acceptMemoryProjection(db, candidateId, topicKey, memoryTe
         status: "active",
         sourceRefs,
         redactionClass: "none",
-        lifecycleStatus: "active",
         payloadJson: JSON.stringify({
             memoryText,
             acceptedAt: now,

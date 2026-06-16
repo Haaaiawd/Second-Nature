@@ -429,8 +429,6 @@ export async function updateDreamConsolidationRunStatus(db, id, status, options)
         const updateData = { status };
         if (options?.reason !== undefined)
             updateData.reason = options.reason;
-        if (options?.lifecycleStatus !== undefined)
-            updateData.lifecycleStatus = options.lifecycleStatus;
         if (options?.payloadJson !== undefined)
             updateData.payloadJson = options.payloadJson;
         await db.db.update(dreamConsolidationRun).set(updateData).where(eq(dreamConsolidationRun.id, id));
@@ -516,7 +514,7 @@ export async function writeLongTermMemoryProjection(db, row) {
  */
 export async function updateLongTermMemoryProjectionStatus(db, id, status, payloadJson) {
     try {
-        const updateData = { status, lifecycleStatus: status };
+        const updateData = { status };
         if (payloadJson !== undefined) {
             updateData.payloadJson = payloadJson;
         }

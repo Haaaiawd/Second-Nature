@@ -1829,7 +1829,7 @@ graph TD
 > 触发：`07_CHALLENGE_REPORT.md` Round 3 CH-16 剩余部分。
 > 目标：为每个 v8 表保留单一语义状态列，消除 `status` / `lifecycleStatus` 双列歧义。
 
-- [ ] **T-SMS.R.4** [REQ-008, REQ-009]: Single semantic status column for v8 tables
+- [x] **T-SMS.R.4** [REQ-008, REQ-009]: Single semantic status column for v8 tables
   - **描述**: For `action_closure_record`, `dream_consolidation_run`, `long_term_memory_projection`, `heartbeat_cycle_trace`, and `loop_stage_event`, remove or deprecate the redundant `lifecycleStatus` column and keep only `status`. Update Drizzle schema, migrations, and all read/write code. Update `quiet_daily_review` if it uses both columns.
   - **输入**: `src/storage/db/schema/v8-entities.ts`, `src/storage/db/index.ts`, `src/storage/db/migrations/`, `src/storage/v8-state-stores.ts`, `src/core/second-nature/**`, T-SMS.R.3 output
   - **输出**: v8 schema with one status column per table; no dual-status reads/writes.
@@ -1846,7 +1846,7 @@ graph TD
   - **依赖**: T-SMS.R.3
   - **优先级**: P0
 
-- [ ] **INT-R9** [MILESTONE]: Wave 114 Single-Status Schema Gate
+- [x] **INT-R9** [MILESTONE]: Wave 114 Single-Status Schema Gate
   - **描述**: Verify Wave 114 single-status cleanup without regressing prior waves.
   - **输入**: T-SMS.R.4 output
   - **输出**: `reports/int-r9-wave-114-single-status-schema.md`

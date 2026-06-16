@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 113 completed; Wave 114 opened for v8 single-status cleanup)
-- **当前波次**: Wave 114
-- **下一步**: Execute T-SMS.R.4 (single semantic status column for v8 tables); run INT-R9 gate
+- **最近一次更新**: `2026-06-16` (Wave 114 completed; Wave 115 opened for remaining v8 SourceRef serialization cleanup)
+- **当前波次**: Wave 115
+- **下一步**: Execute T-SMS.R.5 (remaining v8 SourceRef JSON handling migration); run INT-R10 gate
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -328,8 +328,26 @@ T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8
   - `reports/int-r8-wave-113-source-ref-clones.md` — INT-R8 verification report
 - **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；Wave 113 targeted 57/57 PASS；Wave 113 integration 33/33 PASS + 2 historical skips；Wave 108-112 regression sample 51/51 PASS
 - **最高严重度**: none
-- **残留待跟进**: Wave 114 single-status schema cleanup; Wave 115 remaining v8 SourceRef serialization migration
-- **下一步**: Execute Wave 114 task T-SMS.R.4; run INT-R9 gate
+- **残留待跟进**: Wave 115 remaining v8 SourceRef serialization migration
+- **下一步**: Execute Wave 115 task T-SMS.R.5; run INT-R10 gate
+
+### 🌊 Wave 114 ✅ — v8 /change Repair: v8 Schema Single Status Column
+T-SMS.R.4, INT-R9
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 114 完成（T-SMS.R.4 + INT-R9）
+- **产出**:
+  - `src/storage/db/schema/v8-entities.ts` — removed redundant `lifecycleStatus` from status-bearing v8 target tables
+  - `src/storage/db/index.ts` — fresh bootstrap no longer creates target `lifecycle_status`; startup defensive migration drops old duplicate columns
+  - `src/storage/db/migrations/v8-005-single-status-schema.ts` — schema-version marker for single-status cleanup
+  - `src/storage/v8-state-stores.ts` + target runtime writers — no target-table `lifecycleStatus` writes
+  - `tests/integration/storage/v8-schema-shape.test.ts` — fresh bootstrap + pre-Wave-114 upgrade introspection
+  - `reports/int-r9-wave-114-single-status-schema.md` — INT-R9 verification report
+  - `.anws/v8/wave-reviews/wave-114-review.md` — code review report, final verdict Pass
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；INT-R9 storage 5/5 PASS + 3 historical skips；Wave 114 regression sample 21/21 PASS
+- **最高严重度**: none
+- **残留待跟进**: Wave 115 remaining v8 SourceRef serialization migration
+- **下一步**: Execute Wave 115 task T-SMS.R.5; run INT-R10 gate
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2

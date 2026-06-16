@@ -112,7 +112,6 @@ async function executeStaleScheduledDreams(db, state, now) {
                 const finalReason = dreamResult.reason ?? undefined;
                 const updateResult = await updateDreamConsolidationRunStatus(db, runId, finalStatus, {
                     reason: finalReason ?? null,
-                    lifecycleStatus: finalStatus === "completed" ? "completed" : "archived",
                     payloadJson: JSON.stringify({
                         ...parsePayloadJson(run.payloadJson),
                         consolidatedAt: now,
@@ -267,7 +266,6 @@ export async function checkDailyRhythm(db, options) {
                         const dreamOutcome = consolidateResult;
                         const updateResult = await updateDreamConsolidationRunStatus(db, dreamResult.id, dreamOutcome.status, {
                             reason: dreamOutcome.reason ?? null,
-                            lifecycleStatus: dreamOutcome.status === "completed" ? "completed" : "archived",
                             payloadJson: JSON.stringify({
                                 consolidatedAt: now,
                                 candidateCount: dreamOutcome.candidates.length,

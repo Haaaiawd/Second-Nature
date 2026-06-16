@@ -84,7 +84,6 @@ describe("int-r2-proof-memory-closure", () => {
         status: "active",
         sourceRefs: [makeRef("proj1", "memory_projection")],
         redactionClass: "none",
-        lifecycleStatus: "active",
         payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: now }),
       });
 

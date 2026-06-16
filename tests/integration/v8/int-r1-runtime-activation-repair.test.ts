@@ -96,7 +96,6 @@ describe("int-r1-runtime-activation-repair", () => {
         status: "active",
         sourceRefs: [{ uri: "sn://projection", family: "memory_projection", id: "proj1", redactionClass: "none", resolveStatus: "resolvable" }],
         redactionClass: "none",
-        lifecycleStatus: "active",
         payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: now }),
       });
 

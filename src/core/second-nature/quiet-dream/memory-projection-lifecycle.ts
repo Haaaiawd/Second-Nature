@@ -112,7 +112,6 @@ export async function acceptMemoryProjection(
     status: "active",
     sourceRefs,
     redactionClass: "none",
-    lifecycleStatus: "active",
     payloadJson: JSON.stringify({
       memoryText,
       acceptedAt: now,

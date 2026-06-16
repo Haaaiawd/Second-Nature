@@ -662,14 +662,12 @@ export async function updateDreamConsolidationRunStatus(
   status: DreamConsolidationRunRecord["status"],
   options?: {
     reason?: DreamConsolidationRunRecord["reason"];
-    lifecycleStatus?: DreamConsolidationRunRecord["lifecycleStatus"];
     payloadJson?: string;
   },
 ): Promise<{ id: string } | DegradedOperationResult> {
   try {
     const updateData: Record<string, unknown> = { status };
     if (options?.reason !== undefined) updateData.reason = options.reason;
-    if (options?.lifecycleStatus !== undefined) updateData.lifecycleStatus = options.lifecycleStatus;
     if (options?.payloadJson !== undefined) updateData.payloadJson = options.payloadJson;
     await db.db.update(dreamConsolidationRun).set(updateData).where(eq(dreamConsolidationRun.id, id));
     return { id };
@@ -793,7 +791,7 @@ export async function updateLongTermMemoryProjectionStatus(
   payloadJson?: string,
 ): Promise<{ id: string } | DegradedOperationResult> {
   try {
-    const updateData: Record<string, unknown> = { status, lifecycleStatus: status };
+    const updateData: Record<string, unknown> = { status };
     if (payloadJson !== undefined) {
       updateData.payloadJson = payloadJson;
     }

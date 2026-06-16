@@ -234,8 +234,7 @@ const STATE_SCHEMA_SQL = `
     next_state TEXT,
     source_refs_json TEXT NOT NULL,
     redaction_class TEXT NOT NULL DEFAULT 'none',
-    payload_json TEXT,
-    lifecycle_status TEXT NOT NULL DEFAULT 'closed'
+    payload_json TEXT
   );
   CREATE TABLE IF NOT EXISTS quiet_daily_review (
     id TEXT PRIMARY KEY,
@@ -257,8 +256,7 @@ const STATE_SCHEMA_SQL = `
     reason TEXT,
     source_refs_json TEXT NOT NULL,
     redaction_class TEXT NOT NULL DEFAULT 'none',
-    payload_json TEXT,
-    lifecycle_status TEXT NOT NULL DEFAULT 'pending'
+    payload_json TEXT
   );
   CREATE TABLE IF NOT EXISTS long_term_memory_projection (
     id TEXT PRIMARY KEY,
@@ -268,8 +266,7 @@ const STATE_SCHEMA_SQL = `
     status TEXT NOT NULL DEFAULT 'candidate',
     source_refs_json TEXT NOT NULL,
     redaction_class TEXT NOT NULL DEFAULT 'none',
-    payload_json TEXT,
-    lifecycle_status TEXT NOT NULL DEFAULT 'candidate'
+    payload_json TEXT
   );
   CREATE TABLE IF NOT EXISTS heartbeat_cycle_trace (
     id TEXT PRIMARY KEY,
@@ -282,8 +279,7 @@ const STATE_SCHEMA_SQL = `
     status TEXT NOT NULL,
     source_refs_json TEXT,
     redaction_class TEXT NOT NULL DEFAULT 'none',
-    payload_json TEXT,
-    lifecycle_status TEXT NOT NULL DEFAULT 'started'
+    payload_json TEXT
   );
   CREATE TABLE IF NOT EXISTS loop_stage_event (
     id TEXT PRIMARY KEY,
@@ -296,8 +292,7 @@ const STATE_SCHEMA_SQL = `
     redaction_class TEXT NOT NULL DEFAULT 'none',
     occurred_at TEXT NOT NULL,
     expected_downstream_by_cycle INTEGER,
-    payload_json TEXT,
-    lifecycle_status TEXT NOT NULL DEFAULT 'started'
+    payload_json TEXT
   );
   CREATE TABLE IF NOT EXISTS impulse_context_artifact (
     id TEXT PRIMARY KEY,
@@ -377,6 +372,11 @@ function applyStateSchemaMigrations(sqlite) {
         "ALTER TABLE quiet_daily_review ADD COLUMN closure_refs_json TEXT",
         "ALTER TABLE connector_cooldown_state ADD COLUMN terminal_count INTEGER NOT NULL DEFAULT 0",
         "CREATE INDEX IF NOT EXISTS connector_cooldown_state_platform_capability_idx ON connector_cooldown_state(platform_id, capability_id)",
+        "ALTER TABLE action_closure_record DROP COLUMN lifecycle_status",
+        "ALTER TABLE dream_consolidation_run DROP COLUMN lifecycle_status",
+        "ALTER TABLE long_term_memory_projection DROP COLUMN lifecycle_status",
+        "ALTER TABLE heartbeat_cycle_trace DROP COLUMN lifecycle_status",
+        "ALTER TABLE loop_stage_event DROP COLUMN lifecycle_status",
     ];
     for (const sql of migrations) {
         try {

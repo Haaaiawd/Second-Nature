@@ -97,7 +97,6 @@ export async function scheduleDreamAfterQuiet(
         },
       ],
       redactionClass: "none",
-      lifecycleStatus: "pending",
       payloadJson: JSON.stringify({ scheduledAt: now, blocked: true }),
     });
 
@@ -130,7 +129,6 @@ export async function scheduleDreamAfterQuiet(
       },
     ],
     redactionClass: "none",
-    lifecycleStatus: "pending",
     payloadJson: JSON.stringify({ scheduledAt: now }),
   });
 

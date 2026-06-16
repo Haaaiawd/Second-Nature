@@ -196,6 +196,25 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `.anws/v8/wave-reviews/wave-113-review.md` — code review (Pass; Medium fixed during review).
 - **Guardrails**: No schema status cleanup, no serializer broad migration, no package version bump, no external write enablement.
 
+## Wave 114 — v8 /change Repair: v8 Schema Single Status Column — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 CH-16 remaining schema-status scope after Wave 112/113.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SMS.R.4`, `INT-R9`.
+- **Fixes implemented**:
+  - Removed redundant `lifecycle_status` from status-bearing v8 tables: `action_closure_record`, `dream_consolidation_run`, `long_term_memory_projection`, `heartbeat_cycle_trace`, and `loop_stage_event`.
+  - Kept lifecycle-only v8 tables unchanged: `evidence_item`, `perception_card`, `judgment_verdict`, `quiet_daily_review`, and `impulse_context_artifact`.
+  - Updated v8 store writes and runtime/test fixtures to write only `status` for target tables.
+  - Added `v8-005-single-status-schema` migration marker and defensive startup column removal for pre-Wave-114 DBs.
+  - Added `tests/integration/storage/v8-schema-shape.test.ts` for fresh bootstrap and upgrade introspection.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - INT-R9 storage schema tests: 5/5 PASS + 3 historical schema-migration skips.
+  - Lifecycle/runtime regression sample: 21/21 PASS.
+- **Artifacts**:
+  - `reports/int-r9-wave-114-single-status-schema.md` — INT-R9 verification report.
+- **Guardrails**: No SourceRef serialization broad migration, no package version bump, no external write enablement.
+
 ---
 
 ## v0.2.11 Change — Wave 111 Review Closure Gap Repair — 2026-06-16

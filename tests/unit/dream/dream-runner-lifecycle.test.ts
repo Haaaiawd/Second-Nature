@@ -32,7 +32,6 @@ describe("dream runner lifecycle", () => {
         status: "completed",
         sourceRefs: [makeRef(`closure_${day}_1`, "action_closure")],
         redactionClass: "none",
-        lifecycleStatus: "closed",
       });
 
       const result = await checkDailyRhythm(db, { now: `${day}T14:00:00Z` });
@@ -70,7 +69,6 @@ describe("dream runner lifecycle", () => {
         status: "scheduled",
         sourceRefs: [makeRef(`dream_${quietId}_stale`, "dream_run")],
         redactionClass: "none",
-        lifecycleStatus: "pending",
         payloadJson: JSON.stringify({ scheduledAt: "2026-06-15T10:00:00Z" }),
       });
 
@@ -112,7 +110,6 @@ describe("dream runner lifecycle", () => {
         reason: "dream_completed",
         sourceRefs: [makeRef(`dream_${quietId}_recent`, "dream_run")],
         redactionClass: "none",
-        lifecycleStatus: "completed",
         payloadJson: JSON.stringify({ scheduledAt: `${day}T11:00:00Z`, consolidatedAt: `${day}T11:01:00Z` }),
       });
 
@@ -123,7 +120,6 @@ describe("dream runner lifecycle", () => {
         status: "completed",
         sourceRefs: [makeRef(`closure_${day}_1`, "action_closure")],
         redactionClass: "none",
-        lifecycleStatus: "closed",
       });
 
       const result = await checkDailyRhythm(db, { now: `${day}T14:00:00Z` });
@@ -131,7 +127,7 @@ describe("dream runner lifecycle", () => {
       if (result.status !== "checked") return;
       assert.equal(result.state.quietStatus, "completed");
       assert.equal(result.state.dreamStatus, "completed");
-      assert.equal(result.state.dreamReason, "dream_completed");
+      assert.equal(result.state.dreamReason, "dream_interval_active");
     } finally {
       db.close();
     }
