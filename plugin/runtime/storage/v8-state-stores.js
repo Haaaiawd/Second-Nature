@@ -23,25 +23,10 @@
  */
 import { eq, and, desc, like, isNull, inArray } from "drizzle-orm";
 import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, connectorCooldownState, } from "./db/schema/v8-entities.js";
+import { serializeSourceRefs, parseSourceRefs, } from "../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
-function serializeSourceRefs(refs) {
-    return JSON.stringify(refs);
-}
-function parseSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        if (Array.isArray(parsed))
-            return parsed;
-        return [];
-    }
-    catch {
-        return [];
-    }
-}
 function makeDegraded(reason, ownerStage, operatorNextAction, sourceRefs = []) {
     return {
         status: "degraded",

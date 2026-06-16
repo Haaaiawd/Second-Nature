@@ -40,9 +40,12 @@ import {
 const ref = (id: string) =>
   ({
     id,
-    kind: "platform_item" as const,
+    family: "evidence" as const,
     uri: `https://example.test/${id}`,
+    redactionClass: "none" as const,
   }) satisfies CandidateIntent["sourceRefs"][number];
+
+const lifeRef = (id: string) => ({ id, kind: "platform_item" as const, uri: `https://example.test/${id}` });
 
 function makeSnapshot(ts: string) {
   const inputs: SnapshotInputs = {
@@ -139,7 +142,7 @@ test.skip("INT-S3: source-backed draft (T6.2.1) → delivery failed → not_sent
     outcome: "delivery_unavailable",
     selectedIntentId: candidate.id,
     reasonCodes: result.reasons,
-    sourceRefs: [ref("ev-1")],
+    sourceRefs: [lifeRef("ev-1")],
     createdAt: auditTs,
   });
   recorder.recordDeliveryAudit({

@@ -3,9 +3,8 @@ const DEFAULT_NARRATIVE_ID = "default";
 function mapControlPlaneRefToSourceRef(ref) {
     return {
         sourceId: ref.id,
-        kind: ref.kind,
+        kind: ref.family,
         url: ref.uri,
-        snippet: ref.excerptHash,
     };
 }
 /**

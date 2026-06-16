@@ -29,7 +29,7 @@ function createSnapshotInputs(overrides?: Partial<SnapshotInputs>): SnapshotInpu
     recentOutreachHashes: [],
     deniedIntents: [],
     budgets: { socialUsed: 0, socialLimit: 5 },
-    lifeEvidenceRefs: [{ id: "base-ref", kind: "workspace_artifact", uri: "workspace://test" }],
+    lifeEvidenceRefs: [{ id: "base-ref", family: "audit", uri: "workspace://test", redactionClass: "none" }],
     platformEventCount: 1,
     workEventCount: 0,
     ...overrides,

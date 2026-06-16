@@ -1,7 +1,7 @@
 /**
  * Read-model snapshots aligned with state-system v5 (subset for S1/S2).
  */
-import type { LifeEvidenceType, SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef, LifeEvidenceType } from "../life-evidence/types.js";
 
 export interface LifeEvidenceQuery {
   windowStart?: string;
@@ -13,7 +13,7 @@ export interface LifeEvidenceQuery {
 export interface SourceCoverage {
   coverageRatio: number;
   unsupportedClaims: string[];
-  claimCoverage: Array<{ claimId: string; backed: boolean; sourceRefs: SourceRef[] }>;
+  claimCoverage: Array<{ claimId: string; backed: boolean; sourceRefs: LifeEvidenceSourceRef[] }>;
 }
 
 export interface LifeEvidenceReadModel {
@@ -23,7 +23,7 @@ export interface LifeEvidenceReadModel {
   platformId?: string;
   summary: string;
   rawContentRef?: string;
-  sourceRefs: SourceRef[];
+  sourceRefs: LifeEvidenceSourceRef[];
   sensitivity: import("../life-evidence/types.js").Sensitivity;
   confidence: number;
   tags: string[];
@@ -35,11 +35,11 @@ export interface LifeEvidenceSnapshot {
   generatedAt: string;
   windowStart: string;
   windowEnd: string;
-  evidenceRefs: SourceRef[];
+  evidenceRefs: LifeEvidenceSourceRef[];
   platformEvents: LifeEvidenceReadModel[];
   workEvents: LifeEvidenceReadModel[];
   userInteractionEvents: LifeEvidenceReadModel[];
-  quietArtifacts: SourceRef[];
+  quietArtifacts: LifeEvidenceSourceRef[];
   coverage: SourceCoverage;
   empty: boolean;
 }
@@ -48,12 +48,12 @@ export interface ContinuitySnapshot {
   snapshotId: string;
   generatedAt: string;
   lastHeartbeatAt?: string;
-  recentDecisionRefs: SourceRef[];
-  openObligations: SourceRef[];
+  recentDecisionRefs: LifeEvidenceSourceRef[];
+  openObligations: LifeEvidenceSourceRef[];
   quietDebt: {
     hasUnprocessedEvidence: boolean;
     oldestUnprocessedEvidenceAt?: string;
     pendingCount: number;
   };
-  fallbackRefs: SourceRef[];
+  fallbackRefs: LifeEvidenceSourceRef[];
 }

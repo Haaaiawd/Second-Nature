@@ -409,7 +409,7 @@ describe("INT-S3: S3 Body Tool + Heartbeat integration smoke", () => {
       platformId: "moltbook",
       summary: "read feed",
       effectClass: "connector_action",
-      sourceRefs: [{ id: "ref-1", kind: "platform_item", uri: "uri://1" }],
+      sourceRefs: [{ id: "ref-1", family: "evidence", uri: "uri://1", redactionClass: "none" }],
       idempotencyKey: "key-1",
       capabilityIntent: "feed.read",
     };

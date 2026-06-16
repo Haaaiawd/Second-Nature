@@ -1,5 +1,5 @@
 import { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
-import type { SourceRef } from "../../storage/life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../../storage/life-evidence/types.js";
 import type { DreamTrace } from "../../dream/types.js";
 export type RuntimeScope = "rhythm" | "user_task" | "user_reply";
 export type HeartbeatOutcome = "heartbeat_ok" | "intent_selected" | "denied" | "deferred" | "runtime_carrier_only" | "delivery_unavailable";
@@ -18,8 +18,8 @@ export interface DecisionTracePayload {
     outreachVerdict?: "allow" | "deny" | "defer";
     deliveryAuditId?: string;
     reasonCodes: string[];
-    sourceRefs: SourceRef[];
-    snapshotRef?: SourceRef;
+    sourceRefs: LifeEvidenceSourceRef[];
+    snapshotRef?: LifeEvidenceSourceRef;
     createdAt: string;
 }
 export interface DeliveryAuditPayload {
@@ -31,7 +31,7 @@ export interface DeliveryAuditPayload {
     recipientRef?: string;
     status: DeliveryAuditStatus;
     messageId?: string;
-    hostProofRef?: SourceRef;
+    hostProofRef?: LifeEvidenceSourceRef;
     fallbackRef?: string;
     ackDropMatched?: boolean;
     hostVersion?: string;
@@ -45,8 +45,8 @@ export interface SourceCoverageAuditPayload {
     decisionId?: string;
     subjectType: "quiet_artifact" | "outreach_draft" | "guidance_payload" | "decision_trace" | "host_report";
     subjectRef: string;
-    usedSourceRefs: SourceRef[];
-    unresolvedRefs: SourceRef[];
+    usedSourceRefs: LifeEvidenceSourceRef[];
+    unresolvedRefs: LifeEvidenceSourceRef[];
     coverageRatio: number;
     unsupportedClaims: string[];
     status: GroundingStatus;
@@ -61,7 +61,7 @@ export interface GuidanceGroundingAuditPayload {
     draftId?: string;
     sceneType: "outreach" | "quiet_reflection" | "social" | "explain" | "user_reply_continuity" | "fallback_candidate";
     groundingStatus: GroundingStatus;
-    usedSourceRefs: SourceRef[];
+    usedSourceRefs: LifeEvidenceSourceRef[];
     unsupportedClaims: string[];
     guardViolations: string[];
     deliveryWording?: "sendable" | "not_sent_fallback_candidate";

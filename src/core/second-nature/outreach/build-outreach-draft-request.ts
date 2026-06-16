@@ -10,6 +10,7 @@ import type { OutreachJudgment } from "./judge-outreach.js";
 import type { DeliveryTargetResolution } from "./delivery-target.js";
 import type { NarrativeState } from "../../../storage/narrative/narrative-state-store.js";
 import type { RelationshipMemory } from "../../../storage/relationship/relationship-memory-store.js";
+import { legacyKindFromSourceRef } from "../../../shared/source-ref-compat.js";
 
 function inferRhythmWindowKind(windowId: string): OutreachDraftRequest["rhythmWindowKind"] {
   const id = windowId.toLowerCase();
@@ -24,10 +25,8 @@ function inferRhythmWindowKind(windowId: string): OutreachDraftRequest["rhythmWi
 function toGuidanceRefs(refs: CandidateIntent["sourceRefs"]): OutreachDraftRequest["sourceRefs"] {
   return refs.map((r) => ({
     id: r.id,
-    kind: r.kind,
+    kind: legacyKindFromSourceRef(r),
     uri: r.uri,
-    excerptHash: r.excerptHash,
-    observedAt: r.observedAt,
   }));
 }
 

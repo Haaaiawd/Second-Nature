@@ -1,10 +1,11 @@
+import { makeCanonicalSourceRef } from "../../../shared/source-ref-compat.js";
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import { buildHeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import { resolvePlatformForIntent, } from "./platform-capability-router.js";
 import { isGoalRelatedToCandidate } from "./goal-priority.js";
 const MAX_CANDIDATE_INTENTS = 6;
 const OBLIGATION_SOURCE = [
-    { id: "obligation-anchor", kind: "workspace_artifact", uri: "workspace://obligations/pending" },
+    makeCanonicalSourceRef({ id: "obligation-anchor", family: "audit", uri: "workspace://obligations/pending" }),
 ];
 function evidenceRefsForConnector(runtime) {
     if (!isLifeEvidenceSliceEmpty(runtime.lifeEvidence) && runtime.lifeEvidence.evidenceRefs.length > 0) {
@@ -253,8 +254,9 @@ export function planCandidateIntents(runtime, options) {
         if (intent.sourceRefs.length === 0 && related.length > 0) {
             intent.sourceRefs = related.slice(0, 4).map((g) => ({
                 id: g.goalId,
-                kind: "workspace_artifact",
+                family: "audit",
                 uri: `goal://${g.goalId}`,
+                redactionClass: "none",
             }));
         }
     }

@@ -1,4 +1,4 @@
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 import type { SourceCoverage } from "../snapshots/types.js";
 import type { QuietArtifactWrite } from "./quiet-artifact-types.js";
 import type { QuietClaim } from "./quiet-artifact-types.js";
@@ -7,7 +7,7 @@ export declare function calculateQuietSourceCoverage(claims: QuietClaim[]): Sour
 export declare function evidenceGroundingRatio(input: Pick<QuietArtifactWrite, "claims" | "sourceRefs">): number;
 export interface QuietArtifactAck {
     artifactId: string;
-    artifactRef: SourceRef;
+    artifactRef: LifeEvidenceSourceRef;
     sourceCoverage: SourceCoverage;
 }
 export declare function writeQuietArtifact(input: QuietArtifactWrite, opts?: {

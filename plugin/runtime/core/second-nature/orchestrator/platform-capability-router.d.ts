@@ -12,7 +12,7 @@
  * - Optional registry: when absent, resolution is best-effort from goals/evidence.
  */
 import type { IntentKind } from "../types.js";
-import type { ControlPlaneSourceRef } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 /** Minimal goal shape accepted by the router to avoid coupling to AgentGoal. M-03 decoupling. */
 interface GoalRouterContext {
@@ -24,7 +24,7 @@ export interface PlatformResolutionContext {
     /** Accepted goals that may name a platform or capability. */
     acceptedGoals?: GoalRouterContext[];
     /** Evidence refs that may embed platform identity. */
-    evidenceRefs?: ControlPlaneSourceRef[];
+    evidenceRefs?: SourceRef[];
 }
 /**
  * Resolve an explicit platformId for a candidate intent kind.

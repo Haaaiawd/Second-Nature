@@ -15,8 +15,9 @@ const baseCandidate = (): CandidateIntent => ({
   sourceRefs: [
     {
       id: "ref1",
-      kind: "platform_item",
+      family: "evidence",
       uri: "https://example.com/p/1",
+      redactionClass: "none",
     },
   ],
 });
@@ -31,7 +32,7 @@ function baseInput(over: Partial<JudgeOutreachInput> = {}): JudgeOutreachInput {
         {
           topic: "project alpha",
           confidence: 0.9,
-          sourceRefs: [{ id: "sig1", kind: "user_anchor", uri: "file:///USER.md" }],
+          sourceRefs: [{ id: "sig1", family: "audit", uri: "file:///USER.md", redactionClass: "none" }],
         },
       ],
       sourceRefs: [],

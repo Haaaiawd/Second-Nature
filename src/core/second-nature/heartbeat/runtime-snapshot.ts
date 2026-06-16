@@ -1,7 +1,8 @@
 /**
  * HeartbeatRuntimeSnapshot assembly for candidate planner + hard guards (T2.1.3, T2.2.1).
  */
-import type { ContinuitySnapshot, ControlPlaneSourceRef } from "../types.js";
+import type { ContinuitySnapshot } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
 import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
 import { rhythmPolicySnapshotToRhythmPolicy } from "../rhythm/policy-bridge.js";
 import { buildPlannerRhythmWindow, type PlannerRhythmWindowSlice } from "../rhythm/planner-rhythm-window.js";
@@ -9,7 +10,7 @@ import type { SnapshotInputs } from "./snapshot-builder.js";
 import type { AffordanceMap } from "../../../shared/types/v7-entities.js";
 
 export interface PlannerLifeEvidenceSlice {
-  evidenceRefs: ControlPlaneSourceRef[];
+  evidenceRefs: SourceRef[];
   platformEventCount: number;
   workEventCount: number;
   emptyReason?: "no_sources" | "state_unavailable" | "redacted_only";

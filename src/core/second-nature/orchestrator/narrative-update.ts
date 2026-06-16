@@ -9,6 +9,7 @@
 import type { HeartbeatCycleResult } from "../heartbeat/signal.js";
 import type { CandidateIntent } from "../types.js";
 import type { PlannerLifeEvidenceSlice } from "../heartbeat/runtime-snapshot.js";
+import type { SourceRef as CanonicalSourceRef } from "../../../shared/types/v8-contracts.js";
 import type {
   NarrativeState,
   NarrativeStateUpdate,
@@ -19,13 +20,12 @@ const MAX_PROGRESS_ENTRIES = 10;
 const DEFAULT_NARRATIVE_ID = "default";
 
 function mapControlPlaneRefToSourceRef(
-  ref: import("../types.js").ControlPlaneSourceRef,
+  ref: CanonicalSourceRef,
 ): SourceRef {
   return {
     sourceId: ref.id,
-    kind: ref.kind,
+    kind: ref.family,
     url: ref.uri,
-    snippet: ref.excerptHash,
   };
 }
 

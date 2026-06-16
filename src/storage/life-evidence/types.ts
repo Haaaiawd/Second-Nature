@@ -15,7 +15,7 @@ export type LifeEvidenceType =
 
 export type Sensitivity = "public" | "private" | "credential" | "sensitive";
 
-export interface SourceRef {
+export interface LifeEvidenceSourceRef {
   id: string;
   kind:
     | "platform_item"
@@ -37,7 +37,7 @@ export interface LifeEvidenceCandidate {
   platformId?: string;
   summary: string;
   rawContentRef?: string;
-  sourceRefs: SourceRef[];
+  sourceRefs: LifeEvidenceSourceRef[];
   sensitivity: Sensitivity;
   confidence?: number;
   tags?: string[];
@@ -51,15 +51,15 @@ export interface LifeEvidence {
   platformId?: string;
   summary: string;
   rawContentRef?: string;
-  sourceRefs: SourceRef[];
+  sourceRefs: LifeEvidenceSourceRef[];
   sensitivity: Sensitivity;
   confidence: number;
   tags: string[];
   producer: string;
-  artifactRef: SourceRef;
+  artifactRef: LifeEvidenceSourceRef;
 }
 
 export interface LifeEvidenceWriteAck {
   evidenceId: string;
-  artifactRef: SourceRef;
+  artifactRef: LifeEvidenceSourceRef;
 }

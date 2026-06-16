@@ -12,7 +12,7 @@ function makeIntent(overrides: Partial<CandidateIntent> = {}): CandidateIntent {
     platformId: "moltbook",
     summary: "test intent",
     effectClass: "connector_action",
-    sourceRefs: [{ id: "ref-1", kind: "platform_item", uri: "uri://1" }],
+    sourceRefs: [{ id: "ref-1", family: "evidence", uri: "uri://1", redactionClass: "none" }],
     idempotencyKey: "test-key",
     capabilityIntent: "feed.read",
     ...overrides,

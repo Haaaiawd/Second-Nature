@@ -25,7 +25,7 @@ test("CR-M1 resolveAllowedIntentResult runs outreach dispatch chain", async () =
     source: "tick",
     summary: "platform direction check-in",
     effectClass: "user_outreach",
-    sourceRefs: [{ id: "s1", kind: "platform_item", uri: "https://example/s1" }],
+    sourceRefs: [{ id: "s1", family: "evidence", uri: "https://example/s1", redactionClass: "none" }],
     idempotencyKey: "outreach:test",
   };
   const inputs: SnapshotInputs = {
@@ -34,7 +34,7 @@ test("CR-M1 resolveAllowedIntentResult runs outreach dispatch chain", async () =
     pendingObligations: [],
     recentOutreachHashes: [],
     deniedIntents: [],
-    lifeEvidenceRefs: [{ id: "s1", kind: "platform_item", uri: "https://example/s1" }],
+    lifeEvidenceRefs: [{ id: "s1", family: "evidence", uri: "https://example/s1", redactionClass: "none" }],
     deliveryCapability: { target: "explicit", channel: "dm", recipient: "u1" },
     userInterestSnapshot: {
       snapshotId: "uis-1",

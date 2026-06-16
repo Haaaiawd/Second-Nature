@@ -1,4 +1,5 @@
-import type { CandidateIntent, ControlPlaneSourceRef } from "../types.js";
+import type { CandidateIntent } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
 import { type DeliveryCapabilitySnapshot, type DeliveryTargetResolution } from "./delivery-target.js";
 export type OutreachJudgmentVerdict = "allow" | "deny" | "defer";
 export type CooldownState = "clear" | "cooling_down" | "duplicate";
@@ -8,9 +9,9 @@ export interface JudgeOutreachUserInterest {
     signals: Array<{
         topic: string;
         confidence: number;
-        sourceRefs: ControlPlaneSourceRef[];
+        sourceRefs: SourceRef[];
     }>;
-    sourceRefs: ControlPlaneSourceRef[];
+    sourceRefs: SourceRef[];
 }
 export interface JudgeOutreachLifeEvidence {
     empty: boolean;
@@ -31,8 +32,8 @@ export interface OutreachJudgment {
     valueScore: number;
     userRelevance: number;
     actionability: number;
-    interestRefs: ControlPlaneSourceRef[];
-    sourceRefs: ControlPlaneSourceRef[];
+    interestRefs: SourceRef[];
+    sourceRefs: SourceRef[];
     cooldownState: CooldownState;
     deliveryVerdict: DeliveryTargetResolution["verdict"];
     reasons: string[];

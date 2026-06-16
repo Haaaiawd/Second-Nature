@@ -174,6 +174,28 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `.anws/v8/wave-reviews/wave-110-e2e.md` — Feishu/OpenClaw host verification guide for v0.2.10.
 - **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 
+## Wave 113 — v8 /change Repair: Remove SourceRef Local Clones — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 CH-12 remaining scope after Wave 112.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SH.R.3`, `T-SH.R.4`, `T-SH.R.5`, `INT-R8`.
+- **Fixes implemented**:
+  - Removed `ControlPlaneSourceRef` and migrated control-plane source refs to canonical v8 `SourceRef`.
+  - Replaced host-capability local `SourceRef` with canonical v8 `SourceRef`.
+  - Renamed life-evidence local `SourceRef` to `LifeEvidenceSourceRef` to preserve v7 storage semantics without colliding with canonical v8 `SourceRef`.
+  - Added `src/shared/source-ref-compat.ts` for explicit legacy `kind` ↔ canonical `family` boundary mapping.
+  - Rebuilt plugin runtime so packaged declarations no longer expose `ControlPlaneSourceRef`.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - Wave 113 targeted unit/storage/host tests: 57/57 PASS.
+  - Wave 113 targeted integration tests: 33/33 PASS + 2 historical INT-S3 skips.
+  - Wave 108-112 regression sample: 51/51 PASS.
+  - Review-fix targeted tests: 44/44 PASS.
+- **Artifacts**:
+  - `reports/int-r8-wave-113-source-ref-clones.md` — INT-R8 verification report.
+  - `.anws/v8/wave-reviews/wave-113-review.md` — code review (Pass; Medium fixed during review).
+- **Guardrails**: No schema status cleanup, no serializer broad migration, no package version bump, no external write enablement.
+
 ---
 
 ## v0.2.11 Change — Wave 111 Review Closure Gap Repair — 2026-06-16

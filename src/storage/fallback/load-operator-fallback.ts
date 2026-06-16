@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { StateDatabase } from "../db/index.js";
 import { operatorFallbackArtifacts } from "../db/schema/operator-fallback-artifacts.js";
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 import type { OperatorFallbackReason } from "./operator-fallback-types.js";
 import type { OperatorFallbackView } from "./operator-fallback-view.js";
 
@@ -13,10 +13,10 @@ export function normalizeFallbackRef(ref: string): string {
   return t.startsWith("fallback:") ? t : `fallback:${t}`;
 }
 
-function parseSourceRefs(json: string): SourceRef[] {
+function parseSourceRefs(json: string): LifeEvidenceSourceRef[] {
   try {
     const parsed = JSON.parse(json) as unknown;
-    return Array.isArray(parsed) ? (parsed as SourceRef[]) : [];
+    return Array.isArray(parsed) ? (parsed as LifeEvidenceSourceRef[]) : [];
   } catch {
     return [];
   }
@@ -30,7 +30,7 @@ export async function loadOperatorFallbackRow(
   fallbackRef: string;
   reason: string;
   status: string;
-  sourceRefs: SourceRef[];
+  sourceRefs: LifeEvidenceSourceRef[];
   candidateMessage?: string;
   nextStep: string;
 } | null> {

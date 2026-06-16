@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 112 completed; Waves 113-115 opened for remaining SourceRef clones and single-status cleanup)
-- **当前波次**: Wave 113
-- **下一步**: Execute T-SH.R.3, T-SH.R.4, T-SH.R.5 (remove ControlPlaneSourceRef, host-capability SourceRef, life-evidence SourceRef); run INT-R8 gate
+- **最近一次更新**: `2026-06-16` (Wave 113 completed; Wave 114 opened for v8 single-status cleanup)
+- **当前波次**: Wave 114
+- **下一步**: Execute T-SMS.R.4 (single semantic status column for v8 tables); run INT-R9 gate
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -312,6 +312,24 @@ T-SH.R.2 (adjusted), T-SMS.R.3 (adjusted), INT-R7
 - **最高严重度**: none
 - **残留待跟进**: Wave 113–115 opened for remaining SourceRef clones and single-status cleanup
 - **下一步**: Execute Wave 113 tasks (T-SH.R.3, T-SH.R.4, T-SH.R.5); run INT-R8 gate
+
+### 🌊 Wave 113 ✅ — v8 /change Repair: Remove SourceRef Local Clones
+T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 113 完成（T-SH.R.3 + T-SH.R.4 + T-SH.R.5 + INT-R8）
+- **产出**:
+  - `src/core/second-nature/types.ts` — removed `ControlPlaneSourceRef`; `CandidateIntent.sourceRefs` now uses canonical v8 `SourceRef`
+  - `src/shared/source-ref-compat.ts` — explicit legacy `kind` ↔ canonical `family` boundary adapter
+  - `src/cli/host-capability/types.ts` — uses canonical v8 `SourceRef`
+  - `src/storage/life-evidence/types.ts` — local ref renamed to `LifeEvidenceSourceRef`
+  - control-plane, host-capability, life-evidence, quiet/outreach, and snapshot call sites updated
+  - plugin runtime rebuilt so packaged declarations no longer expose `ControlPlaneSourceRef`
+  - `reports/int-r8-wave-113-source-ref-clones.md` — INT-R8 verification report
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；Wave 113 targeted 57/57 PASS；Wave 113 integration 33/33 PASS + 2 historical skips；Wave 108-112 regression sample 51/51 PASS
+- **最高严重度**: none
+- **残留待跟进**: Wave 114 single-status schema cleanup; Wave 115 remaining v8 SourceRef serialization migration
+- **下一步**: Execute Wave 114 task T-SMS.R.4; run INT-R9 gate
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2

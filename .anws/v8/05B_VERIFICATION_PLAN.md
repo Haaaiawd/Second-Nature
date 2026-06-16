@@ -1026,9 +1026,13 @@
 | Connector shadow execution consistency | unsafe override | integration | T-CS.R.8 | `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` | ✅ |
 | Heartbeat impulse context handoff | double refresh / missing artifact | API接口功能测试 | T-GVS.R.3 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | ✅ |
 | Wave 111 repair gate | regression | compile + targeted regression | INT-R6 | `reports/int-r6-wave-111-repair-gate.md` | ✅ |
-| SourceRef canonical shape | contract drift / name collision | compile + unit | T-SH.R.2 | `logs/tsc-source-ref-unification.log` | ⬜ |
-| Single status column and centralized serialization | schema drift / lifecycle ambiguity | unit + integration | T-SMS.R.3 | `tests/unit/shared/source-ref-serialization.test.ts` | ⬜ |
-| Wave 112 hemostasis gate | regression | compile + targeted regression | INT-R7 | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
+| SourceRef canonical shape | contract drift / name collision | compile + unit | T-SH.R.2 | `logs/tsc-source-ref-unification.log` | ✅ |
+| Single status column and centralized serialization | schema drift / lifecycle ambiguity | unit + integration | T-SMS.R.3 | `tests/unit/shared/source-ref-serialization.test.ts` | ✅ |
+| Wave 112 hemostasis gate | regression | compile + targeted regression | INT-R7 | `reports/int-r7-wave-112-hemostasis-gate.md` | ✅ |
+| Control-plane SourceRef clone removal | contract drift | compile + unit + integration | T-SH.R.3 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Host-capability SourceRef clone removal | contract drift | compile + unit | T-SH.R.4 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Life-evidence SourceRef naming | contract drift | compile + unit | T-SH.R.5 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Wave 113 source-ref clone gate | regression | compile + targeted regression | INT-R8 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
 
 ---
 
@@ -1067,5 +1071,6 @@
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |
 | SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3 | 编译 + 单元 + 集成 | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
 | v8 schema status/serialization hygiene | T-SMS.R.3 | 单元 + 集成 | `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
+| SourceRef local clone removal | T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8 | 编译 + 单元 + 集成 + plugin build | targeted Wave 113 tests | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
 
 ---

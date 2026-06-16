@@ -1756,7 +1756,7 @@ graph TD
 > 触发：`07_CHALLENGE_REPORT.md` Round 3 CH-12 剩余部分。
 > 目标：删除 `ControlPlaneSourceRef`、`cli/host-capability` 本地 `SourceRef`、`storage/life-evidence` 本地 `SourceRef`，将所有 object-shaped source refs 统一到 `src/shared/types/v8-contracts.ts` 的 canonical `SourceRef`。
 
-- [ ] **T-SH.R.3** [REQ-001, REQ-002, REQ-008]: Remove `ControlPlaneSourceRef` and migrate control-plane call sites
+- [x] **T-SH.R.3** [REQ-001, REQ-002, REQ-008]: Remove `ControlPlaneSourceRef` and migrate control-plane call sites
   - **描述**: Delete `ControlPlaneSourceRef` from `src/core/second-nature/types.ts`; change `CandidateIntent.sourceRefs` and related types to canonical `SourceRef`. Map existing `kind` values (`platform_item`, `workspace_artifact`, `decision_record`, `user_anchor`, `connector_result`, `host_report`, `fallback_artifact`) to canonical `family` values and add required `redactionClass`. Update `intent-planner.ts`, `platform-capability-router.ts`, `narrative-update.ts`, `judge-input-from-snapshot.ts`, `build-outreach-draft-request.ts`, `run-source-backed-quiet.ts`, and tests.
   - **输入**: `src/core/second-nature/types.ts`, `src/core/second-nature/orchestrator/intent-planner.ts`, `src/core/second-nature/orchestrator/platform-capability-router.ts`, `src/core/second-nature/orchestrator/narrative-update.ts`, `src/core/second-nature/outreach/judge-input-from-snapshot.ts`, `src/core/second-nature/outreach/build-outreach-draft-request.ts`, `src/core/second-nature/quiet/run-source-backed-quiet.ts`, T-SH.R.2 output
   - **输出**: Control-plane source refs use canonical `SourceRef` from `v8-contracts.ts`.
@@ -1773,7 +1773,7 @@ graph TD
   - **依赖**: T-SH.R.2
   - **优先级**: P0
 
-- [ ] **T-SH.R.4** [REQ-001, REQ-008]: Remove host-capability local `SourceRef`
+- [x] **T-SH.R.4** [REQ-001, REQ-008]: Remove host-capability local `SourceRef`
   - **描述**: Delete the local `SourceRef` interface in `src/cli/host-capability/types.ts` and use canonical `SourceRef`. Map host capability evidence to canonical `family` and `redactionClass`. Update `probe-host-capability.ts`, `classify-delivery.ts`, `record-host-capability.ts`, and tests.
   - **输入**: `src/cli/host-capability/types.ts`, `src/cli/host-capability/probe-host-capability.ts`, `src/cli/host-capability/classify-delivery.ts`, `src/cli/host-capability/record-host-capability.ts`, T-SH.R.2 output
   - **输出**: Host-capability source refs use canonical `SourceRef`.
@@ -1790,7 +1790,7 @@ graph TD
   - **依赖**: T-SH.R.2
   - **优先级**: P0
 
-- [ ] **T-SH.R.5** [REQ-001, REQ-008]: Rename or remove `storage/life-evidence` local `SourceRef`
+- [x] **T-SH.R.5** [REQ-001, REQ-008]: Rename or remove `storage/life-evidence` local `SourceRef`
   - **描述**: Either delete the local `SourceRef` in `src/storage/life-evidence/types.ts` and migrate v7 `LifeEvidence` to canonical `SourceRef`, or rename it to `LifeEvidenceSourceRef` if v7 tuple/object semantics must be preserved. Ensure no name collision with canonical `SourceRef` in v8 space.
   - **输入**: `src/storage/life-evidence/types.ts`, `src/connectors/base/map-life-evidence.ts`, `src/storage/life-evidence/append-life-evidence.ts`, T-SH.R.2 output
   - **输出**: `LifeEvidenceSourceRef` or canonical `SourceRef` in life-evidence module.
@@ -1807,7 +1807,7 @@ graph TD
   - **依赖**: T-SH.R.2
   - **优先级**: P1
 
-- [ ] **INT-R8** [MILESTONE]: Wave 113 SourceRef Clone Removal Gate
+- [x] **INT-R8** [MILESTONE]: Wave 113 SourceRef Clone Removal Gate
   - **描述**: Verify Wave 113 removes all local `SourceRef` clones without regressing Wave 108–112 behavior.
   - **输入**: T-SH.R.3, T-SH.R.4, T-SH.R.5 outputs
   - **输出**: `reports/int-r8-wave-113-source-ref-clones.md`
@@ -1899,5 +1899,4 @@ graph TD
   - **证据产出**: `reports/int-r10-wave-115-serialization-completion.md`
   - **依赖**: T-SMS.R.5
   - **优先级**: P1
-
 

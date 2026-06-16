@@ -14,8 +14,9 @@ import { buildHeartbeatRuntimeSnapshot } from "../../../src/core/second-nature/h
 const ref = (id: string) =>
   ({
     id,
-    kind: "platform_item" as const,
+    family: "evidence" as const,
     uri: `https://example.test/${id}`,
+    redactionClass: "none" as const,
   }) satisfies CandidateIntent["sourceRefs"][number];
 
 function makeSnapshot(ts: string): HeartbeatRuntimeSnapshot {

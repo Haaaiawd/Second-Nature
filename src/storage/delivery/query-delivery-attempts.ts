@@ -5,13 +5,13 @@ import { eq } from "drizzle-orm";
 import type { StateDatabase } from "../db/index.js";
 import { deliveryAttempts } from "../db/schema/delivery-attempts.js";
 import type { DeliveryAttemptRecord } from "./types.js";
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 
 function rowToRecord(row: typeof deliveryAttempts.$inferSelect): DeliveryAttemptRecord {
-  let hostProofRef: SourceRef | undefined;
+  let hostProofRef: LifeEvidenceSourceRef | undefined;
   if (row.hostProofRefJson) {
     try {
-      hostProofRef = JSON.parse(row.hostProofRefJson) as SourceRef;
+      hostProofRef = JSON.parse(row.hostProofRefJson) as LifeEvidenceSourceRef;
     } catch {
       hostProofRef = undefined;
     }

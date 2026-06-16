@@ -12,7 +12,7 @@
  * - ADR-002/003/007/008 — entity semantics
  *
  * Dependencies:
- * - `SourceRef` from `./source-ref.js`
+ * - `SourceRefTuple` from `./source-ref.js`
  * - `AgentGoal` from `./goal.js`
  *
  * Boundary:
@@ -24,7 +24,7 @@
  *
  * Test coverage: tests/unit/shared/v7-entities.test.ts
  */
-import type { SourceRef } from "./source-ref.js";
+import type { SourceRefTuple } from "./source-ref.js";
 import type { AgentGoal } from "./goal.js";
 export interface PlatformHandle {
     platformId: string;
@@ -60,7 +60,7 @@ export interface ToolExperience {
     failureClass?: string;
     latencyMs: number;
     evidenceQuality: number;
-    sourceRefs: SourceRef;
+    sourceRefs: SourceRefTuple;
     triggerSource: ToolExperienceTriggerSource;
     createdAt: string;
 }
@@ -97,7 +97,7 @@ export interface QuietClaim {
     claimId: string;
     kind: QuietClaimKind;
     text: string;
-    sourceRefs: SourceRef;
+    sourceRefs: SourceRefTuple;
     confidence: number;
     createdAt: string;
 }
@@ -107,7 +107,7 @@ export interface DailyDiary {
     observedToday: string[];
     notableSignals: string[];
     tomorrowDirection: string;
-    sourceRefs: SourceRef;
+    sourceRefs: SourceRefTuple;
     createdAt: string;
 }
 export type DreamOutputStatus = "candidate" | "accepted" | "archived" | "partial";

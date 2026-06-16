@@ -15,7 +15,7 @@ test("classifyDeliveryCapability maps host signals", () => {
 
 test("probeHostCapability aggregates adapter fields", () => {
   const now = new Date().toISOString();
-  const ref = (id: string) => [{ id, kind: "host_report" as const, uri: `sn://${id}` }];
+  const ref = (id: string) => [{ id, family: "audit" as const, uri: `sn://${id}`, redactionClass: "none" as const }];
 
   const adapter: HostCapabilityAdapter = {
     checkPluginLoad: () => ({ name: "plugin_load", verdict: "pass", observedAt: now, evidenceRefs: ref("p1") }),

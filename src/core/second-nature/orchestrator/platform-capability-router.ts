@@ -12,7 +12,7 @@
  * - Optional registry: when absent, resolution is best-effort from goals/evidence.
  */
 import type { IntentKind } from "../types.js";
-import type { ControlPlaneSourceRef } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
 import type { CapabilityContractRegistry } from "../../../connectors/base/manifest.js";
 import type { CapabilityIntent } from "../../../connectors/base/contract.js";
 
@@ -75,12 +75,12 @@ function extractPlatformIdsFromGoals(
 }
 
 function extractPlatformIdsFromEvidence(
-  refs: ControlPlaneSourceRef[],
+  refs: SourceRef[],
   platformIds: string[],
 ): string[] {
   const results = new Set<string>();
   for (const ref of refs) {
-    if (ref.kind === "connector_result" && ref.id) {
+    if (ref.family === "connector_result" && ref.id) {
       for (const pid of platformIds) {
         if (ref.id.includes(pid)) {
           results.add(pid);
@@ -126,7 +126,7 @@ export interface PlatformResolutionContext {
   /** Accepted goals that may name a platform or capability. */
   acceptedGoals?: GoalRouterContext[];
   /** Evidence refs that may embed platform identity. */
-  evidenceRefs?: ControlPlaneSourceRef[];
+  evidenceRefs?: SourceRef[];
 }
 
 /**

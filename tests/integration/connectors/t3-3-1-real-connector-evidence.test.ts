@@ -38,7 +38,7 @@ function createCandidateIntent(overrides?: Partial<CandidateIntent>): CandidateI
     platformId: "moltbook",
     summary: "scan platform opportunities",
     effectClass: "connector_action",
-    sourceRefs: [{ id: "ref-1", kind: "workspace_artifact", uri: "workspace://test" }],
+    sourceRefs: [{ id: "ref-1", family: "audit", uri: "workspace://test", redactionClass: "none" }],
     idempotencyKey: "exploration:scan",
     goalInfluenceRefs: [],
     ...overrides,

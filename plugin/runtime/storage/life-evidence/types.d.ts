@@ -5,7 +5,7 @@
  */
 export type LifeEvidenceType = "platform_browse" | "platform_interaction" | "work_progress" | "task_discovery" | "user_interaction" | "quiet_reflection" | "delivery_fallback";
 export type Sensitivity = "public" | "private" | "credential" | "sensitive";
-export interface SourceRef {
+export interface LifeEvidenceSourceRef {
     id: string;
     kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
     uri: string;
@@ -19,7 +19,7 @@ export interface LifeEvidenceCandidate {
     platformId?: string;
     summary: string;
     rawContentRef?: string;
-    sourceRefs: SourceRef[];
+    sourceRefs: LifeEvidenceSourceRef[];
     sensitivity: Sensitivity;
     confidence?: number;
     tags?: string[];
@@ -32,14 +32,14 @@ export interface LifeEvidence {
     platformId?: string;
     summary: string;
     rawContentRef?: string;
-    sourceRefs: SourceRef[];
+    sourceRefs: LifeEvidenceSourceRef[];
     sensitivity: Sensitivity;
     confidence: number;
     tags: string[];
     producer: string;
-    artifactRef: SourceRef;
+    artifactRef: LifeEvidenceSourceRef;
 }
 export interface LifeEvidenceWriteAck {
     evidenceId: string;
-    artifactRef: SourceRef;
+    artifactRef: LifeEvidenceSourceRef;
 }

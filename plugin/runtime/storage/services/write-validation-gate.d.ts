@@ -7,7 +7,7 @@
  * readable reason codes (DR-022).
  *
  * Dependencies:
- * - `SourceRef` type from `../../shared/types/source-ref.js`
+ * - `SourceRefTuple` type from `../../shared/types/source-ref.js`
  * - v7 entity types for shape awareness
  *
  * Boundary:

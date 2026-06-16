@@ -6,10 +6,11 @@ import type {
   CandidateEffectClass,
   CandidateIntent,
   ContinuitySnapshot,
-  ControlPlaneSourceRef,
   DecisionBasis,
   IntentKind,
 } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
+import { makeCanonicalSourceRef } from "../../../shared/source-ref-compat.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import type { SnapshotInputs } from "../heartbeat/snapshot-builder.js";
@@ -28,11 +29,11 @@ export type GoalContext = GoalPriorityContext;
 
 const MAX_CANDIDATE_INTENTS = 6;
 
-const OBLIGATION_SOURCE: ControlPlaneSourceRef[] = [
-  { id: "obligation-anchor", kind: "workspace_artifact", uri: "workspace://obligations/pending" },
+const OBLIGATION_SOURCE: SourceRef[] = [
+  makeCanonicalSourceRef({ id: "obligation-anchor", family: "audit", uri: "workspace://obligations/pending" }),
 ];
 
-function evidenceRefsForConnector(runtime: HeartbeatRuntimeSnapshot): ControlPlaneSourceRef[] {
+function evidenceRefsForConnector(runtime: HeartbeatRuntimeSnapshot): SourceRef[] {
   if (!isLifeEvidenceSliceEmpty(runtime.lifeEvidence) && runtime.lifeEvidence.evidenceRefs.length > 0) {
     return runtime.lifeEvidence.evidenceRefs.slice(0, 8);
   }
@@ -364,8 +365,9 @@ export function planCandidateIntents(
     if (intent.sourceRefs.length === 0 && related.length > 0) {
       intent.sourceRefs = related.slice(0, 4).map((g) => ({
         id: g.goalId,
-        kind: "workspace_artifact" as const,
+        family: "audit" as const,
         uri: `goal://${g.goalId}`,
+        redactionClass: "none" as const,
       }));
     }
   }
