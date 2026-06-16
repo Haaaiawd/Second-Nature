@@ -10,6 +10,7 @@ import assert from "node:assert";
 
 import { heartbeatCheck } from "../../../src/cli/ops/heartbeat-surface.js";
 import { createStateDatabase } from "../../../src/storage/db/index.js";
+import { readImpulseContext } from "../../../src/core/second-nature/guidance/impulse-context-reader.js";
 
 describe("heartbeat-run-v8-spine API", () => {
   it("returns v8Spine in result when state DB is wired", async () => {
@@ -39,6 +40,12 @@ describe("heartbeat-run-v8-spine API", () => {
         result.reasons.some((r) => r.startsWith("v8_spine_cycle:")),
         "reasons should reference v8 spine cycle"
       );
+      assert.ok(
+        result.reasons.some((r) => r.startsWith("impulse_context_refreshed:")),
+        "heartbeat should refresh heartbeat-scoped impulse context"
+      );
+      const impulse = await readImpulseContext(db, "heartbeat");
+      assert.equal(impulse.available, true, "heartbeat impulse context should be persisted");
     } finally {
       db.close();
     }

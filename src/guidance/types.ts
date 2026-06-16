@@ -1,4 +1,4 @@
-export type GuidanceSceneType = "social" | "reply" | "outreach" | "quiet" | "explain" | "user_reply";
+export type GuidanceSceneType = "social" | "reply" | "outreach" | "quiet" | "heartbeat" | "explain" | "user_reply";
 
 export type GuidanceMode = "active" | "quiet" | "maintenance_only" | "paused_for_interrupt";
 
@@ -6,7 +6,7 @@ export type GuidanceRiskLevel = "low" | "medium" | "high";
 
 export type AtmosphereOpenness = "open" | "narrow" | "quiet";
 
-export type ImpulseKind = "social" | "reply" | "outreach" | "quiet" | "explore" | "work";
+export type ImpulseKind = "social" | "reply" | "outreach" | "quiet" | "heartbeat" | "explore" | "work";
 
 export type PersonaSource = "SOUL" | "USER" | "IDENTITY" | "MEMORY";
 

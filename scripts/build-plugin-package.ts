@@ -208,12 +208,9 @@ function main() {
     );
     process.exit(1);
   }
-  if (
-    !Array.isArray(manifest.activation?.onCapabilities) ||
-    !manifest.activation.onCapabilities.includes("tool")
-  ) {
+  if (Array.isArray(manifest.activation?.onCapabilities) && manifest.activation.onCapabilities.includes("tool")) {
     console.error(
-      "❌ openclaw.plugin.json missing activation.onCapabilities=['tool'] (Second Nature is a tool plugin per docs/validation/openclaw-plugin-classification.md)",
+      "❌ openclaw.plugin.json must not require activation.onCapabilities=['tool']; Feishu sessions can run with capabilities=none while still needing second_nature_ops",
     );
     process.exit(1);
   }

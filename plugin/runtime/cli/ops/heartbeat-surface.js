@@ -1,6 +1,23 @@
 import { createWorkspaceHeartbeatRunner } from "./workspace-heartbeat-runner.js";
 // T-CP.R.2: v8 real runtime spine bridge
 import { runRealRuntimeHeartbeatCycle, } from "../../core/second-nature/control-plane/real-runtime-spine.js";
+async function refreshHeartbeatImpulseContext(state, now) {
+    const { assembleImpulseSync } = await import("../../guidance/impulse-assembler.js");
+    const { buildExpressionBoundary } = await import("../../guidance/output-guard.js");
+    const { getShortAtmosphereTemplate } = await import("../../guidance/template-registry.js");
+    const { writeImpulseContext } = await import("../../core/second-nature/guidance/impulse-context-writer.js");
+    const impulseResult = assembleImpulseSync({ sceneType: "heartbeat" });
+    const atmosphere = getShortAtmosphereTemplate("active", "low");
+    const expressionBoundary = buildExpressionBoundary("heartbeat");
+    const result = await writeImpulseContext(state, {
+        sceneType: "heartbeat",
+        impulseResult,
+        atmosphereText: atmosphere.text,
+        expressionBoundaryConstraints: expressionBoundary.constraints,
+        expressionBoundaryStyle: expressionBoundary.style,
+    }, { now });
+    return "id" in result ? result.id : undefined;
+}
 function mapCycleToSurface(cycle, surfaceMode) {
     const status = cycle.status === "runtime_carrier_only"
         ? "runtime_carrier_only"
@@ -120,6 +137,16 @@ export async function heartbeatCheck(input) {
                             ? "v8_closure_recorded"
                             : `v8_no_action:${spine.noActionReason ?? "unknown"}`,
                     ];
+                    try {
+                        const artifactId = await refreshHeartbeatImpulseContext(input.state, timestamp);
+                        if (artifactId) {
+                            surfaceResult.reasons.push(`impulse_context_refreshed:${artifactId}`);
+                        }
+                    }
+                    catch (impulseErr) {
+                        const impulseMsg = impulseErr instanceof Error ? impulseErr.message : String(impulseErr);
+                        surfaceResult.reasons.push(`impulse_context_refresh_failed:${impulseMsg.slice(0, 120)}`);
+                    }
                 }
             }
             catch (v8Err) {
@@ -134,7 +161,7 @@ export async function heartbeatCheck(input) {
         if (input.state) {
             try {
                 const { readImpulseContext } = await import("../../core/second-nature/guidance/impulse-context-reader.js");
-                const ctx = await readImpulseContext(input.state, "social");
+                const ctx = await readImpulseContext(input.state, "heartbeat");
                 if (ctx.available) {
                     surfaceResult.impulseContext = {
                         available: true,

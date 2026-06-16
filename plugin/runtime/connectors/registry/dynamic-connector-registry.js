@@ -41,6 +41,12 @@ function manifestToInventoryEntry(manifest, source, manifestPath) {
         validationErrors: [],
     };
 }
+function isSafeBuiltInShadow(manifest) {
+    const reason = manifest.trust?.reason?.trim();
+    if (!manifest.trust?.override || !reason)
+        return false;
+    return manifest.runner.kind === "declarative_http" || manifest.runner.kind === "scriptable_node";
+}
 /**
  * DynamicConnectorRegistry scans workspace manifests, validates, classifies trust,
  * merges built-in entries, applies fail-closed conflict policy, and publishes
@@ -79,11 +85,20 @@ export class DynamicConnectorRegistry {
             }
             const manifest = parseResult.manifest;
             const manifestPath = path.relative(workspaceRoot, file.path);
-            // Duplicate platformId without override -> fail-closed
+            // Duplicate platformId without explicit safe override -> fail-closed.
+            // Built-ins may be shadowed only by an auditable workspace manifest with
+            // a trusted runner kind, so operators can repair endpoint config without
+            // silently replacing native code.
             if (builtInMap.has(manifest.platformId) || dynamicMap.has(manifest.platformId)) {
                 const existing = builtInMap.get(manifest.platformId) ?? dynamicMap.get(manifest.platformId);
                 const allowOverride = manifest.trust?.override === true;
                 const isTrustedSource = existing.source === "built_in";
+                if (isTrustedSource && isSafeBuiltInShadow(manifest)) {
+                    const entry = manifestToInventoryEntry(manifest, "workspace_shadow", manifestPath);
+                    dynamicMap.set(manifest.platformId, entry);
+                    registered++;
+                    continue;
+                }
                 if (!allowOverride || isTrustedSource) {
                     conflicts.push({
                         platformId: manifest.platformId,

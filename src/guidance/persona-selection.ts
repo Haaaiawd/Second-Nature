@@ -35,6 +35,11 @@ const SCENE_POLICIES: Record<GuidanceSceneType, PersonaSelectionPolicy> = {
     preferredTags: ["quiet", "reflection", "memory", "meaning"],
     budget: { maxSnippets: 3, maxTotalCharacters: 640 },
   },
+  heartbeat: {
+    sourcePriority: ["IDENTITY", "SOUL", "MEMORY", "USER"],
+    preferredTags: ["heartbeat", "continuity", "truthfulness", "runtime"],
+    budget: { maxSnippets: 2, maxTotalCharacters: 360 },
+  },
   explain: {
     sourcePriority: ["IDENTITY", "USER", "SOUL", "MEMORY"],
     preferredTags: ["explain", "principle", "context", "truthfulness"],

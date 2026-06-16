@@ -31,6 +31,12 @@
  *   illusion of a working plugin while agent sessions see no tool. We hit
  *   exactly that on 2026-05-06; the fix lives in plugin/openclaw.plugin.json
  *   under the `activation` block.
+ * - Cloud Feishu/OpenClaw sessions can report `capabilities=none`. In that
+ *   mode, binding activation to `onCapabilities:["tool"]` prevents the agent
+ *   tool from entering the session even though the plugin loaded. Therefore
+ *   the manifest keeps `activation.onStartup === true` for daemon loading and
+ *   declares the tool through `contracts.tools`, but does not require a session
+ *   capability to activate `second_nature_ops`.
  * - `Shape: non-capability` reported by `openclaw plugins info` is EXPECTED
  *   for this plugin. OpenClaw counts capabilities only across cli-backend /
  *   text-inference / speech / realtime-* / media-understanding /

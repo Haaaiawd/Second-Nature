@@ -157,3 +157,21 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - **Guardrails**: No `[REQ-*]` binding changes, no ADR premise edits, no destructive v7 migration.
 
 ---
+
+## v0.2.10 Change — Feishu/OpenClaw Host Closure Repair — 2026-06-16
+
+- **Change source**: Cloud Feishu/OpenClaw E2E on `v0.2.9` proved the plugin loaded and `workspace-ops-bridge.js` worked, but `second_nature_ops` stayed out of the conversation tool list because the host session reported `capabilities=none`. The same run also exposed heartbeat impulse-context stall, MoltBook `protocol_mismatch`, and duplicate built-in/workspace connector IDs.
+- **Classification**: `/change` controlled runtime/host closure; no PRD/ADR premise change and no new genesis required.
+- **Tasks opened**: `T-ROS.R.6`, `T-GVS.R.2`, `T-CS.R.6`, `T-CS.R.7`, `T-OBS.R.6`, `INT-R5`.
+- **Fixes**:
+  - Removed `activation.onCapabilities:["tool"]` as a mandatory host-session gate while preserving `activation.onStartup:true` and `contracts.tools:["second_nature_ops"]`.
+  - Updated packaging/smoke tests and OpenClaw classification docs to stop enforcing the stale `onCapabilities` invariant.
+  - Added heartbeat-scoped guidance scene and heartbeat-owned impulse-context persistence so `heartbeat_check` / `heartbeat_run` refresh `sceneType="heartbeat"` automatically.
+  - Hardened MoltBook `feed.read` so read execution stays on `api_rest` / mock fallback and no longer surfaces `moltbook_skill_runner_not_configured` as read-path `protocol_mismatch`.
+  - Added explicit safe workspace shadowing for built-in connector manifests: `trust.override=true`, non-empty `trust.reason`, and trusted runner kind are required; unsafe overrides remain fail-closed.
+- **Verification plan updated**: Added Wave 110 task-by-task gates and INT-R5 host closure gate.
+- **Artifacts**:
+  - `.anws/v8/wave-reviews/wave-110-e2e.md` — Feishu/OpenClaw host verification guide for v0.2.10.
+- **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
+
+---

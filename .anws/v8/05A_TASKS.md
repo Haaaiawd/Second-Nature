@@ -1464,3 +1464,97 @@ graph TD
   - **估时**: 6h
   - **依赖**: T-CS.R.4, T-CS.R.5, T-PJ.R.2, T-DQ.R.6, T-DQ.R.7, T-OBS.R.5
   - **优先级**: P0
+
+---
+
+## Wave 110 — v0.2.10 Host Injection and Runtime Closure Repair
+
+- [x] **T-ROS.R.6** [REQ-008, REQ-009]: Make plugin tool activation capability-neutral for Feishu/OpenClaw sessions
+  - **描述**: Remove `activation.onCapabilities:["tool"]` as a hard host-session gate while preserving `activation.onStartup:true` and `contracts.tools:["second_nature_ops"]`. Update packaging checks and docs that previously treated `onCapabilities` as mandatory.
+  - **输入**: `plugin/openclaw.plugin.json`, `scripts/build-plugin-package.ts`, `scripts/plugin-smoke-check.ts`, OpenClaw Feishu E2E report
+  - **输出**: Capability-neutral plugin manifest and tests that assert startup + tool contract without requiring session capabilities.
+  - **契约承接**: runtime-ops-system tool surface, `second_nature_ops` host visibility
+  - **验收标准**:
+    - Given a host session with `capabilities=none`
+    - When the plugin loads at startup
+    - Then `second_nature_ops` is eligible for tool list injection via `contracts.tools`, not blocked by `activation.onCapabilities`
+  - **验证类型**: 集成测试 / 打包检查 / 手动 E2E
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-6`
+  - **证据产出**: `tests/integration/cli/plugin-packaging-walkthrough.test.ts`, `.anws/v8/wave-reviews/wave-110-e2e.md`
+  - **依赖**: 无
+  - **优先级**: P0
+
+- [x] **T-GVS.R.2** [REQ-005, REQ-008, REQ-009]: Let heartbeat own heartbeat-scoped impulse context
+  - **描述**: Ensure `heartbeat_check` / `heartbeat_run` writes or refreshes a `sceneType="heartbeat"` impulse context artifact during the real v8 spine path. `guidance_payload` may still preview/refresh, but real-run health must not require a separate manual call.
+  - **输入**: `heartbeat-surface.ts`, `impulse-context-writer.ts`, `living-loop-health-gate.ts`, guidance templates
+  - **输出**: Heartbeat-owned impulse artifact and readable surface diagnostics.
+  - **契约承接**: guidance-voice-system artifact, observability-health-system real-run gate
+  - **验收标准**:
+    - Given a real heartbeat run with state DB wired
+    - When the cycle completes
+    - Then `readLoopStatus` reports `hasFreshImpulseContext=true` without requiring prior manual `guidance_payload`
+  - **验证类型**: API接口功能测试 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-gvs-r-2`
+  - **证据产出**: `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`
+  - **依赖**: T-CP.R.2
+  - **优先级**: P0
+
+- [x] **T-CS.R.6** [REQ-001, REQ-008]: Harden MoltBook `feed.read` route and diagnostics
+  - **描述**: Keep MoltBook read paths on stable `api_rest` or mock fallback. Do not route read execution into the unimplemented skill runner and report `moltbook_skill_runner_not_configured` as `protocol_mismatch` for feed reads.
+  - **输入**: `connector-executor-adapter.ts`, `moltbook/adapter.ts`, `moltbook/manifest.ts`
+  - **输出**: Stable MoltBook `feed.read` execution path and sharper failure taxonomy.
+  - **契约承接**: connector-system failure truth and no-fabrication evidence boundary
+  - **验收标准**:
+    - Given `connector:run` for `moltbook/feed.read`
+    - When API config is absent or present
+    - Then the result is success/mock, `api_error`, `network_error`, or `configuration_missing`, never `moltbook_skill_runner_not_configured`
+  - **验证类型**: 单元测试 / 集成测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-6`
+  - **证据产出**: `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts`, `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`
+  - **依赖**: T-CS.R.2
+  - **优先级**: P1
+
+- [x] **T-CS.R.7** [REQ-001, REQ-008]: Add safe workspace shadowing for built-in connector manifests
+  - **描述**: Replace permanent duplicate-ID noise with explicit, auditable `workspace_shadow` handling. Workspace manifests may shadow built-ins only with `trust.override=true`, a non-empty `trust.reason`, and a trusted runner kind; otherwise conflicts remain fail-closed.
+  - **输入**: `dynamic-connector-registry.ts`, connector manifest schema, connector status tests
+  - **输出**: Conflict-free shadow entries with visible source and reason; fail-closed behavior for unsafe overrides.
+  - **契约承接**: connector-system manifest trust boundary
+  - **验收标准**:
+    - Given a workspace manifest for a built-in platform with explicit override reason
+    - When registry reloads
+    - Then connector status reports a `workspace_shadow` entry and no duplicate conflict
+  - **验证类型**: 单元测试 / API接口功能测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-7`
+  - **证据产出**: `tests/unit/connectors/t3-1-1-dynamic-registry.test.ts`, `tests/unit/cli/t1-2-3-connector-status.test.ts`
+  - **依赖**: 无
+  - **优先级**: P1
+
+- [x] **T-OBS.R.6** [REQ-008]: Update host E2E truth report for v0.2.10
+  - **描述**: Document the Feishu/OpenClaw tool visibility gate, heartbeat-owned impulse context, MoltBook routing, and workspace shadowing acceptance checks without claiming results before real host execution.
+  - **输入**: Cloud E2E report, `.anws/v8/wave-reviews/wave-109-e2e.md`
+  - **输出**: `.anws/v8/wave-reviews/wave-110-e2e.md`
+  - **契约承接**: observability-health-system operator truth
+  - **验收标准**:
+    - Given v0.2.10 package/tag
+    - When owner runs Feishu cloud E2E
+    - Then tool list, loop_status, connector status, and credential redaction evidence can be filled without ambiguity
+  - **验证类型**: 手动 E2E 指南 / 报告
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-6`
+  - **证据产出**: `.anws/v8/wave-reviews/wave-110-e2e.md`
+  - **依赖**: T-ROS.R.6, T-GVS.R.2, T-CS.R.6, T-CS.R.7
+  - **优先级**: P1
+
+- [x] **INT-R5** [MILESTONE]: Feishu/OpenClaw Host Closure Gate
+  - **描述**: Verify v0.2.10 closes the real host gap: tool visibility under `capabilities=none`, heartbeat impulse persistence, MoltBook read truth, connector shadow diagnostics, and no credential leakage.
+  - **输入**: T-ROS.R.6, T-GVS.R.2, T-CS.R.6, T-CS.R.7, T-OBS.R.6 outputs
+  - **输出**: v0.2.10 release candidate and cloud E2E guide
+  - **契约承接**: v8 runtime host closure
+  - **验收标准**:
+    - Given v0.2.10 installed in Feishu/OpenClaw
+    - When owner runs the guide
+    - Then `second_nature_ops` is visible and the loop no longer stalls on missing heartbeat impulse context
+  - **验证类型**: 集成测试 / 打包检查 / 手动 E2E
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r5`
+  - **证据产出**: `.anws/v8/wave-reviews/wave-110-e2e.md`, plugin tarball, git tag `v0.2.10`
+  - **依赖**: T-ROS.R.6, T-GVS.R.2, T-CS.R.6, T-CS.R.7, T-OBS.R.6
+  - **优先级**: P0

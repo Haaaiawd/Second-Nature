@@ -62,12 +62,18 @@ test("T5.3.1 plugin package + manifest are discoverable for host loading", () =>
   // via `activation.onStartup: true`. Without it the plugin appears enabled
   // in the registry yet never reaches register(api) inside the daemon, which
   // is exactly the silent-failure mode we hit on 2026-05-06. The
-  // `onCapabilities: ["tool"]` declaration is a second, semantically honest
-  // ticket aligned with discovery-B9FIOZR8.js's onCapabilities allow-list
-  // ("provider" | "channel" | "tool" | "hook"). Do not relax these.
+  // Feishu/OpenClaw sessions can report capabilities=none. In that mode,
+  // activation.onCapabilities:["tool"] becomes a session gate that prevents
+  // second_nature_ops from entering the tool list even though startup loading
+  // and register(api) succeeded. Keep startup activation and contracts.tools;
+  // do not require session capabilities for tool injection.
   const activation = manifest.activation as { onStartup?: boolean; onCapabilities?: string[] } | undefined;
   assert.equal(activation?.onStartup, true, "manifest.activation.onStartup must be true for tool-only plugins");
-  assert.deepEqual(activation?.onCapabilities, ["tool"], "manifest.activation.onCapabilities must declare ['tool']");
+  assert.equal(
+    Array.isArray(activation?.onCapabilities) && activation.onCapabilities.includes("tool"),
+    false,
+    "manifest.activation.onCapabilities must not require ['tool'] for capabilities=none host sessions",
+  );
 });
 
 test("T5.3.1 plugin entry declares load/reload lifecycle registration markers", () => {

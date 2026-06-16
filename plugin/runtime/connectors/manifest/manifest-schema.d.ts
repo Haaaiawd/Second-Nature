@@ -116,7 +116,7 @@ export declare const connectorManifestV6Schema: z.ZodObject<{
 export type ConnectorManifestV6 = z.infer<typeof connectorManifestV6Schema>;
 export interface ConnectorConflict {
     platformId: string;
-    existingSource: "built_in" | "workspace";
+    existingSource: "built_in" | "workspace" | "workspace_shadow";
     attemptedSource: "built_in" | "workspace";
     reason: string;
 }
@@ -127,7 +127,7 @@ export interface ConnectorManifestValidationError {
 }
 export interface ConnectorInventoryEntry {
     platformId: string;
-    source: "built_in" | "workspace";
+    source: "built_in" | "workspace" | "workspace_shadow";
     manifestPath?: string;
     trustStatus: ConnectorTrustStatus;
     executable: boolean;

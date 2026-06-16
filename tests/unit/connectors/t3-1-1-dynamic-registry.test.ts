@@ -200,6 +200,58 @@ test("DynamicConnectorRegistry built-in + dynamic merge", () => {
   assert.ok(snapshot.entries.has("ws-plat"));
 });
 
+test("DynamicConnectorRegistry allows explicit safe workspace shadow for built-in", () => {
+  const root = tempDir();
+  const builtIn = makeManifest({ platformId: "moltbook", displayName: "Built-in MoltBook" });
+  writeManifest(
+    root,
+    "moltbook",
+    makeManifest({
+      platformId: "moltbook",
+      displayName: "Workspace MoltBook",
+      runner: { kind: "declarative_http", config: { baseUrl: "https://example.test" } },
+      trust: { override: true, reason: "cloud endpoint repair" },
+    }),
+  );
+
+  const store = createRegistrySnapshotStore();
+  const registry = new DynamicConnectorRegistry({ builtInManifests: [builtIn], snapshotStore: store });
+  const result = registry.reloadConnectors(root);
+
+  assert.equal(result.registered, 1);
+  assert.equal(result.skipped, 0);
+  assert.equal(result.conflicts.length, 0);
+  const entry = registry.describeConnector("moltbook");
+  assert.ok(entry);
+  assert.equal(entry.source, "workspace_shadow");
+  assert.equal(registry.getActiveRegistrySnapshot().builtInEntries.has("moltbook"), true);
+});
+
+test("DynamicConnectorRegistry rejects unsafe built-in shadow", () => {
+  const root = tempDir();
+  const builtIn = makeManifest({ platformId: "moltbook", displayName: "Built-in MoltBook" });
+  writeManifest(
+    root,
+    "moltbook",
+    makeManifest({
+      platformId: "moltbook",
+      displayName: "Workspace MoltBook",
+      runner: { kind: "custom_adapter", entrypoint: "./adapter.ts" },
+      trust: { override: true, reason: "unsafe native override" },
+    }),
+  );
+
+  const store = createRegistrySnapshotStore();
+  const registry = new DynamicConnectorRegistry({ builtInManifests: [builtIn], snapshotStore: store });
+  const result = registry.reloadConnectors(root);
+
+  assert.equal(result.registered, 0);
+  assert.equal(result.skipped, 1);
+  assert.equal(result.conflicts.length, 1);
+  assert.equal(result.conflicts[0]!.reason, "override_rejected_trusted_source");
+  assert.equal(registry.describeConnector("moltbook")?.source, "built_in");
+});
+
 test("DynamicConnectorRegistry snapshot is immutable", () => {
   const root = tempDir();
   writeManifest(root, "plat", makeManifest({ platformId: "plat" }));

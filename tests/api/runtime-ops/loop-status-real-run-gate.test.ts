@@ -31,7 +31,7 @@ describe("loop-status-real-run-gate", () => {
     }
   });
 
-  it("runtime heartbeat auto-advances daily rhythm; missing impulse/projection is next gap", async () => {
+  it("runtime heartbeat auto-advances daily rhythm and owns heartbeat impulse context", async () => {
     const db = createStateDatabase(":memory:");
     try {
       await runHeartbeatCycle(db, {
@@ -43,16 +43,15 @@ describe("loop-status-real-run-gate", () => {
       const result = await readLoopStatus(db);
       assert.equal(result.ok, true);
       if (result.ok) {
-        // Heartbeat now auto-advances closure → Quiet → Dream
-        assert.equal(result.status.realRunHealth.gatePassed, false);
+        // Heartbeat now auto-advances closure → Quiet → Dream and owns heartbeat impulse.
+        assert.equal(result.status.realRunHealth.gatePassed, true);
         assert.equal(result.status.realRunHealth.hasRealClosure, true);
         assert.equal(result.status.realRunHealth.seededStateDetected, false);
         assert.equal(result.status.realRunHealth.hasQuietArtifact, true);
         assert.equal(result.status.realRunHealth.hasDreamArtifact, true);
-        assert.notEqual(result.status.realRunHealth.missingStage, "quiet");
-        assert.notEqual(result.status.realRunHealth.missingStage, "dream");
-        assert.ok(result.status.realRunHealth.missingStage);
-        assert.ok(result.status.nextAction.includes("Real-run health degraded"));
+        assert.equal(result.status.realRunHealth.hasFreshImpulseContext, true);
+        assert.equal(result.status.realRunHealth.missingStage, "none");
+        assert.equal(result.status.overallStatus, "healthy");
       }
     } finally {
       db.close();

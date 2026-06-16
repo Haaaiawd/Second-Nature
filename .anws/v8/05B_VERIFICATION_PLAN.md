@@ -719,6 +719,72 @@
 - **断言**: `d7903d94-a6df-40e4-8cee-c2ff80c0ade1` passes validation; `Bearer eyJ...` fails with attribution.
 - **证据**: `tests/unit/storage/write-validation-gate-uuid.test.ts`
 
+### T-ROS.R.6
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: OpenClaw plugin startup activation, `contracts.tools`, `second_nature_ops` visibility
+- **风险类别**: host capability gating / tool invisible despite plugin loaded / stale packaging invariant
+- **单元测试覆盖**: 不适用。
+- **API接口功能测试覆盖**: packaging walkthrough asserts `activation.onStartup=true`, `contracts.tools` includes `second_nature_ops`, and `activation.onCapabilities` is not required for tool injection.
+- **集成/E2E/冒烟覆盖**: plugin bridge registration and Feishu cloud E2E guide.
+- **前置数据**: plugin manifest and package metadata.
+- **断言**: build/package checks pass without `onCapabilities:["tool"]`; tool registration remains synchronous.
+- **证据**: `tests/integration/cli/plugin-packaging-walkthrough.test.ts`, `.anws/v8/wave-reviews/wave-110-e2e.md`
+
+### T-GVS.R.2
+- **关联需求**: REQ-005, REQ-008, REQ-009
+- **关联契约**: heartbeat-owned impulse context artifact, real-run health gate
+- **风险类别**: manual precondition / artifact_not_persisted stall / false unhealthy loop
+- **单元测试覆盖**: impulse scene acceptance and writer shape.
+- **API接口功能测试覆盖**: heartbeat run writes heartbeat-scoped impulse context and `readLoopStatus` reports `hasFreshImpulseContext=true`.
+- **集成/E2E/冒烟覆盖**: INT-R5 host closure gate.
+- **前置数据**: state DB with v8 spine enabled.
+- **断言**: no prior `guidance_payload` call is required for heartbeat impulse freshness.
+- **证据**: `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`, `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts`
+
+### T-CS.R.6
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: MoltBook `feed.read`, connector failure taxonomy, no fabricated evidence
+- **风险类别**: unsupported fallback channel / opaque protocol_mismatch / blocked evidence ingestion
+- **单元测试覆盖**: MoltBook adapter rejects unsupported skill fallback deterministically where relevant.
+- **API接口功能测试覆盖**: connector executor returns success/mock or honest API/config/network failures for `feed.read`, never `moltbook_skill_runner_not_configured`.
+- **集成/E2E/冒烟覆盖**: plugin bridge `connector:run` and INT-R5.
+- **前置数据**: active credential, mock fixture or configured base URL.
+- **断言**: `connector:run moltbook feed.read` does not surface the unimplemented skill runner as protocol mismatch.
+- **证据**: `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts`, `tests/integration/cli/plugin-workspace-ops-bridge.test.ts`
+
+### T-CS.R.7
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: connector manifest trust boundary and registry snapshot
+- **风险类别**: duplicate ID pollution / unsafe override / inability to repair built-in endpoint locally
+- **单元测试覆盖**: built-in duplicate without override fails closed; explicit trusted shadow succeeds; unsafe runner shadow is rejected.
+- **API接口功能测试覆盖**: connector_status reports workspace shadow without duplicate conflict.
+- **集成/E2E/冒烟覆盖**: INT-R5 host closure gate.
+- **前置数据**: built-in manifest plus workspace manifest with `trust.override=true` and `trust.reason`.
+- **断言**: safe shadows are visible and auditable; unsafe overrides remain conflicts.
+- **证据**: `tests/unit/connectors/t3-1-1-dynamic-registry.test.ts`, `tests/unit/cli/t1-2-3-connector-status.test.ts`
+
+### T-OBS.R.6
+- **关联需求**: REQ-008
+- **关联契约**: host E2E truth report, no fake PASS before real execution
+- **风险类别**: unverifiable host claim / credential leak / publish without tool visibility
+- **单元测试覆盖**: 不适用。
+- **API接口功能测试覆盖**: 不适用。
+- **集成/E2E/冒烟覆盖**: `.anws/v8/wave-reviews/wave-110-e2e.md`.
+- **前置数据**: v0.2.10 build/tag.
+- **断言**: guide keeps verdict fields pending until real Feishu/OpenClaw execution; covers tool list, loop_status, connector status, and redaction.
+- **证据**: `.anws/v8/wave-reviews/wave-110-e2e.md`
+
+### INT-R5
+- **关联需求**: REQ-001, REQ-005, REQ-008, REQ-009
+- **关联契约**: v0.2.10 Feishu/OpenClaw host closure
+- **风险类别**: agent cannot invoke tool / real-run gate remains stalled / connector diagnostics un-actionable
+- **单元测试覆盖**: T-ROS.R.6, T-GVS.R.2, T-CS.R.6, T-CS.R.7 suites.
+- **API接口功能测试覆盖**: heartbeat/loop_status/plugin bridge before-after assertions.
+- **集成/E2E/冒烟覆盖**: cloud Feishu/OpenClaw guide.
+- **前置数据**: v0.2.10 plugin package.
+- **断言**: `second_nature_ops` visible in host tool list and heartbeat no longer stalls on missing impulse artifact.
+- **证据**: targeted test logs, plugin tarball, tag `v0.2.10`, `.anws/v8/wave-reviews/wave-110-e2e.md`
+
 ---
 
 ## 7. Testing Coverage Overlay
@@ -761,6 +827,10 @@
 | Decision denial has root-cause attribution | false governance blame | 单元 + API接口功能测试 + 集成 | T-OBS.R.4 | `tests/api/runtime-ops/loop-status-denial-attribution.test.ts` | ✅ |
 | Runtime recovery closure gate | PRD loop restoration | 集成 + 冒烟 + 静态审查 | INT-R3 | `tests/integration/v8/runtime-recovery-closure.test.ts` | ✅ |
 | Full living loop | end-to-end value | integration + scoped E2E + smoke | INT-V8 | `tests/integration/v8/living-perception-loop.test.ts` | ✅ |
+| Feishu/OpenClaw tool visibility | host injection | packaging + plugin bridge + E2E guide | T-ROS.R.6, INT-R5 | `tests/integration/cli/plugin-packaging-walkthrough.test.ts` | ✅ |
+| Heartbeat impulse context ownership | real-run closure | API接口功能测试 + integration | T-GVS.R.2 | `tests/api/runtime-ops/loop-status-real-run-gate.test.ts` | ✅ |
+| MoltBook read routing truth | connector truth | integration + plugin bridge | T-CS.R.6 | `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` | ✅ |
+| Built-in connector shadowing | registry trust | unit + API接口功能测试 | T-CS.R.7 | `tests/unit/connectors/t3-1-1-dynamic-registry.test.ts` | ✅ |
 | Build/lint/regression | release safety | compile/lint/regression | T-REG.C.1 | `reports/v8-regression-gate.md` | ✅ |
 
 ---

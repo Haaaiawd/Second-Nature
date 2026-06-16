@@ -106,17 +106,17 @@ function derivePluginInspectShape(params) {
 
 ## 6. 我们这次的实际修复（0.1.16）
 
-`plugin/openclaw.plugin.json` 的 `activation` 字段：
+`plugin/openclaw.plugin.json` 的 `activation` 字段（v0.2.10 修订）：
 
 ```json
 "activation": {
-  "onStartup": true,
-  "onCapabilities": ["tool"]
+  "onStartup": true
 }
 ```
 
 - **`onStartup: true`** — 第 3 节入场券 1，无条件让 daemon startup-load
-- **`onCapabilities: ["tool"]`** — 入场券 5 的近亲，且**正确表达 Second Nature 的本质**（tool plugin），是兜底也是声明
+- **不再声明 `onCapabilities:["tool"]`** — Feishu/OpenClaw 云端会话可以报告 `capabilities=none`。实机 v0.2.9 证明此字段会把工具注入绑定到 session capability，导致插件已加载、`register(api)` 已执行、`contracts.tools` 正常，但 `second_nature_ops` 仍不进入会话工具列表。
+- 工具本质由 `contracts.tools:["second_nature_ops"]` 表达；daemon 加载由 `activation.onStartup:true` 保证。不要为了“语义诚实”把 host-session capability gate 再塞回来。
 
 **Shape 仍然是 `non-capability`**——我们接受这个事实，不为了标签做架构妥协。
 
@@ -125,9 +125,9 @@ function derivePluginInspectShape(params) {
 ## 7. 验证清单（发布后真宿主必跑）
 
 ```bash
-# 0. 装 0.1.16+
+# 0. 装 0.2.10+
 openclaw plugins uninstall second-nature
-openclaw plugins install npm:@haaaiawd/second-nature@0.1.16
+openclaw plugins install npm:@haaaiawd/second-nature@0.2.10
 
 # 1. foreground 跑 daemon，抓真 stderr
 sudo systemctl stop openclaw-gateway
@@ -147,7 +147,7 @@ grep '\[second-nature\]' /tmp/gateway.log
 
 # 4. 标签检查（仅参考，non-capability 是预期）
 openclaw plugins info second-nature | grep -E 'Shape|Version'
-# 期望: Version: 0.1.16  /  Shape: non-capability
+# 期望: Version: 0.2.10  /  Shape: non-capability
 
 # 5. 浏览器开新会话发探测 prompt
 # 期望: tools 列表含 "second_nature_ops", second_nature_ops_present: true

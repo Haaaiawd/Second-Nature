@@ -549,6 +549,9 @@ function createAdaptiveExecutionRunner(
       if (platformId === "moltbook") {
         const baseUrl = process.env.SECOND_NATURE_MOLTBOOK_BASE_URL;
         if (baseUrl) {
+          const effectivePlan = request.intent === "feed.read" && _plan.channel !== "api_rest"
+            ? { ..._plan, channel: "api_rest" as const, endpointMode: "rest_json" as const, degraded: false }
+            : _plan;
           const apiClient = createMoltbookApiClient({
             baseUrl,
             accessToken: activeCredential!.encryptedValue,
@@ -559,13 +562,13 @@ function createAdaptiveExecutionRunner(
             skillRunner: {
               run: async () => {
                 throw {
-                  code: "protocol_mismatch",
+                  code: "configuration_missing",
                   detail: "moltbook_skill_runner_not_configured",
                 };
               },
             },
           });
-          return runner.run(_plan, request);
+          return runner.run(effectivePlan, request);
         }
         // Mock fallback when real API is not configured
         const mockRunner = createMoltbookMockRunner(workspaceRoot);

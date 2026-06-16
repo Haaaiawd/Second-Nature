@@ -65,13 +65,13 @@ function localPathResult(root: string): SmokeResult {
       typeof manifest.contracts === "object",
     // CRITICAL — without activation.onStartup the gateway daemon's
     // loadGatewayStartupPluginPlan will silently skip this plugin (it has no
-    // channel/provider/context-engine slot to ride). onCapabilities mirrors
-    // the discovery allow-list ("provider" | "channel" | "tool" | "hook") and
-    // is our second startup ticket.
+    // channel/provider/context-engine slot to ride). Do not require
+    // onCapabilities:["tool"]: Feishu sessions may report capabilities=none
+    // while still needing contracts.tools to inject second_nature_ops.
     manifestActivationOnStartupTrue: activation?.onStartup === true,
-    manifestActivationDeclaresToolCapability:
-      Array.isArray(activation?.onCapabilities) &&
-      activation.onCapabilities.includes("tool"),
+    manifestActivationDoesNotRequireToolCapability:
+      !Array.isArray(activation?.onCapabilities) ||
+      !activation.onCapabilities.includes("tool"),
   };
 
   return {

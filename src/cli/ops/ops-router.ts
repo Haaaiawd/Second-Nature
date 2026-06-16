@@ -1803,7 +1803,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           ? input.platformId
           : undefined;
 
-        const validSceneTypes = ["social", "reply", "outreach", "quiet", "explain", "user_reply"];
+        const validSceneTypes = ["social", "reply", "outreach", "quiet", "heartbeat", "explain", "user_reply"];
         if (!validSceneTypes.includes(sceneType)) {
           const envelope: RuntimeOpsEnvelope = {
             ok: false,

@@ -44,8 +44,8 @@ test.afterEach(() => {
 
 test("connector executor adapter loads workspace-defined behavior and fails closed at runner boundary", async () => {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "sn-dynamic-executor-"));
-  const stateDb = createStateDatabase();
-  const observabilityDb = createObservabilityDatabase();
+  const stateDb = createStateDatabase(":memory:");
+  const observabilityDb = createObservabilityDatabase(":memory:");
   try {
     await connectorInit({ platformId: "github", workspaceRoot });
     const add = await connectorBehaviorAdd({
