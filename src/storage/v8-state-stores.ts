@@ -67,25 +67,14 @@ import type {
   SourceRef,
   DegradedOperationResult,
 } from "../shared/types/v8-contracts.js";
+import {
+  serializeSourceRefs,
+  parseSourceRefs,
+} from "../shared/serialization.js";
 
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
-
-function serializeSourceRefs(refs: SourceRef[]): string {
-  return JSON.stringify(refs);
-}
-
-function parseSourceRefs(json: string | null): SourceRef[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    if (Array.isArray(parsed)) return parsed;
-    return [];
-  } catch {
-    return [];
-  }
-}
 
 function makeDegraded(
   reason: DegradedOperationResult["reason"],

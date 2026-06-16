@@ -7,7 +7,7 @@
  * - `status` supports full v7 lifecycle including paused → expired/replaced.
  *
  * Dependencies:
- * - `SourceRef` from `./source-ref.js` for grounding.
+ * - `SourceRefTuple` from `./source-ref.js` for grounding.
  *
  * Boundary:
  * - Used by state-memory (GoalLifecycleStore), control-plane
@@ -18,7 +18,7 @@
  * `@ts-expect-error` compile guard).
  */
 
-import type { SourceRef } from "./source-ref.js";
+import type { SourceRefTuple } from "./source-ref.js";
 
 export type AgentGoalKind =
   | "short_term"
@@ -55,7 +55,7 @@ export interface AgentGoal {
   completionCriteria: string;
   risk: "low" | "medium" | "high";
   priorityHint: number;
-  sourceRefs: SourceRef;
+  sourceRefs: SourceRefTuple;
   acceptedBy?: "owner" | "policy_allowlist";
   expiresAt?: string;
   createdAt: string;
@@ -72,7 +72,7 @@ export interface AgentGoalWrite {
   completionCriteria: string;
   risk: "low" | "medium" | "high";
   priorityHint: number;
-  sourceRefs: SourceRef;
+  sourceRefs: SourceRefTuple;
   acceptedBy?: "owner" | "policy_allowlist";
   expiresAt?: string;
   createdAt: string;

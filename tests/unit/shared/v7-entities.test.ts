@@ -15,7 +15,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 
 import type {
-  SourceRef,
+  SourceRefTuple,
   AgentGoalKind,
   AgentGoal,
   IdentityProfile,
@@ -35,13 +35,13 @@ import type {
 } from "../../../src/shared/types/index.js";
 
 // ───────────────────────────────────────────────────────────────
-// Compile-time guards — empty SourceRef must error
+// Compile-time guards — empty SourceRefTuple must error
 // ───────────────────────────────────────────────────────────────
 
-// @ts-expect-error — SourceRef requires at least one string element (DR-025)
-const _emptySourceRef: SourceRef = [];
+// @ts-expect-error — SourceRefTuple requires at least one string element (DR-025)
+const _emptySourceRef: SourceRefTuple = [];
 
-const _validSourceRef: SourceRef = ["evidence:001", "audit:ref-42"];
+const _validSourceRef: SourceRefTuple = ["evidence:001", "audit:ref-42"];
 
 // ───────────────────────────────────────────────────────────────
 // Compile-time guards — AgentGoal.kind must be enum member
@@ -56,9 +56,9 @@ const _validKind: AgentGoalKind = "passive_sensing";
 // Runtime structural tests
 // ───────────────────────────────────────────────────────────────
 
-describe("SourceRef compile contract", () => {
+describe("SourceRefTuple compile contract", () => {
   it("valid non-empty tuple compiles silently", () => {
-    const refs: SourceRef = ["src:a", "src:b"];
+    const refs: SourceRefTuple = ["src:a", "src:b"];
     assert.strictEqual(refs.length, 2);
     assert.strictEqual(refs[0], "src:a");
   });

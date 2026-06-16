@@ -7,7 +7,7 @@
  * readable reason codes (DR-022).
  *
  * Dependencies:
- * - `SourceRef` type from `../../shared/types/source-ref.js`
+ * - `SourceRefTuple` type from `../../shared/types/source-ref.js`
  * - v7 entity types for shape awareness
  *
  * Boundary:
@@ -19,7 +19,7 @@
  * Test coverage: tests/unit/storage/write-validation-gate.test.ts
  */
 
-import type { SourceRef } from "../../shared/types/source-ref.js";
+import type { SourceRefTuple } from "../../shared/types/source-ref.js";
 
 export type WriteValidationFailureReason =
   | "write_validation_failed:credential_detected"
@@ -149,7 +149,7 @@ const IDENTIFIER_FIELD_NAMES = new Set([
   "id",
   "runId",
   "run_id",
-  "sourceRef",
+  "SourceRefTuple",
   "source_ref",
   "sourceRefs",
   "source_refs_json",
