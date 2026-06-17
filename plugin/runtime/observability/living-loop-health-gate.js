@@ -17,6 +17,7 @@
  * - Reports explicit absence reasons instead of silent zeros.
  */
 import { readActionClosuresByDay, readDailyRhythmStateByDay, readHeartbeatCycleTraces, readLoopStageEventsByCycle, readImpulseContextArtifact, readMemoryProjectionsByStatus, } from "../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -52,14 +53,7 @@ export async function checkRealRunHealth(db, day) {
                 break;
             }
             // F3: verify closure has non-empty source refs
-            const sourceRefsJson = closure.sourceRefsJson ?? "[]";
-            let sourceRefs = [];
-            try {
-                sourceRefs = JSON.parse(sourceRefsJson);
-            }
-            catch {
-                sourceRefs = [];
-            }
+            const sourceRefs = parseSourceRefs(closure.sourceRefsJson);
             if (!Array.isArray(sourceRefs) || sourceRefs.length === 0) {
                 seededStateDetected = true;
                 break;

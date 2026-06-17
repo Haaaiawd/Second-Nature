@@ -27,6 +27,7 @@ import {
   readMemoryProjectionsByStatus,
 } from "../storage/v8-state-stores.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
+import { parseSourceRefs } from "../shared/serialization.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -102,13 +103,7 @@ export async function checkRealRunHealth(
         break;
       }
       // F3: verify closure has non-empty source refs
-      const sourceRefsJson = closure.sourceRefsJson ?? "[]";
-      let sourceRefs: unknown[] = [];
-      try {
-        sourceRefs = JSON.parse(sourceRefsJson);
-      } catch {
-        sourceRefs = [];
-      }
+      const sourceRefs = parseSourceRefs(closure.sourceRefsJson);
       if (!Array.isArray(sourceRefs) || sourceRefs.length === 0) {
         seededStateDetected = true;
         break;

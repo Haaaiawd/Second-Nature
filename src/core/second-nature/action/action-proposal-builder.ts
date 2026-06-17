@@ -27,6 +27,7 @@ import type { StateDatabase } from "../../../storage/db/index.js";
 import {
   readJudgmentVerdictById,
 } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -81,16 +82,6 @@ export interface BuildActionProposalOptions {
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-
-function parseVerdictSourceRefs(json: string | null): SourceRef[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function buildExpectedOutput(actionKind: PlatformNeutralActionKind): string {
   switch (actionKind) {
@@ -165,7 +156,7 @@ export async function buildActionProposal(
     };
   }
 
-  const sourceRefs = parseVerdictSourceRefs(verdict.sourceRefsJson);
+  const sourceRefs = parseSourceRefs(verdict.sourceRefsJson);
 
   // remember → memory review candidate (no direct projection; orchestrator writes closure)
   if (actionKind === "remember") {

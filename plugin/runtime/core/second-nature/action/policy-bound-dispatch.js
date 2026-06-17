@@ -20,6 +20,7 @@
  *
  * Test coverage: tests/unit/action/policy-bound-dispatch.test.ts
  */
+import { serializeSourceRefs } from "../../../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -60,7 +61,7 @@ export function dispatchAllowedAction(proposal, decision, options) {
                 actionKind: target,
                 draftType,
                 policyProof: { decisionId: decision.id, decision: decision.decision },
-                sourceRefs: JSON.stringify(decision.proofRefs),
+                sourceRefs: serializeSourceRefs(decision.proofRefs),
             },
         };
     }
@@ -75,7 +76,7 @@ export function dispatchAllowedAction(proposal, decision, options) {
                     capabilityId: proposal.targetCapabilityId ?? "run_connector",
                     idempotencyKey: proposal.idempotencyKey,
                     policyProof: { decisionId: decision.id, decision: decision.decision },
-                    sourceRefs: JSON.stringify(proposal.sourceRefs),
+                    sourceRefs: serializeSourceRefs(proposal.sourceRefs),
                 },
             };
         }
@@ -91,7 +92,7 @@ export function dispatchAllowedAction(proposal, decision, options) {
                     actionKind: proposal.actionKind,
                     draftType,
                     policyProof: { decisionId: decision.id, decision: decision.decision },
-                    sourceRefs: JSON.stringify(proposal.sourceRefs),
+                    sourceRefs: serializeSourceRefs(proposal.sourceRefs),
                 },
             };
         }

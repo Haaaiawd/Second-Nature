@@ -1035,6 +1035,8 @@
 | Wave 113 source-ref clone gate | regression | compile + targeted regression | INT-R8 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
 | v8 single-status schema cleanup | schema drift / lifecycle ambiguity | integration + migration | T-SMS.R.4 | `tests/integration/storage/v8-schema-shape.test.ts` | ✅ |
 | Wave 114 single-status gate | regression | compile + targeted regression + plugin build | INT-R9 | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
+| v8 SourceRef serialization cleanup | schema drift / serialization ambiguity | compile + search + unit | T-SMS.R.5 | `logs/wave-115-source-refs-search.log` | ✅ |
+| Wave 115 shared serialization gate | regression | compile + targeted regression + plugin build | INT-R10 | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
 
 ---
 
@@ -1071,7 +1073,7 @@
 | Connector replay cooldown | T-CS.R.3, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | replay diagnostics report | ✅ |
 | Quiet runtime recovery | T-CP.R.3, T-DQ.R.5, T-OBS.R.4 | API接口功能测试 + 集成 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | `logs/int-r3-loop-status.json` | ✅ |
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |
-| SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3 | 编译 + 单元 + 集成 | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r7-wave-112-hemostasis-gate.md` | ⬜ |
+| SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3, T-SMS.R.5, INT-R10 | 编译 + 单元 + 集成 + search | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
 | v8 schema status/serialization hygiene | T-SMS.R.3, T-SMS.R.4, INT-R9 | 单元 + 集成 + migration | `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
 | SourceRef local clone removal | T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8 | 编译 + 单元 + 集成 + plugin build | targeted Wave 113 tests | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
 

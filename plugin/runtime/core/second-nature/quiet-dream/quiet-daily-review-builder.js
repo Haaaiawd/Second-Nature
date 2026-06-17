@@ -22,6 +22,7 @@
  * Test coverage: tests/unit/quiet/quiet-daily-review-builder.test.ts
  */
 import { readActionClosuresByDay, writeQuietDailyReview, readPerceptionCardById, readEvidenceItemsByDay, readPerceptionCardsByDay, } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Config
 // ───────────────────────────────────────────────────────────────
@@ -51,17 +52,6 @@ function buildSourceRefFromClosure(closure) {
         redactionClass: "none",
         resolveStatus: "resolvable",
     };
-}
-function parseSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
 }
 function buildSourceRefFromEvidence(evidence) {
     const refs = parseSourceRefs(evidence.sourceRefsJson);

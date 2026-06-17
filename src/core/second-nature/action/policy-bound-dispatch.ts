@@ -26,6 +26,7 @@ import type {
   PlatformNeutralActionKind,
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
+import { serializeSourceRefs } from "../../../shared/serialization.js";
 import type { ActionProposal } from "./action-proposal-builder.js";
 import type { ActionPolicyDecision } from "./autonomy-policy-evaluator.js";
 
@@ -122,7 +123,7 @@ export function dispatchAllowedAction(
         actionKind: target,
         draftType,
         policyProof: { decisionId: decision.id, decision: decision.decision },
-        sourceRefs: JSON.stringify(decision.proofRefs),
+        sourceRefs: serializeSourceRefs(decision.proofRefs),
       },
     };
   }
@@ -138,7 +139,7 @@ export function dispatchAllowedAction(
           capabilityId: proposal.targetCapabilityId ?? "run_connector",
           idempotencyKey: proposal.idempotencyKey,
           policyProof: { decisionId: decision.id, decision: decision.decision },
-          sourceRefs: JSON.stringify(proposal.sourceRefs),
+          sourceRefs: serializeSourceRefs(proposal.sourceRefs),
         },
       };
     }
@@ -157,7 +158,7 @@ export function dispatchAllowedAction(
           actionKind: proposal.actionKind,
           draftType,
           policyProof: { decisionId: decision.id, decision: decision.decision },
-          sourceRefs: JSON.stringify(proposal.sourceRefs),
+          sourceRefs: serializeSourceRefs(proposal.sourceRefs),
         },
       };
     }

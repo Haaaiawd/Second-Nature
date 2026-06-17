@@ -215,6 +215,25 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `reports/int-r9-wave-114-single-status-schema.md` — INT-R9 verification report.
 - **Guardrails**: No SourceRef serialization broad migration, no package version bump, no external write enablement.
 
+## Wave 115 — v8 /change Repair: Migrate Remaining SourceRef Serialization to Shared Helper — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 CH-16 remaining serialization scope after Wave 112/113/114.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SMS.R.5`, `INT-R10`.
+- **Fixes implemented**:
+  - Replaced ad-hoc `JSON.stringify` in `policy-bound-dispatch.ts` with `serializeSourceRefs` for canonical v8 `SourceRef[]`.
+  - Replaced ad-hoc `JSON.parse` in `living-loop-health-gate.ts` with `parseSourceRefs` for v8 `ActionClosureRecord.sourceRefsJson`.
+  - Removed local `parseSourceRefs` duplicates in `accepted-projection-loader.ts`, `perception-builder.ts`, `quiet-daily-review-builder.ts`, and `memory-projection-lifecycle.ts`; all now import from `src/shared/serialization.ts`.
+  - Kept v7/non-canonical SourceRef handling unchanged: `life-evidence`, `chronicle`, `goal`, `relationship`, `narrative`, `fallback`, and `repair-gate` continue to use their own JSON handling.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - Wave 115 targeted unit tests: 36/36 PASS.
+  - Wave 108-114 regression integration tests: 14/14 PASS.
+- **Artifacts**:
+  - `reports/int-r10-wave-115-serialization-completion.md` — INT-R10 verification report.
+  - `logs/wave-115-source-refs-search.log` — search evidence.
+- **Guardrails**: No package version bump, no external write enablement, no change to v7 source-ref shapes.
+
 ---
 
 ## v0.2.11 Change — Wave 111 Review Closure Gap Repair — 2026-06-16
@@ -284,3 +303,4 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 
 ---
+

@@ -1868,7 +1868,7 @@ graph TD
 > 触发：`07_CHALLENGE_REPORT.md` Round 3 CH-16 剩余部分。
 > 目标：将所有 v8-relevant `sourceRefsJson` parse/stringify 调用迁移到 `src/shared/serialization.ts`。
 
-- [ ] **T-SMS.R.5** [REQ-008, REQ-009]: Migrate remaining v8 sourceRefs JSON handling to shared serializer
+- [x] **T-SMS.R.5** [REQ-008, REQ-009]: Migrate remaining v8 sourceRefs JSON handling to shared serializer
   - **描述**: Replace ad-hoc `JSON.parse`/`JSON.stringify` of `sourceRefsJson` in v8-related modules (e.g. `policy-bound-dispatch.ts`, `living-loop-health-gate.ts`, `repair-gate.ts`, and any remaining core/observability sites) with `parseSourceRefs`/`serializeSourceRefs`. v7 tables may keep their own handling if they do not use canonical `SourceRef`.
   - **输入**: `src/core/second-nature/action/policy-bound-dispatch.ts`, `src/observability/living-loop-health-gate.ts`, `src/storage/bootstrap/repair-gate.ts`, and other v8 `sourceRefsJson` consumers, T-SMS.R.3 output
   - **输出**: All v8-relevant SourceRef JSON round-trips use `src/shared/serialization.ts`.
@@ -1885,7 +1885,7 @@ graph TD
   - **依赖**: T-SMS.R.3
   - **优先级**: P1
 
-- [ ] **INT-R10** [MILESTONE]: Wave 115 Shared Serialization Completion Gate
+- [x] **INT-R10** [MILESTONE]: Wave 115 Shared Serialization Completion Gate
   - **描述**: Verify Wave 115 completes serialization migration without regression.
   - **输入**: T-SMS.R.5 output
   - **输出**: `reports/int-r10-wave-115-serialization-completion.md`

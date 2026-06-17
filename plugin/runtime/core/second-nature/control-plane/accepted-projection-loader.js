@@ -20,6 +20,7 @@
  * Test coverage: tests/unit/control-plane/accepted-projection-loader.test.ts
  */
 import { readMemoryProjectionsByStatus, } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -31,17 +32,6 @@ function parsePayloadJson(json) {
     }
     catch {
         return {};
-    }
-}
-function parseSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
     }
 }
 // ───────────────────────────────────────────────────────────────

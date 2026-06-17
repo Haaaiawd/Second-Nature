@@ -24,6 +24,7 @@ import type { StateDatabase } from "../../../storage/db/index.js";
 import {
   readMemoryProjectionsByStatus,
 } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -67,16 +68,6 @@ function parsePayloadJson(json: string | null): Record<string, unknown> {
     return JSON.parse(json) as Record<string, unknown>;
   } catch {
     return {};
-  }
-}
-
-function parseSourceRefs(json: string | null): SourceRef[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
   }
 }
 

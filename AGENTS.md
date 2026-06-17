@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 114 completed; Wave 115 opened for remaining v8 SourceRef serialization cleanup)
+- **最近一次更新**: `2026-06-16` (Wave 115 completed; all v8 CH-12/CH-16 repair waves closed)
 - **当前波次**: Wave 115
-- **下一步**: Execute T-SMS.R.5 (remaining v8 SourceRef JSON handling migration); run INT-R10 gate
+- **下一步**: Wave 115 settlement; all v8 /change repair waves complete
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -348,6 +348,26 @@ T-SMS.R.4, INT-R9
 - **最高严重度**: none
 - **残留待跟进**: Wave 115 remaining v8 SourceRef serialization migration
 - **下一步**: Execute Wave 115 task T-SMS.R.5; run INT-R10 gate
+
+### 🌊 Wave 115 ✅ — v8 /change Repair: Migrate Remaining SourceRef Serialization to Shared Helper
+T-SMS.R.5, INT-R10
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 115 完成（T-SMS.R.5 + INT-R10）
+- **产出**:
+  - `src/core/second-nature/action/policy-bound-dispatch.ts` — `serializeSourceRefs` for canonical v8 `SourceRef[]`
+  - `src/observability/living-loop-health-gate.ts` — `parseSourceRefs` for v8 closure source refs
+  - `src/core/second-nature/control-plane/accepted-projection-loader.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `src/core/second-nature/perception/perception-builder.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `src/core/second-nature/quiet-dream/memory-projection-lifecycle.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `logs/wave-115-source-refs-search.log` — v8/v7 search boundary evidence
+  - `reports/int-r10-wave-115-serialization-completion.md` — INT-R10 verification report
+  - `.anws/v8/wave-reviews/wave-115-review.md` — code review report
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；Wave 115 targeted 36/36 PASS；Wave 108-114 regression 14/14 PASS
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: Wave 115 settlement; all v8 /change repair waves complete
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2
@@ -1221,3 +1241,5 @@ S5 Waves 36-39 测试增量明细：
 ---
 
 > **状态自检**: 准备好了？提醒用户运行 `/quickstart` 开始吧。
+
+
