@@ -1,12 +1,7 @@
+import { toCanonicalSourceRef } from "../../../shared/source-ref-compat.js";
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 function toControlPlaneRefs(refs) {
-    return refs.map((r) => ({
-        id: r.id,
-        kind: r.kind,
-        uri: r.uri,
-        excerptHash: r.excerptHash,
-        observedAt: r.observedAt,
-    }));
+    return refs.map((r) => toCanonicalSourceRef(r));
 }
 export function userInterestSnapshotToJudge(snapshot) {
     if (!snapshot) {
@@ -18,13 +13,7 @@ export function userInterestSnapshotToJudge(snapshot) {
         signals: snapshot.signals.map((s) => ({
             topic: s.topic,
             confidence: s.confidence,
-            sourceRefs: s.sourceRefs.map((r) => ({
-                id: r.id,
-                kind: r.kind,
-                uri: r.uri,
-                excerptHash: r.excerptHash,
-                observedAt: r.observedAt,
-            })),
+            sourceRefs: s.sourceRefs.map((r) => toCanonicalSourceRef(r)),
         })),
         sourceRefs: toControlPlaneRefs(snapshot.sourceRefs),
     };

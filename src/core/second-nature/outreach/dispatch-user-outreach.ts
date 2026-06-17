@@ -7,7 +7,8 @@ import type { CandidateIntent } from "../types.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import type { HeartbeatCycleResult } from "../heartbeat/signal.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
-import type { SourceRef } from "../../../storage/life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../../../storage/life-evidence/types.js";
+import { legacyKindFromSourceRef } from "../../../shared/source-ref-compat.js";
 import { writeDeliveryAttempt } from "../../../storage/delivery/write-delivery-attempt.js";
 import { writeOperatorFallback } from "../../../storage/fallback/write-operator-fallback.js";
 import type { OperatorFallbackReason } from "../../../storage/fallback/operator-fallback-types.js";
@@ -23,7 +24,7 @@ export interface OpenClawDeliverySendResult {
   errorClass?: string;
   messageId?: string;
   /** Host-reported delivery proof when messageId is absent (T4.3.1). */
-  hostProofRef?: SourceRef;
+  hostProofRef?: LifeEvidenceSourceRef;
 }
 
 export interface OpenClawDeliveryPort {
@@ -37,8 +38,12 @@ export interface OpenClawDeliveryPort {
   }): Promise<OpenClawDeliverySendResult>;
 }
 
-function toSourceRefs(refs: CandidateIntent["sourceRefs"]): SourceRef[] {
-  return refs.map((r) => ({ ...r }));
+function toSourceRefs(refs: CandidateIntent["sourceRefs"]): LifeEvidenceSourceRef[] {
+  return refs.map((r) => ({
+    id: r.id,
+    kind: legacyKindFromSourceRef(r),
+    uri: r.uri,
+  }));
 }
 
 function hasDeliveryProof(attempt: OpenClawDeliverySendResult): boolean {

@@ -3,6 +3,8 @@
  *
  * Test coverage: tests/unit/cli/host-capability.test.ts, tests/integration/cli/host-capability-probe.test.ts
  */
+import type { SourceRef } from "../../shared/types/v8-contracts.js";
+export type { SourceRef } from "../../shared/types/v8-contracts.js";
 
 export type DeliveryCapabilityStatus =
   | "target_available"
@@ -13,21 +15,6 @@ export type DeliveryCapabilityStatus =
   | "unknown";
 
 export type CapabilityVerdict = "pass" | "fail" | "unknown" | "not_applicable";
-
-export interface SourceRef {
-  id: string;
-  kind:
-    | "platform_item"
-    | "workspace_artifact"
-    | "decision_record"
-    | "user_anchor"
-    | "connector_result"
-    | "host_report"
-    | "fallback_artifact";
-  uri: string;
-  excerptHash?: string;
-  observedAt?: string;
-}
 
 export interface HostCapabilityDocReference {
   title: string;

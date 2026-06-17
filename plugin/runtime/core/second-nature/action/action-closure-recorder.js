@@ -60,7 +60,6 @@ export async function recordNoActionClosure(db, cycleId, noActionReason, options
             },
         ],
         redactionClass: "none",
-        lifecycleStatus: "closed",
         payloadJson: JSON.stringify({ dispatchAttempt: 0, inputSummary: "no-action" }),
     });
     if ("reason" in result) {
@@ -85,7 +84,6 @@ export async function recordRememberClosure(db, cycleId, memoryReviewCandidate, 
         nextState: "pending_daily_review",
         sourceRefs: memoryReviewCandidate.sourceRefs,
         redactionClass: "none",
-        lifecycleStatus: "closed",
         payloadJson: JSON.stringify({
             memoryReviewCandidate,
             dispatchAttempt: 1,
@@ -134,7 +132,6 @@ export async function recordPolicyOutcomeClosure(db, cycleId, closureStatus, rea
         nextState: params.nextState ?? "await_next_cycle",
         sourceRefs,
         redactionClass: "none",
-        lifecycleStatus: "closed",
         payloadJson: JSON.stringify({
             dispatchAttempt: 1,
             inputSummary: buildInputSummary(params.proposalId, params.decisionId),
@@ -175,7 +172,6 @@ export async function recordExecutionClosure(db, cycleId, closureStatus, reason,
         nextState: params.nextState ?? (closureStatus === "completed" ? "await_next_cycle" : "retryable"),
         sourceRefs,
         redactionClass: "none",
-        lifecycleStatus: "closed",
         payloadJson: JSON.stringify({
             dispatchAttempt: 1,
             executionResultRef: params.executionResultRef,

@@ -40,7 +40,7 @@ describe("runHeartbeatV7 integration", () => {
             platformId: "moltbook",
             summary: "test work",
             effectClass: "connector_action",
-            sourceRefs: [{ id: "ref-1", kind: "platform_item", uri: "uri://1" }],
+            sourceRefs: [{ id: "ref-1", family: "evidence", uri: "uri://1", redactionClass: "none" }],
             idempotencyKey: "key-1",
             capabilityIntent: "feed.read",
           },

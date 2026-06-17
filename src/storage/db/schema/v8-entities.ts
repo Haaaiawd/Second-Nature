@@ -103,7 +103,6 @@ export const actionClosureRecord = sqliteTable("action_closure_record", {
   sourceRefsJson: text("source_refs_json").notNull(),
   redactionClass: text("redaction_class").notNull().default("none"),
   payloadJson: text("payload_json"),
-  lifecycleStatus: text("lifecycle_status").notNull().default("closed"),
 });
 
 export type ActionClosureRecordSelect = typeof actionClosureRecord.$inferSelect;
@@ -142,7 +141,6 @@ export const dreamConsolidationRun = sqliteTable("dream_consolidation_run", {
   sourceRefsJson: text("source_refs_json").notNull(),
   redactionClass: text("redaction_class").notNull().default("none"),
   payloadJson: text("payload_json"),
-  lifecycleStatus: text("lifecycle_status").notNull().default("pending"),
 });
 
 export type DreamConsolidationRunRecord = typeof dreamConsolidationRun.$inferSelect;
@@ -161,7 +159,6 @@ export const longTermMemoryProjection = sqliteTable("long_term_memory_projection
   sourceRefsJson: text("source_refs_json").notNull(),
   redactionClass: text("redaction_class").notNull().default("none"),
   payloadJson: text("payload_json"),
-  lifecycleStatus: text("lifecycle_status").notNull().default("candidate"),
 });
 
 export type LongTermMemoryProjectionRecord = typeof longTermMemoryProjection.$inferSelect;
@@ -183,7 +180,6 @@ export const heartbeatCycleTrace = sqliteTable("heartbeat_cycle_trace", {
   sourceRefsJson: text("source_refs_json"),
   redactionClass: text("redaction_class").notNull().default("none"),
   payloadJson: text("payload_json"),
-  lifecycleStatus: text("lifecycle_status").notNull().default("started"),
 });
 
 export type HeartbeatCycleTraceRecord = typeof heartbeatCycleTrace.$inferSelect;
@@ -205,7 +201,6 @@ export const loopStageEvent = sqliteTable("loop_stage_event", {
   occurredAt: text("occurred_at").notNull(),
   expectedDownstreamByCycle: integer("expected_downstream_by_cycle"),
   payloadJson: text("payload_json"),
-  lifecycleStatus: text("lifecycle_status").notNull().default("started"),
 });
 
 export type LoopStageEventRecord = typeof loopStageEvent.$inferSelect;

@@ -7,7 +7,7 @@
  * readable reason codes (DR-022).
  *
  * Dependencies:
- * - `SourceRef` type from `../../shared/types/source-ref.js`
+ * - `SourceRefTuple` type from `../../shared/types/source-ref.js`
  * - v7 entity types for shape awareness
  *
  * Boundary:
@@ -19,7 +19,7 @@
  * Test coverage: tests/unit/storage/write-validation-gate.test.ts
  */
 
-import type { SourceRef } from "../../shared/types/source-ref.js";
+import type { SourceRefTuple } from "../../shared/types/source-ref.js";
 
 export type WriteValidationFailureReason =
   | "write_validation_failed:credential_detected"
@@ -149,7 +149,7 @@ const IDENTIFIER_FIELD_NAMES = new Set([
   "id",
   "runId",
   "run_id",
-  "sourceRef",
+  "SourceRefTuple",
   "source_ref",
   "sourceRefs",
   "source_refs_json",
@@ -160,6 +160,15 @@ const IDENTIFIER_FIELD_NAMES = new Set([
   "platform_id",
   "capability_id",
   "candidate_id",
+]);
+
+// Fields that describe where a secret is stored must still reject payloads
+// that contain raw secret material, even if the value is URI-shaped.
+const SECRET_LOCATION_FIELD_NAMES = new Set([
+  "locationRef",
+  "location_ref",
+  "rotationPolicyRef",
+  "rotation_policy_ref",
 ]);
 
 function looksLikeUriPath(text: string): boolean {
@@ -195,7 +204,12 @@ function sensitivityScan(value: unknown, fieldPath = "payload"): SensitivityScan
       if (match) {
         const matched = match[0];
         if (exempt && exempt(matched)) continue;
-        if (isIdentifierField || looksLikeUriPath(value)) continue;
+        if (isIdentifierField || looksLikeUriPath(value)) {
+          const leafField = fieldPath.split(".").pop() ?? "";
+          if (!SECRET_LOCATION_FIELD_NAMES.has(leafField)) {
+            continue;
+          }
+        }
         return {
           reason: "write_validation_failed:sensitivity_scan_failed",
           field: fieldPath,

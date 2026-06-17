@@ -65,7 +65,6 @@ export async function acceptMemoryProjection(db, candidateId, topicKey, memoryTe
         status: "active",
         sourceRefs,
         redactionClass: "none",
-        lifecycleStatus: "active",
         payloadJson: JSON.stringify({
             memoryText,
             acceptedAt: now,
@@ -111,17 +110,6 @@ export async function retireMemoryProjection(db, projectionId, _candidateId, _to
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-function parseSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
-}
 function parsePayloadJson(json) {
     if (!json)
         return {};

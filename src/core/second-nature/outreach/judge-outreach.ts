@@ -5,7 +5,8 @@
  * Test coverage: tests/unit/core/outreach-judgment.test.ts
  */
 import * as crypto from "node:crypto";
-import type { CandidateIntent, ControlPlaneSourceRef } from "../types.js";
+import type { CandidateIntent } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
 import {
   type DeliveryCapabilitySnapshot,
   type DeliveryTargetResolution,
@@ -19,8 +20,8 @@ export type CooldownState = "clear" | "cooling_down" | "duplicate";
 export interface JudgeOutreachUserInterest {
   staleness: "fresh" | "stale" | "insufficient";
   confidence: number;
-  signals: Array<{ topic: string; confidence: number; sourceRefs: ControlPlaneSourceRef[] }>;
-  sourceRefs: ControlPlaneSourceRef[];
+  signals: Array<{ topic: string; confidence: number; sourceRefs: SourceRef[] }>;
+  sourceRefs: SourceRef[];
 }
 
 export interface JudgeOutreachLifeEvidence {
@@ -44,8 +45,8 @@ export interface OutreachJudgment {
   valueScore: number;
   userRelevance: number;
   actionability: number;
-  interestRefs: ControlPlaneSourceRef[];
-  sourceRefs: ControlPlaneSourceRef[];
+  interestRefs: SourceRef[];
+  sourceRefs: SourceRef[];
   cooldownState: CooldownState;
   deliveryVerdict: DeliveryTargetResolution["verdict"];
   reasons: string[];
@@ -73,14 +74,14 @@ function signalMatchesSummary(sig: { topic: string }, summary: string): boolean 
   return wt.some((x) => ws.has(x));
 }
 
-function matchInterestRefs(candidate: CandidateIntent, interest: JudgeOutreachUserInterest): ControlPlaneSourceRef[] {
-  const matched: ControlPlaneSourceRef[] = [];
+function matchInterestRefs(candidate: CandidateIntent, interest: JudgeOutreachUserInterest): SourceRef[] {
+  const matched: SourceRef[] = [];
   for (const sig of interest.signals) {
     if (signalMatchesSummary(sig, candidate.summary)) {
-      matched.push(...(sig.sourceRefs as ControlPlaneSourceRef[]));
+      matched.push(...sig.sourceRefs);
     }
   }
-  const byId = new Map<string, ControlPlaneSourceRef>();
+  const byId = new Map<string, SourceRef>();
   for (const ref of matched) {
     byId.set(ref.id, ref);
   }

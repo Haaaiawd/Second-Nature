@@ -1,3 +1,4 @@
+import { legacyKindFromSourceRef } from "../../../shared/source-ref-compat.js";
 import { writeDeliveryAttempt } from "../../../storage/delivery/write-delivery-attempt.js";
 import { writeOperatorFallback } from "../../../storage/fallback/write-operator-fallback.js";
 import { judgeOutreach } from "./judge-outreach.js";
@@ -6,7 +7,11 @@ import { buildOutreachDraftRequest } from "./build-outreach-draft-request.js";
 import { createNarrativeStateStore } from "../../../storage/narrative/narrative-state-store.js";
 import { createRelationshipMemoryStore } from "../../../storage/relationship/relationship-memory-store.js";
 function toSourceRefs(refs) {
-    return refs.map((r) => ({ ...r }));
+    return refs.map((r) => ({
+        id: r.id,
+        kind: legacyKindFromSourceRef(r),
+        uri: r.uri,
+    }));
 }
 function hasDeliveryProof(attempt) {
     return Boolean(attempt.messageId?.trim()) || Boolean(attempt.hostProofRef);

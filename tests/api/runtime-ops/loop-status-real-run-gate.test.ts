@@ -117,7 +117,6 @@ describe("loop-status-real-run-gate", () => {
         status: "active",
         sourceRefs: [{ uri: "sn://projection", family: "memory_projection" as const, id: "proj1", redactionClass: "none" as const, resolveStatus: "resolvable" as const }],
         redactionClass: "none",
-        lifecycleStatus: "active",
         payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: now }),
       });
 

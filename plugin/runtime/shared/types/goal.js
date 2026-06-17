@@ -7,7 +7,7 @@
  * - `status` supports full v7 lifecycle including paused → expired/replaced.
  *
  * Dependencies:
- * - `SourceRef` from `./source-ref.js` for grounding.
+ * - `SourceRefTuple` from `./source-ref.js` for grounding.
  *
  * Boundary:
  * - Used by state-memory (GoalLifecycleStore), control-plane

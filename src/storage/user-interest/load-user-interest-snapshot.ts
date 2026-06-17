@@ -9,14 +9,14 @@ import * as fs from "fs/promises";
 import * as path from "node:path";
 
 import { fileExists, readText } from "../memory/workspace/paths.js";
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 import type { UserInterestSnapshot, UserInterestSignal, UserInterestStaleness } from "./types.js";
 
 const MIN_MEANINGFUL_ANCHOR_CHARS = 24;
 const STALE_MS = 30 * 24 * 60 * 60 * 1000;
 const INSUFFICIENT_CONFIDENCE_THRESHOLD = 0.35;
 
-function anchorRef(asset: string, workspaceRoot: string): SourceRef {
+function anchorRef(asset: string, workspaceRoot: string): LifeEvidenceSourceRef {
   return {
     id: `anchor:${asset}`,
     kind: "user_anchor",
@@ -78,7 +78,7 @@ export async function loadUserInterestSnapshot(workspaceRoot: string): Promise<U
   }
 
   const signals: UserInterestSignal[] = [];
-  const allRefs: SourceRef[] = [];
+  const allRefs: LifeEvidenceSourceRef[] = [];
 
   if (userOk) {
     const ref = anchorRef("USER.md", workspaceRoot);
@@ -109,7 +109,7 @@ export async function loadUserInterestSnapshot(workspaceRoot: string): Promise<U
   }
 
   for (const fp of curatedNonEmpty) {
-    const ref: SourceRef = {
+    const ref: LifeEvidenceSourceRef = {
       id: `curated:${path.basename(fp, ".md")}`,
       kind: "workspace_artifact",
       uri: fp,

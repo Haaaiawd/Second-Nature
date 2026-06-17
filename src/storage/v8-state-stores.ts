@@ -67,25 +67,14 @@ import type {
   SourceRef,
   DegradedOperationResult,
 } from "../shared/types/v8-contracts.js";
+import {
+  serializeSourceRefs,
+  parseSourceRefs,
+} from "../shared/serialization.js";
 
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
-
-function serializeSourceRefs(refs: SourceRef[]): string {
-  return JSON.stringify(refs);
-}
-
-function parseSourceRefs(json: string | null): SourceRef[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    if (Array.isArray(parsed)) return parsed;
-    return [];
-  } catch {
-    return [];
-  }
-}
 
 function makeDegraded(
   reason: DegradedOperationResult["reason"],
@@ -673,14 +662,12 @@ export async function updateDreamConsolidationRunStatus(
   status: DreamConsolidationRunRecord["status"],
   options?: {
     reason?: DreamConsolidationRunRecord["reason"];
-    lifecycleStatus?: DreamConsolidationRunRecord["lifecycleStatus"];
     payloadJson?: string;
   },
 ): Promise<{ id: string } | DegradedOperationResult> {
   try {
     const updateData: Record<string, unknown> = { status };
     if (options?.reason !== undefined) updateData.reason = options.reason;
-    if (options?.lifecycleStatus !== undefined) updateData.lifecycleStatus = options.lifecycleStatus;
     if (options?.payloadJson !== undefined) updateData.payloadJson = options.payloadJson;
     await db.db.update(dreamConsolidationRun).set(updateData).where(eq(dreamConsolidationRun.id, id));
     return { id };
@@ -804,7 +791,7 @@ export async function updateLongTermMemoryProjectionStatus(
   payloadJson?: string,
 ): Promise<{ id: string } | DegradedOperationResult> {
   try {
-    const updateData: Record<string, unknown> = { status, lifecycleStatus: status };
+    const updateData: Record<string, unknown> = { status };
     if (payloadJson !== undefined) {
       updateData.payloadJson = payloadJson;
     }

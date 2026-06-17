@@ -84,7 +84,6 @@ async function seedProjection(db: ReturnType<typeof createStateDatabase>, day: s
       { uri: `sn://projection/${day}`, family: "memory_projection" as const, id: `proj_${day}_001`, redactionClass: "none" as const, resolveStatus: "resolvable" as const },
     ],
     redactionClass: "none",
-    lifecycleStatus: "active",
     payloadJson: JSON.stringify({ memoryText: "test memory", acceptedAt: `${day}T12:00:00Z` }),
   });
 }

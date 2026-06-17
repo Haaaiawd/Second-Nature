@@ -325,9 +325,9 @@ function createStaticUnknownAdapter(workspaceRoot) {
                     evidenceRefs: [
                         {
                             id: `delivery:${parsed.manifest.platformId}`,
-                            kind: "workspace_artifact",
+                            family: "audit",
                             uri: `workspace://connectors/${parsed.manifest.platformId}/manifest.yaml`,
-                            observedAt: now,
+                            redactionClass: "none",
                         },
                     ],
                 };

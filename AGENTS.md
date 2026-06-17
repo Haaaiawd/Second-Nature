@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 111 — v0.2.10 review-closure repair completed; v0.2.11 release tagged)
-- **当前波次**: Wave 111
-- **下一步**: v0.2.11 published; monitor host E2E / begin next cycle on user signal
+- **最近一次更新**: `2026-06-16` (Wave 115 completed; all v8 CH-12/CH-16 repair waves closed)
+- **当前波次**: Wave 115
+- **下一步**: Wave 115 settlement; all v8 /change repair waves complete
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -292,6 +292,82 @@ T-SMS.R.2, T-CP.R.4, T-DQ.R.8, T-AC.R.1, T-CS.R.8, T-GVS.R.3, INT-R6
 - **最高严重度**: none
 - **残留待跟进**: 无
 - **下一步**: v0.2.11 published; monitor host E2E / begin next cycle on user signal
+
+### 🌊 Wave 112 ✅ — v8 /change Repair: Canonical Contract Shape (Hemostasis)
+T-SH.R.2 (adjusted), T-SMS.R.3 (adjusted), INT-R7
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 112 完成（T-SH.R.2 + T-SMS.R.3 + INT-R7）
+- **产出**:
+  - `src/shared/types/source-ref.ts` — renamed v7 tuple to `SourceRefTuple`
+  - `src/shared/types/index.ts` — re-exports v8 contracts; canonical `SourceRef` object available
+  - `src/shared/types/v7-entities.ts`, `src/shared/types/goal.ts`, `src/storage/services/write-validation-gate.ts` — adapted to `SourceRefTuple`
+  - `src/shared/serialization.ts` — `parseSourceRefs`/`serializeSourceRefs`
+  - `src/storage/v8-state-stores.ts` — uses shared serializer
+  - `tests/unit/shared/source-ref-serialization.test.ts` — serialization round-trip tests
+  - `tests/unit/shared/v7-entities.test.ts` — `SourceRefTuple` compile tests
+  - `reports/int-r7-wave-112-hemostasis-gate.md` — INT-R7 verification report
+  - `.anws/v8/wave-reviews/wave-112-review.md` — code review (Partial Pass, no Critical/High)
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；Wave 112 targeted 41/41 PASS + 3 justified skips；Wave 108-111 regression 34/34 PASS + 3 justified skips
+- **最高严重度**: none
+- **残留待跟进**: Wave 113–115 opened for remaining SourceRef clones and single-status cleanup
+- **下一步**: Execute Wave 113 tasks (T-SH.R.3, T-SH.R.4, T-SH.R.5); run INT-R8 gate
+
+### 🌊 Wave 113 ✅ — v8 /change Repair: Remove SourceRef Local Clones
+T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 113 完成（T-SH.R.3 + T-SH.R.4 + T-SH.R.5 + INT-R8）
+- **产出**:
+  - `src/core/second-nature/types.ts` — removed `ControlPlaneSourceRef`; `CandidateIntent.sourceRefs` now uses canonical v8 `SourceRef`
+  - `src/shared/source-ref-compat.ts` — explicit legacy `kind` ↔ canonical `family` boundary adapter
+  - `src/cli/host-capability/types.ts` — uses canonical v8 `SourceRef`
+  - `src/storage/life-evidence/types.ts` — local ref renamed to `LifeEvidenceSourceRef`
+  - control-plane, host-capability, life-evidence, quiet/outreach, and snapshot call sites updated
+  - plugin runtime rebuilt so packaged declarations no longer expose `ControlPlaneSourceRef`
+  - `reports/int-r8-wave-113-source-ref-clones.md` — INT-R8 verification report
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；Wave 113 targeted 57/57 PASS；Wave 113 integration 33/33 PASS + 2 historical skips；Wave 108-112 regression sample 51/51 PASS
+- **最高严重度**: none
+- **残留待跟进**: Wave 115 remaining v8 SourceRef serialization migration
+- **下一步**: Execute Wave 115 task T-SMS.R.5; run INT-R10 gate
+
+### 🌊 Wave 114 ✅ — v8 /change Repair: v8 Schema Single Status Column
+T-SMS.R.4, INT-R9
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 114 完成（T-SMS.R.4 + INT-R9）
+- **产出**:
+  - `src/storage/db/schema/v8-entities.ts` — removed redundant `lifecycleStatus` from status-bearing v8 target tables
+  - `src/storage/db/index.ts` — fresh bootstrap no longer creates target `lifecycle_status`; startup defensive migration drops old duplicate columns
+  - `src/storage/db/migrations/v8-005-single-status-schema.ts` — schema-version marker for single-status cleanup
+  - `src/storage/v8-state-stores.ts` + target runtime writers — no target-table `lifecycleStatus` writes
+  - `tests/integration/storage/v8-schema-shape.test.ts` — fresh bootstrap + pre-Wave-114 upgrade introspection
+  - `reports/int-r9-wave-114-single-status-schema.md` — INT-R9 verification report
+  - `.anws/v8/wave-reviews/wave-114-review.md` — code review report, final verdict Pass
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；INT-R9 storage 5/5 PASS + 3 historical skips；Wave 114 regression sample 21/21 PASS
+- **最高严重度**: none
+- **残留待跟进**: Wave 115 remaining v8 SourceRef serialization migration
+- **下一步**: Execute Wave 115 task T-SMS.R.5; run INT-R10 gate
+
+### 🌊 Wave 115 ✅ — v8 /change Repair: Migrate Remaining SourceRef Serialization to Shared Helper
+T-SMS.R.5, INT-R10
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 115 完成（T-SMS.R.5 + INT-R10）
+- **产出**:
+  - `src/core/second-nature/action/policy-bound-dispatch.ts` — `serializeSourceRefs` for canonical v8 `SourceRef[]`
+  - `src/observability/living-loop-health-gate.ts` — `parseSourceRefs` for v8 closure source refs
+  - `src/core/second-nature/control-plane/accepted-projection-loader.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `src/core/second-nature/perception/perception-builder.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `src/core/second-nature/quiet-dream/memory-projection-lifecycle.ts` — removed local `parseSourceRefs`, imports shared helper
+  - `logs/wave-115-source-refs-search.log` — v8/v7 search boundary evidence
+  - `reports/int-r10-wave-115-serialization-completion.md` — INT-R10 verification report
+  - `.anws/v8/wave-reviews/wave-115-review.md` — code review report
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；Wave 115 targeted 36/36 PASS；Wave 108-114 regression 14/14 PASS
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: Wave 115 settlement; all v8 /change repair waves complete
 
 ### 🌊 Wave 107 🧭 — v8 Change: Proof Truth and Memory Feedback Backlog
 T-VERIFY.R.1, T-OBS.R.3, T-PJ.R.1, T-DQ.R.3, T-DQ.R.4, INT-R2
@@ -1165,3 +1241,5 @@ S5 Waves 36-39 测试增量明细：
 ---
 
 > **状态自检**: 准备好了？提醒用户运行 `/quickstart` 开始吧。
+
+

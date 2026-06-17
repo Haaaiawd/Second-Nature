@@ -4,7 +4,7 @@
  * Boundaries: validates proof fields before index write; hostProofRef uses SourceRef JSON.
  * Test coverage: tests/unit/storage/delivery-attempt.test.ts
  */
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 export type DeliveryAttemptStatus = "sent" | "failed" | "dropped_by_host_policy";
 export interface DeliveryAttemptWrite {
     attemptId: string;
@@ -13,7 +13,7 @@ export interface DeliveryAttemptWrite {
     channel?: string;
     status: DeliveryAttemptStatus;
     messageId?: string;
-    hostProofRef?: SourceRef;
+    hostProofRef?: LifeEvidenceSourceRef;
     errorClass?: string;
     fallbackRef?: string;
 }

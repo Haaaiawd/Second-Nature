@@ -12,7 +12,7 @@
  * - ADR-002/003/007/008 — entity semantics
  *
  * Dependencies:
- * - `SourceRef` from `./source-ref.js`
+ * - `SourceRefTuple` from `./source-ref.js`
  * - `AgentGoal` from `./goal.js`
  *
  * Boundary:

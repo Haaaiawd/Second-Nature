@@ -30,6 +30,7 @@ import {
   readEvidenceItemsByDay,
   readPerceptionCardsByDay,
 } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -114,16 +115,6 @@ function buildSourceRefFromClosure(closure: { id: string; cycleId: string; reaso
     redactionClass: "none",
     resolveStatus: "resolvable",
   };
-}
-
-function parseSourceRefs(json: string | null): SourceRef[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 function buildSourceRefFromEvidence(evidence: { id: string; sourceRefsJson: string | null }): SourceRef {

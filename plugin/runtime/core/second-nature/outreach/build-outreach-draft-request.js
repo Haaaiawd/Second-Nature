@@ -3,6 +3,7 @@
  * Aligns with control-plane-system.detail §3.9 buildOutreachDraftRequest.
  */
 import * as crypto from "node:crypto";
+import { legacyKindFromSourceRef } from "../../../shared/source-ref-compat.js";
 function inferRhythmWindowKind(windowId) {
     const id = windowId.toLowerCase();
     if (id.includes("work"))
@@ -20,10 +21,8 @@ function inferRhythmWindowKind(windowId) {
 function toGuidanceRefs(refs) {
     return refs.map((r) => ({
         id: r.id,
-        kind: r.kind,
+        kind: legacyKindFromSourceRef(r),
         uri: r.uri,
-        excerptHash: r.excerptHash,
-        observedAt: r.observedAt,
     }));
 }
 function mapDeliveryVerdict(verdict) {

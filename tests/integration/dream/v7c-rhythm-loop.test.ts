@@ -49,9 +49,9 @@ function makeRuntimeWithEvidence(): HeartbeatRuntimeSnapshot {
       evidenceRefs: [
         {
           id: "ev:moltbook:feed:1",
-          kind: "connector_result",
+          family: "connector_result",
           uri: "platform://moltbook/feed.read",
-          observedAt: TEST_TIMESTAMP,
+          redactionClass: "none",
         },
       ],
       platformEventCount: 1,

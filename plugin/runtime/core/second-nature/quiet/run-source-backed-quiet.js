@@ -3,13 +3,21 @@ import { writeQuietArtifact } from "../../../storage/quiet/quiet-artifact-writer
 import { persistQuietArtifactToWorkspace } from "../../../storage/quiet/persist-quiet-artifact.js";
 import { buildEvidencePack, buildQuietNarrativeGuidance, selectInterestBasis } from "../../../guidance/evidence-guidance.js";
 import { recordQuietArtifactAudit } from "../../../observability/services/audit-closure-recorders.js";
+import { legacyKindFromSourceRef } from "../../../shared/source-ref-compat.js";
 function toGuidanceRef(r) {
     return {
         id: r.id,
-        kind: r.kind,
+        kind: legacyKindFromSourceRef(r),
         uri: r.uri,
-        excerptHash: r.excerptHash,
-        observedAt: r.observedAt,
+    };
+}
+function toLifeEvidenceRef(ref) {
+    return {
+        id: ref.id,
+        kind: ref.kind,
+        uri: ref.uri,
+        excerptHash: ref.excerptHash,
+        observedAt: ref.observedAt,
     };
 }
 /**
@@ -116,24 +124,14 @@ export async function runSourceBackedQuiet(params) {
         confidence: userInterestSnapshot?.confidence ?? 0,
         signalCount: userInterestSnapshot?.signals.length ?? 0,
     });
-    const groundedSourceRefs = ep.pack.groundedRefs.map((g) => ({
-        id: g.id,
-        kind: g.kind,
-        uri: g.uri,
-        excerptHash: g.excerptHash,
-        observedAt: g.observedAt,
-    }));
+    const groundedSourceRefs = ep.pack.groundedRefs.map(toLifeEvidenceRef);
     const claims = ep.pack.groundedRefs.map((g, i) => ({
         id: `fact:${g.id}`,
         text: `Evidence-backed note ${i + 1}`,
         claimType: "fact",
         sourceRefs: [
             {
-                id: g.id,
-                kind: g.kind,
-                uri: g.uri,
-                excerptHash: g.excerptHash,
-                observedAt: g.observedAt,
+                ...toLifeEvidenceRef(g),
             },
         ],
     }));

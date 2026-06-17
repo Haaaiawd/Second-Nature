@@ -22,10 +22,11 @@ function makeRuntime(ts: string, opts?: { mode?: "active" | "quiet"; evidenceCou
     deniedIntents: [],
     lifeEvidenceRefs:
       opts?.evidenceCount && opts.evidenceCount > 0
-        ? Array.from({ length: opts.evidenceCount }, (_, i) => ({
+          ? Array.from({ length: opts.evidenceCount }, (_, i) => ({
             id: `ev-${i}`,
-            kind: "connector_result" as const,
+            family: "connector_result" as const,
             uri: `platform://moltbook/item/ev-${i}`,
+            redactionClass: "none" as const,
           }))
         : [],
     platformEventCount: opts?.evidenceCount ?? 0,

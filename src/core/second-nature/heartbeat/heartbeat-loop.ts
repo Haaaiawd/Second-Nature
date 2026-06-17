@@ -59,6 +59,7 @@ import { recordConnectorAttemptAudit } from "../../../observability/services/aud
 import type { GoalLifecyclePolicy, GoalTransitionRequest } from "./goal-lifecycle-policy.js";
 import type { IdleCuriosityPolicy } from "./idle-curiosity-policy.js";
 import type { CircuitBreakerManager } from "../body/circuit-breaker/circuit-breaker-manager.js";
+import { makeCanonicalSourceRef } from "../../../shared/source-ref-compat.js";
 
 export interface HeartbeatDecisionTracePayload {
   scope: RuntimeScope;
@@ -457,11 +458,11 @@ export async function ingestRhythmSignal(
             effectClass: "connector_action",
             capabilityIntent: idleResult.candidate.capabilityId,
             sourceRefs: [
-              {
+              makeCanonicalSourceRef({
                 id: "idle_curiosity",
-                kind: "workspace_artifact",
+                family: "audit",
                 uri: `idle://${idleResult.candidate.platformId}`,
-              },
+              }),
             ],
             idempotencyKey: `idle:${idleResult.candidate.platformId}:${idleResult.candidate.capabilityId}`,
             goalInfluenceRefs: [],

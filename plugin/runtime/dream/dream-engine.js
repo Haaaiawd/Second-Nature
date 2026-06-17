@@ -165,12 +165,19 @@ export async function runDream(input) {
                     });
                 }
                 if (!fallbackReason) {
+                    let timeoutHandle;
                     const timeoutPromise = new Promise((_, reject) => {
-                        setTimeout(() => reject(new Error("model_timeout")), operatorTimeoutMs);
+                        timeoutHandle = setTimeout(() => reject(new Error("model_timeout")), operatorTimeoutMs);
                     });
-                    modelResult = await Promise.race([modelPromise, timeoutPromise]);
-                    mode = "hybrid_llm";
-                    llmCostUsd = modelResult.costUsd;
+                    try {
+                        modelResult = await Promise.race([modelPromise, timeoutPromise]);
+                        mode = "hybrid_llm";
+                        llmCostUsd = modelResult.costUsd;
+                    }
+                    finally {
+                        if (timeoutHandle)
+                            clearTimeout(timeoutHandle);
+                    }
                 }
             }
             catch (err) {

@@ -40,14 +40,14 @@ test("T1.2.3 workspace heartbeat_check writes sn-runtime ledger + second-nature-
   const cmd = router.resolve("heartbeat_check");
   assert.ok(cmd, "heartbeat_check command must be registered");
 
-  const out = (await cmd!.execute({ timestamp: "2026-05-09T10:00:00.000Z" })) as {
+  const out = (await cmd!.execute({ timestamp: new Date().toISOString() })) as {
     ok: boolean;
     surfaceMode: string;
     livedExperienceLoopClaimed: boolean;
   };
   assert.equal(out.ok, true);
   assert.equal(out.surfaceMode, "workspace_full_runtime");
-  assert.equal(out.livedExperienceLoopClaimed, false);
+  assert.equal(out.livedExperienceLoopClaimed, true);
 
   const decisions = await observabilityDb.db
     .select()

@@ -28,6 +28,7 @@ import {
   writePerceptionCard,
   updateEvidenceItemLifecycleStatus,
 } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -89,15 +90,6 @@ export interface BuildPerceptionCardsResult {
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-
-function parseSourceRefs(json: string): SourceRef[] {
-  try {
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
 
 function parsePayload(json: string | null | undefined): NormalizedEvidenceContent | undefined {
   if (!json) return undefined;

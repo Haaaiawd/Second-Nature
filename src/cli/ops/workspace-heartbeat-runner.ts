@@ -26,7 +26,8 @@ import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
 import { createIdentityProfileStore } from "../../storage/services/identity-profile-store.js";
-import type { ControlPlaneSourceRef } from "../../core/second-nature/types.js";
+import type { SourceRef } from "../../shared/types/v8-contracts.js";
+import { toCanonicalSourceRef } from "../../shared/source-ref-compat.js";
 import type { ConnectorExecutor } from "../../core/second-nature/orchestrator/effect-dispatcher.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 import type { GoalContext } from "../../core/second-nature/orchestrator/intent-planner.js";
@@ -112,7 +113,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
   const quietEnabledBridge = !!options.workspaceRoot;
 
   // T2.2.2: Load life evidence from state DB when available so SnapshotInputs carries real refs.
-  let lifeEvidenceRefs: ControlPlaneSourceRef[] | undefined;
+  let lifeEvidenceRefs: SourceRef[] | undefined;
   let platformEventCount: number | undefined;
   let workEventCount: number | undefined;
   let lifeEvidenceEmptyReason: SnapshotInputs["lifeEvidenceEmptyReason"];
@@ -126,11 +127,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(
         // Skip repair gate here — runner is called inside a live cycle; gate ran at startup.
         { runRepairGate: false },
       );
-      lifeEvidenceRefs = snapshot.evidenceRefs.map((ref) => ({
-        id: ref.id,
-        kind: ref.kind,
-        uri: ref.uri,
-      }));
+      lifeEvidenceRefs = snapshot.evidenceRefs.map((ref) => toCanonicalSourceRef(ref));
       platformEventCount = snapshot.platformEvents.length;
       workEventCount = snapshot.workEvents.length;
       if (snapshot.empty) {

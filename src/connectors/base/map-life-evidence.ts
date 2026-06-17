@@ -3,7 +3,12 @@
  * Returns null when evidence cannot be source-backed (no refs, wrong intent, or failure).
  */
 import type { CapabilityIntent, ConnectorResult } from "./contract.js";
-import type { LifeEvidenceCandidate, LifeEvidenceType, SourceRef, Sensitivity } from "../../storage/life-evidence/types.js";
+import type {
+  LifeEvidenceCandidate,
+  LifeEvidenceSourceRef,
+  LifeEvidenceType,
+  Sensitivity,
+} from "../../storage/life-evidence/types.js";
 
 const PLATFORM_ARRAY_KEYS = [
   "posts",
@@ -43,11 +48,11 @@ function extractFromPlatformArray(
   platformId: string,
   record: Record<string, unknown>,
   observedAt: string,
-): SourceRef[] | undefined {
+): LifeEvidenceSourceRef[] | undefined {
   for (const key of PLATFORM_ARRAY_KEYS) {
     const arr = record[key];
     if (Array.isArray(arr) && arr.length > 0) {
-      const out: SourceRef[] = [];
+      const out: LifeEvidenceSourceRef[] = [];
       for (let index = 0; index < arr.length; index += 1) {
         const item = arr[index];
         const id = tryExtractId(item) ?? `${platformId}-${key}-${index}`;
@@ -65,7 +70,7 @@ function extractFromPlatformArray(
   return undefined;
 }
 
-function extractSourceRefs(platformId: string, data: unknown, observedAt: string): SourceRef[] {
+function extractSourceRefs(platformId: string, data: unknown, observedAt: string): LifeEvidenceSourceRef[] {
   if (data && typeof data === "object") {
     const record = data as Record<string, unknown>;
     if (record.data && typeof record.data === "object") {
@@ -73,13 +78,13 @@ function extractSourceRefs(platformId: string, data: unknown, observedAt: string
       if (nested.length > 0) return nested;
     }
     if (Array.isArray(record.sourceRefs)) {
-      const out: SourceRef[] = [];
+      const out: LifeEvidenceSourceRef[] = [];
       for (const item of record.sourceRefs) {
         if (item && typeof item === "object" && "uri" in item && "id" in item) {
           const ref = item as Record<string, unknown>;
           out.push({
             id: String(ref.id),
-            kind: (ref.kind as SourceRef["kind"]) ?? "platform_item",
+            kind: (ref.kind as LifeEvidenceSourceRef["kind"]) ?? "platform_item",
             uri: String(ref.uri),
             excerptHash: ref.excerptHash !== undefined ? String(ref.excerptHash) : undefined,
             observedAt: ref.observedAt !== undefined ? String(ref.observedAt) : observedAt,

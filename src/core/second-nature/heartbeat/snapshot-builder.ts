@@ -6,7 +6,8 @@
  *
  * Per design doc §4.2: SnapshotBuilder prepares inputs for the Rhythm Engine.
  */
-import type { ContinuitySnapshot, ControlPlaneSourceRef, TopLevelMode } from "../types.js";
+import type { ContinuitySnapshot, TopLevelMode } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
 import type { RhythmPolicy } from "../rhythm/rhythm-policy.js";
 import type { DeliveryCapabilitySnapshot } from "../outreach/delivery-target.js";
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
@@ -27,7 +28,7 @@ export interface SnapshotInputs {
   awaitingUserInput?: boolean;
   riskSuppressed?: boolean;
   /** Evidence refs for source-backed planner/guards (T2.1.3 / T2.2.1). */
-  lifeEvidenceRefs?: ControlPlaneSourceRef[];
+  lifeEvidenceRefs?: SourceRef[];
   platformEventCount?: number;
   workEventCount?: number;
   lifeEvidenceEmptyReason?: "no_sources" | "state_unavailable" | "redacted_only";

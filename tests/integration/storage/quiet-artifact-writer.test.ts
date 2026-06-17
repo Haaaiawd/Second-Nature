@@ -3,9 +3,9 @@ import assert from "node:assert/strict";
 
 import { writeQuietArtifact, calculateQuietSourceCoverage } from "../../../src/storage/quiet/quiet-artifact-writer.js";
 import type { QuietArtifactWrite } from "../../../src/storage/quiet/quiet-artifact-types.js";
-import type { SourceRef } from "../../../src/storage/life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../../../src/storage/life-evidence/types.js";
 
-const sr = (id: string): SourceRef => ({
+const sr = (id: string): LifeEvidenceSourceRef => ({
   id,
   kind: "platform_item",
   uri: `https://x/${id}`,

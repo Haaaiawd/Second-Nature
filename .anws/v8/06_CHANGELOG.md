@@ -174,6 +174,66 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `.anws/v8/wave-reviews/wave-110-e2e.md` — Feishu/OpenClaw host verification guide for v0.2.10.
 - **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 
+## Wave 113 — v8 /change Repair: Remove SourceRef Local Clones — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 CH-12 remaining scope after Wave 112.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SH.R.3`, `T-SH.R.4`, `T-SH.R.5`, `INT-R8`.
+- **Fixes implemented**:
+  - Removed `ControlPlaneSourceRef` and migrated control-plane source refs to canonical v8 `SourceRef`.
+  - Replaced host-capability local `SourceRef` with canonical v8 `SourceRef`.
+  - Renamed life-evidence local `SourceRef` to `LifeEvidenceSourceRef` to preserve v7 storage semantics without colliding with canonical v8 `SourceRef`.
+  - Added `src/shared/source-ref-compat.ts` for explicit legacy `kind` ↔ canonical `family` boundary mapping.
+  - Rebuilt plugin runtime so packaged declarations no longer expose `ControlPlaneSourceRef`.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - Wave 113 targeted unit/storage/host tests: 57/57 PASS.
+  - Wave 113 targeted integration tests: 33/33 PASS + 2 historical INT-S3 skips.
+  - Wave 108-112 regression sample: 51/51 PASS.
+  - Review-fix targeted tests: 44/44 PASS.
+- **Artifacts**:
+  - `reports/int-r8-wave-113-source-ref-clones.md` — INT-R8 verification report.
+  - `.anws/v8/wave-reviews/wave-113-review.md` — code review (Pass; Medium fixed during review).
+- **Guardrails**: No schema status cleanup, no serializer broad migration, no package version bump, no external write enablement.
+
+## Wave 114 — v8 /change Repair: v8 Schema Single Status Column — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 CH-16 remaining schema-status scope after Wave 112/113.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SMS.R.4`, `INT-R9`.
+- **Fixes implemented**:
+  - Removed redundant `lifecycle_status` from status-bearing v8 tables: `action_closure_record`, `dream_consolidation_run`, `long_term_memory_projection`, `heartbeat_cycle_trace`, and `loop_stage_event`.
+  - Kept lifecycle-only v8 tables unchanged: `evidence_item`, `perception_card`, `judgment_verdict`, `quiet_daily_review`, and `impulse_context_artifact`.
+  - Updated v8 store writes and runtime/test fixtures to write only `status` for target tables.
+  - Added `v8-005-single-status-schema` migration marker and defensive startup column removal for pre-Wave-114 DBs.
+  - Added `tests/integration/storage/v8-schema-shape.test.ts` for fresh bootstrap and upgrade introspection.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - INT-R9 storage schema tests: 5/5 PASS + 3 historical schema-migration skips.
+  - Lifecycle/runtime regression sample: 21/21 PASS.
+- **Artifacts**:
+  - `reports/int-r9-wave-114-single-status-schema.md` — INT-R9 verification report.
+- **Guardrails**: No SourceRef serialization broad migration, no package version bump, no external write enablement.
+
+## Wave 115 — v8 /change Repair: Migrate Remaining SourceRef Serialization to Shared Helper — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 CH-16 remaining serialization scope after Wave 112/113/114.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SMS.R.5`, `INT-R10`.
+- **Fixes implemented**:
+  - Replaced ad-hoc `JSON.stringify` in `policy-bound-dispatch.ts` with `serializeSourceRefs` for canonical v8 `SourceRef[]`.
+  - Replaced ad-hoc `JSON.parse` in `living-loop-health-gate.ts` with `parseSourceRefs` for v8 `ActionClosureRecord.sourceRefsJson`.
+  - Removed local `parseSourceRefs` duplicates in `accepted-projection-loader.ts`, `perception-builder.ts`, `quiet-daily-review-builder.ts`, and `memory-projection-lifecycle.ts`; all now import from `src/shared/serialization.ts`.
+  - Kept v7/non-canonical SourceRef handling unchanged: `life-evidence`, `chronicle`, `goal`, `relationship`, `narrative`, `fallback`, and `repair-gate` continue to use their own JSON handling.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - Wave 115 targeted unit tests: 36/36 PASS.
+  - Wave 108-114 regression integration tests: 14/14 PASS.
+- **Artifacts**:
+  - `reports/int-r10-wave-115-serialization-completion.md` — INT-R10 verification report.
+  - `logs/wave-115-source-refs-search.log` — search evidence.
+- **Guardrails**: No package version bump, no external write enablement, no change to v7 source-ref shapes.
+
 ---
 
 ## v0.2.11 Change — Wave 111 Review Closure Gap Repair — 2026-06-16
@@ -200,3 +260,47 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
 - **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 
 ---
+
+## Wave 112 — v8 /change Repair: Canonical Contract Shape (Hemostasis) — 2026-06-16
+
+- **Change source**: `07_CHALLENGE_REPORT.md` Round 3 static review identified Critical P0 findings CH-12 (SourceRef name collision / heterogeneous shapes) and CH-16 (dual `status`/`lifecycleStatus` columns + fragmented SourceRef JSON serialization).
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-SH.R.2` (adjusted), `T-SMS.R.3` (adjusted), `INT-R7`.
+- **Fixes implemented**:
+  - Renamed v7 tuple `SourceRef` to `SourceRefTuple` in `src/shared/types/source-ref.ts`.
+  - Re-exported v8 contracts from `src/shared/types/index.ts`; canonical `SourceRef` object now available from shared index.
+  - Adapted `src/shared/types/v7-entities.ts`, `src/shared/types/goal.ts`, `src/storage/services/write-validation-gate.ts`, and `tests/unit/shared/v7-entities.test.ts` to `SourceRefTuple`.
+  - Created `src/shared/serialization.ts` with `parseSourceRefs`/`serializeSourceRefs`.
+  - Wired `src/storage/v8-state-stores.ts` to use the shared serializer.
+  - Added `tests/unit/shared/source-ref-serialization.test.ts`.
+- **Scope adjustment**: Full removal of `ControlPlaneSourceRef`, host-capability local `SourceRef`, and life-evidence local `SourceRef` deferred to Wave 113 (requires kind → family mapping across ~50+ call sites). v8 schema single-status-column cleanup deferred to Wave 114.
+- **Verification**:
+  - Wave 112 targeted: 41/41 PASS + 3 justified skips.
+  - Wave 108-111 regression: 34/34 PASS + 3 justified skips.
+  - `pnpm typecheck` ✅; `pnpm build` ✅.
+- **Artifacts**:
+  - `reports/int-r7-wave-112-hemostasis-gate.md` — INT-R7 verification report.
+  - `.anws/v8/wave-reviews/wave-112-review.md` — code review (Partial Pass, no Critical/High).
+- **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
+- **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+- **Tasks opened**: `T-SMS.R.2`, `T-CP.R.4`, `T-DQ.R.8`, `T-AC.R.1`, `T-CS.R.8`, `T-GVS.R.3`, `INT-R6`.
+- **Fixes**:
+  - Added `v8-004-schema-closure` migration to create `daily_rhythm_state`, `impulse_context_artifact`, and `connector_cooldown_state` for DBs initialized before the current bootstrap schema; made `action_closure_record.platform_id/capability_id` and `quiet_daily_review.closure_refs_json` idempotently additive.
+  - Added Drizzle unique-index declaration for `evidence_item(platform_id, content_hash)` to match bootstrap SQL.
+  - `HeartbeatOrchestrationResult` now carries `rhythmDegraded`; `runHeartbeatCycle` merges rhythm write failures into the returned degraded diagnostic so `loop_status` cannot false-green on a failed daily rhythm write.
+  - Replaced per-quiet-review Dream interval lookup with a global latest-completed/blocked query, enforcing the 7-day Dream interval across all `quiet_review_id`s; added canonical reason `dream_interval_active`.
+  - Removed the duplicate remember closure write from `action-proposal-builder`; the orchestrator now writes exactly one remember closure via `recordRememberClosure` with `platform_id = "heartbeat"`.
+  - Unified connector shadow safety: executor adapter now skips unsafe workspace shadows of built-in platforms and gives safe shadows (`trust.override` + `trust.reason` + `declarative_http`/`scriptable_node`) precedence over built-in runners.
+  - Mapped corrupted MoltBook mock file reads to `configuration_missing` instead of the unclassified `mock_read_error`.
+  - Removed impulse-context refresh from `heartbeat-orchestrator`; `heartbeat-surface` now owns the single refresh after a successful v8 spine and exposes `impulseContextArtifactId` plus `expressionBoundaryConstraints`/`expressionBoundaryStyle`.
+- **Verification**:
+  - Wave 111 targeted: 32/32 PASS + 3 justified historical skips (schema-migration v7-001); see `reports/int-r6-wave-111-repair-gate.md`.
+  - Wave 108-109 regression: 35/35 PASS.
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+- **Artifacts**:
+  - `reports/int-r6-wave-111-repair-gate.md` — INT-R6 verification report.
+- **Version updates**: `package.json`, `plugin/package.json`, `plugin/openclaw.plugin.json` → `0.2.11`.
+- **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
+
+---
+

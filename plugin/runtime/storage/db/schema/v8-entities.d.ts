@@ -1006,25 +1006,6 @@ export declare const actionClosureRecord: import("drizzle-orm/sqlite-core").SQLi
         }, {}, {
             length: number | undefined;
         }>;
-        lifecycleStatus: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-            name: "lifecycle_status";
-            tableName: "action_closure_record";
-            dataType: "string";
-            columnType: "SQLiteText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {
-            length: number | undefined;
-        }>;
     };
     dialect: "sqlite";
 }>;
@@ -1381,25 +1362,6 @@ export declare const dreamConsolidationRun: import("drizzle-orm/sqlite-core").SQ
         }, {}, {
             length: number | undefined;
         }>;
-        lifecycleStatus: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-            name: "lifecycle_status";
-            tableName: "dream_consolidation_run";
-            dataType: "string";
-            columnType: "SQLiteText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {
-            length: number | undefined;
-        }>;
     };
     dialect: "sqlite";
 }>;
@@ -1551,25 +1513,6 @@ export declare const longTermMemoryProjection: import("drizzle-orm/sqlite-core")
             driverParam: string;
             notNull: false;
             hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {
-            length: number | undefined;
-        }>;
-        lifecycleStatus: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-            name: "lifecycle_status";
-            tableName: "long_term_memory_projection";
-            dataType: "string";
-            columnType: "SQLiteText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;
@@ -1790,25 +1733,6 @@ export declare const heartbeatCycleTrace: import("drizzle-orm/sqlite-core").SQLi
         }, {}, {
             length: number | undefined;
         }>;
-        lifecycleStatus: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-            name: "lifecycle_status";
-            tableName: "heartbeat_cycle_trace";
-            dataType: "string";
-            columnType: "SQLiteText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {
-            length: number | undefined;
-        }>;
     };
     dialect: "sqlite";
 }>;
@@ -2013,25 +1937,6 @@ export declare const loopStageEvent: import("drizzle-orm/sqlite-core").SQLiteTab
             driverParam: string;
             notNull: false;
             hasDefault: false;
-            isPrimaryKey: false;
-            isAutoincrement: false;
-            hasRuntimeDefault: false;
-            enumValues: [string, ...string[]];
-            baseColumn: never;
-            identity: undefined;
-            generated: undefined;
-        }, {}, {
-            length: number | undefined;
-        }>;
-        lifecycleStatus: import("drizzle-orm/sqlite-core").SQLiteColumn<{
-            name: "lifecycle_status";
-            tableName: "loop_stage_event";
-            dataType: "string";
-            columnType: "SQLiteText";
-            data: string;
-            driverParam: string;
-            notNull: true;
-            hasDefault: true;
             isPrimaryKey: false;
             isAutoincrement: false;
             hasRuntimeDefault: false;

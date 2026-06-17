@@ -22,7 +22,7 @@ export { createNarrativeStateStore, type NarrativeStateStore, type NarrativeStat
 export { createRelationshipMemoryStore, type RelationshipMemoryStore, type RelationshipMemory, type RelationshipMemoryUpdate, type RelationshipMemoryWriteAck, type TopicAffinity, } from "./relationship/relationship-memory-store.js";
 export { createAgentGoalStore, type AgentGoalStore, type AgentGoal, type AgentGoalWrite, type AgentGoalStatusTransition, type AgentGoalQuery, type AgentGoalWriteAck, } from "./goal/agent-goal-store.js";
 export { createMemoryStoreLifecycle, type MemoryStorePort, type MemoryStore, type MemoryStoreWrite, type MemoryStoreLifecycleTransition, type MemoryStoreAck, type CanonicalMemoryEntry, type DreamInsight, type MemoryStoreValidation, } from "./memory-store/memory-store-lifecycle.js";
-export type { LifeEvidence, LifeEvidenceCandidate, LifeEvidenceType, LifeEvidenceWriteAck, Sensitivity, SourceRef, } from "./life-evidence/types.js";
+export type { LifeEvidence, LifeEvidenceCandidate, LifeEvidenceSourceRef, LifeEvidenceType, LifeEvidenceWriteAck, Sensitivity, } from "./life-evidence/types.js";
 export { appendLifeEvidence, type AppendLifeEvidenceOptions } from "./life-evidence/append-life-evidence.js";
 export { loadRhythmPolicySnapshot, type RhythmPolicySnapshot } from "./rhythm/rhythm-policy-snapshot.js";
 export type { LifeEvidenceQuery, LifeEvidenceSnapshot, LifeEvidenceReadModel, ContinuitySnapshot, SourceCoverage, } from "./snapshots/types.js";

@@ -8,11 +8,11 @@ import { z } from "zod";
 export declare const guidanceSourceRefSchema: z.ZodObject<{
     id: z.ZodString;
     kind: z.ZodEnum<{
+        connector_result: "connector_result";
         platform_item: "platform_item";
         workspace_artifact: "workspace_artifact";
         decision_record: "decision_record";
         user_anchor: "user_anchor";
-        connector_result: "connector_result";
         host_report: "host_report";
         fallback_artifact: "fallback_artifact";
     }>;
@@ -66,11 +66,11 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
     sourceRefs: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
+            connector_result: "connector_result";
             platform_item: "platform_item";
             workspace_artifact: "workspace_artifact";
             decision_record: "decision_record";
             user_anchor: "user_anchor";
-            connector_result: "connector_result";
             host_report: "host_report";
             fallback_artifact: "fallback_artifact";
         }>;
@@ -104,11 +104,11 @@ export declare const outreachNarrativeContextSchema: z.ZodObject<{
     sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
+            connector_result: "connector_result";
             platform_item: "platform_item";
             workspace_artifact: "workspace_artifact";
             decision_record: "decision_record";
             user_anchor: "user_anchor";
-            connector_result: "connector_result";
             host_report: "host_report";
             fallback_artifact: "fallback_artifact";
         }>;
@@ -124,11 +124,11 @@ export declare const outreachRelationshipContextSchema: z.ZodObject<{
     sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
+            connector_result: "connector_result";
             platform_item: "platform_item";
             workspace_artifact: "workspace_artifact";
             decision_record: "decision_record";
             user_anchor: "user_anchor";
-            connector_result: "connector_result";
             host_report: "host_report";
             fallback_artifact: "fallback_artifact";
         }>;
@@ -160,11 +160,11 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
     sourceRefs: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
+            connector_result: "connector_result";
             platform_item: "platform_item";
             workspace_artifact: "workspace_artifact";
             decision_record: "decision_record";
             user_anchor: "user_anchor";
-            connector_result: "connector_result";
             host_report: "host_report";
             fallback_artifact: "fallback_artifact";
         }>;
@@ -205,11 +205,11 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
     interestRefs: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         kind: z.ZodEnum<{
+            connector_result: "connector_result";
             platform_item: "platform_item";
             workspace_artifact: "workspace_artifact";
             decision_record: "decision_record";
             user_anchor: "user_anchor";
-            connector_result: "connector_result";
             host_report: "host_report";
             fallback_artifact: "fallback_artifact";
         }>;
@@ -224,11 +224,11 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
         sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             kind: z.ZodEnum<{
+                connector_result: "connector_result";
                 platform_item: "platform_item";
                 workspace_artifact: "workspace_artifact";
                 decision_record: "decision_record";
                 user_anchor: "user_anchor";
-                connector_result: "connector_result";
                 host_report: "host_report";
                 fallback_artifact: "fallback_artifact";
             }>;
@@ -244,11 +244,11 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
         sourceRefs: z.ZodOptional<z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             kind: z.ZodEnum<{
+                connector_result: "connector_result";
                 platform_item: "platform_item";
                 workspace_artifact: "workspace_artifact";
                 decision_record: "decision_record";
                 user_anchor: "user_anchor";
-                connector_result: "connector_result";
                 host_report: "host_report";
                 fallback_artifact: "fallback_artifact";
             }>;
@@ -268,7 +268,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
     riskLevel: "low" | "medium" | "high";
     sourceRefs: {
         id: string;
-        kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
+        kind: "connector_result" | "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "host_report" | "fallback_artifact";
         uri: string;
         excerptHash?: string | undefined;
         observedAt?: string | undefined;
@@ -280,7 +280,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
     valueScore: number;
     interestRefs: {
         id: string;
-        kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
+        kind: "connector_result" | "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "host_report" | "fallback_artifact";
         uri: string;
         excerptHash?: string | undefined;
         observedAt?: string | undefined;
@@ -298,7 +298,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
         nextIntent?: string | undefined;
         sourceRefs?: {
             id: string;
-            kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
+            kind: "connector_result" | "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "host_report" | "fallback_artifact";
             uri: string;
             excerptHash?: string | undefined;
             observedAt?: string | undefined;
@@ -310,7 +310,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
         avgAffinity?: number | undefined;
         sourceRefs?: {
             id: string;
-            kind: "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "connector_result" | "host_report" | "fallback_artifact";
+            kind: "connector_result" | "platform_item" | "workspace_artifact" | "decision_record" | "user_anchor" | "host_report" | "fallback_artifact";
             uri: string;
             excerptHash?: string | undefined;
             observedAt?: string | undefined;

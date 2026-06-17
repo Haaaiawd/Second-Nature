@@ -22,6 +22,7 @@
  * Test coverage: tests/unit/perception/perception-builder.test.ts
  */
 import { readEvidenceItemsByStatus, writePerceptionCard, updateEvidenceItemLifecycleStatus, } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Config
 // ───────────────────────────────────────────────────────────────
@@ -29,15 +30,6 @@ const PERCEPTION_MAX_EVIDENCE_PER_CYCLE = 50;
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-function parseSourceRefs(json) {
-    try {
-        const parsed = JSON.parse(json);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
-}
 function parsePayload(json) {
     if (!json)
         return undefined;

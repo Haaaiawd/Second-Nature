@@ -33,6 +33,7 @@ import type {
   PlatformNeutralActionKind,
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
 import type { AcceptedProjection } from "../control-plane/accepted-projection-loader.js";
 
@@ -89,15 +90,7 @@ function inferRiskPosture(
   return "low";
 }
 
-function parseCardSourceRefs(json: string | null): SourceRef[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
+
 
 function selectVerdict(
   relevance: number,
@@ -193,7 +186,7 @@ export async function runAgentJudgment(
     };
   }
 
-  const sourceRefs = parseCardSourceRefs(card.sourceRefsJson);
+  const sourceRefs = parseSourceRefs(card.sourceRefsJson);
   const hasSourceRefs = sourceRefs.length > 0;
 
   // Parse sensitivity class from payload (stored there by perception-builder)
@@ -346,3 +339,4 @@ export async function runAgentJudgments(
 
   return { succeeded, failed };
 }
+

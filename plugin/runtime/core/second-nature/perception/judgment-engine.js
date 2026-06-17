@@ -22,6 +22,7 @@
  * Test coverage: tests/unit/judgment/judgment-engine.test.ts
  */
 import { readPerceptionCardById, writeJudgmentVerdict, } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
 // ───────────────────────────────────────────────────────────────
 // Config
@@ -41,17 +42,6 @@ function inferRiskPosture(sensitivityClass, riskFlags) {
         return "medium";
     }
     return "low";
-}
-function parseCardSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
 }
 function selectVerdict(relevance, confidence, riskPosture, hasSourceRefs, possibleIntents) {
     // Missing source refs → ignore/watch only
@@ -125,7 +115,7 @@ export async function runAgentJudgment(db, perceptionCardId, options) {
             retryable: false,
         };
     }
-    const sourceRefs = parseCardSourceRefs(card.sourceRefsJson);
+    const sourceRefs = parseSourceRefs(card.sourceRefsJson);
     const hasSourceRefs = sourceRefs.length > 0;
     // Parse sensitivity class from payload (stored there by perception-builder)
     let sensitivityClass = "public_general";

@@ -3,7 +3,7 @@
  *
  * Test coverage: tests/unit/storage/user-interest-snapshot.test.ts
  */
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 
 export type UserInterestStaleness = "fresh" | "stale" | "insufficient";
 
@@ -13,7 +13,7 @@ export interface UserInterestSignal {
   affinity: "positive" | "negative" | "watching" | "unknown";
   reason: string;
   confidence: number;
-  sourceRefs: SourceRef[];
+  sourceRefs: LifeEvidenceSourceRef[];
   updatedAt: string;
 }
 
@@ -21,7 +21,7 @@ export interface UserInterestSnapshot {
   snapshotId: string;
   generatedAt: string;
   signals: UserInterestSignal[];
-  sourceRefs: SourceRef[];
+  sourceRefs: LifeEvidenceSourceRef[];
   confidence: number;
   staleness: UserInterestStaleness;
   missingReasons?: string[];

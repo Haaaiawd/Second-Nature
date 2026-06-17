@@ -31,7 +31,6 @@ describe("quiet-daily-review content", () => {
         status: "completed",
         sourceRefs: [makeRef(`closure_${day}_1`, "action_closure")],
         redactionClass: "none",
-        lifecycleStatus: "closed",
       });
 
       await writeEvidenceItem(db, {

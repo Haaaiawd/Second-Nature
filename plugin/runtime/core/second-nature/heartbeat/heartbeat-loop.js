@@ -12,6 +12,7 @@ import { mapLifeEvidence } from "../../../connectors/base/map-life-evidence.js";
 import { appendLifeEvidence } from "../../../storage/life-evidence/append-life-evidence.js";
 import { normalizeConnectorEvidence } from "../../../connectors/evidence-normalizer.js";
 import { recordConnectorAttemptAudit } from "../../../observability/services/audit-closure-recorders.js";
+import { makeCanonicalSourceRef } from "../../../shared/source-ref-compat.js";
 /**
  * Resolves the heartbeat outcome for a guard-allowed intent (outreach dispatch, quiet orchestration, or default).
  * Exported for unit tests (CR-M1 wiring).
@@ -302,11 +303,11 @@ export async function ingestRhythmSignal(signal, deps) {
                         effectClass: "connector_action",
                         capabilityIntent: idleResult.candidate.capabilityId,
                         sourceRefs: [
-                            {
+                            makeCanonicalSourceRef({
                                 id: "idle_curiosity",
-                                kind: "workspace_artifact",
+                                family: "audit",
                                 uri: `idle://${idleResult.candidate.platformId}`,
-                            },
+                            }),
                         ],
                         idempotencyKey: `idle:${idleResult.candidate.platformId}:${idleResult.candidate.capabilityId}`,
                         goalInfluenceRefs: [],

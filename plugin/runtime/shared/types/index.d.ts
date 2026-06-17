@@ -4,3 +4,4 @@ export * from "./outreach.js";
 export * from "./source-ref.js";
 export * from "./goal.js";
 export * from "./v7-entities.js";
+export * from "./v8-contracts.js";

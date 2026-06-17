@@ -1,7 +1,8 @@
 /**
  * Bridges SnapshotInputs + runtime into JudgeOutreachInput for dispatch (Wave 7 / ADR-007).
  */
-import type { ControlPlaneSourceRef } from "../types.js";
+import type { SourceRef } from "../../../shared/types/v8-contracts.js";
+import { toCanonicalSourceRef } from "../../../shared/source-ref-compat.js";
 import type { SnapshotInputs } from "../heartbeat/snapshot-builder.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
@@ -10,14 +11,8 @@ import type { JudgeOutreachInput, JudgeOutreachUserInterest } from "./judge-outr
 import type { DeliveryCapabilitySnapshot } from "./delivery-target.js";
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
 
-function toControlPlaneRefs(refs: UserInterestSnapshot["sourceRefs"]): ControlPlaneSourceRef[] {
-  return refs.map((r) => ({
-    id: r.id,
-    kind: r.kind as ControlPlaneSourceRef["kind"],
-    uri: r.uri,
-    excerptHash: r.excerptHash,
-    observedAt: r.observedAt,
-  }));
+function toControlPlaneRefs(refs: UserInterestSnapshot["sourceRefs"]): SourceRef[] {
+  return refs.map((r) => toCanonicalSourceRef(r));
 }
 
 export function userInterestSnapshotToJudge(snapshot?: UserInterestSnapshot): JudgeOutreachUserInterest {
@@ -30,13 +25,7 @@ export function userInterestSnapshotToJudge(snapshot?: UserInterestSnapshot): Ju
     signals: snapshot.signals.map((s) => ({
       topic: s.topic,
       confidence: s.confidence,
-      sourceRefs: s.sourceRefs.map((r) => ({
-        id: r.id,
-        kind: r.kind as ControlPlaneSourceRef["kind"],
-        uri: r.uri,
-        excerptHash: r.excerptHash,
-        observedAt: r.observedAt,
-      })),
+      sourceRefs: s.sourceRefs.map((r) => toCanonicalSourceRef(r)),
     })),
     sourceRefs: toControlPlaneRefs(snapshot.sourceRefs),
   };

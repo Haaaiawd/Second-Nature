@@ -51,9 +51,9 @@ function makeSnapshotInputs(overrides: Partial<SnapshotInputs> = {}): SnapshotIn
     lifeEvidenceRefs: [
       {
         id: "ev:moltbook:feed:1",
-        kind: "connector_result",
+        family: "connector_result",
         uri: "platform://moltbook/feed.read",
-        observedAt: TEST_TIMESTAMP,
+        redactionClass: "none",
       },
     ],
     ...overrides,
@@ -98,9 +98,9 @@ function makeConnectorIntent(
     sourceRefs: [
       {
         id: `ev:${platformId}:feed:1`,
-        kind: "connector_result",
+        family: "connector_result",
         uri: `platform://${platformId}/feed.read`,
-        observedAt: TEST_TIMESTAMP,
+        redactionClass: "none",
       },
     ],
     idempotencyKey: `exploration:${platformId}`,

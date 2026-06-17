@@ -3,7 +3,7 @@
  * Returns artifact identity for persistence layers; does not write FS/SQLite here.
  */
 import * as crypto from "node:crypto";
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 import type { SourceCoverage } from "../snapshots/types.js";
 import type { QuietArtifactWrite } from "./quiet-artifact-types.js";
 import type { QuietClaim } from "./quiet-artifact-types.js";
@@ -37,7 +37,7 @@ export function evidenceGroundingRatio(input: Pick<QuietArtifactWrite, "claims" 
 
 export interface QuietArtifactAck {
   artifactId: string;
-  artifactRef: SourceRef;
+  artifactRef: LifeEvidenceSourceRef;
   sourceCoverage: SourceCoverage;
 }
 
@@ -61,7 +61,7 @@ export function writeQuietArtifact(
   }
 
   const artifactId = crypto.randomUUID();
-  const artifactRef: SourceRef = {
+  const artifactRef: LifeEvidenceSourceRef = {
     id: `quiet:${artifactId}`,
     kind: "workspace_artifact",
     uri: `urn:second-nature:quiet:${input.day}:${input.kind}:${artifactId}`,

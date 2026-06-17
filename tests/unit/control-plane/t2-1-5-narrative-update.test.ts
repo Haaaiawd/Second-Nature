@@ -73,9 +73,9 @@ test("T2.1.5 intent_selected with sources → active revision", () => {
   const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
   const intent = makeCandidate({
     summary: "EvoMap profile updated",
-    sourceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }],
+    sourceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://profile", redactionClass: "none" }],
   });
-  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }] });
+  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://profile", redactionClass: "none" }] });
 
   const update = updateNarrativeAfterEffect({
     result,
@@ -162,13 +162,13 @@ test("T2.1.5 progress bounded to max entries", () => {
   const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
   const intent = makeCandidate({
     summary: "new action",
-    sourceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://x" }],
+    sourceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://x", redactionClass: "none" }],
   });
 
   const update = updateNarrativeAfterEffect({
     result,
     selectedIntent: intent,
-    lifeEvidence: makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://x" }] }),
+    lifeEvidence: makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://x", redactionClass: "none" }] }),
     priorNarrative: prior,
   });
 
@@ -181,9 +181,9 @@ test("T2.1.5 confidence based on source count", () => {
   const intent = makeCandidate({
     summary: "action",
     sourceRefs: [
-      { id: "ev-1", kind: "connector_result", uri: "a" },
-      { id: "ev-2", kind: "connector_result", uri: "b" },
-      { id: "ev-3", kind: "connector_result", uri: "c" },
+      { id: "ev-1", family: "connector_result", uri: "a", redactionClass: "none" },
+      { id: "ev-2", family: "connector_result", uri: "b", redactionClass: "none" },
+      { id: "ev-3", family: "connector_result", uri: "c", redactionClass: "none" },
     ],
   });
 
@@ -279,9 +279,9 @@ test("T2.1.5 boundary: empty intent summary", () => {
   const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
   const intent = makeCandidate({
     summary: "",
-    sourceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }],
+    sourceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://profile", redactionClass: "none" }],
   });
-  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }] });
+  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://profile", redactionClass: "none" }] });
 
   const update = updateNarrativeAfterEffect({
     result,
@@ -300,9 +300,9 @@ test("T2.1.5 boundary: very long intent summary", () => {
   const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
   const intent = makeCandidate({
     summary: longSummary,
-    sourceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }],
+    sourceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://profile", redactionClass: "none" }],
   });
-  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", kind: "connector_result", uri: "evomap://profile" }] });
+  const lifeEvidence = makeLifeEvidence({ evidenceRefs: [{ id: "ev-1", family: "connector_result", uri: "evomap://profile", redactionClass: "none" }] });
 
   const update = updateNarrativeAfterEffect({
     result,
@@ -320,8 +320,9 @@ test("T2.1.5 boundary: maximum source refs for confidence calculation", () => {
   const result = makeResult({ status: "intent_selected", selectedIntentId: "intent-test" });
   const manyRefs = Array.from({ length: 1000 }, (_, i) => ({
     id: `ev-${i}`,
-    kind: "connector_result" as const,
+    family: "connector_result" as const,
     uri: `evomap://profile-${i}`,
+    redactionClass: "none" as const,
   }));
   const intent = makeCandidate({
     summary: "bulk action",

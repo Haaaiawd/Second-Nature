@@ -23,25 +23,10 @@
  */
 import { eq, and, desc, like, isNull, inArray } from "drizzle-orm";
 import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, connectorCooldownState, } from "./db/schema/v8-entities.js";
+import { serializeSourceRefs, parseSourceRefs, } from "../shared/serialization.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
-function serializeSourceRefs(refs) {
-    return JSON.stringify(refs);
-}
-function parseSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        if (Array.isArray(parsed))
-            return parsed;
-        return [];
-    }
-    catch {
-        return [];
-    }
-}
 function makeDegraded(reason, ownerStage, operatorNextAction, sourceRefs = []) {
     return {
         status: "degraded",
@@ -444,8 +429,6 @@ export async function updateDreamConsolidationRunStatus(db, id, status, options)
         const updateData = { status };
         if (options?.reason !== undefined)
             updateData.reason = options.reason;
-        if (options?.lifecycleStatus !== undefined)
-            updateData.lifecycleStatus = options.lifecycleStatus;
         if (options?.payloadJson !== undefined)
             updateData.payloadJson = options.payloadJson;
         await db.db.update(dreamConsolidationRun).set(updateData).where(eq(dreamConsolidationRun.id, id));
@@ -531,7 +514,7 @@ export async function writeLongTermMemoryProjection(db, row) {
  */
 export async function updateLongTermMemoryProjectionStatus(db, id, status, payloadJson) {
     try {
-        const updateData = { status, lifecycleStatus: status };
+        const updateData = { status };
         if (payloadJson !== undefined) {
             updateData.payloadJson = payloadJson;
         }

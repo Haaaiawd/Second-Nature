@@ -9,7 +9,7 @@ import type { CandidateIntent } from "../types.js";
 import type { HeartbeatRuntimeSnapshot } from "../heartbeat/runtime-snapshot.js";
 import { isLifeEvidenceSliceEmpty } from "../heartbeat/runtime-snapshot.js";
 import type { HeartbeatCycleResult } from "../heartbeat/signal.js";
-import type { SourceRef } from "../../../storage/life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../../../storage/life-evidence/types.js";
 import { writeQuietArtifact, type QuietArtifactAck } from "../../../storage/quiet/quiet-artifact-writer.js";
 import type { QuietArtifactWrite, QuietClaim } from "../../../storage/quiet/quiet-artifact-types.js";
 import { persistQuietArtifactToWorkspace } from "../../../storage/quiet/persist-quiet-artifact.js";
@@ -18,6 +18,7 @@ import { buildEvidencePack, buildQuietNarrativeGuidance, selectInterestBasis } f
 import type { UserInterestSnapshot } from "../../../storage/user-interest/types.js";
 import type { AppendOnlyAuditStore } from "../../../observability/audit/append-only-audit-store.js";
 import { recordQuietArtifactAudit } from "../../../observability/services/audit-closure-recorders.js";
+import { legacyKindFromSourceRef } from "../../../shared/source-ref-compat.js";
 
 /**
  * Minimal port for triggering Dream after Quiet completion (T-V7C.C.3).
@@ -34,10 +35,18 @@ export interface QuietDreamSchedulePort {
 function toGuidanceRef(r: CandidateIntent["sourceRefs"][number]): GuidanceSourceRef {
   return {
     id: r.id,
-    kind: r.kind as GuidanceSourceRef["kind"],
+    kind: legacyKindFromSourceRef(r) as GuidanceSourceRef["kind"],
     uri: r.uri,
-    excerptHash: r.excerptHash,
-    observedAt: r.observedAt,
+  };
+}
+
+function toLifeEvidenceRef(ref: GuidanceSourceRef): LifeEvidenceSourceRef {
+  return {
+    id: ref.id,
+    kind: ref.kind as LifeEvidenceSourceRef["kind"],
+    uri: ref.uri,
+    excerptHash: ref.excerptHash,
+    observedAt: ref.observedAt,
   };
 }
 
@@ -169,13 +178,7 @@ export async function runSourceBackedQuiet(params: RunSourceBackedQuietParams): 
     signalCount: userInterestSnapshot?.signals.length ?? 0,
   });
 
-  const groundedSourceRefs = ep.pack.groundedRefs.map((g): SourceRef => ({
-    id: g.id,
-    kind: g.kind as SourceRef["kind"],
-    uri: g.uri,
-    excerptHash: g.excerptHash,
-    observedAt: g.observedAt,
-  }));
+  const groundedSourceRefs = ep.pack.groundedRefs.map(toLifeEvidenceRef);
 
   const claims: QuietClaim[] = ep.pack.groundedRefs.map((g, i) => ({
     id: `fact:${g.id}`,
@@ -183,11 +186,7 @@ export async function runSourceBackedQuiet(params: RunSourceBackedQuietParams): 
     claimType: "fact",
     sourceRefs: [
       {
-        id: g.id,
-        kind: g.kind as SourceRef["kind"],
-        uri: g.uri,
-        excerptHash: g.excerptHash,
-        observedAt: g.observedAt,
+        ...toLifeEvidenceRef(g),
       },
     ],
   }));

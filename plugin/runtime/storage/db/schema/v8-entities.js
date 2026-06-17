@@ -85,7 +85,6 @@ export const actionClosureRecord = sqliteTable("action_closure_record", {
     sourceRefsJson: text("source_refs_json").notNull(),
     redactionClass: text("redaction_class").notNull().default("none"),
     payloadJson: text("payload_json"),
-    lifecycleStatus: text("lifecycle_status").notNull().default("closed"),
 });
 // ───────────────────────────────────────────────────────────────
 // 5. QuietDailyReview
@@ -114,7 +113,6 @@ export const dreamConsolidationRun = sqliteTable("dream_consolidation_run", {
     sourceRefsJson: text("source_refs_json").notNull(),
     redactionClass: text("redaction_class").notNull().default("none"),
     payloadJson: text("payload_json"),
-    lifecycleStatus: text("lifecycle_status").notNull().default("pending"),
 });
 // ───────────────────────────────────────────────────────────────
 // 7. LongTermMemoryProjection
@@ -128,7 +126,6 @@ export const longTermMemoryProjection = sqliteTable("long_term_memory_projection
     sourceRefsJson: text("source_refs_json").notNull(),
     redactionClass: text("redaction_class").notNull().default("none"),
     payloadJson: text("payload_json"),
-    lifecycleStatus: text("lifecycle_status").notNull().default("candidate"),
 });
 // ───────────────────────────────────────────────────────────────
 // 8. HeartbeatCycleTrace
@@ -145,7 +142,6 @@ export const heartbeatCycleTrace = sqliteTable("heartbeat_cycle_trace", {
     sourceRefsJson: text("source_refs_json"),
     redactionClass: text("redaction_class").notNull().default("none"),
     payloadJson: text("payload_json"),
-    lifecycleStatus: text("lifecycle_status").notNull().default("started"),
 });
 // ───────────────────────────────────────────────────────────────
 // 9. LoopStageEvent
@@ -162,7 +158,6 @@ export const loopStageEvent = sqliteTable("loop_stage_event", {
     occurredAt: text("occurred_at").notNull(),
     expectedDownstreamByCycle: integer("expected_downstream_by_cycle"),
     payloadJson: text("payload_json"),
-    lifecycleStatus: text("lifecycle_status").notNull().default("started"),
 });
 // ───────────────────────────────────────────────────────────────
 // 10. ImpulseContextArtifact

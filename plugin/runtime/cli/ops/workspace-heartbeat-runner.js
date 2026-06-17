@@ -4,6 +4,7 @@ import { createAgentGoalStore } from "../../storage/goal/agent-goal-store.js";
 import { createNarrativeStateStore } from "../../storage/narrative/narrative-state-store.js";
 import { createRelationshipMemoryStore } from "../../storage/relationship/relationship-memory-store.js";
 import { createIdentityProfileStore } from "../../storage/services/identity-profile-store.js";
+import { toCanonicalSourceRef } from "../../shared/source-ref-compat.js";
 import { generateHeartbeatDigest, } from "../../observability/services/heartbeat-digest-assembler.js";
 import { createHistoryDigestStore } from "../../storage/services/history-digest-store.js";
 export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, options = {}) {
@@ -26,11 +27,7 @@ export async function loadSnapshotInputsForWorkspaceHeartbeat(readModels, option
             const snapshot = await loadLifeEvidenceSnapshot(options.state, options.workspaceRoot, { limit: 50 }, 
             // Skip repair gate here — runner is called inside a live cycle; gate ran at startup.
             { runRepairGate: false });
-            lifeEvidenceRefs = snapshot.evidenceRefs.map((ref) => ({
-                id: ref.id,
-                kind: ref.kind,
-                uri: ref.uri,
-            }));
+            lifeEvidenceRefs = snapshot.evidenceRefs.map((ref) => toCanonicalSourceRef(ref));
             platformEventCount = snapshot.platformEvents.length;
             workEventCount = snapshot.workEvents.length;
             if (snapshot.empty) {

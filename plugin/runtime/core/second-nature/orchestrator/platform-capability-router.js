@@ -48,7 +48,7 @@ function extractPlatformIdsFromGoals(goals, kind, platformIds) {
 function extractPlatformIdsFromEvidence(refs, platformIds) {
     const results = new Set();
     for (const ref of refs) {
-        if (ref.kind === "connector_result" && ref.id) {
+        if (ref.family === "connector_result" && ref.id) {
             for (const pid of platformIds) {
                 if (ref.id.includes(pid)) {
                     results.add(pid);

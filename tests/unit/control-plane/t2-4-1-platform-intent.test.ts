@@ -69,8 +69,9 @@ test("T2.4.1-B: evidence ref with connector_result id containing moltbook → so
     evidenceRefs: [
       {
         id: "moltbook-post-001",
-        kind: "connector_result",
+        family: "connector_result",
         uri: "platform://moltbook/item/moltbook-post-001",
+        redactionClass: "none",
       },
     ],
   });
@@ -82,8 +83,9 @@ test("T2.4.1-B: evidence ref uri platform://evomap → work resolves platformId=
     evidenceRefs: [
       {
         id: "ref-1",
-        kind: "workspace_artifact",
+        family: "audit",
         uri: "platform://evomap/work/discovery",
+        redactionClass: "none",
       },
     ],
   });
@@ -134,8 +136,9 @@ test("T2.4.1-D: goal and evidence point to different platforms → ambiguous, re
     evidenceRefs: [
       {
         id: "evomap-task-001",
-        kind: "connector_result",
+        family: "connector_result",
         uri: "platform://evomap/task/001",
+        redactionClass: "none",
       },
     ],
   });

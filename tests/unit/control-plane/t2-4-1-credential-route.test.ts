@@ -77,7 +77,7 @@ test("T2.4.1-E: no registry + evidence refs name platform → platformId", () =>
     "exploration",
     {
       evidenceRefs: [
-        { id: "ev-1", kind: "platform_item", uri: "platform://moltbook/item/1" },
+        { id: "ev-1", family: "evidence", uri: "platform://moltbook/item/1", redactionClass: "none" },
       ],
     },
     undefined,
@@ -100,7 +100,7 @@ test("T2.4.1-E: registry + unsupported capability via evidence → undefined", (
     "work",
     {
       evidenceRefs: [
-        { id: "ev-1", kind: "platform_item", uri: "platform://moltbook/item/1" },
+        { id: "ev-1", family: "evidence", uri: "platform://moltbook/item/1", redactionClass: "none" },
       ],
     },
     registry,

@@ -16,7 +16,7 @@ function mergeEvidenceRefs(...groups: SourceRef[][]): SourceRef[] {
   const out: SourceRef[] = [];
   for (const group of groups) {
     for (const ref of group) {
-      const key = `${ref.kind}:${ref.id}`;
+      const key = `${ref.family}:${ref.id}`;
       if (!seen.has(key)) {
         seen.add(key);
         out.push(ref);

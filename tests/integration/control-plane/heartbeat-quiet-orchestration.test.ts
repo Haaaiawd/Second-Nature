@@ -25,7 +25,7 @@ test("T2.3.3 quiet non-empty: unresolved evidence refs -> denied (low path)", as
     recentOutreachHashes: [],
     deniedIntents: [],
     quietEnabledBridge: true,
-    lifeEvidenceRefs: [{ id: "bad", kind: "connector_result", uri: "" }],
+    lifeEvidenceRefs: [{ id: "bad", family: "connector_result", uri: "", redactionClass: "none" }],
   };
 
   const deps: HeartbeatDeps = {
@@ -53,7 +53,7 @@ test("T2.3.3 quiet non-empty: sensitive source refs are denied and not persisted
     recentOutreachHashes: [],
     deniedIntents: [],
     quietEnabledBridge: true,
-    lifeEvidenceRefs: [{ id: "secret-ref", kind: "connector_result", uri: "credential://github/token" }],
+    lifeEvidenceRefs: [{ id: "secret-ref", family: "connector_result", uri: "credential://github/token", redactionClass: "none" }],
   };
 
   const deps: HeartbeatDeps = {
@@ -83,7 +83,7 @@ test("T2.3.3 quiet non-empty: grounded evidence -> intent_selected with quiet ar
     recentOutreachHashes: [],
     deniedIntents: [],
     quietEnabledBridge: true,
-    lifeEvidenceRefs: [{ id: "good", kind: "connector_result", uri: "https://example.com/evidence/1" }],
+    lifeEvidenceRefs: [{ id: "good", family: "connector_result", uri: "https://example.com/evidence/1", redactionClass: "none" }],
     userInterestSnapshot: {
       snapshotId: "snap-1",
       generatedAt: "2026-05-02T22:00:00.000Z",

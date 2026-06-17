@@ -8,7 +8,7 @@ import type { ObservabilityDatabase } from "../../observability/db/index.js";
 import { decisionLedger } from "../../observability/db/schema/index.js";
 import type { StateDatabase } from "../db/index.js";
 import { repairStateIndexes } from "../bootstrap/repair-gate.js";
-import type { SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidenceSourceRef } from "../life-evidence/types.js";
 
 import { loadLifeEvidenceSnapshot } from "./life-evidence-snapshot.js";
 import type { ContinuitySnapshot } from "./types.js";
@@ -29,7 +29,7 @@ export async function loadContinuitySnapshot(params: LoadContinuitySnapshotParam
     { runRepairGate: false }
   );
 
-  let recentDecisionRefs: SourceRef[] = [];
+  let recentDecisionRefs: LifeEvidenceSourceRef[] = [];
   if (params.observability) {
     const rows = await params.observability.db
       .select()

@@ -8,7 +8,7 @@ import { and, desc, gte, inArray, lte } from "drizzle-orm";
 
 import type { StateDatabase } from "../db/index.js";
 import { lifeEvidenceIndex } from "../db/schema/life-evidence-index.js";
-import type { LifeEvidence, SourceRef } from "../life-evidence/types.js";
+import type { LifeEvidence, LifeEvidenceSourceRef } from "../life-evidence/types.js";
 import { repairStateIndexes } from "../bootstrap/repair-gate.js";
 
 import type { LifeEvidenceQuery, LifeEvidenceReadModel, LifeEvidenceSnapshot, SourceCoverage } from "./types.js";
@@ -85,8 +85,8 @@ export async function loadLifeEvidenceSnapshot(
   const platformEvents: LifeEvidenceReadModel[] = [];
   const workEvents: LifeEvidenceReadModel[] = [];
   const userInteractionEvents: LifeEvidenceReadModel[] = [];
-  const quietArtifacts: SourceRef[] = [];
-  const evidenceRefs: SourceRef[] = [];
+  const quietArtifacts: LifeEvidenceSourceRef[] = [];
+  const evidenceRefs: LifeEvidenceSourceRef[] = [];
 
   for (const row of rows) {
     const abs = path.join(workspaceRoot, row.artifactPath.replace(/\//g, path.sep));

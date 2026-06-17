@@ -47,7 +47,7 @@ function makeExplorationIntent(): CandidateIntent {
     summary: "explore moltbook feed",
     effectClass: "connector_action",
     platformId: "moltbook",
-    sourceRefs: [{ id: "s1", kind: "platform_item", uri: "moltbook://item/1" }],
+    sourceRefs: [{ id: "s1", family: "evidence", uri: "moltbook://item/1", redactionClass: "none" }],
     idempotencyKey: "conn:explore",
   };
 }

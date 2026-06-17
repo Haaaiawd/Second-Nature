@@ -120,7 +120,6 @@ export declare function writeDreamConsolidationRun(db: StateDatabase, row: Omit<
  */
 export declare function updateDreamConsolidationRunStatus(db: StateDatabase, id: string, status: DreamConsolidationRunRecord["status"], options?: {
     reason?: DreamConsolidationRunRecord["reason"];
-    lifecycleStatus?: DreamConsolidationRunRecord["lifecycleStatus"];
     payloadJson?: string;
 }): Promise<{
     id: string;

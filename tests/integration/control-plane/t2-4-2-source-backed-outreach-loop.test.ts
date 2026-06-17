@@ -27,8 +27,9 @@ import { planCandidateIntents } from "../../../src/core/second-nature/orchestrat
 const evidenceRef = (id: string) =>
   ({
     id,
-    kind: "connector_result" as const,
+    family: "connector_result" as const,
     uri: `platform://moltbook/item/${id}`,
+    redactionClass: "none" as const,
   }) satisfies CandidateIntent["sourceRefs"][number];
 
 function makeSnapshot(ts: string, opts?: { evidenceCount?: number; empty?: boolean }) {

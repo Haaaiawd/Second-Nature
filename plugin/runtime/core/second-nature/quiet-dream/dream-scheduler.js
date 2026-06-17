@@ -60,7 +60,6 @@ export async function scheduleDreamAfterQuiet(db, quietReviewId, options) {
                 },
             ],
             redactionClass: "none",
-            lifecycleStatus: "pending",
             payloadJson: JSON.stringify({ scheduledAt: now, blocked: true }),
         });
         if ("reason" in writeResult) {
@@ -90,7 +89,6 @@ export async function scheduleDreamAfterQuiet(db, quietReviewId, options) {
             },
         ],
         redactionClass: "none",
-        lifecycleStatus: "pending",
         payloadJson: JSON.stringify({ scheduledAt: now }),
     });
     if ("reason" in writeResult) {

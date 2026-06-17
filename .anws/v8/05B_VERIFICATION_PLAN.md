@@ -860,7 +860,117 @@
 - **集成/E2E/冒烟覆盖**: Wave 108-110 targeted regression.
 - **前置数据**: v0.2.11 candidate build.
 - **断言**: 0 blocking failures; typecheck/build pass.
-- **证据**: `reports/int-r6-wave-111-repair-gate.md` (to be generated)
+- **证据**: `reports/int-r6-wave-111-repair-gate.md`
+
+### T-SH.R.2
+- **关联需求**: REQ-001, REQ-002, REQ-008
+- **关联契约**: `SourceRef` canonical shape, source grounding contract
+- **风险类别**: name collision; silent type mismatch; refactor unreliability
+- **单元测试覆盖**: v7 tuple renamed; v8 object remains canonical; `shared/types/index.ts` re-exports v8 contracts.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R7.
+- **前置数据**: 无.
+- **断言**: only one object-shaped `SourceRef` exists in v8 space; v7 tuple is `SourceRefTuple`.
+- **证据**: `logs/tsc-source-ref-unification.log`, updated contract tests
+
+### T-SMS.R.3
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: v8 persistence schema, SourceRef JSON serialization contract
+- **风险类别**: stale reads from wrong status column; malformed JSON interpreted differently across modules
+- **单元测试覆盖**: serialization round-trip for malformed/empty/canonical shapes; schema shape introspection.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R7.
+- **前置数据**: T-SH.R.2.
+- **断言**: one semantic status column per v8 table; all `sourceRefsJson` round-trip via `src/shared/serialization.ts`.
+- **证据**: `tests/unit/shared/source-ref-serialization.test.ts`, `tests/integration/storage/v8-schema-shape.test.ts`
+
+### T-SH.R.3
+- **关联需求**: REQ-001, REQ-002, REQ-008
+- **关联契约**: `SourceRef` canonical shape
+- **风险类别**: kind → family mapping error; missing redactionClass; test drift
+- **单元测试覆盖**: control-plane source refs use canonical shape.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R8.
+- **前置数据**: T-SH.R.2.
+- **断言**: no `ControlPlaneSourceRef` references remain.
+- **证据**: `logs/tsc-control-plane-source-ref.log`
+
+### T-SH.R.4
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: `SourceRef` canonical shape
+- **风险类别**: host capability evidence kind → family mismatch
+- **单元测试覆盖**: host-capability source refs use canonical shape.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R8.
+- **前置数据**: T-SH.R.2.
+- **断言**: no local `SourceRef` in `src/cli/host-capability`.
+- **证据**: updated host-capability tests
+
+### T-SH.R.5
+- **关联需求**: REQ-001, REQ-008
+- **关联契约**: `SourceRef` canonical shape
+- **风险类别**: v7 life-evidence collision with canonical `SourceRef`
+- **单元测试覆盖**: life-evidence module uses `LifeEvidenceSourceRef` or canonical `SourceRef`.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R8.
+- **前置数据**: T-SH.R.2.
+- **断言**: no local `SourceRef` named `SourceRef` in `src/storage/life-evidence`.
+- **证据**: updated life-evidence tests
+
+### T-SMS.R.4
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: v8 persistence schema
+- **风险类别**: migration data loss; query filtering wrong column
+- **单元测试覆盖**: schema introspection shows single status column per v8 table.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R9.
+- **前置数据**: T-SMS.R.3.
+- **断言**: one semantic status column per v8 table.
+- **证据**: `tests/integration/storage/v8-schema-shape.test.ts`
+
+### T-SMS.R.5
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: SourceRef JSON serialization contract
+- **风险类别**: residual ad-hoc JSON handling drift
+- **单元测试覆盖**: search confirms only shared serializer implements parse/serialize.
+- **API接口功能测试覆盖**: N/A
+- **集成/E2E/冒烟覆盖**: INT-R10.
+- **前置数据**: T-SMS.R.3.
+- **断言**: no ad-hoc `JSON.parse`/`JSON.stringify` of sourceRefsJson in v8 modules.
+- **证据**: search log, updated tests
+
+### INT-R8
+- **关联需求**: REQ-001, REQ-002, REQ-008
+- **关联契约**: v8 canonical contract shape
+- **风险类别**: Wave 113 fixes regress Wave 108-112 or fail typecheck/build
+- **单元测试覆盖**: all Wave 113 task suites.
+- **API接口功能测试覆盖**: N/A.
+- **集成/E2E/冒烟覆盖**: Wave 108-112 targeted regression.
+- **前置数据**: Wave 113 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r8-wave-113-source-ref-clones.md`
+
+### INT-R9
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: v8 persistence schema
+- **风险类别**: Wave 114 fixes regress prior waves or fail typecheck/build
+- **单元测试覆盖**: all Wave 114 task suites.
+- **API接口功能测试覆盖**: N/A.
+- **集成/E2E/冒烟覆盖**: Wave 108-113 targeted regression.
+- **前置数据**: Wave 114 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r9-wave-114-single-status-schema.md`
+
+### INT-R10
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: SourceRef JSON serialization contract
+- **风险类别**: Wave 115 fixes regress prior waves or fail typecheck/build
+- **单元测试覆盖**: all Wave 115 task suites.
+- **API接口功能测试覆盖**: N/A.
+- **集成/E2E/冒烟覆盖**: Wave 108-114 targeted regression.
+- **前置数据**: Wave 115 candidate build.
+- **断言**: 0 blocking failures; typecheck/build pass.
+- **证据**: `reports/int-r10-wave-115-serialization-completion.md`
 
 ---
 
@@ -916,6 +1026,17 @@
 | Connector shadow execution consistency | unsafe override | integration | T-CS.R.8 | `tests/integration/connectors/connector-executor-adapter-honest-failure.test.ts` | ✅ |
 | Heartbeat impulse context handoff | double refresh / missing artifact | API接口功能测试 | T-GVS.R.3 | `tests/api/runtime-ops/heartbeat-run-v8-spine.test.ts` | ✅ |
 | Wave 111 repair gate | regression | compile + targeted regression | INT-R6 | `reports/int-r6-wave-111-repair-gate.md` | ✅ |
+| SourceRef canonical shape | contract drift / name collision | compile + unit | T-SH.R.2 | `logs/tsc-source-ref-unification.log` | ✅ |
+| Single status column and centralized serialization | schema drift / lifecycle ambiguity | unit + integration | T-SMS.R.3 | `tests/unit/shared/source-ref-serialization.test.ts` | ✅ |
+| Wave 112 hemostasis gate | regression | compile + targeted regression | INT-R7 | `reports/int-r7-wave-112-hemostasis-gate.md` | ✅ |
+| Control-plane SourceRef clone removal | contract drift | compile + unit + integration | T-SH.R.3 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Host-capability SourceRef clone removal | contract drift | compile + unit | T-SH.R.4 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Life-evidence SourceRef naming | contract drift | compile + unit | T-SH.R.5 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Wave 113 source-ref clone gate | regression | compile + targeted regression | INT-R8 | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| v8 single-status schema cleanup | schema drift / lifecycle ambiguity | integration + migration | T-SMS.R.4 | `tests/integration/storage/v8-schema-shape.test.ts` | ✅ |
+| Wave 114 single-status gate | regression | compile + targeted regression + plugin build | INT-R9 | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
+| v8 SourceRef serialization cleanup | schema drift / serialization ambiguity | compile + search + unit | T-SMS.R.5 | `logs/wave-115-source-refs-search.log` | ✅ |
+| Wave 115 shared serialization gate | regression | compile + targeted regression + plugin build | INT-R10 | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
 
 ---
 
@@ -952,3 +1073,8 @@
 | Connector replay cooldown | T-CS.R.3, T-OBS.R.4 | 单元 + API接口功能测试 + 集成 | `tests/integration/control-plane/connector-replay-cooldown.test.ts` | replay diagnostics report | ✅ |
 | Quiet runtime recovery | T-CP.R.3, T-DQ.R.5, T-OBS.R.4 | API接口功能测试 + 集成 | `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts` | `logs/int-r3-loop-status.json` | ✅ |
 | Full v8 DoD | INT-V8, T-REG.C.1 | 集成 + scoped E2E + regression | `tests/integration/v8/living-perception-loop.test.ts` | `reports/int-v8-living-perception-loop.md` | ✅ |
+| SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3, T-SMS.R.5, INT-R10 | 编译 + 单元 + 集成 + search | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
+| v8 schema status/serialization hygiene | T-SMS.R.3, T-SMS.R.4, INT-R9 | 单元 + 集成 + migration | `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
+| SourceRef local clone removal | T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8 | 编译 + 单元 + 集成 + plugin build | targeted Wave 113 tests | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+
+---

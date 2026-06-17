@@ -23,21 +23,11 @@
  * Test coverage: tests/unit/action/action-proposal-builder.test.ts
  */
 import { readJudgmentVerdictById, } from "../../../storage/v8-state-stores.js";
+import { parseSourceRefs } from "../../../shared/serialization.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
-function parseVerdictSourceRefs(json) {
-    if (!json)
-        return [];
-    try {
-        const parsed = JSON.parse(json);
-        return Array.isArray(parsed) ? parsed : [];
-    }
-    catch {
-        return [];
-    }
-}
 function buildExpectedOutput(actionKind) {
     switch (actionKind) {
         case "ignore":
@@ -99,7 +89,7 @@ export async function buildActionProposal(db, judgmentVerdictId, options) {
             judgmentVerdictId,
         };
     }
-    const sourceRefs = parseVerdictSourceRefs(verdict.sourceRefsJson);
+    const sourceRefs = parseSourceRefs(verdict.sourceRefsJson);
     // remember → memory review candidate (no direct projection; orchestrator writes closure)
     if (actionKind === "remember") {
         const candidate = {
