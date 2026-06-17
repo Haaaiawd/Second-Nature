@@ -65,4 +65,15 @@ describe("parseSourceRefs", () => {
   it("returns empty array for non-array JSON", () => {
     assert.deepStrictEqual(parseSourceRefs('{"id":"ev_001"}'), []);
   });
+
+  it("returns empty array for malformed source ref objects", () => {
+    assert.deepStrictEqual(
+      parseSourceRefs(JSON.stringify([{ id: "ev_001", kind: "legacy" }])),
+      [],
+    );
+    assert.deepStrictEqual(
+      parseSourceRefs(JSON.stringify([{ ...sampleRef, uri: undefined }])),
+      [],
+    );
+  });
 });

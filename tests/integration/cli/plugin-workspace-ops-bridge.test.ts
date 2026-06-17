@@ -952,6 +952,7 @@ process.stdout.write("ok");
 test("heartbeat_check exposes impulse context when artifact exists", async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-bridge-ica-"));
   fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  const now = new Date().toISOString();
 
   // Seed artifact directly in state DB
   const dbPath = path.join(tmp, "data", "state.db");
@@ -971,7 +972,7 @@ test("heartbeat_check exposes impulse context when artifact exists", async () =>
         atmosphereText: "Open and receptive",
         expressionBoundaryConstraints: ["avoid_sarcasm"],
       },
-      { now: new Date().toISOString() },
+      { now },
     );
   } finally {
     db.close();
@@ -999,7 +1000,7 @@ test("heartbeat_check exposes impulse context when artifact exists", async () =>
   const text = (
     await tool.execute("1", {
       command: "heartbeat_check",
-      args: { timestamp: "2026-06-05T12:00:00.000Z" },
+      args: { timestamp: now },
       workspaceRoot: tmp,
     })
   ).content[0]?.text ?? "{}";

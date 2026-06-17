@@ -18,11 +18,24 @@ export function serializeSourceRefs(refs: SourceRef[]): string {
   return JSON.stringify(refs);
 }
 
+function isSourceRef(value: unknown): value is SourceRef {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<Record<keyof SourceRef, unknown>>;
+  return (
+    typeof candidate.uri === "string" &&
+    typeof candidate.family === "string" &&
+    typeof candidate.id === "string" &&
+    typeof candidate.redactionClass === "string" &&
+    (candidate.sensitivityClass === undefined ||
+      typeof candidate.sensitivityClass === "string")
+  );
+}
+
 export function parseSourceRefs(json: string | null | undefined): SourceRef[] {
   if (!json) return [];
   try {
     const parsed = JSON.parse(json);
-    if (Array.isArray(parsed)) return parsed as SourceRef[];
+    if (Array.isArray(parsed) && parsed.every(isSourceRef)) return parsed;
     return [];
   } catch {
     return [];

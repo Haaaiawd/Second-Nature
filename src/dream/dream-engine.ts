@@ -215,16 +215,21 @@ export async function runDream(
         }
 
         if (!fallbackReason) {
+          let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
           const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(
+            timeoutHandle = setTimeout(
               () => reject(new Error("model_timeout")),
               operatorTimeoutMs,
             );
           });
 
-          modelResult = await Promise.race([modelPromise!, timeoutPromise]);
-          mode = "hybrid_llm";
-          llmCostUsd = modelResult.costUsd;
+          try {
+            modelResult = await Promise.race([modelPromise!, timeoutPromise]);
+            mode = "hybrid_llm";
+            llmCostUsd = modelResult.costUsd;
+          } finally {
+            if (timeoutHandle) clearTimeout(timeoutHandle);
+          }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
