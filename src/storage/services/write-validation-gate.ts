@@ -149,7 +149,7 @@ const IDENTIFIER_FIELD_NAMES = new Set([
   "id",
   "runId",
   "run_id",
-  "SourceRefTuple",
+  "sourceRef",
   "source_ref",
   "sourceRefs",
   "source_refs_json",
