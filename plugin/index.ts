@@ -538,6 +538,7 @@ function buildSetupHintPayload(
     ok: true,
     command: "setup_hint",
     surfaceMode: "host_safe_carrier",
+    evidenceLevel: "contract_smoke",
     message:
       "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
     data,
@@ -580,6 +581,7 @@ function buildSetupAckPayload(
     ok: true,
     command: "setup_ack",
     surfaceMode: "host_safe_carrier",
+    evidenceLevel: "state_present",
     message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
     data: {
       markerPath,

@@ -29,7 +29,9 @@ import {
 import type {
   LoopStage,
   DegradedOperationResult,
+  EvidenceLevel,
 } from "../shared/types/v8-contracts.js";
+import { classifyEvidenceLevel } from "../shared/evidence-level-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -50,6 +52,7 @@ export interface CausalLoopHealthSnapshot {
   lastHeartbeatAt?: string;
   stages: StageHealth[];
   reason?: string;
+  evidenceLevel: EvidenceLevel;
 }
 
 export interface AssembleLoopStatusOptions {
@@ -127,6 +130,7 @@ export async function assembleLoopStatus(
       lastCycleSequence: 0,
       stages: [],
       reason: "no heartbeat cycles recorded",
+      evidenceLevel: classifyEvidenceLevel({ hasCarrierEnvelope: true }),
     };
   }
 
@@ -172,5 +176,10 @@ export async function assembleLoopStatus(
     lastHeartbeatAt: lastCycle.heartbeatStartedAt,
     stages,
     reason: stalledAt ? `stage ${stalledAt} stalled for >=${threshold} cycles` : undefined,
+    evidenceLevel: classifyEvidenceLevel({
+      hasCarrierEnvelope: true,
+      hasContractSmoke: true,
+      hasCycleExecution: stalledAt === undefined,
+    }),
   };
 }

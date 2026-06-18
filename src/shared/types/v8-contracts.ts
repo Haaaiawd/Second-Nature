@@ -156,6 +156,13 @@ export interface LoopStageEvent {
 // 4. Memory Review Closure Contract
 // ───────────────────────────────────────────────────────────────
 
+export type EvidenceLevel =
+  | "carrier_ack"
+  | "contract_smoke"
+  | "state_present"
+  | "real_runtime"
+  | "durable_verified";
+
 export type MemoryReviewClosureSubtype = "remember_for_review";
 
 export interface MemoryReviewCandidateClosure {

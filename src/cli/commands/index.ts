@@ -129,6 +129,7 @@ async function buildSetupHintPayload(input?: Record<string, unknown>): Promise<R
     ok: true,
     command: "setup_hint",
     surfaceMode: "workspace_full_runtime",
+    evidenceLevel: "contract_smoke",
     message:
       "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
     data,
@@ -157,6 +158,7 @@ async function buildSetupAckPayload(input?: Record<string, unknown>): Promise<Re
     ok: true,
     command: "setup_ack",
     surfaceMode: "workspace_full_runtime",
+    evidenceLevel: "state_present",
     message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
     data: {
       markerPath,

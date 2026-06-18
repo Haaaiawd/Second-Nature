@@ -95,9 +95,12 @@ import { createIdleCuriosityPolicy } from "../../core/second-nature/heartbeat/id
 import { createCircuitBreakerManager } from "../../core/second-nature/body/circuit-breaker/circuit-breaker-manager.js";
 import { createProbeSignalAdapter } from "../../core/second-nature/body/probe-signal-adapter.js";
 
+import type { EvidenceLevel } from "../../shared/types/v8-contracts.js";
+import { classifyEvidenceLevel } from "../../shared/evidence-level-classifier.js";
+
 // ─── RuntimeOpsEnvelope (T-ROS.C.1 / [G1]) ───────────────────────────────────
 
-/** Unified response envelope for all v7 runtime-ops commands. */
+/** Unified response envelope for all v7/v8 runtime-ops commands. */
 export interface RuntimeOpsEnvelope<T = unknown> {
   ok: boolean;
   command: string;
@@ -108,6 +111,76 @@ export interface RuntimeOpsEnvelope<T = unknown> {
   error?: { code: string; message: string; nextStep?: string };
   warnings: string[];
   sourceRefs: string[];
+  /** T-OBS.R.7: how strongly this response is backed by runtime proof. */
+  evidenceLevel?: EvidenceLevel;
+}
+
+function finalizeEnvelope(
+  envelope: Omit<RuntimeOpsEnvelope, "evidenceLevel"> & { evidenceLevel?: EvidenceLevel },
+  fallbackLevel: EvidenceLevel = "carrier_ack",
+): RuntimeOpsEnvelope {
+  return {
+    ...envelope,
+    evidenceLevel: envelope.evidenceLevel ?? fallbackLevel,
+  };
+}
+
+function isRuntimeOpsEnvelope(value: unknown): value is RuntimeOpsEnvelope {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "ok" in value &&
+    "command" in value &&
+    "generatedAt" in value
+  );
+}
+
+function defaultEvidenceLevelForCommand(
+  command: string,
+  runtimeMode: RuntimeOpsEnvelope["runtimeMode"],
+): EvidenceLevel {
+  if (runtimeMode === "host_safe_carrier" || runtimeMode === "unavailable") {
+    return "carrier_ack";
+  }
+  // workspace_full_runtime default: contract_smoke unless proven otherwise
+  if (command === "setup_ack" || command === "setup_hint") {
+    return command === "setup_ack" ? "state_present" : "contract_smoke";
+  }
+  return "contract_smoke";
+}
+
+function normalizeEnvelopeResult(
+  raw: unknown,
+  command: string,
+  runtimeMode?: RuntimeOpsEnvelope["runtimeMode"],
+): RuntimeOpsEnvelope {
+  if (isRuntimeOpsEnvelope(raw)) {
+    const mode = raw.runtimeMode ?? runtimeMode ?? "host_safe_carrier";
+    const fallback = defaultEvidenceLevelForCommand(command, mode);
+    return {
+      ...raw,
+      runtimeMode: mode,
+      evidenceLevel: raw.evidenceLevel ?? fallback,
+    };
+  }
+  // Non-envelope result (e.g. plain error from an internal helper) — wrap honestly.
+  const generatedAt = new Date().toISOString();
+  return {
+    ok: false,
+    command,
+    runtimeMode: runtimeMode ?? "host_safe_carrier",
+    surfaceMode: "cli",
+    generatedAt,
+    error: {
+      code: "OPS_RESULT_NOT_AN_ENVELOPE",
+      message: typeof raw === "object" && raw !== null && "message" in raw
+        ? String((raw as { message?: unknown }).message)
+        : "Internal ops result did not match RuntimeOpsEnvelope shape",
+    },
+    warnings: [],
+    sourceRefs: [],
+    evidenceLevel: "carrier_ack",
+  };
 }
 
 function coerceProbeOnlyFlag(input?: Record<string, unknown>): boolean {
@@ -566,6 +639,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         dreamSchedulePort: input.dreamSchedulePort,
       }),
     async dispatch(command, input) {
+      const rawResult = await (async () => {
       if (command === "heartbeat_check") {
         const runtimeAvailable =
           typeof input?.runtimeAvailable === "boolean"
@@ -699,7 +773,30 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
               result.reasons = [...result.reasons, `restore_snapshot_capture_failed:${msg}`];
             }
           }
-          return result;
+          const heartbeatEvidenceLevel: EvidenceLevel = (() => {
+            if (!runtimeAvailable || result.surfaceMode === "host_safe_carrier" || result.status === "runtime_carrier_only") {
+              return "carrier_ack";
+            }
+            if (result.schemaParityOnly || coerceProbeOnlyFlag(input)) {
+              return "contract_smoke";
+            }
+            if (result.v8Spine?.cycleId && (result.v8Spine.closureRef || result.v8Spine.noActionReason)) {
+              return "real_runtime";
+            }
+            return "contract_smoke";
+          })();
+          const heartbeatEnvelope: RuntimeOpsEnvelope = {
+            ok: result.ok,
+            command: "heartbeat_check",
+            runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier",
+            surfaceMode: "cli",
+            generatedAt: new Date().toISOString(),
+            data: result,
+            warnings: [],
+            sourceRefs: result.decisionId ? [`heartbeat:${result.decisionId}`] : ["heartbeat:runtime"],
+            evidenceLevel: heartbeatEvidenceLevel,
+          };
+          return heartbeatEnvelope;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           const envelope: RuntimeOpsEnvelope = {
@@ -1170,6 +1267,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             data: result.status,
             warnings: [],
             sourceRefs: [],
+            evidenceLevel: result.status.evidenceLevel,
           };
           return envelope;
         } catch (err) {
@@ -1940,6 +2038,8 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           message: `Unknown ops command: ${command}`,
         },
       };
+      })();
+      return normalizeEnvelopeResult(rawResult, command, typeof input?.runtimeAvailable === "boolean" ? (input.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier") : undefined);
     },
   };
 }
