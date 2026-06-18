@@ -17,7 +17,6 @@
 
 - `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`（J-HOST 表、JSON-first）；`reports/int-s4-release-readiness.md`（INT-S4 记录）
 - `docs/validation/e2e-v5-prd-full-lived-experience.md`（PRD 与旅程总表；浏览器多对应 J-HOST-*）
-- `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`（workspace 根与 OpenClaw agent workspace 对齐）
 
 ### 测试范围（浏览器能做什么）
 

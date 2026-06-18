@@ -141,6 +141,7 @@ sequenceDiagram
 | `evaluateActionPolicy(proposalId)` | [REQ-004] | proposal has action kind and risk posture | platform profile, affordance, owner preference | `ActionPolicyDecision` | [L1 §3.2](./action-closure-policy-system.detail.md#32-evaluateactionpolicy) |
 | `dispatchAllowedAction(decisionId)` | [REQ-004], [REQ-009] | decision is allow or downgrade | decision proof, action payload | ConnectorResult, draft/notify output, or guidance-unavailable downgraded dispatch result | [L1 §3.3](./action-closure-policy-system.detail.md#33-dispatchallowedaction) |
 | `recordActionClosure(cycleId)` | [REQ-009] | decision/output/no-action exists | input, decision, output, post-processing | writes `ActionClosureRecord` | [L1 §3.4](./action-closure-policy-system.detail.md#34-recordactionclosure) |
+| `finalizeCycle(cycleId)` | [REQ-009] | cycle reached terminal branch or early exit | proposal, decision, dispatch output, no-action reason, degraded diagnostic | writes exactly one terminal closure/no-action record | Wave 116 `CycleFinalizer` contract |
 
 ### 5.2 跨系统接口协议
 
@@ -149,6 +150,7 @@ interface ActionClosurePolicyPort {
   buildProposal(input: BuildActionProposalRequest): Promise<ActionProposalResult>;
   evaluatePolicy(input: PolicyEvaluationRequest): Promise<ActionPolicyDecision>;
   closeAction(input: ActionClosureRequest): Promise<ActionClosureRecord>;
+  finalizeCycle(input: CycleFinalizationRequest): Promise<ActionClosureRecord>;
 }
 
 interface ActionExecutionPort {
@@ -210,10 +212,26 @@ interface ActionClosureRecord {
   nextState: string;
   reason: string;
   sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
   memoryReviewCandidate?: MemoryReviewCandidateClosure;
   closedAt: string;
 }
 ```
+
+`CycleFinalizer` owns the exactly-one terminal closure invariant. Branch-local code may prepare proposal, policy, dispatch, no-action, or degraded facts, but must not independently decide that the cycle is complete.
+
+### 6.1a CycleFinalizer protocol
+
+| Protocol item | Contract |
+| --- | --- |
+| Idempotency key | `cycleId` is the finalizer idempotency key; retries for the same cycle return or reconcile the existing terminal closure. |
+| Write order | Write `ActionClosureRecord` first, then emit the closure stage event; missing event is recoverable from the closure row. |
+| Partial failure recovery | On the next cycle or `loop_status`, if a closure row exists without a closure event, emit/replay the event with `traceRefs`; if an event exists without a closure row, mark `closure_unavailable` and do not fabricate closure content. |
+| Duplicate prevention | More than one terminal closure for the same `cycleId` is an idempotency conflict and must surface as `unsafe`. |
+| Provenance | Real input evidence remains in `sourceRefs`; policy/setup/runtime proof goes to `proofRefs`; stage/audit diagnostics go to `traceRefs`. |
+
+Affected payload migration list: `ActionClosureRecord`, `ActionPolicyDecision`, `GuidanceUnavailableDispatchResult`, `LoopStageEvent`, `RuntimeOpsEnvelope`, heartbeat cycle traces, and setup/tool visibility proofs.
 
 ### 6.2 实体关系图
 

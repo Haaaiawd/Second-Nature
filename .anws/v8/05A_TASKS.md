@@ -1900,3 +1900,196 @@ graph TD
   - **依赖**: T-SMS.R.5
   - **优先级**: P1
 
+---
+
+## Wave 116 — v8 Change: Host Reality and Ideal Loop Hemostasis
+
+> 触发：host runtime reality review + v8 ideal loop hemostasis review.
+> 目标：让 v8 不再把 loaded/smoke/carrier-visible 当作真实运行；收束 heartbeat、closure、provenance、degradation、content-bearing evidence 的语义污染。
+
+- [ ] **T-ROS.R.5** [REQ-008, REQ-009]: Restore host-visible `second_nature_ops` tool injection contract
+  - **描述**: Ensure plugin loaded state is not considered operational until `second_nature_ops` is visible through `HostCapabilityDiscoveryPort.listHostTools()` or an explicit host capability-denial diagnostic explains why it is unavailable.
+  - **输入**: OpenClaw plugin registration, workspace ops bridge, runtime ops envelope, `HostCapabilityDiscoveryPort`
+  - **输出**: Host-visible tool registration proof or blocked diagnostic with owner next action; manual smoke appendix must include hostName, hostVersion, timestamp, raw tool list JSON, command envelope, and evidenceLevel
+  - **契约承接**: runtime ops host reality contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given plugin status is loaded
+    - When the host session enumerates available tools
+    - Then `second_nature_ops` is visible in machine-readable host tool list or `loop_status` reports `host_tool_unavailable` with `evidenceLevel != real_runtime`
+  - **验证类型**: plugin bridge / host smoke / API接口功能测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-5`
+  - **证据产出**: host tool visibility log, plugin bridge test
+  - **估时**: 6h
+  - **依赖**: T-OBS.R.7
+  - **优先级**: P0
+
+- [ ] **T-ROS.R.7** [REQ-008]: Project packaged `SKILL.md` into actual host skill discovery
+  - **描述**: Treat packaged `SKILL.md` as incomplete setup until `SkillDiscoveryProbe` confirms discovery, or reports `skill_projection_unavailable`, `skill_probe_unsupported`, `host_policy_blocked`, or `host_probe_timeout`.
+  - **输入**: packaged plugin artifacts, setup hint/ack, host skill discovery path, `HostCapabilityDiscoveryPort.listHostSkills?()`
+  - **输出**: skill discovery proof or explicit `skill_projection_unavailable` diagnostic
+  - **契约承接**: runtime ops setup reality contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given package contains `SKILL.md`
+    - When setup completes
+    - Then the skill is discoverable by machine-readable host skill lookup or setup remains incomplete with precise repair instruction
+  - **验证类型**: packaging / host smoke / setup state test
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-7`
+  - **证据产出**: skill projection evidence log
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P0
+
+- [ ] **T-ROS.R.8** [REQ-008]: Make setup ack placement a truthful completion gate
+  - **描述**: Reject or downgrade setup completion when `setup/agent-inner-guide-ack.json` records `placedIn: "unspecified"`; require `schemaVersion=1`, a concrete placement target, `placementProofRef`, and authorized writer.
+  - **输入**: setup ack artifact, setup_hint/setup_ack commands
+  - **输出**: setup state with concrete placement proof or incomplete diagnostic
+  - **契约承接**: runtime setup truth contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given setup ack has `placedIn: "unspecified"`
+    - When runtime ops evaluates setup completion
+    - Then setup is not reported complete and owner next action names the missing placement, writer, schema, or proof field
+  - **验证类型**: unit / API接口功能测试 / host setup smoke
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-8`
+  - **证据产出**: setup ack validation test
+  - **估时**: 3h
+  - **依赖**: none
+  - **优先级**: P0
+
+- [ ] **T-SH.R.6** [REQ-001, REQ-008, REQ-009]: Split provenance into `sourceRefs`, `proofRefs`, and `traceRefs`
+  - **描述**: Define and apply provenance tiers so real evidence sources, policy/setup proofs, and observability traces cannot be serialized into the same semantic bucket.
+  - **输入**: shared v8 contracts, action closure records, loop stage events, runtime ops proofs
+  - **输出**: canonical provenance-tier contract and migration plan for `ActionClosureRecord`, `ActionPolicyDecision`, `GuidanceUnavailableDispatchResult`, `LoopStageEvent`, `RuntimeOpsEnvelope`, heartbeat cycle traces, and setup/tool visibility proofs
+  - **契约承接**: v8 provenance contract
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`, `04_SYSTEM_DESIGN/action-closure-policy-system.md`
+  - **验收标准**:
+    - Given a closure or status payload contains synthetic runtime proof
+    - When it is serialized
+    - Then it appears in `proofRefs` or `traceRefs`, not in evidence `sourceRefs`, and affected payloads have explicit fields or documented migration steps
+  - **验证类型**: compile / unit / search
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sh-r-6`
+  - **证据产出**: provenance-tier search log
+  - **估时**: 8h
+  - **依赖**: T-SMS.R.5
+  - **优先级**: P0
+
+- [ ] **T-CP.R.5** [REQ-008, REQ-009]: Collapse external heartbeat model to v8 living loop
+  - **描述**: Make v8 heartbeat the only operator-facing heartbeat model; the v8 control plane does not contain a v7 heartbeat compatibility path. Legacy v7 heartbeat requests are rejected with `version_obsolete` or `command_unavailable`.
+  - **输入**: heartbeat surface, real runtime spine, ops docs
+  - **输出**: single external heartbeat contract and legacy-command rejection diagnostics
+  - **契约承接**: heartbeat rhythm contract
+  - **参考**: `04_SYSTEM_DESIGN/control-plane-system.md`
+  - **验收标准**:
+    - Given an operator runs heartbeat or loop_status
+    - When v8 living-loop cycle executes
+    - Then output names one v8 living loop cycle with v8 cycle identity, emits `DailyRhythmTriggerRequest` after final closure, and does not expose v7 primary cycle fields
+    - And legacy v7 heartbeat requests are rejected with `version_obsolete` or `command_unavailable`; no v7 cycle is produced
+  - **验证类型**: API接口功能测试 / integration / docs search
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-5`
+  - **证据产出**: heartbeat model parity log, API tests asserting no v7 heartbeat path exists in v8 control plane, legacy rejection tests, trigger envelope test
+  - **估时**: 6h
+  - **依赖**: T-OBS.R.7
+  - **优先级**: P0
+
+- [ ] **T-AC.R.2** [REQ-004, REQ-009]: Introduce a single CycleFinalizer closure invariant
+  - **描述**: Move exactly-one closure/no-action responsibility to a single finalizer boundary with `cycleId` idempotency key, closure-row-first write order, and partial-failure reconcile semantics.
+  - **输入**: action proposal/policy/dispatch/closure ports, heartbeat orchestrator
+  - **输出**: CycleFinalizer contract with idempotent exactly-one closure semantics
+  - **契约承接**: ActionClosureRecord invariant
+  - **参考**: `04_SYSTEM_DESIGN/action-closure-policy-system.md`
+  - **验收标准**:
+    - Given any heartbeat branch exits early, fails, denies, defers, downgrades, or succeeds
+    - When the cycle finalizes
+    - Then exactly one `ActionClosureRecord` or no-action closure exists for the cycle; closure-row/event partial failures reconcile without fabricating content
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-r-2`
+  - **证据产出**: cycle finalizer tests
+  - **估时**: 8h
+  - **依赖**: T-CP.R.5
+  - **优先级**: P0
+
+- [ ] **T-OBS.R.7** [REQ-008]: Add `evidenceLevel` to operator-facing health and proof surfaces
+  - **描述**: Implement the shared `EvidenceLevelClassifier` for `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, and `durable_verified` so loaded/smoke/carrier success cannot masquerade as real living-loop health.
+  - **输入**: runtime ops envelopes, loop_status, digest, setup/tool proofs
+  - **输出**: evidence-level taxonomy in all relevant operator surfaces
+  - **契约承接**: causal loop health truth contract
+  - **参考**: `04_SYSTEM_DESIGN/observability-health-system.md`, `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given a carrier-only or contract-smoke response
+    - When shown to the operator
+    - Then its `evidenceLevel` is capped by the classifier and is not `real_runtime` or `durable_verified`
+  - **验证类型**: unit / API接口功能测试 / integration
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-7`
+  - **证据产出**: loop_status evidence-level fixtures
+  - **估时**: 6h
+  - **依赖**: none
+  - **优先级**: P0
+
+- [ ] **T-OBS.R.8** [REQ-006, REQ-008]: Split `degraded` into precise operational states
+  - **描述**: Keep `degraded` as aggregate only; stage-level diagnostics and `DegradedOperationResult.status` must report `empty`, `partial`, `blocked`, `unavailable`, or `unsafe` where applicable.
+  - **输入**: degraded responses, loop_status stage health, Quiet/Dream absence reasons
+  - **输出**: precise status taxonomy and read model mapping
+  - **契约承接**: degraded response contract
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`, `04_SYSTEM_DESIGN/observability-health-system.md`
+  - **验收标准**:
+    - Given missing content, blocked redaction, unavailable host tool, or unsafe policy denial
+    - When loop_status reports the stage
+    - Then the stage/degraded result uses the precise state and `degraded` only appears as aggregate `overallStatus` if needed
+  - **验证类型**: unit / API接口功能测试 / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-8`
+  - **证据产出**: status taxonomy tests
+  - **估时**: 6h
+  - **依赖**: T-OBS.R.7
+  - **优先级**: P0
+
+- [ ] **T-CS.R.9** [REQ-001, REQ-002, REQ-005]: Enforce content-bearing evidence minimum contract
+  - **描述**: Connector read evidence must carry useful content fields or an explicit `content_missing` reason; ID-only evidence must not feed perception/Quiet as meaningful content.
+  - **输入**: connector result extractors, EvidenceItem normalization, perception inputs
+  - **输出**: content minimum gate and no-fabrication fallback
+  - **契约承接**: NormalizedEvidenceContent contract
+  - **参考**: `04_SYSTEM_DESIGN/connector-system.md`
+  - **验收标准**:
+    - Given connector output only contains IDs or refs
+    - When evidence is normalized
+    - Then downstream receives `content_missing` with canonical reason such as `evidence_id_only` and does not generate fake summaries or memory candidates
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-9`
+  - **证据产出**: content-bearing evidence tests
+  - **估时**: 6h
+  - **依赖**: T-SH.R.6
+  - **优先级**: P0
+
+- [ ] **T-DQ.R.9** [REQ-005, REQ-006, REQ-007]: Remove Quiet template placeholders and split Dream sensitivity blocks
+  - **描述**: Quiet must not emit template-like review text as meaningful memory input; Dream sensitivity blocks must distinguish no content, private content redacted, credential-shaped block, and validation failure; Dream-Quiet scheduler owns daily/7-day due policy after `DailyRhythmTriggerRequest`.
+  - **输入**: QuietDailyReview payloads, DreamConsolidationRun lifecycle, sensitivity diagnostics, `DailyRhythmTriggerRequest`
+  - **输出**: non-template Quiet payload gate and precise Dream blocked reasons
+  - **契约承接**: Quiet/Dream content and lifecycle truth contract
+  - **参考**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
+  - **验收标准**:
+    - Given Quiet has only placeholders or ref-only evidence
+    - When Dream consolidation is considered
+    - Then Dream is skipped/blocked with precise reason, no long-term memory candidate is fabricated, and duplicate/stale scheduling is decided by dream-quiet scheduler rather than control-plane
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-9`
+  - **证据产出**: Quiet/Dream content truth tests
+  - **估时**: 6h
+  - **依赖**: T-CS.R.9, T-OBS.R.8
+  - **优先级**: P0
+
+- [ ] **INT-R11** [MILESTONE]: Host Reality and Hemostasis Gate
+  - **描述**: Verify Wave 116 closes host reality and v8 ideal-loop semantic drift without regressing Wave 108-115 repairs.
+  - **输入**: T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9 outputs
+  - **输出**: `reports/int-r11-wave-116-host-reality-hemostasis.md`
+  - **契约承接**: v8 host reality + living loop hemostasis contract
+  - **验收标准**:
+    - Given Wave 116 code changes
+    - When targeted host/plugin/content/closure tests and Wave 108-115 regressions run
+    - Then `loop_status`, `heartbeat_run`, `RuntimeOpsEnvelope`, setup state, host tool/skill probes, evidence normalization, closure finalization, `DailyRhythmTriggerRequest`, Quiet/Dream status, and digest surfaces show no loaded/smoke/carrier response as real runtime health, and every cycle/content/memory path has truthful closure or precise blocked reason
+  - **验证类型**: 回归门 / 集成测试 / host smoke
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r11`
+  - **证据产出**: `reports/int-r11-wave-116-host-reality-hemostasis.md`
+  - **依赖**: all Wave 116 repair tasks
+  - **优先级**: P0
+

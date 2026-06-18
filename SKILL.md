@@ -49,7 +49,7 @@ Second Nature 当前对齐的是 OpenClaw 的 workspace 语义。
 1. **`SECOND_NATURE_WORKSPACE_ROOT`**（网关 / agent 进程环境变量，推荐）  
 2. **`second_nature_ops` 的 `workspaceRoot` 参数**（每次调用可带；适合在网关 env 未配好前的过渡）
 
-**对齐目标**：上述路径应与 OpenClaw **`agents.defaults.workspace`** 解析后的 **绝对路径** 一致（常见默认 `~/.openclaw/workspace`）；若启用 **sandbox / 每 agent 独立 workspace**，以 **实际承载 `SOUL.md` / `data/` 的那张根** 为准。详见仓库内 `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`。
+**对齐目标**：上述路径应与 OpenClaw **`agents.defaults.workspace`** 解析后的 **绝对路径** 一致（常见默认 `~/.openclaw/workspace`）；若启用 **sandbox / 每 agent 独立 workspace**，以 **实际承载 `SOUL.md` / `data/` 的那张根** 为准。
 
 ### 让 Claw（宿主里的 AI）参与「识别 + 设置」时怎么做
 

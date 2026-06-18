@@ -123,8 +123,17 @@ sequenceDiagram
 **关键数据流说明**:
 1. Evidence 先形成 `PerceptionCard`，再进入 judgment；不得从 raw connector result 直接生成 write action。
 2. `JudgmentVerdict` 可以是 ignore/watch/no_action，仍要写入 reason，供 closure 与 health 使用。
-3. `PerceptionCard.summary/topic/entities` 必须从 `EvidenceItem.payloadJson` 中 content-bearing 字段提取；空壳 ref-only evidence 必须标记 `perception_rules_only` 或 `evidence_content_missing`。
+3. `PerceptionCard.summary/topic/entities` 必须从 `EvidenceItem.payloadJson` 中 content-bearing 字段提取；空壳 ref-only evidence 必须标记 `evidence_content_missing`，并使用 canonical reason `evidence_id_only` when the only useful field is an external id/ref.
 4. EvidenceBatchSelector 按 `externalId`/`contentHash` 去重，更新 novelty class 为 `duplicate` 或 `stale`，而不是重复生成卡片。
+
+Content-missing handoff:
+
+| Evidence content status | Perception behavior | Health reason |
+| --- | --- | --- |
+| `content_present` | Build normal `PerceptionCard`. | `perception_completed` or stage-specific reason. |
+| `content_missing` + `id_only` | Do not fabricate summary; emit skipped/empty perception result. | `evidence_id_only`. |
+| `content_missing` + `unsupported_shape` | Preserve source ref and report extractor gap. | `evidence_content_missing`. |
+| `content_redacted` | Do not expose raw text; allow redacted metadata-only card only if summary remains source-backed. | `perception_blocked_redaction` or `evidence_content_redacted`. |
 
 ## 5. 接口设计 (Interface Design)
 

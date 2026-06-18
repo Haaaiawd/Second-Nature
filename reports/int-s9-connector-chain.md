@@ -19,7 +19,7 @@
 | 5 | T-CS.C.11（scriptable runner framework）PASS | ✅ | `scriptable-node-runner.test.ts` 4/4 PASS |
 | 6 | T-CS.C.12（scriptable runner integration）PASS | ✅ | `scriptable-node-e2e.test.ts` 4/4 PASS |
 | 7 | `pnpm lint && pnpm typecheck` 无错误 | ✅ | 两次 `tsc --noEmit` 均通过 |
-| 8 | 单次 heartbeat 循环 / feed.read / `life_evidence_index` DB 增长 | ✅ | `scripts/int-s9-db-validation.js` before=0, after=1 |
+| 8 | 单次 heartbeat 循环 / feed.read / `life_evidence_index` DB 增长 | ✅ | `scripts/verification/int-s9-db-validation.js` before=0, after=1 |
 
 ---
 
@@ -144,7 +144,7 @@ workspace manifest (scriptable_node)
 
 ## 9. DB Before/After 心跳验证
 
-**脚本**: `scripts/int-s9-db-validation.js`
+**脚本**: `scripts/verification/int-s9-db-validation.js`
 
 执行单次 moltbook mock runner 的 `feed.read` → `mapLifeEvidence` → `appendLifeEvidence` 完整链路，验证 `life_evidence_index` 表行增长。
 

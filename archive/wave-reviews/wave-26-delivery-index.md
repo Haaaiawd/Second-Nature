@@ -18,7 +18,7 @@
 - `tests/unit/control-plane/t2-1-4-goal-priority.test.ts` — 7 tests
 - `tests/unit/guidance/t6-1-1-narrative-outreach.test.ts` — 5 tests
 - `tests/unit/control-plane/t2-1-5-narrative-update.test.ts` — 9 tests
-- `wave-reviews/wave-26-delivery-index.md` — this index
+- `archive/wave-reviews/wave-26-delivery-index.md` — this index
 
 ### Modified Files (4)
 

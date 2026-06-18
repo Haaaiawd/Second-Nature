@@ -78,6 +78,19 @@ interface ActionClosureRequest {
   noActionReason?: string;
   now: string;
 }
+
+interface CycleFinalizationRequest {
+  cycleId: string;
+  proposalId?: string;
+  decisionId?: string;
+  executionResultRef?: string;
+  noActionReason?: V8ReasonCode;
+  degradedDispatchReason?: V8ReasonCode;
+  sourceRefs: SourceRef[];
+  proofRefs: SourceRef[];
+  traceRefs: SourceRef[];
+  now: string;
+}
 ```
 
 ### §2.2 Entity Field Contracts
@@ -136,6 +149,8 @@ interface ActionClosureRecord {
   nextState: string;
   reason: string;
   sourceRefs: SourceRef[];
+  proofRefs: SourceRef[];
+  traceRefs: SourceRef[];
   memoryReviewCandidate?: MemoryReviewCandidateClosure;
   closedAt: string;
 }
@@ -150,6 +165,8 @@ interface ActionClosureRecord {
 | AC-I3 | 每个 heartbeat cycle 至少有一个 `ActionClosureRecord` 或 `closure_no_action`。 |
 | AC-I4 | connector failure、timeout、policy deny 都必须写 closure。 |
 | AC-I5 | guidance 不可用不得阻塞 closure；downgrade 路径必须返回可闭环的 `guidance_unavailable` dispatch result。 |
+| AC-I6 | 每个 `cycleId` 最多一个 terminal closure；重复 terminal write 是 `unsafe` idempotency conflict。 |
+| AC-I7 | `proofRefs` / `traceRefs` 不得混入 content-bearing `sourceRefs`。 |
 
 ## §3 操作契约细化 (Operation Contract Details)
 
@@ -184,7 +201,7 @@ interface ActionClosureRecord {
 | `downgrade` to draft/notify + guidance unavailable | no guidance dependency; return local dispatch result with reason `guidance_unavailable` for closure |
 | `defer` / `deny` | no external dispatch |
 
-### §3.4 recordActionClosure
+### §3.4 recordActionClosure / finalizeCycle
 
 | Closure source | Required fields |
 | --- | --- |
@@ -195,6 +212,17 @@ interface ActionClosureRecord {
 | connector failure | `executionResultRef`, failure reason, retry/defer posture |
 | downgrade draft | `draftOutputRef`, output summary, owner-visible next state |
 | downgrade guidance unavailable | `decisionId`, `degradedDispatchReason=guidance_unavailable`, `closure reason=closure_downgraded_without_draft`, owner-visible next state |
+
+`finalizeCycle` is the only API allowed to declare a cycle terminal. Branch-local helpers prepare facts but do not write terminal closure records directly.
+
+#### CycleFinalizer recovery protocol
+
+| Failure window | Required recovery |
+| --- | --- |
+| closure row written, closure stage event missing | `loop_status` or next heartbeat emits the missing event using the closure row and `traceRefs`; no duplicate closure row. |
+| closure stage event written, closure row missing | report `closure_unavailable` / `unsafe`; do not fabricate an `ActionClosureRecord`. |
+| duplicate terminal closure row for same `cycleId` | surface `unsafe` idempotency conflict and preserve both row ids for operator repair. |
+| finalizer throws before any write | return `unavailable` degraded result and allow retry with same `cycleId`. |
 
 #### Retry and duplicate closure semantics
 

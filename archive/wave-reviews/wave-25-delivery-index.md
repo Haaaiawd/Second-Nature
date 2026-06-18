@@ -17,8 +17,8 @@
 - `tests/fixtures/connectors/instreet/manifest.yaml` — v6 parity fixture
 - `tests/fixtures/connectors/evomap/manifest.yaml` — v6 parity fixture
 - `tests/unit/connectors/t3-2-1-v5-parity.test.ts` — 5 tests
-- `wave-reviews/wave-25-review.md` — this review
-- `wave-reviews/wave-25-delivery-index.md` — this index
+- `archive/wave-reviews/wave-25-review.md` — this review
+- `archive/wave-reviews/wave-25-delivery-index.md` — this index
 
 ### Modified Files (3)
 

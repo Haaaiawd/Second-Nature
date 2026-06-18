@@ -972,6 +972,127 @@
 - **断言**: 0 blocking failures; typecheck/build pass.
 - **证据**: `reports/int-r10-wave-115-serialization-completion.md`
 
+### T-ROS.R.5
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: runtime ops host reality contract
+- **风险类别**: plugin loaded but host tool unavailable; false operational status
+- **单元测试覆盖**: registration status maps missing tool list from `HostCapabilityDiscoveryPort` to `host_tool_unavailable`.
+- **API接口功能测试覆盖**: `loop_status` and setup diagnostics include machine-readable tool visibility, hostName/hostVersion when available, evidenceLevel, and owner next action.
+- **集成/E2E/冒烟覆盖**: INT-R11 host/plugin smoke; manual smoke must include timestamp, hostName, hostVersion, raw tool list JSON, command envelope, and evidenceLevel.
+- **前置数据**: T-OBS.R.7.
+- **断言**: loaded plugin is not reported as operational unless `second_nature_ops` is host-visible.
+- **证据**: automated plugin bridge assertion, host tool visibility JSON log, manual host smoke appendix
+
+### T-ROS.R.7
+- **关联需求**: REQ-008
+- **关联契约**: runtime ops setup reality contract
+- **风险类别**: packaged skill exists but is not discoverable by host skill registry
+- **单元测试覆盖**: setup projection state distinguishes packaged-only, discoverable, unsupported probe, policy blocked, and timeout.
+- **API接口功能测试覆盖**: `setup_hint`/`setup_ack` reports skill projection proof or `skill_projection_unavailable` / `skill_probe_unsupported` / `host_policy_blocked` / `host_probe_timeout`.
+- **集成/E2E/冒烟覆盖**: INT-R11 setup smoke.
+- **前置数据**: runtime ops host discovery contract.
+- **断言**: packaged `SKILL.md` alone cannot mark skill setup complete; machine-readable skill discovery or explicit blocked reason is required.
+- **证据**: skill projection evidence log
+
+### T-ROS.R.8
+- **关联需求**: REQ-008
+- **关联契约**: runtime setup truth contract
+- **风险类别**: `placedIn: "unspecified"` produces false setup completion
+- **单元测试覆盖**: setup ack validator rejects unspecified placement, missing schemaVersion, missing placementProofRef, and unknown writer.
+- **API接口功能测试覆盖**: setup status returns incomplete diagnostic and repair instruction for each invalid schema field.
+- **集成/E2E/冒烟覆盖**: INT-R11 setup smoke.
+- **前置数据**: existing setup ack artifacts.
+- **断言**: unspecified placement and hand-written/incomplete ack files cannot be treated as completed setup.
+- **证据**: setup ack validation test
+
+### T-SH.R.6
+- **关联需求**: REQ-001, REQ-008, REQ-009
+- **关联契约**: provenance tier contract
+- **风险类别**: synthetic proof or trace refs masquerade as evidence source refs
+- **单元测试覆盖**: serializer and payload builders preserve `sourceRefs`/`proofRefs`/`traceRefs` tiers for ActionClosureRecord, ActionPolicyDecision, GuidanceUnavailableDispatchResult, LoopStageEvent, RuntimeOpsEnvelope, heartbeat cycle traces, and setup/tool visibility proofs.
+- **API接口功能测试覆盖**: closure/status payloads expose proof refs without polluting evidence refs.
+- **集成/E2E/冒烟覆盖**: INT-R11 provenance search.
+- **前置数据**: T-SMS.R.5.
+- **断言**: runtime proof and observability trace artifacts are not serialized into evidence `sourceRefs`; every affected payload has an explicit migration target.
+- **证据**: provenance-tier search log
+
+### T-CP.R.5
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: heartbeat rhythm contract
+- **风险类别**: v7/v8 dual heartbeat mental model leaks to operator surface
+- **单元测试覆盖**: heartbeat result uses one v8 cycle identity; legacy v7 heartbeat requests are rejected with `version_obsolete` or `command_unavailable`.
+- **API接口功能测试覆盖**: `heartbeat_run`/`loop_status` output uses only v8 cycle fields; legacy v7 requests do not produce a cycle and return a precise rejection reason; closed cycles emit `DailyRhythmTriggerRequest` without evaluating Dream due policy in control-plane.
+- **集成/E2E/冒烟覆盖**: INT-R11 heartbeat model parity.
+- **前置数据**: T-OBS.R.7.
+- **断言**: operator-facing output has one living-loop heartbeat model and no v7 heartbeat path exists in the v8 control plane.
+- **证据**: heartbeat model parity log, API tests for v8 primary cycle identity, legacy rejection tests, and daily rhythm trigger envelope
+
+### T-AC.R.2
+- **关联需求**: REQ-004, REQ-009
+- **关联契约**: ActionClosureRecord invariant
+- **风险类别**: early return skips closure; duplicate branch closure writes
+- **单元测试覆盖**: CycleFinalizer exactly-one closure/no-action across success, deny, defer, fail, empty input, duplicate terminal write, closure-row-only partial failure, and event-only partial failure.
+- **API接口功能测试覆盖**: heartbeat run returns closure/no-action for all branches and reconciles closure/event partial failure without duplicate closure.
+- **集成/E2E/冒烟覆盖**: INT-R11 closure invariant regression.
+- **前置数据**: T-CP.R.5.
+- **断言**: each cycle has exactly one final closure record or no-action closure; partial failures are either reconciled or marked `unsafe` without fabricated closure content.
+- **证据**: cycle finalizer tests
+
+### T-OBS.R.7
+- **关联需求**: REQ-008
+- **关联契约**: causal loop health truth contract
+- **风险类别**: carrier/smoke/state-present evidence false-greens real runtime health
+- **单元测试覆盖**: `EvidenceLevelClassifier` maps carrier_ack, contract_smoke, state_present, real_runtime, durable_verified and enforces monotonic caps.
+- **API接口功能测试覆盖**: loop_status/digest/runtime envelope include evidenceLevel and use the minimum required stage evidence level.
+- **集成/E2E/冒烟覆盖**: INT-R11 false-health fixtures.
+- **前置数据**: observability health design.
+- **断言**: non-real evidence cannot be labelled real runtime or durable verified; package smoke and host carrier acknowledgements are capped at `contract_smoke`.
+- **证据**: loop_status evidence-level fixtures
+
+### T-OBS.R.8
+- **关联需求**: REQ-006, REQ-008
+- **关联契约**: degraded response contract
+- **风险类别**: generic degraded hides empty/partial/blocked/unavailable/unsafe root cause
+- **单元测试覆盖**: stage status and DegradedOperationResult taxonomy mapping for empty, partial, blocked, unavailable, unsafe; no stage-level degraded.
+- **API接口功能测试覆盖**: loop_status stage health uses precise status and aggregate degraded only at summary layer.
+- **集成/E2E/冒烟覆盖**: INT-R11 status taxonomy regression.
+- **前置数据**: T-OBS.R.7.
+- **断言**: stage-level health and DegradedOperationResult never use `degraded`; only aggregate overallStatus may use it.
+- **证据**: status taxonomy tests
+
+### T-CS.R.9
+- **关联需求**: REQ-001, REQ-002, REQ-005
+- **关联契约**: NormalizedEvidenceContent minimum content contract
+- **风险类别**: ID-only evidence feeds fake perception/Quiet/Dream content
+- **单元测试覆盖**: extractor rejects or flags ID-only/ref-only payloads with `content_missing` and canonical reason `evidence_id_only` where applicable.
+- **API接口功能测试覆盖**: evidence normalization persists content_missing without fabricating summary.
+- **集成/E2E/冒烟覆盖**: INT-R11 content-bearing evidence regression.
+- **前置数据**: T-SH.R.6.
+- **断言**: ref-only evidence does not produce meaningful perception summary or memory candidate and produces a precise perception/health reason.
+- **证据**: content-bearing evidence tests
+
+### T-DQ.R.9
+- **关联需求**: REQ-005, REQ-006, REQ-007
+- **关联契约**: Quiet/Dream content and lifecycle truth contract
+- **风险类别**: template Quiet text or broad sensitivity block creates fake/noisy memory state
+- **单元测试覆盖**: Quiet placeholder detector; Dream blocked reason taxonomy; scheduler ownership of `DailyRhythmTriggerRequest` due policy.
+- **API接口功能测试覆盖**: Dream status returns no_content/private_redacted/credential_blocked/validation_failed precisely; duplicate/stale scheduling is decided by dream-quiet scheduler.
+- **集成/E2E/冒烟覆盖**: INT-R11 Quiet/Dream content truth regression.
+- **前置数据**: T-CS.R.9, T-OBS.R.8.
+- **断言**: placeholder-only Quiet output cannot create Dream memory candidates; control-plane does not decide Quiet/Dream due policy.
+- **证据**: Quiet/Dream content truth tests
+
+### INT-R11
+- **关联需求**: REQ-001, REQ-002, REQ-005, REQ-006, REQ-008, REQ-009
+- **关联契约**: v8 host reality + living loop hemostasis contract
+- **风险类别**: Wave 116 repairs regress Wave 108-115 or still false-green host/runtime/content health
+- **单元测试覆盖**: all Wave 116 task suites.
+- **API接口功能测试覆盖**: runtime ops, loop_status, heartbeat, setup, host tool/skill probes, evidence, closure finalizer, `DailyRhythmTriggerRequest`, Quiet/Dream, digest surfaces.
+- **集成/E2E/冒烟覆盖**: Wave 108-115 targeted regression plus automated plugin bridge checks; manual host smoke is recorded separately with required host/tool/skill fields.
+- **前置数据**: Wave 116 candidate build.
+- **断言**: 0 blocking failures; no carrier/smoke/setup artifact is reported as real runtime; exactly-one closure, content truth, host reality, and evidence-level invariants hold across all named surfaces.
+- **证据**: `reports/int-r11-wave-116-host-reality-hemostasis.md`
+
 ---
 
 ## 7. Testing Coverage Overlay
@@ -1037,6 +1158,17 @@
 | Wave 114 single-status gate | regression | compile + targeted regression + plugin build | INT-R9 | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
 | v8 SourceRef serialization cleanup | schema drift / serialization ambiguity | compile + search + unit | T-SMS.R.5 | `logs/wave-115-source-refs-search.log` | ✅ |
 | Wave 115 shared serialization gate | regression | compile + targeted regression + plugin build | INT-R10 | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
+| Host-visible `second_nature_ops` | host injection / false operational status | automated plugin bridge + host discovery port + manual host smoke appendix | T-ROS.R.5 | host tool visibility JSON log | ⏳ |
+| Packaged skill projection | setup truth / skill discovery | SkillDiscoveryProbe + setup status + manual host smoke appendix | T-ROS.R.7 | skill projection evidence log | ⏳ |
+| Setup ack placement truth | false setup completion | unit + API接口功能测试 | T-ROS.R.8 | setup ack validation test | ⏳ |
+| Provenance tier separation | source/proof/trace semantic pollution | compile + unit + search | T-SH.R.6 | provenance-tier search log | ⏳ |
+| Single external heartbeat model | operator confusion / split-brain heartbeat | API接口功能测试 + integration + docs search | T-CP.R.5 | heartbeat model parity log | ⏳ |
+| CycleFinalizer exactly-one closure | closure skip / duplicate closure | unit + integration + regression | T-AC.R.2 | cycle finalizer tests | ⏳ |
+| Evidence level truth | false healthy / false proof | EvidenceLevelClassifier unit + API接口功能测试 + integration | T-OBS.R.7 | loop_status evidence-level fixtures | ⏳ |
+| Precise operational status taxonomy | generic degraded hides root cause | unit + API接口功能测试 + regression | T-OBS.R.8 | status taxonomy tests | ⏳ |
+| Content-bearing evidence minimum | ref-only content fabrication | unit + integration + regression | T-CS.R.9 | content-bearing evidence tests | ⏳ |
+| Quiet/Dream content truth | template memory / imprecise block | unit + integration + regression | T-DQ.R.9 | Quiet/Dream content truth tests | ⏳ |
+| Wave 116 host reality hemostasis gate | integrated host/runtime/content closure truth | compile + targeted regression + host smoke | INT-R11 | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
 
 ---
 
@@ -1076,5 +1208,8 @@
 | SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3, T-SMS.R.5, INT-R10 | 编译 + 单元 + 集成 + search | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
 | v8 schema status/serialization hygiene | T-SMS.R.3, T-SMS.R.4, INT-R9 | 单元 + 集成 + migration | `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
 | SourceRef local clone removal | T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8 | 编译 + 单元 + 集成 + plugin build | targeted Wave 113 tests | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
+| Host reality and false-health prevention | T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-OBS.R.7, INT-R11 | automated plugin bridge + host discovery port + API接口功能测试 + manual host appendix | runtime ops host reality tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
+| v8 loop hemostasis | T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.8, INT-R11 | 编译 + 单元 + 集成 + search | provenance, heartbeat, closure, status tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
+| Content-bearing memory activation | T-CS.R.9, T-DQ.R.9, INT-R11 | 单元 + 集成 + regression | evidence and Quiet/Dream content tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
 
 ---

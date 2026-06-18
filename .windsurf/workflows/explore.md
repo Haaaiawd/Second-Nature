@@ -11,7 +11,7 @@ description: "向外搜索与向内发散的双向螺旋探索，结构化洞察
 **能力**：问题分解；探索循环（进度表、`find-skills` 可选 Harvest）；综合矛盾与缺口识别；结构化报告写盘；在需要时与其它工作流产出路径对齐（如 design-system research）。  
 **限制**：不自启动于「简单单步即可答」的场景；不因 optional skill 不可用而中断；产出须满足 **探索报告契约**（精确、可追溯、不重复堆砌）；禁止以 emoji 叙事。  
 **与用户的关系**：你扩展用户的前沿认知；用户对范围裁剪、沉没成本与时间盒有最终决定权；重探索前须确认触发条件成立或用户明示授权。  
-**Output Goal**：由 Step 4 定义的 **结构化探索报告路径**（`design-system` 调用时为 `.anws/v{N}/04_SYSTEM_DESIGN/_research/{system-id}-research.md`；独立调用为 `explore/reports/{YYYYMMDD}_{topic_slug}.md`，目录须存在）。
+**Output Goal**：由 Step 4 定义的 **结构化探索报告路径**（`design-system` 调用时为 `.anws/v{N}/04_SYSTEM_DESIGN/_research/{system-id}-research.md`；独立调用为 `docs/explore/{YYYYMMDD}_{topic_slug}.md`，目录须存在）。
 </phase_context>
 
 ---
@@ -158,7 +158,7 @@ description: "向外搜索与向内发散的双向螺旋探索，结构化洞察
 
 **确保目录存在**，按场景写盘：  
 - 若由 `/design-system` 调用：`.anws/v{N}/04_SYSTEM_DESIGN/_research/{system-id}-research.md`  
-- 若独立调用：`explore/reports/{YYYYMMDD}_{topic_slug}.md`
+- 若独立调用：`docs/explore/{YYYYMMDD}_{topic_slug}.md`
 
 写盘须含下列 **章节职能**（标题字面可微调，**不得删职能**）：1 问题与范围；2 核心洞察；3 详细发现（按子问题）；4 创意/方案表（若适用）；5 行动建议；6 局限与待探；7 参考来源。若用 `find-skills`，在报告中区分 Web/文档、harvesting、与可沉淀项。段落级写法与表格密度遵守 **CRITICAL 探索报告契约**（**本 workflow 不粘贴**整份 Markdown 样例）。
 

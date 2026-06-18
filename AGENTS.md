@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 115 completed; all v8 CH-12/CH-16 repair waves closed)
-- **当前波次**: Wave 115
-- **下一步**: Wave 115 settlement; all v8 /change repair waves complete
+- **最近一次更新**: `2026-06-18` (Wave 116 /change backlog opened; host reality + ideal loop hemostasis planned)
+- **当前波次**: Wave 116
+- **下一步**: Execute Wave 116 tasks; run INT-R11 host reality and hemostasis gate
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -208,10 +208,32 @@ src/
 - 验证计划: `.anws/v8/05B_VERIFICATION_PLAN.md`
 - User Story 数: 9
 - 系统数: 10
-- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成；Wave 108 `/forge` Runtime Recovery Closure 已完成
-- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: Wave 108 波末 code-reviewer 或用户指令进入发布
-- **最近更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure completed)
+- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成；Wave 116 `/change` Host Reality and Ideal Loop Hemostasis backlog opened
+- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 4 documentation gaps CH-24~CH-35 closed in docs; CH-30 code repair remains Wave 116 implementation work）
+- **下一步**: Optional lightweight `/challenge` closure check, then execute Wave 116 `/forge`; do not mark implementation tasks complete until code and INT-R11 evidence exist
+- **最近更新**: `2026-06-18` (`/change` Wave 116 Round 4 documentation repair completed)
+
+### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
+T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
+**签入**: USER
+**code-reviewer**: 默认执行
+- **状态**: 🟡 Planned / documentation repaired after Round 4 challenge; implementation not started
+- **目标**: repair host reality and v8 ideal-loop semantic drift so loaded/smoke/carrier-visible states cannot masquerade as real runtime health.
+- **计划产出**:
+  - Host-visible `second_nature_ops` injection proof or explicit `host_tool_unavailable` diagnostic.
+  - Packaged `SKILL.md` projection into host skill discovery or explicit `skill_projection_unavailable` diagnostic.
+  - Setup ack truth gate rejecting `placedIn: "unspecified"` as complete.
+  - `HostCapabilityDiscoveryPort`, skill discovery probe, setup ack schema, and host smoke minimum evidence fields.
+  - Provenance tiers: `sourceRefs`, `proofRefs`, `traceRefs`.
+  - Single operator-facing v8 living-loop heartbeat model; v7 only as internal adapter trace.
+  - `CycleFinalizer` exactly-one closure invariant.
+  - `EvidenceLevelClassifier`: `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, `durable_verified` promotion/cap rules.
+  - Precise stage/degraded-result states: `empty`, `partial`, `blocked`, `unavailable`, `unsafe`; `degraded` aggregate only.
+  - Content-bearing evidence minimum contract and no-fabrication handling for ID-only evidence.
+  - Quiet placeholder rejection and precise Dream blocked reasons.
+- **测试计划**: INT-R11 report `reports/int-r11-wave-116-host-reality-hemostasis.md`; targeted host/plugin/setup/evidence/closure/Quiet-Dream tests plus Wave 108-115 regression sample.
+- **最高严重度**: documentation P0 closed; no implementation verdict yet
+- **下一步**: Optional lightweight `/challenge` closure check, then execute Wave 116 `/forge`; do not mark tasks complete until code and INT-R11 evidence exist.
 
 ### 🌊 Wave 108 🧭 — v8 Change: Runtime Recovery Closure Backlog
 T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3
@@ -643,7 +665,7 @@ T-CS.C.11, T-CS.C.12, INT-S9
   - `tests/unit/connectors/scriptable-node-runner.test.ts` — 4 单元测试
   - `tests/integration/connectors/scriptable-node-e2e.test.ts` — 4 集成测试（scanner→executor→mapLifeEvidence→full chain）
   - `reports/int-s9-connector-chain.md` — S9 完整性验证报告
-  - `scripts/int-s9-db-validation.js` — DB before/after 验证脚本
+  - `scripts/verification/int-s9-db-validation.js` — DB before/after 验证脚本
 - **测试**: T-CS.C.11 4/4 PASS；T-CS.C.12 4/4 PASS；S9 全部任务测试通过；connector 全回归 157/158 PASS
 - **最高严重度**: none
 - **残留待跟进**: 4 项 Low 风险（credential optional route-planner / evomap env / agent-world env / timeout 硬编码）
@@ -1040,28 +1062,28 @@ T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3
 ### 🌊 Wave 50 ✅ — v7 S2 Core State + Connector: WriteValidationGate + Registry
 T-SMS.C.1, T-CS.C.1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-50-review.md`（最高严重度：Low — `resolveCapability` unqualified intent fallback 设计 accepted）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-50-review.md`（最高严重度：Low — `resolveCapability` unqualified intent fallback 设计 accepted）  
 
 ### 🌊 Wave 49 ✅ — v7 S1 Foundation: INT-S1 Integration Verification
 INT-S1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-49-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-49-review.md`（最高严重度：无）  
 
 ### 🌊 Wave 48 ✅ — v7 S1 Foundation: Write Queue
 T-SMS.F.3
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-48-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-48-review.md`（最高严重度：无）  
 
 ### 🌊 Wave 47 ✅ — v7 S1 Foundation: Schema Migration + Audit Family Registry
 T-SMS.F.2, T-OBS.F.1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-47-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-47-review.md`（最高严重度：无）  
 **风险备注**: 同 Wave 46——`04_SYSTEM_DESIGN/` 物理缺失，以 05A + ADR 为编码权威。
 
 ### 🌊 Wave 46 ✅ — v7 S1 Foundation: Shared Types
 T-SMS.F.1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-46-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-46-review.md`（最高严重度：无）  
 **风险备注**: `04_SYSTEM_DESIGN/` 8 个系统详细设计文档物理缺失；以 05A 任务契约 + 02_ARCHITECTURE_OVERVIEW + ADR 作为编码权威。
 
 > **历史 Wave 说明**: 下方 Wave 1-45 是 v5/v6 实现历史记录。v7 已生成 `05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`；进入实现前建议先执行任务层 `/challenge`，通过后再 `/forge`。

@@ -18,6 +18,7 @@
 - 调用 perception/judgment/action closure/Dream-Quiet 的窄接口。
 - 在下一轮 EmbodiedContext 中装载 accepted memory projection。
 - 确保每轮 heartbeat 有 closure 或 no-action reason。
+- 对外只呈现 v8 living-loop heartbeat；v7 heartbeat 入口在 v8 控制面中不存在。若旧命令被调用，返回 `version_obsolete` 或 `command_unavailable`。
 
 **不负责**:
 - 不从 raw evidence 直接判断“该不该做”。
@@ -38,11 +39,13 @@ interface HeartbeatOrchestrationRequest {
   workspaceRoot: string;
   requestedAt: string;
   trigger: "scheduled" | "manual" | "host";
+  commandModel: "v8_living_loop";
 }
 
 interface HeartbeatOrchestrationResult {
   cycleId: string;
   cycleSequence: number;
+  commandModel: "v8_living_loop";
   closureRef?: SourceRef;
   noActionReason?: V8ReasonCode;
   degraded?: DegradedOperationResult;
@@ -71,6 +74,36 @@ flowchart TD
     G --> I[maybe trigger Quiet/Dream]
     I --> J[prepare next EmbodiedContext]
 ```
+
+The external heartbeat model is the v8 living loop cycle. There is no v7 heartbeat compatibility path in the v8 control plane. Legacy v7 heartbeat requests must be rejected with `version_obsolete` or routed to the v8 command surface.
+
+### 4.1 v8 command routing and legacy command rejection
+
+Runtime ops must route operator-facing heartbeat commands to the v8 living-loop model:
+
+| Path | Operator-facing output | Evidence cap |
+| --- | --- | --- |
+| v8 living-loop heartbeat | `cycleId`, `cycleSequence`, final closure/no-action, stage evidence | May reach `real_runtime` / `durable_verified`. |
+| legacy v7 heartbeat request | Rejected with `version_obsolete` or `command_unavailable`; no cycle produced | `carrier_ack` at most for the rejection envelope. |
+| carrier/plugin heartbeat acknowledgement | envelope only | `carrier_ack`. |
+
+If the v8 cycle cannot run, the command must return a precise unavailable/blocked diagnostic. It must not fall back to a legacy v7 heartbeat as the primary heartbeat model.
+
+### 4.2 Quiet/Dream trigger envelope
+
+Control-plane emits a trigger request after final closure; `dream-quiet-memory-system` owns daily/7-day due policy and duplicate-schedule prevention.
+
+```ts
+interface DailyRhythmTriggerRequest {
+  cycleId: string;
+  cycleSequence: number;
+  closureRef: SourceRef;
+  triggerReason: "cycle_finalized" | "manual_review";
+  requestedAt: string;
+}
+```
+
+The control-plane must not decide whether Dream is due; it only asks the scheduler to evaluate the closed cycle.
 
 ## 5. 依赖关系
 

@@ -51,7 +51,7 @@
  * **same absolute path** as the OpenClaw **agent workspace** (default `~/.openclaw/workspace`, or
  * `agents.defaults.workspace` in `~/.openclaw/openclaw.json`). Do **not** infer that root from the plugin
  * install directory. With **sandbox** or **per-agent workspaces**, use the path where `data/state.db` and
- * `workspace/` anchors actually live. See `explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`.
+ * `workspace/` anchors actually live.
  *
  * Test coverage:
  * - tests/integration/cli/plugin-runtime-registration.test.ts

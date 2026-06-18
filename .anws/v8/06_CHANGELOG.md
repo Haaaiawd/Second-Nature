@@ -234,6 +234,34 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `logs/wave-115-source-refs-search.log` — search evidence.
 - **Guardrails**: No package version bump, no external write enablement, no change to v7 source-ref shapes.
 
+## Wave 116 — v8 Change: Host Reality and Ideal Loop Hemostasis — 2026-06-18
+
+- **Change source**: host runtime reality review plus v8 ideal-loop hemostasis review.
+- **Classification**: `/change` local repair backlog; no PRD/ADR premise change and no new genesis required.
+- **Tasks opened**: `T-ROS.R.5`, `T-ROS.R.7`, `T-ROS.R.8`, `T-SH.R.6`, `T-CP.R.5`, `T-AC.R.2`, `T-OBS.R.7`, `T-OBS.R.8`, `T-CS.R.9`, `T-DQ.R.9`, `INT-R11`.
+- **Planned repairs**:
+  - Treat plugin loaded state as insufficient unless `second_nature_ops` is host-visible or explicitly blocked with owner next action.
+  - Treat packaged `SKILL.md` as incomplete until projected into host skill discovery or blocked truthfully.
+  - Reject `placedIn: "unspecified"` as completed setup ack.
+  - Split provenance into `sourceRefs`, `proofRefs`, and `traceRefs`.
+  - Make v8 living-loop heartbeat the only operator-facing heartbeat model; v7 remains internal adapter only.
+  - Centralize exactly-one cycle closure in a `CycleFinalizer` invariant.
+  - Add `evidenceLevel` to operator-facing surfaces: `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, `durable_verified`.
+  - Split generic stage-level `degraded` into `empty`, `partial`, `blocked`, `unavailable`, and `unsafe`.
+  - Enforce content-bearing evidence minimums and prevent ID-only evidence from feeding fabricated perception/Quiet/Dream memory.
+  - Remove Quiet template placeholders as meaningful memory input and split Dream sensitivity blocked reasons.
+- **Verification planned**:
+  - INT-R11 report: `reports/int-r11-wave-116-host-reality-hemostasis.md`.
+  - Targeted host/plugin/setup/evidence/closure/Quiet-Dream tests plus Wave 108-115 regression sample.
+- **Round 4 documentation repair applied**:
+  - Added `EvidenceLevelClassifier` promotion/cap rules and machine-readable proof requirements.
+  - Added `HostCapabilityDiscoveryPort`, host tool/skill probe results, and setup ack schema.
+  - Added v8-only heartbeat command routing, rejection of legacy v7 heartbeat requests, and Quiet/Dream trigger envelope ownership.
+  - Added `CycleFinalizer` idempotency key, write order, and partial-failure recovery protocol.
+  - Aligned stage status taxonomy across L0/L1 and removed stage-level `degraded` from `DegradedOperationResult`.
+  - Added `content_missing` perception handoff rules, host/setup/closure/content reason codes, and manual host smoke minimum evidence fields.
+- **Guardrails**: Planned only; no code completed, no checkbox backfill, no package version bump, no external write enablement.
+
 ---
 
 ## v0.2.11 Change — Wave 111 Review Closure Gap Repair — 2026-06-16

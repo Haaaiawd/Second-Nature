@@ -19,8 +19,8 @@
 - `tests/unit/connectors/t3-1-2-capability-registry.test.ts` — 8 tests
 - `tests/unit/cli/t1-3-1-connector-init.test.ts` — 7 tests
 - `tests/unit/observability/connector-inventory-ledger.test.ts` — 6 tests
-- `wave-reviews/wave-24-review.md` — this review
-- `wave-reviews/wave-24-delivery-index.md` — this index
+- `archive/wave-reviews/wave-24-review.md` — this review
+- `archive/wave-reviews/wave-24-delivery-index.md` — this index
 
 ### Modified Files (5)
 
