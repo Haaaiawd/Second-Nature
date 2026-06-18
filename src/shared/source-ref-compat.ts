@@ -43,6 +43,11 @@ export function sourceRefFamilyFromLegacyKind(kind: LegacySourceRefKind | string
 }
 
 export function legacyKindFromSourceRef(ref: SourceRef): LegacySourceRefKind {
+  // Check family first so canonical connector_result refs with platform://
+  // URIs are not incorrectly downgraded to "platform_item".
+  if (ref.family === "connector_result") {
+    return "connector_result";
+  }
   if (ref.uri.startsWith("platform://")) {
     return "platform_item";
   }
@@ -53,8 +58,6 @@ export function legacyKindFromSourceRef(ref: SourceRef): LegacySourceRefKind {
     return "user_anchor";
   }
   switch (ref.family) {
-    case "connector_result":
-      return "connector_result";
     case "judgment":
       return "decision_record";
     case "evidence":

@@ -15,6 +15,11 @@ export function sourceRefFamilyFromLegacyKind(kind) {
     }
 }
 export function legacyKindFromSourceRef(ref) {
+    // Check family first so canonical connector_result refs with platform://
+    // URIs are not incorrectly downgraded to "platform_item".
+    if (ref.family === "connector_result") {
+        return "connector_result";
+    }
     if (ref.uri.startsWith("platform://")) {
         return "platform_item";
     }
@@ -25,8 +30,6 @@ export function legacyKindFromSourceRef(ref) {
         return "user_anchor";
     }
     switch (ref.family) {
-        case "connector_result":
-            return "connector_result";
         case "judgment":
             return "decision_record";
         case "evidence":
