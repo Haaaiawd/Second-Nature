@@ -37,6 +37,7 @@ interface RuntimeOpsEnvelope<T> {
   ok: boolean;
   command: string;
   evidenceLevel: "carrier_ack" | "contract_smoke" | "state_present" | "real_runtime" | "durable_verified";
+  surfaceMode?: SurfaceMode;
   result?: T;
   degraded?: DegradedOperationResult;
   generatedAt: string;
@@ -44,6 +45,21 @@ interface RuntimeOpsEnvelope<T> {
 ```
 
 `ok=true` only means the command envelope was produced. It must not be interpreted as real living-loop health unless `evidenceLevel` is `real_runtime` or `durable_verified` and `loop_status` agrees.
+
+#### SurfaceMode enum (Wave 119 / T-DOC.R.1)
+
+`surfaceMode` describes which runtime surface produced the envelope. The canonical values are:
+
+| value | meaning |
+| --- | --- |
+| `workspace_full_runtime` | Full v8 runtime available; command executed against real state and cycle. |
+| `cli` | CLI-only mode; no plugin/host runtime attached. |
+| `openclaw_tool` | OpenClaw plugin tool surface. |
+| `plugin_command` | Plugin command surface (non-tool dispatch). |
+| `cron_probe` | Scheduled/cron probe surface. |
+| `capability_probe` | Host capability discovery probe (setup_hint/setup_ack host discovery). |
+
+Implementations MUST NOT invent `surfaceMode` values outside this list. The code type in `src/cli/ops/ops-router.ts` and `src/cli/runtime/runtime-artifact-boundary.ts` must converge to this enum (T-DOC.R.1).
 
 ## 3. 核心数据模型
 
@@ -116,7 +132,7 @@ Setup ack rules:
 | Command/path | Required operator model | Evidence cap unless proven |
 | --- | --- | --- |
 | `heartbeat_run` / `heartbeat_check` | v8 living-loop cycle only | `real_runtime` only when v8 `cycleId` has stage + final closure proof. |
-| legacy v7 heartbeat request | rejected command surface | `carrier_ack` at most for the rejection envelope; no cycle produced. |
+| legacy v7 `heartbeat` command | deprecated-alias delegation to `heartbeat_check` (T-CP.R.7) | `carrier_ack` at most; warning `LEGACY_HEARTBEAT_DEPRECATED` emitted; no independent v7 cycle produced. The v7 `heartbeat` command is not hard-rejected but delegated to `heartbeat_check` with a deprecation warning, so existing operator scripts continue to work while the canonical operator-facing command is `heartbeat_check`. This is an intentional backward-compatibility decision (CH-27 prescription relaxed to avoid breaking deployed operator scripts). |
 | `setup_hint` | package/setup guidance | `carrier_ack` or `contract_smoke`; never setup complete. |
 | `setup_ack` | setup state mutation | `state_present` until host discovery confirms placement. |
 | `loop_status` | causal health read model | minimum of required stage evidence levels. |

@@ -2288,7 +2288,7 @@ graph TD
   - **优先级**: P0
   - **承接发现**: CH-42
 
-- [ ] **T-ROS.R.10** [REQ-009]: setup_hint/setup_ack align to RuntimeOpsEnvelope
+- [x] **T-ROS.R.10** [REQ-009]: setup_hint/setup_ack align to RuntimeOpsEnvelope
   - **描述**: `src/cli/commands/index.ts:163-171,222-235` setup_hint/setup_ack return `{ok,command,surfaceMode,evidenceLevel,message,data}` instead of canonical `RuntimeOpsEnvelope` (missing `result`/`degraded`/`generatedAt`). Align: payload under `result`, degraded state under `degraded`, add `generatedAt: new Date().toISOString()`.
   - **输入**: `src/cli/commands/index.ts`
   - **输出**: setup commands return RuntimeOpsEnvelope-compatible shape
@@ -2306,7 +2306,7 @@ graph TD
   - **优先级**: P1
   - **承接发现**: CH-43
 
-- [ ] **T-OBS.R.9** [REQ-008]: degraded-status-classifier cover all V8ReasonCode
+- [x] **T-OBS.R.9** [REQ-008]: degraded-status-classifier cover all V8ReasonCode
   - **描述**: `src/shared/degraded-status-classifier.ts` covers ~40 reasons but `V8ReasonCode` has >60; uncovered reasons (e.g. `host_tool_unavailable`, `host_policy_blocked`, `closure_idempotency_conflict`, `proposal_risk_blocked`, `execution_failed`) default to `unavailable`, violating T-OBS.R.8 precise status. Extend the classification table to cover all `V8ReasonCode` values, or document "uncovered defaults to unavailable" explicitly with tests.
   - **输入**: `src/shared/degraded-status-classifier.ts`, `src/shared/types/v8-contracts.ts`
   - **输出**: classifier covers all V8ReasonCode with precise status

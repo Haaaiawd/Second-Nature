@@ -63,6 +63,22 @@ interface SourceRef {
 }
 ```
 
+> **T-DOC.R.1 (Wave 119)**: The code type `SourceRefFamily` in `src/shared/types/v8-contracts.ts` also includes `"projection"`, which is the family used by **impulse context artifacts** (guidance-voice-system). It is distinct from `"memory_projection"` (dream-quiet-memory-system): `"projection"` references an impulse context artifact (`sn://impulse/{artifactId}`), while `"memory_projection"` references an accepted long-term memory projection (`sn://memory_projection/{projectionId}`). Canonical family list now includes both:
+>
+> | Family | URI shape | Owner system | Semantics |
+> | --- | --- | --- | --- |
+> | `evidence` | `sn://evidence/{evidenceId}` | perception-judgment | Raw evidence item |
+> | `perception` | `sn://perception/{cardId}` | perception-judgment | Perception card |
+> | `judgment` | `sn://judgment/{verdictId}` | perception-judgment | Judgment verdict |
+> | `action_closure` | `sn://closure/{closureId}` | action-closure-policy | Action closure record |
+> | `quiet_review` | `sn://quiet/{reviewId}` | dream-quiet-memory | Quiet daily review |
+> | `dream_run` | `sn://dream/{runId}` | dream-quiet-memory | Dream consolidation run |
+> | `memory_projection` | `sn://memory_projection/{projectionId}` | dream-quiet-memory | Accepted long-term memory projection |
+> | `projection` | `sn://impulse/{artifactId}` | guidance-voice | Impulse context artifact (agent-facing guidance) |
+> | `tool_experience` | `sn://tool_exp/{expId}` | body-tool | Tool experience record |
+> | `connector_result` | `sn://connector/{resultId}` | connector-system | Connector execution result |
+> | `audit` | `sn://audit/{auditId}` | observability-health | Audit trail entry |
+
 ### 2.1 URI Shape
 
 ```text
