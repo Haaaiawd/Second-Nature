@@ -2324,7 +2324,7 @@ graph TD
   - **优先级**: P1
   - **承接发现**: CH-44
 
-- [ ] **T-ROS.R.11** [REQ-008]: normalizeEnvelopeResult preserve raw error codes
+- [x] **T-ROS.R.11** [REQ-008]: normalizeEnvelopeResult preserve raw error codes
   - **描述**: `ops-router.ts:223` returns generic `OPS_RESULT_NOT_AN_ENVELOPE` when a dispatch branch omits `command`, losing actionable codes like `MISSING_FALLBACK_REF`/`unknown_ops_command`. Fix: all dispatch branches return at least `{command, runtimeMode/surfaceMode}`; or `normalizeEnvelopeResult` non-envelope branch prioritizes transparently passing `raw.error`.
   - **输入**: `src/cli/ops/ops-router.ts`
   - **输出**: operator receives actionable error codes, not generic envelope failure
@@ -2342,7 +2342,7 @@ graph TD
   - **优先级**: P1
   - **承接发现**: CH-45
 
-- [ ] **T-SH.R.8** [REQ-009]: Unify plugin/CLI setup-ack validation
+- [x] **T-SH.R.8** [REQ-009]: Unify plugin/CLI setup-ack validation
   - **描述**: `plugin/index.ts:205-266` re-implements `validateSetupAck`/`VALID_PLACEMENTS`/`VALID_WRITERS` instead of importing `src/shared/setup-ack.ts`, creating divergence risk. Add `src/shared/setup-ack.ts` to plugin runtime artifact list and import the shared validator; if packaging constraints force duplication, add a source-of-truth comment with hard link and a CI diff check.
   - **输入**: `plugin/index.ts`, `src/shared/setup-ack.ts`, `scripts/build-plugin-package.ts`
   - **输出**: single source of truth for setup-ack validation
@@ -2361,7 +2361,7 @@ graph TD
   - **优先级**: P1
   - **承接发现**: CH-46
 
-- [ ] **T-CP.R.7** [REQ-008]: v7 heartbeat hard-reject or document deprecated-alias delegation
+- [x] **T-CP.R.7** [REQ-008]: v7 heartbeat hard-reject or document deprecated-alias delegation
   - **描述**: `ops-router.ts:693-722` v7 `heartbeat` command is not hard-rejected but delegated to `heartbeat_check` with a `LEGACY_HEARTBEAT_DEPRECATED` warning, deviating from CH-27 prescription "return `version_obsolete`/`command_unavailable`". Either hard-reject v7 heartbeat returning `version_obsolete`/`command_unavailable`, or document the deprecated-alias delegation as an intentional decision in `runtime-ops-system.md §3.3`.
   - **输入**: `src/cli/ops/ops-router.ts`, `04_SYSTEM_DESIGN/runtime-ops-system.md §3.3`
   - **输出**: v7 heartbeat either hard-rejected or documented as intentional delegation
@@ -2379,7 +2379,7 @@ graph TD
   - **优先级**: P1
   - **承接发现**: CH-47
 
-- [ ] **T-DOC.R.1** [REQ-001]: SourceRefFamily.projection definition/removal + surfaceMode enum documentation
+- [x] **T-DOC.R.1** [REQ-001]: SourceRefFamily.projection definition/removal + surfaceMode enum documentation
   - **描述**: (1) `SourceRefFamily` includes `"projection"` not defined in `shared-v8-contracts.md §2` — remove it or document its meaning and URI shape. (2) `RuntimeOpsEnvelope.surfaceMode` in code includes `cli`/`openclaw_tool`/`plugin_command`/`cron_probe` but `runtime-ops-system.md §2` does not declare these values — document them with semantics.
   - **输入**: `src/shared/types/v8-contracts.ts`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`, `04_SYSTEM_DESIGN/runtime-ops-system.md §2`
   - **输出**: SourceRefFamily and surfaceMode enums aligned between code and design docs

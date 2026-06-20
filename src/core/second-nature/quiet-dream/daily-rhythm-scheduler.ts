@@ -187,7 +187,7 @@ async function executeStaleScheduledDreams(
             const acceptResult = await acceptMemoryProjection(
               db,
               candidate.id,
-              `topic_stale_${runId}`,
+              `topic_${state.day}`,
               candidate.candidateText,
               candidate.sourceRefs,
               { now },
@@ -370,7 +370,7 @@ export async function checkDailyRhythm(
                 const acceptResult = await acceptMemoryProjection(
                   db,
                   candidate.id,
-                  `topic_${dreamResult.id}`,
+                  `topic_${day}`,
                   candidate.candidateText,
                   candidate.sourceRefs,
                   { now },

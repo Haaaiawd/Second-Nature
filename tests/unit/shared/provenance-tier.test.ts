@@ -51,7 +51,7 @@ describe("provenance-tier", () => {
     assert.equal(result.ok, true);
   });
 
-  it("persists proofRefs and traceRefs in closure payloadJson", async () => {
+  it("persists proofRefs and traceRefs in closure dedicated columns", async () => {
     const db = createStateDatabase(":memory:");
     const sourceRef: SourceRef = {
       uri: "sn://evidence/ev_1",
@@ -88,11 +88,13 @@ describe("provenance-tier", () => {
       .from(actionClosureRecord)
       .where(eq(actionClosureRecord.id, "cls_provenance_test"));
     assert.equal(rows.length, 1);
-    const payload = JSON.parse(rows[0]?.payloadJson ?? "{}");
-    assert.equal(payload.proofRefs.length, 1);
-    assert.equal(payload.proofRefs[0].id, "dec_1");
-    assert.equal(payload.traceRefs.length, 1);
-    assert.equal(payload.traceRefs[0].id, "cyc_1");
+    // T-SH.R.7: proofRefs/traceRefs now stored in dedicated JSON columns, not payloadJson
+    const proofRefsJson = JSON.parse(rows[0]?.proofRefsJson ?? "[]");
+    const traceRefsJson = JSON.parse(rows[0]?.traceRefsJson ?? "[]");
+    assert.equal(proofRefsJson.length, 1);
+    assert.equal(proofRefsJson[0].id, "dec_1");
+    assert.equal(traceRefsJson.length, 1);
+    assert.equal(traceRefsJson[0].id, "cyc_1");
 
     db.close();
   });
