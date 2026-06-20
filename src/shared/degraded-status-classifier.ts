@@ -43,6 +43,7 @@ const BLOCKED_REASONS: ReadonlySet<V8ReasonCode> = new Set([
 const UNSAFE_REASONS: ReadonlySet<V8ReasonCode> = new Set([
   "policy_denied_high_risk",
   "policy_denied_breaker_open",
+  "closure_idempotency_conflict",
 ]);
 
 const PARTIAL_REASONS: ReadonlySet<V8ReasonCode> = new Set([
@@ -64,6 +65,7 @@ const UNAVAILABLE_REASONS: ReadonlySet<V8ReasonCode> = new Set([
   "dream_scheduler_unavailable",
   "policy_denied_missing_permission",
   "closure_failed",
+  "closure_unavailable",
 ]);
 
 export function classifyDegradedStatus(

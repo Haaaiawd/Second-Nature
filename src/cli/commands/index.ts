@@ -163,11 +163,17 @@ async function buildSetupHintPayload(input?: Record<string, unknown>): Promise<R
   return {
     ok: true,
     command: "setup_hint",
+    runtimeMode: "workspace_full_runtime",
     surfaceMode: "workspace_full_runtime",
+    generatedAt: new Date().toISOString(),
     evidenceLevel: "contract_smoke",
-    message:
-      "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
-    data,
+    warnings: [],
+    sourceRefs: [],
+    data: {
+      message:
+        "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
+      ...data,
+    },
   };
 }
 
@@ -222,12 +228,16 @@ async function buildSetupAckPayload(input?: Record<string, unknown>): Promise<Re
   return {
     ok: true,
     command: "setup_ack",
+    runtimeMode: "workspace_full_runtime",
     surfaceMode: "workspace_full_runtime",
+    generatedAt: new Date().toISOString(),
     evidenceLevel: hostDiscovery.setupComplete ? "state_present" : "carrier_ack",
-    message: hostDiscovery.setupComplete
-      ? "Setup guide acknowledgement persisted and host discovery confirms tool/skill visibility."
-      : "Setup guide acknowledgement persisted, but host discovery has not confirmed tool/skill visibility; see hostDiscovery.",
+    warnings: hostDiscovery.setupComplete ? [] : ["host_discovery_incomplete"],
+    sourceRefs: [],
     data: {
+      message: hostDiscovery.setupComplete
+        ? "Setup guide acknowledgement persisted and host discovery confirms tool/skill visibility."
+        : "Setup guide acknowledgement persisted, but host discovery has not confirmed tool/skill visibility; see hostDiscovery.",
       markerPath,
       hostDiscovery,
       ...candidate,
