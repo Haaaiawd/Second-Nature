@@ -198,6 +198,8 @@ export interface DegradedOperationResult {
   reason: V8ReasonCode;
   ownerStage: LoopStage;
   sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
   operatorNextAction: string;
   retryable: boolean;
 }
@@ -251,6 +253,8 @@ export type V8ReasonCode =
   | "closure_downgraded"
   | "closure_downgraded_without_draft"
   | "closure_failed"
+  | "closure_idempotency_conflict"
+  | "closure_unavailable"
   // Perception / Judgment / Observability
   | "perception_rules_only"
   | "perception_contract_drift"

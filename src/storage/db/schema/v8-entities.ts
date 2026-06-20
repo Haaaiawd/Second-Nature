@@ -101,6 +101,8 @@ export const actionClosureRecord = sqliteTable("action_closure_record", {
   reason: text("reason"),
   nextState: text("next_state"),
   sourceRefsJson: text("source_refs_json").notNull(),
+  proofRefsJson: text("proof_refs_json"),
+  traceRefsJson: text("trace_refs_json"),
   redactionClass: text("redaction_class").notNull().default("none"),
   payloadJson: text("payload_json"),
 });
