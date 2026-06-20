@@ -1907,7 +1907,7 @@ graph TD
 > 触发：host runtime reality review + v8 ideal loop hemostasis review.
 > 目标：让 v8 不再把 loaded/smoke/carrier-visible 当作真实运行；收束 heartbeat、closure、provenance、degradation、content-bearing evidence 的语义污染。
 
-- [ ] **T-ROS.R.5** [REQ-008, REQ-009]: Restore host-visible `second_nature_ops` tool injection contract
+- [x] **T-ROS.R.5** [REQ-008, REQ-009]: Restore host-visible `second_nature_ops` tool injection contract
   - **描述**: Ensure plugin loaded state is not considered operational until `second_nature_ops` is visible through `HostCapabilityDiscoveryPort.listHostTools()` or an explicit host capability-denial diagnostic explains why it is unavailable.
   - **输入**: OpenClaw plugin registration, workspace ops bridge, runtime ops envelope, `HostCapabilityDiscoveryPort`
   - **输出**: Host-visible tool registration proof or blocked diagnostic with owner next action; manual smoke appendix must include hostName, hostVersion, timestamp, raw tool list JSON, command envelope, and evidenceLevel
@@ -1924,7 +1924,7 @@ graph TD
   - **依赖**: T-OBS.R.7
   - **优先级**: P0
 
-- [ ] **T-ROS.R.7** [REQ-008]: Project packaged `SKILL.md` into actual host skill discovery
+- [x] **T-ROS.R.7** [REQ-008]: Project packaged `SKILL.md` into actual host skill discovery
   - **描述**: Treat packaged `SKILL.md` as incomplete setup until `SkillDiscoveryProbe` confirms discovery, or reports `skill_projection_unavailable`, `skill_probe_unsupported`, `host_policy_blocked`, or `host_probe_timeout`.
   - **输入**: packaged plugin artifacts, setup hint/ack, host skill discovery path, `HostCapabilityDiscoveryPort.listHostSkills?()`
   - **输出**: skill discovery proof or explicit `skill_projection_unavailable` diagnostic
@@ -1941,7 +1941,7 @@ graph TD
   - **依赖**: none
   - **优先级**: P0
 
-- [ ] **T-ROS.R.8** [REQ-008]: Make setup ack placement a truthful completion gate
+- [x] **T-ROS.R.8** [REQ-008]: Make setup ack placement a truthful completion gate
   - **描述**: Reject or downgrade setup completion when `setup/agent-inner-guide-ack.json` records `placedIn: "unspecified"`; require `schemaVersion=1`, a concrete placement target, `placementProofRef`, and authorized writer.
   - **输入**: setup ack artifact, setup_hint/setup_ack commands
   - **输出**: setup state with concrete placement proof or incomplete diagnostic
@@ -1958,7 +1958,7 @@ graph TD
   - **依赖**: none
   - **优先级**: P0
 
-- [ ] **T-SH.R.6** [REQ-001, REQ-008, REQ-009]: Split provenance into `sourceRefs`, `proofRefs`, and `traceRefs`
+- [x] **T-SH.R.6** [REQ-001, REQ-008, REQ-009]: Split provenance into `sourceRefs`, `proofRefs`, and `traceRefs`
   - **描述**: Define and apply provenance tiers so real evidence sources, policy/setup proofs, and observability traces cannot be serialized into the same semantic bucket.
   - **输入**: shared v8 contracts, action closure records, loop stage events, runtime ops proofs
   - **输出**: canonical provenance-tier contract and migration plan for `ActionClosureRecord`, `ActionPolicyDecision`, `GuidanceUnavailableDispatchResult`, `LoopStageEvent`, `RuntimeOpsEnvelope`, heartbeat cycle traces, and setup/tool visibility proofs
@@ -1975,28 +1975,28 @@ graph TD
   - **依赖**: T-SMS.R.5
   - **优先级**: P0
 
-- [ ] **T-CP.R.5** [REQ-008, REQ-009]: Collapse external heartbeat model to v8 living loop
-  - **描述**: Make v8 heartbeat the only operator-facing heartbeat model; the v8 control plane does not contain a v7 heartbeat compatibility path. Legacy v7 heartbeat requests are rejected with `version_obsolete` or `command_unavailable`.
+- [x] **T-CP.R.5** [REQ-008, REQ-009]: Collapse external heartbeat model to v8 living loop
+  - **描述**: Make v8 heartbeat the only operator-facing heartbeat model; `heartbeat_check` runs the v8 control-plane spine by default, and legacy `heartbeat` command is deprecated/aliased with a `LEGACY_HEARTBEAT_DEPRECATED` warning. Legacy v7-only requests that cannot run v8 return `version_obsolete` or `command_unavailable`.
   - **输入**: heartbeat surface, real runtime spine, ops docs
   - **输出**: single external heartbeat contract and legacy-command rejection diagnostics
   - **契约承接**: heartbeat rhythm contract
   - **参考**: `04_SYSTEM_DESIGN/control-plane-system.md`
   - **验收标准**:
-    - Given an operator runs heartbeat or loop_status
+    - Given an operator runs heartbeat_check or heartbeat_run
     - When v8 living-loop cycle executes
     - Then output names one v8 living loop cycle with v8 cycle identity, emits `DailyRhythmTriggerRequest` after final closure, and does not expose v7 primary cycle fields
-    - And legacy v7 heartbeat requests are rejected with `version_obsolete` or `command_unavailable`; no v7 cycle is produced
+    - And legacy v7 heartbeat requests without v8 wiring return `version_obsolete` or `command_unavailable`; no v7 cycle is produced
   - **验证类型**: API接口功能测试 / integration / docs search
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-5`
-  - **证据产出**: heartbeat model parity log, API tests asserting no v7 heartbeat path exists in v8 control plane, legacy rejection tests, trigger envelope test
+  - **证据产出**: heartbeat model parity log, API tests asserting v8-only heartbeat path, legacy deprecation tests, trigger envelope test
   - **估时**: 6h
   - **依赖**: T-OBS.R.7
   - **优先级**: P0
 
-- [ ] **T-AC.R.2** [REQ-004, REQ-009]: Introduce a single CycleFinalizer closure invariant
+- [x] **T-AC.R.2** [REQ-004, REQ-009]: Introduce a single CycleFinalizer closure invariant
   - **描述**: Move exactly-one closure/no-action responsibility to a single finalizer boundary with `cycleId` idempotency key, closure-row-first write order, and partial-failure reconcile semantics.
   - **输入**: action proposal/policy/dispatch/closure ports, heartbeat orchestrator
-  - **输出**: CycleFinalizer contract with idempotent exactly-one closure semantics
+  - **输出**: `CycleFinalizer` contract in `src/core/second-nature/control-plane/cycle-finalizer.ts` with idempotent exactly-one closure semantics
   - **契约承接**: ActionClosureRecord invariant
   - **参考**: `04_SYSTEM_DESIGN/action-closure-policy-system.md`
   - **验收标准**:
@@ -2010,7 +2010,7 @@ graph TD
   - **依赖**: T-CP.R.5
   - **优先级**: P0
 
-- [ ] **T-OBS.R.7** [REQ-008]: Add `evidenceLevel` to operator-facing health and proof surfaces
+- [x] **T-OBS.R.7** [REQ-008]: Add `evidenceLevel` to operator-facing health and proof surfaces
   - **描述**: Implement the shared `EvidenceLevelClassifier` for `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, and `durable_verified` so loaded/smoke/carrier success cannot masquerade as real living-loop health.
   - **输入**: runtime ops envelopes, loop_status, digest, setup/tool proofs
   - **输出**: evidence-level taxonomy in all relevant operator surfaces
@@ -2027,7 +2027,7 @@ graph TD
   - **依赖**: none
   - **优先级**: P0
 
-- [ ] **T-OBS.R.8** [REQ-006, REQ-008]: Split `degraded` into precise operational states
+- [x] **T-OBS.R.8** [REQ-006, REQ-008]: Split `degraded` into precise operational states
   - **描述**: Keep `degraded` as aggregate only; stage-level diagnostics and `DegradedOperationResult.status` must report `empty`, `partial`, `blocked`, `unavailable`, or `unsafe` where applicable.
   - **输入**: degraded responses, loop_status stage health, Quiet/Dream absence reasons
   - **输出**: precise status taxonomy and read model mapping
@@ -2044,7 +2044,7 @@ graph TD
   - **依赖**: T-OBS.R.7
   - **优先级**: P0
 
-- [ ] **T-CS.R.9** [REQ-001, REQ-002, REQ-005]: Enforce content-bearing evidence minimum contract
+- [x] **T-CS.R.9** [REQ-001, REQ-002, REQ-005]: Enforce content-bearing evidence minimum contract
   - **描述**: Connector read evidence must carry useful content fields or an explicit `content_missing` reason; ID-only evidence must not feed perception/Quiet as meaningful content.
   - **输入**: connector result extractors, EvidenceItem normalization, perception inputs
   - **输出**: content minimum gate and no-fabrication fallback
@@ -2061,7 +2061,7 @@ graph TD
   - **依赖**: T-SH.R.6
   - **优先级**: P0
 
-- [ ] **T-DQ.R.9** [REQ-005, REQ-006, REQ-007]: Remove Quiet template placeholders and split Dream sensitivity blocks
+- [x] **T-DQ.R.9** [REQ-005, REQ-006, REQ-007]: Remove Quiet template placeholders and split Dream sensitivity blocks
   - **描述**: Quiet must not emit template-like review text as meaningful memory input; Dream sensitivity blocks must distinguish no content, private content redacted, credential-shaped block, and validation failure; Dream-Quiet scheduler owns daily/7-day due policy after `DailyRhythmTriggerRequest`.
   - **输入**: QuietDailyReview payloads, DreamConsolidationRun lifecycle, sensitivity diagnostics, `DailyRhythmTriggerRequest`
   - **输出**: non-template Quiet payload gate and precise Dream blocked reasons

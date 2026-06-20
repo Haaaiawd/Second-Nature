@@ -21,6 +21,7 @@
  * Test coverage: tests/unit/dream/memory-projection-lifecycle.test.ts
  */
 import { readMemoryProjectionsByTopic, writeLongTermMemoryProjection, updateLongTermMemoryProjectionStatus, } from "../../../storage/v8-state-stores.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -28,7 +29,7 @@ export async function acceptMemoryProjection(db, candidateId, topicKey, memoryTe
     const now = options?.now ?? new Date().toISOString();
     if (sourceRefs.length === 0) {
         return {
-            status: "degraded",
+            status: classifyDegradedStatus("source_refs_unresolved"),
             reason: "source_refs_unresolved",
             ownerStage: "projection",
             sourceRefs: [],

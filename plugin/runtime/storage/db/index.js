@@ -365,25 +365,60 @@ function applyStateSchemaMigrations(sqlite) {
     // v8-004-schema-closure. Fresh DBs already have these from bootstrap SQL.
     // Each statement is wrapped individually so duplicate-column errors are
     // harmless and do not block startup.
-    const migrations = [
+    const addColumnMigrations = [
         "ALTER TABLE policy_records ADD COLUMN outreach_daily_budget INTEGER NOT NULL DEFAULT 2",
         "ALTER TABLE action_closure_record ADD COLUMN platform_id TEXT",
         "ALTER TABLE action_closure_record ADD COLUMN capability_id TEXT",
         "ALTER TABLE quiet_daily_review ADD COLUMN closure_refs_json TEXT",
         "ALTER TABLE connector_cooldown_state ADD COLUMN terminal_count INTEGER NOT NULL DEFAULT 0",
         "CREATE INDEX IF NOT EXISTS connector_cooldown_state_platform_capability_idx ON connector_cooldown_state(platform_id, capability_id)",
-        "ALTER TABLE action_closure_record DROP COLUMN lifecycle_status",
-        "ALTER TABLE dream_consolidation_run DROP COLUMN lifecycle_status",
-        "ALTER TABLE long_term_memory_projection DROP COLUMN lifecycle_status",
-        "ALTER TABLE heartbeat_cycle_trace DROP COLUMN lifecycle_status",
-        "ALTER TABLE loop_stage_event DROP COLUMN lifecycle_status",
     ];
-    for (const sql of migrations) {
+    for (const sql of addColumnMigrations) {
         try {
             sqlite.exec(sql);
         }
         catch {
             /* duplicate column / already migrated */
+        }
+    }
+    // DROP COLUMN requires SQLite ≥ 3.35.0. Guard against older native
+    // bindings where the statement would silently fail (caught by try/catch)
+    // yet leave lifecycle_status in place while the Drizzle schema no longer
+    // declares it, masking an incomplete cleanup.
+    const vResult = sqlite.exec("SELECT sqlite_version() AS ver");
+    const ver = String(vResult[0]?.values[0]?.[0] ?? "0.0.0");
+    const [major, minor] = ver.split(".").map(Number);
+    const supportsDropColumn = major > 3 || (major === 3 && minor >= 35);
+    const dropColumnTables = [
+        "action_closure_record",
+        "dream_consolidation_run",
+        "long_term_memory_projection",
+        "heartbeat_cycle_trace",
+        "loop_stage_event",
+    ];
+    for (const table of dropColumnTables) {
+        try {
+            if (supportsDropColumn) {
+                sqlite.exec(`ALTER TABLE ${table} DROP COLUMN lifecycle_status`);
+            }
+            else {
+                // Rebuild the table without lifecycle_status for SQLite < 3.35.0.
+                const info = sqlite.exec(`PRAGMA table_info(${table})`);
+                if (!info[0])
+                    continue;
+                const nameIdx = info[0].columns.indexOf("name");
+                const allNames = info[0].values.map((row) => String(row[nameIdx]));
+                const kept = allNames.filter((n) => n !== "lifecycle_status");
+                if (kept.length === allNames.length)
+                    continue; // column already absent
+                const colList = kept.join(", ");
+                sqlite.exec(`CREATE TABLE ${table}_backup AS SELECT ${colList} FROM ${table}`);
+                sqlite.exec(`DROP TABLE ${table}`);
+                sqlite.exec(`ALTER TABLE ${table}_backup RENAME TO ${table}`);
+            }
+        }
+        catch {
+            /* column already removed or table missing */
         }
     }
 }

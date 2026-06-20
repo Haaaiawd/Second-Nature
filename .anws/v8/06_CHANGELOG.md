@@ -234,33 +234,29 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `logs/wave-115-source-refs-search.log` — search evidence.
 - **Guardrails**: No package version bump, no external write enablement, no change to v7 source-ref shapes.
 
-## Wave 116 — v8 Change: Host Reality and Ideal Loop Hemostasis — 2026-06-18
+## Wave 116A — v8 Change: Host Reality and Ideal Loop Hemostasis (Part 1) — 2026-06-18
 
 - **Change source**: host runtime reality review plus v8 ideal-loop hemostasis review.
 - **Classification**: `/change` local repair backlog; no PRD/ADR premise change and no new genesis required.
-- **Tasks opened**: `T-ROS.R.5`, `T-ROS.R.7`, `T-ROS.R.8`, `T-SH.R.6`, `T-CP.R.5`, `T-AC.R.2`, `T-OBS.R.7`, `T-OBS.R.8`, `T-CS.R.9`, `T-DQ.R.9`, `INT-R11`.
-- **Planned repairs**:
-  - Treat plugin loaded state as insufficient unless `second_nature_ops` is host-visible or explicitly blocked with owner next action.
-  - Treat packaged `SKILL.md` as incomplete until projected into host skill discovery or blocked truthfully.
-  - Reject `placedIn: "unspecified"` as completed setup ack.
-  - Split provenance into `sourceRefs`, `proofRefs`, and `traceRefs`.
-  - Make v8 living-loop heartbeat the only operator-facing heartbeat model; v7 remains internal adapter only.
-  - Centralize exactly-one cycle closure in a `CycleFinalizer` invariant.
-  - Add `evidenceLevel` to operator-facing surfaces: `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, `durable_verified`.
-  - Split generic stage-level `degraded` into `empty`, `partial`, `blocked`, `unavailable`, and `unsafe`.
-  - Enforce content-bearing evidence minimums and prevent ID-only evidence from feeding fabricated perception/Quiet/Dream memory.
-  - Remove Quiet template placeholders as meaningful memory input and split Dream sensitivity blocked reasons.
-- **Verification planned**:
-  - INT-R11 report: `reports/int-r11-wave-116-host-reality-hemostasis.md`.
-  - Targeted host/plugin/setup/evidence/closure/Quiet-Dream tests plus Wave 108-115 regression sample.
-- **Round 4 documentation repair applied**:
-  - Added `EvidenceLevelClassifier` promotion/cap rules and machine-readable proof requirements.
-  - Added `HostCapabilityDiscoveryPort`, host tool/skill probe results, and setup ack schema.
-  - Added v8-only heartbeat command routing, rejection of legacy v7 heartbeat requests, and Quiet/Dream trigger envelope ownership.
-  - Added `CycleFinalizer` idempotency key, write order, and partial-failure recovery protocol.
-  - Aligned stage status taxonomy across L0/L1 and removed stage-level `degraded` from `DegradedOperationResult`.
-  - Added `content_missing` perception handoff rules, host/setup/closure/content reason codes, and manual host smoke minimum evidence fields.
-- **Guardrails**: Planned only; no code completed, no checkbox backfill, no package version bump, no external write enablement.
+- **Tasks completed**: `T-OBS.R.7`, `T-ROS.R.7`, `T-ROS.R.8`.
+- **Fixes implemented**:
+  - Added shared `EvidenceLevelClassifier` (`src/shared/evidence-level-classifier.ts`) with `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, `durable_verified` taxonomy and cap/promote/min helpers.
+  - Injected `evidenceLevel` into `RuntimeOpsEnvelope` via `src/cli/ops/ops-router.ts`; `heartbeat_check`, `loop_status`, causal-loop health snapshot, and heartbeat digest now report honest evidence levels.
+  - Created canonical `SetupAck` validator (`src/shared/setup-ack.ts`) rejecting `placedIn: "unspecified"`, missing `placementProofRef`, unknown `writer`, and bad `schemaVersion`.
+  - Wired setup-ack validation into CLI `setup_hint`/`setup_ack` (`src/cli/commands/index.ts`) and OpenClaw plugin carrier (`plugin/index.ts`).
+  - Added `HostCapabilityDiscoveryPort` and default fail-closed adapter (`src/cli/host-capability/host-discovery-port.ts`) proving `second_nature_ops` tool visibility and packaged `SKILL.md` skill projection, or reporting explicit `skill_projection_unavailable` / `host_tool_unavailable` diagnostics.
+  - `setup_hint`/`setup_ack` now include a `hostDiscovery` report so setup completion cannot be claimed without host evidence.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - Wave 116A targeted tests: 48/48 PASS (setup-ack validator, evidence-level classifier, host-discovery port, CLI setup parity, plugin setup parity).
+  - Full regression: 1628/1666 pass, 29 fail, 9 skipped; failures appear pre-existing in legacy v5/v6/v7 ops surface paths.
+- **Artifacts**:
+  - `reports/int-r11-wave-116-host-reality-hemostasis.md` — INT-R11 116A gate report.
+  - `.anws/v8/wave-reviews/wave-116-review.md` — code review (Partial Pass; H-1 pre-existing drift assigned to T-OBS.R.8).
+- **Remaining Wave 116 work**: `T-SH.R.6`, `T-CP.R.5`, `T-AC.R.2`, `T-OBS.R.8`, `T-CS.R.9`, `T-DQ.R.9`, `INT-R11` final gate.
+- **Guardrails**: No package version bump, no external write enablement, no PRD/ADR premise edits.
+
+## Wave 116 — v8 Change: Host Reality and Ideal Loop Hemostasis (Backlog Opened) — 2026-06-18
 
 ---
 

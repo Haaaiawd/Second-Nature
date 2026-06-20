@@ -24,12 +24,13 @@
 import { eq, and, desc, like, isNull, inArray } from "drizzle-orm";
 import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, connectorCooldownState, } from "./db/schema/v8-entities.js";
 import { serializeSourceRefs, parseSourceRefs, } from "../shared/serialization.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
 function makeDegraded(reason, ownerStage, operatorNextAction, sourceRefs = []) {
     return {
-        status: "degraded",
+        status: classifyDegradedStatus(reason),
         reason,
         ownerStage,
         sourceRefs,
@@ -142,7 +143,7 @@ function validatePerceptionCardCanonical(row) {
         return {
             ok: false,
             degraded: {
-                status: "degraded",
+                status: classifyDegradedStatus("perception_contract_drift"),
                 reason: "perception_contract_drift",
                 ownerStage: "perception",
                 sourceRefs: row.sourceRefs,
@@ -157,7 +158,7 @@ function validatePerceptionCardCanonical(row) {
             return {
                 ok: false,
                 degraded: {
-                    status: "degraded",
+                    status: classifyDegradedStatus("perception_contract_drift"),
                     reason: "perception_contract_drift",
                     ownerStage: "perception",
                     sourceRefs: row.sourceRefs,
@@ -172,7 +173,7 @@ function validatePerceptionCardCanonical(row) {
         return {
             ok: false,
             degraded: {
-                status: "degraded",
+                status: classifyDegradedStatus("perception_contract_drift"),
                 reason: "perception_contract_drift",
                 ownerStage: "perception",
                 sourceRefs: row.sourceRefs,
@@ -310,6 +311,11 @@ export async function writeActionClosureRecord(db, row) {
         const record = {
             ...row,
             sourceRefsJson: serializeSourceRefs(validated.record),
+            payloadJson: JSON.stringify({
+                ...(row.payload ?? {}),
+                proofRefs: row.proofRefs ?? [],
+                traceRefs: row.traceRefs ?? [],
+            }),
         };
         await db.db.insert(actionClosureRecord).values(record);
         return { id: row.id };
@@ -616,6 +622,8 @@ export async function writeLoopStageEvent(db, row) {
         const record = {
             ...row,
             sourceRefsJson: serializeSourceRefs(validated.record),
+            proofRefsJson: serializeSourceRefs(row.proofRefs ?? []),
+            traceRefsJson: serializeSourceRefs(row.traceRefs ?? []),
         };
         await db.db.insert(loopStageEvent).values(record);
         return { id: row.id };

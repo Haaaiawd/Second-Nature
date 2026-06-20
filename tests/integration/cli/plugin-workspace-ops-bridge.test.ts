@@ -178,6 +178,65 @@ test("T-ROS.C.1 — heartbeat_run is reachable as heartbeat_check alias through 
   );
 });
 
+test("T-ROS.R.5 — plugin loaded state does not claim operational status without host tool visibility", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "sn-ws-ros-r5-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+
+  const plugin = await loadPlugin();
+  let tool:
+    | {
+        execute: (
+          _id: string,
+          params: { command: string; args?: Record<string, unknown>; workspaceRoot?: string },
+        ) => Promise<{ content: Array<{ type: string; text: string }> }>;
+      }
+    | undefined;
+
+  plugin.register({
+    registerService() {},
+    registerCommand() {},
+    registerTool(entry: unknown) {
+      tool = entry as typeof tool;
+    },
+  });
+
+  assert.ok(tool);
+  const text = (
+    await tool.execute("1", {
+      command: "setup_hint",
+      args: { hostName: "test-host", hostVersion: "0.0.0" },
+      workspaceRoot: tmp,
+    })
+  ).content[0]?.text ?? "{}";
+  const payload = JSON.parse(text) as {
+    ok: boolean;
+    evidenceLevel: string;
+    data?: {
+      hostDiscovery?: {
+        setupComplete: boolean;
+        evidenceLevel: string;
+        toolDiscovery: { status: string; tools: string[]; reason?: string; hostName?: string; hostVersion?: string; observedAt: string };
+        skillDiscovery: { status: string; skills: string[]; reason?: string; observedAt: string };
+      };
+    };
+  };
+  assert.equal(payload.ok, true);
+  assert.ok(payload.data?.hostDiscovery, "setup_hint must expose hostDiscovery");
+  assert.equal(payload.data.hostDiscovery.setupComplete, false, "setup cannot be complete without host tool visibility");
+  assert.notEqual(payload.data.hostDiscovery.evidenceLevel, "real_runtime");
+  assert.notEqual(payload.data.hostDiscovery.evidenceLevel, "durable_verified");
+  assert.equal(payload.data.hostDiscovery.toolDiscovery.status, "unsupported");
+  assert.ok(
+    payload.data.hostDiscovery.toolDiscovery.reason === "host_tool_unavailable" ||
+      payload.data.hostDiscovery.toolDiscovery.reason === "host_probe_unsupported",
+    "toolDiscovery must report explicit unavailable reason",
+  );
+  assert.equal(payload.data.hostDiscovery.toolDiscovery.tools.length, 0);
+  assert.equal(payload.data.hostDiscovery.toolDiscovery.hostName, "test-host");
+  assert.equal(payload.data.hostDiscovery.toolDiscovery.hostVersion, "0.0.0");
+  assert.ok(payload.data.hostDiscovery.toolDiscovery.observedAt);
+});
+
 // SKIP (pre-existing, Wave 56+): bridge connector action dispatch not fully wired in packaged runtime.
 // Justification: T2.2.3 full-runtime heartbeat wiring is tracked as a known structural gap;
 // it does not block v7 release because manual_run and probe surfaces are operational.

@@ -27,6 +27,7 @@ import type {
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
 import { serializeSourceRefs } from "../../../shared/serialization.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 import type { ActionProposal } from "./action-proposal-builder.js";
 import type { ActionPolicyDecision } from "./autonomy-policy-evaluator.js";
 
@@ -41,6 +42,7 @@ export interface ConnectorDispatchRequest {
   idempotencyKey: string;
   policyProof: { decisionId: string; decision: string };
   sourceRefs: string;
+  proofRefs: string;
 }
 
 export interface GuidanceDispatchRequest {
@@ -49,6 +51,7 @@ export interface GuidanceDispatchRequest {
   draftType: "reply" | "publish" | "notify";
   policyProof: { decisionId: string; decision: string };
   sourceRefs: string;
+  proofRefs: string;
 }
 
 export interface NoDispatchResult {
@@ -122,9 +125,10 @@ export function dispatchAllowedAction(
         type: "guidance",
         actionKind: target,
         draftType,
-        policyProof: { decisionId: decision.id, decision: decision.decision },
-        sourceRefs: serializeSourceRefs(decision.proofRefs),
-      },
+          policyProof: { decisionId: decision.id, decision: decision.decision },
+          sourceRefs: serializeSourceRefs(proposal.sourceRefs),
+          proofRefs: serializeSourceRefs(decision.proofRefs),
+        },
     };
   }
 
@@ -138,11 +142,12 @@ export function dispatchAllowedAction(
           platformId: proposal.targetPlatformId ?? "connector",
           capabilityId: proposal.targetCapabilityId ?? "run_connector",
           idempotencyKey: proposal.idempotencyKey,
-          policyProof: { decisionId: decision.id, decision: decision.decision },
-          sourceRefs: serializeSourceRefs(proposal.sourceRefs),
-        },
-      };
-    }
+        policyProof: { decisionId: decision.id, decision: decision.decision },
+        sourceRefs: serializeSourceRefs(proposal.sourceRefs),
+        proofRefs: serializeSourceRefs(decision.proofRefs),
+      },
+    };
+  }
 
     if (
       proposal.actionKind === "auto_reply" ||
@@ -159,6 +164,7 @@ export function dispatchAllowedAction(
           draftType,
           policyProof: { decisionId: decision.id, decision: decision.decision },
           sourceRefs: serializeSourceRefs(proposal.sourceRefs),
+          proofRefs: serializeSourceRefs(decision.proofRefs),
         },
       };
     }
@@ -170,10 +176,10 @@ export function dispatchAllowedAction(
   return {
     type: "degraded",
     degraded: {
-      status: "degraded",
+      status: classifyDegradedStatus("closure_failed"),
       reason: "closure_failed",
       ownerStage: "execution",
-      sourceRefs: decision.proofRefs,
+      sourceRefs: proposal.sourceRefs,
       operatorNextAction: "Unexpected policy decision shape",
       retryable: false,
     },

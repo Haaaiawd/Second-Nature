@@ -81,6 +81,64 @@ const HOST_SAFE_LIMITATION_MESSAGE = "Host-safe plugin package keeps synchronous
 const SETUP_MARKER_RELATIVE_PATH = path.join(".second-nature", "setup", "agent-inner-guide-ack.json");
 const SETUP_GUIDE_VERSION = "0.1.38";
 const SETUP_COMMANDS = new Set(["setup_hint", "setup_ack"]);
+const SETUP_ACK_SCHEMA_VERSION = 1;
+const VALID_PLACEMENTS = new Set([
+    "workspace_guide",
+    "host_skill_registry",
+    "agent_profile",
+    "manual_operator_instruction",
+]);
+const VALID_WRITERS = new Set(["setup_ack_command", "host_setup_bridge"]);
+function validateSetupAck(raw) {
+    const errors = [];
+    if (raw.schemaVersion !== SETUP_ACK_SCHEMA_VERSION) {
+        errors.push({
+            field: "schemaVersion",
+            reason: `schemaVersion must be ${SETUP_ACK_SCHEMA_VERSION}`,
+            repairAction: "Re-run setup_ack with a current client that writes schemaVersion=1.",
+        });
+    }
+    const placedIn = typeof raw.placedIn === "string" ? raw.placedIn : undefined;
+    if (!placedIn || placedIn === "unspecified") {
+        errors.push({
+            field: "placedIn",
+            reason: "placedIn is missing or 'unspecified'",
+            repairAction: "Provide a concrete placement target such as 'workspace_guide' or 'host_skill_registry'.",
+        });
+    }
+    else if (!VALID_PLACEMENTS.has(placedIn)) {
+        errors.push({
+            field: "placedIn",
+            reason: `placedIn '${placedIn}' is not a recognized placement target`,
+            repairAction: `Use one of: ${Array.from(VALID_PLACEMENTS).join(", ")}.`,
+        });
+    }
+    const placementProofRef = typeof raw.placementProofRef === "string" ? raw.placementProofRef : undefined;
+    if (!placementProofRef || placementProofRef.trim().length === 0) {
+        errors.push({
+            field: "placementProofRef",
+            reason: "placementProofRef is missing or empty",
+            repairAction: "Provide a proof reference such as a host skill registry id, file path, or anchor URI.",
+        });
+    }
+    const writer = typeof raw.writer === "string" ? raw.writer : undefined;
+    if (!writer || !VALID_WRITERS.has(writer)) {
+        errors.push({
+            field: "writer",
+            reason: `writer '${writer ?? "missing"}' is not authorized`,
+            repairAction: `Writer must be one of: ${Array.from(VALID_WRITERS).join(", ")}.`,
+        });
+    }
+    const acknowledgedAt = typeof raw.acknowledgedAt === "string" ? raw.acknowledgedAt : undefined;
+    if (!acknowledgedAt || Number.isNaN(Date.parse(acknowledgedAt))) {
+        errors.push({
+            field: "acknowledgedAt",
+            reason: "acknowledgedAt is missing or not a valid ISO timestamp",
+            repairAction: "Re-run setup_ack so the client can write a fresh timestamp.",
+        });
+    }
+    return errors.length === 0 ? { ok: true } : { ok: false, errors };
+}
 let activationSpine = null;
 /** T1.1.4 — lazily opened full read bridge; closed when workspace root / resolution changes. */
 let workspaceOpsBridge = null;
@@ -248,6 +306,31 @@ function safeShortText(value, maxLength = 240) {
         ? `${trimmed.slice(0, maxLength - 3)}...`
         : trimmed;
 }
+function buildHostDiscoveryReport(input) {
+    const observedAt = new Date().toISOString();
+    const hostName = typeof input?.hostName === "string" ? input.hostName : undefined;
+    const hostVersion = typeof input?.hostVersion === "string" ? input.hostVersion : undefined;
+    return {
+        toolDiscovery: {
+            status: "unsupported",
+            tools: [],
+            hostName,
+            hostVersion,
+            observedAt,
+            reason: "host_probe_unsupported",
+        },
+        skillDiscovery: {
+            status: "unsupported",
+            skills: [],
+            observedAt,
+            reason: "skill_probe_unsupported",
+        },
+        setupComplete: false,
+        evidenceLevel: "carrier_ack",
+        reason: "host_probe_unsupported",
+        nextStep: "host_safe_carrier_cannot_probe_host_registry_run_workspace_cli_for_full_discovery",
+    };
+}
 function resolveSetupMarkerPath(spine) {
     if (spine.workspaceRootContext.resolution === "unknown") {
         return undefined;
@@ -264,6 +347,16 @@ function readSetupAckMarker(spine) {
     }
     try {
         const marker = JSON.parse(fs.readFileSync(markerPath, "utf-8"));
+        const validation = validateSetupAck(marker);
+        if (!validation.ok) {
+            return {
+                status: "incomplete",
+                markerPath,
+                acknowledgedAt: marker.acknowledgedAt,
+                placedIn: marker.placedIn,
+                incompleteReasons: validation.errors,
+            };
+        }
         return {
             status: "acknowledged",
             markerPath,
@@ -272,7 +365,17 @@ function readSetupAckMarker(spine) {
         };
     }
     catch {
-        return { status: "pending", markerPath };
+        return {
+            status: "incomplete",
+            markerPath,
+            incompleteReasons: [
+                {
+                    field: "marker",
+                    reason: "Marker file is not valid JSON",
+                    repairAction: "Re-run setup_ack to rewrite the marker with a valid schema.",
+                },
+            ],
+        };
     }
 }
 function readPackagedSetupText(fileName) {
@@ -327,20 +430,27 @@ function buildSetupHintPayload(spine, input) {
     const includeSkill = input?.includeSkill !== false;
     const includeGuide = input?.includeGuide !== false;
     const ack = readSetupAckMarker(spine);
+    const hostDiscovery = buildHostDiscoveryReport(input);
     const data = {
         status: ack.status,
         workspaceRootResolution: spine.workspaceRootContext.resolution,
         markerPath: ack.markerPath,
         acknowledgedAt: ack.acknowledgedAt,
         placedIn: ack.placedIn,
+        hostDiscovery,
         recommendedPlacement: [
             "agent prompt",
             "workspace/IDENTITY.md",
             "workspace/USER.md",
         ],
         nextStep: ack.status === "acknowledged"
-            ? "setup_already_acknowledged"
-            : "read_returned_guidance_then_run_setup_ack",
+            ? hostDiscovery.setupComplete
+                ? "setup_verified_by_host_discovery"
+                : hostDiscovery.nextStep
+            : ack.status === "incomplete"
+                ? "repair_setup_ack_fields"
+                : "read_returned_guidance_then_run_setup_ack",
+        ...(ack.incompleteReasons ? { incompleteReasons: ack.incompleteReasons } : {}),
     };
     if (includeSkill) {
         const skill = readPackagedSetupText("SKILL.md");
@@ -364,6 +474,7 @@ function buildSetupHintPayload(spine, input) {
         ok: true,
         command: "setup_hint",
         surfaceMode: "host_safe_carrier",
+        evidenceLevel: "contract_smoke",
         message: "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
         data,
     };
@@ -382,25 +493,48 @@ function buildSetupAckPayload(spine, input) {
             },
         };
     }
+    const placedIn = safeShortText(input?.placedIn, 160);
+    const placementProofRef = safeShortText(input?.placementProofRef, 320);
+    const writer = safeShortText(input?.writer, 80);
     const marker = {
+        schemaVersion: SETUP_ACK_SCHEMA_VERSION,
         acknowledgedAt: new Date().toISOString(),
         acceptedBy: safeShortText(input?.acceptedBy, 80) ?? "agent",
-        placedIn: safeShortText(input?.placedIn, 160) ?? "unspecified",
+        placedIn: placedIn ?? "unspecified",
+        placementProofRef: placementProofRef ?? "",
         note: safeShortText(input?.note, 240),
         guideVersion: SETUP_GUIDE_VERSION,
         source: "second-nature-plugin",
         skillPath: "SKILL.md",
         guidePath: "agent-inner-guide.md",
+        writer: writer ?? "setup_ack_command",
     };
+    const validation = validateSetupAck(marker);
+    if (!validation.ok) {
+        return {
+            ok: false,
+            command: "setup_ack",
+            surfaceMode: "host_safe_carrier",
+            evidenceLevel: "carrier_ack",
+            message: "Setup acknowledgement is incomplete; see incompleteReasons and repairAction.",
+            data: {
+                markerPath,
+                incompleteReasons: validation.errors,
+            },
+        };
+    }
     fs.mkdirSync(path.dirname(markerPath), { recursive: true });
     fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`, "utf-8");
+    const hostDiscovery = buildHostDiscoveryReport(input);
     return {
         ok: true,
         command: "setup_ack",
         surfaceMode: "host_safe_carrier",
-        message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
+        evidenceLevel: hostDiscovery.evidenceLevel,
+        message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace. Host skill discovery is unavailable in carrier mode.",
         data: {
             markerPath,
+            hostDiscovery,
             ...marker,
         },
     };

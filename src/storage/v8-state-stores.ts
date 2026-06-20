@@ -71,6 +71,7 @@ import {
   serializeSourceRefs,
   parseSourceRefs,
 } from "../shared/serialization.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
@@ -83,7 +84,7 @@ function makeDegraded(
   sourceRefs: SourceRef[] = [],
 ): DegradedOperationResult {
   return {
-    status: "degraded",
+    status: classifyDegradedStatus(reason),
     reason,
     ownerStage,
     sourceRefs,
@@ -263,7 +264,7 @@ function validatePerceptionCardCanonical(
     return {
       ok: false,
       degraded: {
-        status: "degraded",
+        status: classifyDegradedStatus("perception_contract_drift"),
         reason: "perception_contract_drift",
         ownerStage: "perception",
         sourceRefs: row.sourceRefs,
@@ -279,7 +280,7 @@ function validatePerceptionCardCanonical(
       return {
         ok: false,
         degraded: {
-          status: "degraded",
+          status: classifyDegradedStatus("perception_contract_drift"),
           reason: "perception_contract_drift",
           ownerStage: "perception",
           sourceRefs: row.sourceRefs,
@@ -295,7 +296,7 @@ function validatePerceptionCardCanonical(
     return {
       ok: false,
       degraded: {
-        status: "degraded",
+        status: classifyDegradedStatus("perception_contract_drift"),
         reason: "perception_contract_drift",
         ownerStage: "perception",
         sourceRefs: row.sourceRefs,
@@ -482,7 +483,12 @@ export async function readJudgmentVerdictById(
 
 export async function writeActionClosureRecord(
   db: StateDatabase,
-  row: Omit<ActionClosureRecordInsert, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+  row: Omit<ActionClosureRecordInsert, "sourceRefsJson" | "payloadJson"> & {
+    sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
+    payload?: Record<string, unknown>;
+  },
 ): Promise<{ id: string } | DegradedOperationResult> {
   const validated = validateSourceRefs(row.sourceRefs, "closure");
   if (!validated.ok) return validated.degraded;
@@ -491,6 +497,11 @@ export async function writeActionClosureRecord(
     const record: ActionClosureRecordInsert = {
       ...row,
       sourceRefsJson: serializeSourceRefs(validated.record),
+      payloadJson: JSON.stringify({
+        ...(row.payload ?? {}),
+        proofRefs: row.proofRefs ?? [],
+        traceRefs: row.traceRefs ?? [],
+      }),
     };
     await db.db.insert(actionClosureRecord).values(record);
     return { id: row.id };
@@ -927,7 +938,11 @@ export async function readHeartbeatCycleTraces(
 
 export async function writeLoopStageEvent(
   db: StateDatabase,
-  row: Omit<NewLoopStageEventRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+  row: Omit<NewLoopStageEventRecord, "sourceRefsJson" | "proofRefsJson" | "traceRefsJson"> & {
+    sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
+  },
 ): Promise<{ id: string } | DegradedOperationResult> {
   const stage = row.stage as import("../shared/types/v8-contracts.js").LoopStage;
   const validated = validateSourceRefs(row.sourceRefs, stage);
@@ -937,6 +952,8 @@ export async function writeLoopStageEvent(
     const record: NewLoopStageEventRecord = {
       ...row,
       sourceRefsJson: serializeSourceRefs(validated.record),
+      proofRefsJson: serializeSourceRefs(row.proofRefs ?? []),
+      traceRefsJson: serializeSourceRefs(row.traceRefs ?? []),
     };
     await db.db.insert(loopStageEvent).values(record);
     return { id: row.id };

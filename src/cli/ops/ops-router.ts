@@ -640,6 +640,37 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
       }),
     async dispatch(command, input) {
       const rawResult = await (async () => {
+      if (command === "heartbeat") {
+        // T-CP.R.5: legacy v7 heartbeat command is no longer the operator-facing model.
+        // It still runs through heartbeat_check for backward compatibility, but the
+        // canonical operator-facing command is `heartbeat_check` (v8 living-loop spine).
+        return (async () => {
+          try {
+            const result = await this.dispatch("heartbeat_check", input);
+            return {
+              ...result,
+              warnings: [
+                ...(Array.isArray((result as any).warnings) ? (result as any).warnings : []),
+                {
+                  code: "LEGACY_HEARTBEAT_DEPRECATED",
+                  message: "`heartbeat` is deprecated; use `heartbeat_check` (v8 living-loop spine)",
+                },
+              ],
+            };
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            return {
+              ok: false,
+              command: "heartbeat",
+              error: {
+                code: "HEARTBEAT_CYCLE_EXCEPTION",
+                message: msg.slice(0, 200),
+                nextStep: "use_heartbeat_check_command",
+              },
+            };
+          }
+        })();
+      }
       if (command === "heartbeat_check") {
         const runtimeAvailable =
           typeof input?.runtimeAvailable === "boolean"

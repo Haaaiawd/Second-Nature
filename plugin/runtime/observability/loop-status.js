@@ -21,6 +21,7 @@
 import { assembleLoopStatus } from "./causal-loop-health.js";
 import { checkRealRunHealth } from "./living-loop-health-gate.js";
 import { readActionClosuresByDay, readConnectorCooldownState, } from "../storage/v8-state-stores.js";
+import { classifyEvidenceLevel } from "../shared/evidence-level-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -163,7 +164,7 @@ export async function attributeDenials(db, options) {
 // ───────────────────────────────────────────────────────────────
 export async function readLoopStatus(db) {
     const health = await assembleLoopStatus(db, { limit: 50 });
-    if ("status" in health && health.status === "degraded") {
+    if ("ownerStage" in health) {
         return {
             ok: false,
             degraded: health,
@@ -214,6 +215,17 @@ export async function readLoopStatus(db) {
         overallStatus = "healthy";
         stalledAt = undefined;
     }
+    // T-OBS.R.7: derive evidenceLevel from observed proof
+    const evidenceLevel = classifyEvidenceLevel({
+        hasCarrierEnvelope: true, // loop_status command envelope itself
+        hasContractSmoke: snapshot.lastCycleSequence > 0 && !realRunHealth.hasRealClosure,
+        hasStatePresent: snapshot.lastCycleSequence === 0 &&
+            (realRunHealth.hasQuietArtifact ||
+                realRunHealth.hasDreamArtifact ||
+                realRunHealth.hasProjectionFeedback),
+        hasCycleExecution: snapshot.lastCycleSequence > 0 && realRunHealth.hasRealClosure,
+        hasReadbackVerification: realRunHealth.gatePassed,
+    });
     const stageSummaries = snapshot.stages.map((s) => ({
         stage: s.stage,
         eventCount: s.eventCount,
@@ -240,6 +252,7 @@ export async function readLoopStatus(db) {
             connectorTerminalCount: attribution.connectorTerminalCount,
             nextAction,
             realRunHealth,
+            evidenceLevel,
         },
     };
 }

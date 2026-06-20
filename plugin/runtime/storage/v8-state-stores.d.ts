@@ -82,8 +82,11 @@ export declare function readJudgmentVerdictById(db: StateDatabase, id: string): 
     row?: JudgmentVerdictRecord;
     degraded?: DegradedOperationResult;
 }>;
-export declare function writeActionClosureRecord(db: StateDatabase, row: Omit<ActionClosureRecordInsert, "sourceRefsJson"> & {
+export declare function writeActionClosureRecord(db: StateDatabase, row: Omit<ActionClosureRecordInsert, "sourceRefsJson" | "payloadJson"> & {
     sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
+    payload?: Record<string, unknown>;
 }): Promise<{
     id: string;
 } | DegradedOperationResult>;
@@ -173,8 +176,10 @@ export declare function readHeartbeatCycleTraces(db: StateDatabase, limit?: numb
     rows: HeartbeatCycleTraceRecord[];
     degraded?: DegradedOperationResult;
 }>;
-export declare function writeLoopStageEvent(db: StateDatabase, row: Omit<NewLoopStageEventRecord, "sourceRefsJson"> & {
+export declare function writeLoopStageEvent(db: StateDatabase, row: Omit<NewLoopStageEventRecord, "sourceRefsJson" | "proofRefsJson" | "traceRefsJson"> & {
     sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
 }): Promise<{
     id: string;
 } | DegradedOperationResult>;

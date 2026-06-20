@@ -7,6 +7,8 @@ import { explainSurfaceSubject } from "../explain/explain-surface-subject.js";
 import { showOperatorFallback, OperatorFallbackNotFoundError, } from "../ops/show-operator-fallback.js";
 import { runStorageModeSmoke } from "../../storage/bootstrap/storage-mode-smoke.js";
 import { policySet } from "./policy.js";
+import { validateSetupAck, SETUP_ACK_SCHEMA_VERSION } from "../../shared/setup-ack.js";
+import { createDefaultHostDiscoveryPort, probeHostDiscovery, recordHostToolVisibilityLog, } from "../host-capability/host-discovery-port.js";
 const SETUP_MARKER_RELATIVE_PATH = path.join(".second-nature", "setup", "agent-inner-guide-ack.json");
 function safeShortText(value, maxLen) {
     if (typeof value !== "string")
@@ -53,11 +55,21 @@ function readSetupAckMarker(workspaceRoot) {
         const raw = fs.readFileSync(markerPath, "utf-8");
         const marker = JSON.parse(raw);
         if (marker.status === "acknowledged") {
+            const validation = validateSetupAck(marker);
+            if (validation.ok) {
+                return {
+                    status: "acknowledged",
+                    markerPath,
+                    acknowledgedAt: validation.ack.acknowledgedAt,
+                    placedIn: validation.ack.placedIn,
+                };
+            }
             return {
-                status: "acknowledged",
+                status: "incomplete",
                 markerPath,
                 acknowledgedAt: typeof marker.acknowledgedAt === "string" ? marker.acknowledgedAt : undefined,
                 placedIn: typeof marker.placedIn === "string" ? marker.placedIn : undefined,
+                incompleteReasons: validation.errors,
             };
         }
     }
@@ -72,20 +84,32 @@ async function buildSetupHintPayload(input) {
     const includeGuide = input?.includeGuide !== false;
     const workspaceRoot = resolveWorkspaceRoot(input);
     const ack = readSetupAckMarker(workspaceRoot);
+    const hostDiscovery = await probeHostDiscovery({
+        port: createDefaultHostDiscoveryPort(),
+        hostName: typeof input?.hostName === "string" ? input.hostName : undefined,
+        hostVersion: typeof input?.hostVersion === "string" ? input.hostVersion : undefined,
+    });
+    await recordHostToolVisibilityLog(workspaceRoot, "setup_hint", hostDiscovery);
     const data = {
         status: ack.status,
         workspaceRoot,
         markerPath: ack.markerPath,
         acknowledgedAt: ack.acknowledgedAt,
         placedIn: ack.placedIn,
+        hostDiscovery,
         recommendedPlacement: [
             "agent prompt",
             "workspace/IDENTITY.md",
             "workspace/USER.md",
         ],
         nextStep: ack.status === "acknowledged"
-            ? "setup_already_acknowledged"
-            : "read_returned_guidance_then_run_setup_ack",
+            ? hostDiscovery.setupComplete
+                ? "setup_verified_by_host_discovery"
+                : hostDiscovery.nextStep
+            : ack.status === "incomplete"
+                ? "repair_setup_ack_fields"
+                : "read_returned_guidance_then_run_setup_ack",
+        ...(ack.incompleteReasons ? { incompleteReasons: ack.incompleteReasons } : {}),
     };
     if (includeSkill) {
         const skill = readSetupText("SKILL.md");
@@ -109,6 +133,7 @@ async function buildSetupHintPayload(input) {
         ok: true,
         command: "setup_hint",
         surfaceMode: "workspace_full_runtime",
+        evidenceLevel: "contract_smoke",
         message: "Read the SKILL and guide as a friendly setup note, then place the guidance where the agent naturally checks its working anchors.",
         data,
     };
@@ -116,27 +141,57 @@ async function buildSetupHintPayload(input) {
 async function buildSetupAckPayload(input) {
     const workspaceRoot = resolveWorkspaceRoot(input);
     const markerPath = path.join(workspaceRoot, SETUP_MARKER_RELATIVE_PATH);
-    const marker = {
+    const placedIn = safeShortText(input?.placedIn, 160);
+    const placementProofRef = safeShortText(input?.placementProofRef, 320);
+    const writer = safeShortText(input?.writer, 80);
+    const candidate = {
+        schemaVersion: SETUP_ACK_SCHEMA_VERSION,
         acknowledgedAt: new Date().toISOString(),
         acceptedBy: safeShortText(input?.acceptedBy, 80) ?? "agent",
-        placedIn: safeShortText(input?.placedIn, 160) ?? "unspecified",
+        placedIn: placedIn ?? "unspecified",
+        placementProofRef: placementProofRef ?? "",
         note: safeShortText(input?.note, 240),
         guideVersion: "0.2.5",
+        writer: writer ?? "setup_ack_command",
         source: "second-nature-cli",
         skillPath: "SKILL.md",
         guidePath: "plugin/agent-inner-guide.md",
         status: "acknowledged",
     };
+    const validation = validateSetupAck(candidate);
+    if (!validation.ok) {
+        return {
+            ok: false,
+            command: "setup_ack",
+            surfaceMode: "workspace_full_runtime",
+            evidenceLevel: "carrier_ack",
+            message: "Setup acknowledgement is incomplete; see errors and repairAction.",
+            data: {
+                markerPath,
+                validationErrors: validation.errors,
+            },
+        };
+    }
     fs.mkdirSync(path.dirname(markerPath), { recursive: true });
-    fs.writeFileSync(markerPath, `${JSON.stringify(marker, null, 2)}\n`, "utf-8");
+    fs.writeFileSync(markerPath, `${JSON.stringify(candidate, null, 2)}\n`, "utf-8");
+    const hostDiscovery = await probeHostDiscovery({
+        port: createDefaultHostDiscoveryPort(),
+        hostName: typeof input?.hostName === "string" ? input.hostName : undefined,
+        hostVersion: typeof input?.hostVersion === "string" ? input.hostVersion : undefined,
+    });
+    await recordHostToolVisibilityLog(workspaceRoot, "setup_ack", hostDiscovery);
     return {
         ok: true,
         command: "setup_ack",
         surfaceMode: "workspace_full_runtime",
-        message: "Setup guide acknowledgement persisted; setup nudge is now silent for this workspace.",
+        evidenceLevel: hostDiscovery.setupComplete ? "state_present" : "carrier_ack",
+        message: hostDiscovery.setupComplete
+            ? "Setup guide acknowledgement persisted and host discovery confirms tool/skill visibility."
+            : "Setup guide acknowledgement persisted, but host discovery has not confirmed tool/skill visibility; see hostDiscovery.",
         data: {
             markerPath,
-            ...marker,
+            hostDiscovery,
+            ...candidate,
         },
     };
 }
@@ -322,7 +377,16 @@ export function createCliCommands(deps) {
         },
         {
             name: "heartbeat_check",
-            description: "Workspace heartbeat_check ops surface (v5 HeartbeatSurfaceResult)",
+            description: "v8 living-loop heartbeat — runs real-runtime perception/judgment/action closure",
+            execute: async (input) => {
+                const surface = await Promise.resolve(opsRouter.dispatch("heartbeat_check", input));
+                flush();
+                return surface;
+            },
+        },
+        {
+            name: "heartbeat",
+            description: "[DEPRECATED] v7 heartbeat entrypoint; alias to heartbeat_check",
             execute: async (input) => {
                 const surface = await Promise.resolve(opsRouter.dispatch("heartbeat_check", input));
                 flush();

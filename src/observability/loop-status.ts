@@ -257,7 +257,7 @@ export async function readLoopStatus(
 ): Promise<LoopStatusResult> {
   const health = await assembleLoopStatus(db, { limit: 50 });
 
-  if ("status" in health && health.status === "degraded") {
+  if ("ownerStage" in health) {
     return {
       ok: false,
       degraded: health as DegradedOperationResult,

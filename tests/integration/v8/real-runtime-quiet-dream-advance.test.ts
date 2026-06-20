@@ -54,7 +54,7 @@ describe("real-runtime-quiet-dream-advance", () => {
         trigger: "manual",
       });
 
-      assert.ok(!("status" in result && result.status === "degraded"), "heartbeat should not degrade");
+      assert.ok(!("status" in result), "heartbeat should not degrade");
       const r = result as { cycleId: string; cycleSequence: number; rhythmState?: { quietStatus: string; dreamStatus: string } };
 
       // Closure recorded
@@ -111,7 +111,7 @@ describe("real-runtime-quiet-dream-advance", () => {
         trigger: "manual",
       });
 
-      assert.ok(!("status" in result && result.status === "degraded"), "heartbeat should not degrade");
+      assert.ok(!("status" in result), "heartbeat should not degrade");
       const r = result as { cycleId: string };
 
       const closures = await readActionClosuresByCycle(db, r.cycleId);

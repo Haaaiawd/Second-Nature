@@ -31,6 +31,7 @@ import { evaluateActionPolicy } from "../action/autonomy-policy-evaluator.js";
 import { dispatchAllowedAction } from "../action/policy-bound-dispatch.js";
 import { recordNoActionClosure, recordRememberClosure, recordPolicyOutcomeClosure, recordExecutionClosure, } from "../action/action-closure-recorder.js";
 import { checkDailyRhythm } from "../quiet-dream/daily-rhythm-scheduler.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -84,7 +85,7 @@ async function advanceAndRecordDailyRhythm(db, cycleId, cycleSequence, cycleRef,
     catch (rhythmErr) {
         const errMsg = rhythmErr instanceof Error ? rhythmErr.message : String(rhythmErr);
         const degraded = {
-            status: "degraded",
+            status: classifyDegradedStatus("state_unreadable"),
             reason: "state_unreadable",
             ownerStage: "quiet",
             sourceRefs: [cycleRef],
@@ -130,7 +131,7 @@ export async function runHeartbeatCycle(db, request) {
     });
     if ("reason" in traceResult) {
         return {
-            status: "degraded",
+            status: classifyDegradedStatus("state_unreadable"),
             reason: "state_unreadable",
             ownerStage: "ingestion",
             sourceRefs: [cycleRef],
@@ -150,7 +151,7 @@ export async function runHeartbeatCycle(db, request) {
     });
     // ── Perception stage ──
     const perceptionResult = await buildPerceptionCards(db, { cycleId, now });
-    const perceptionDegraded = "status" in perceptionResult && perceptionResult.status === "degraded"
+    const perceptionDegraded = "ownerStage" in perceptionResult
         ? perceptionResult
         : null;
     await recordLoopStageEvent(db, {
@@ -199,8 +200,8 @@ export async function runHeartbeatCycle(db, request) {
             noActionReason: degradedReason,
             degraded: perceptionDegraded
                 ? {
-                    status: "degraded",
-                    reason: perceptionResult.reason ?? "state_unreadable",
+                    status: classifyDegradedStatus(degradedReason),
+                    reason: degradedReason,
                     ownerStage: "perception",
                     sourceRefs: [cycleRef],
                     operatorNextAction: "Retry heartbeat after perception recovery",
@@ -327,7 +328,7 @@ export async function runHeartbeatCycle(db, request) {
         else {
             // Build proposal for the actionable verdict
             const proposalResult = await buildActionProposal(db, actionableVerdict.id, { now });
-            if ("status" in proposalResult && proposalResult.status === "degraded") {
+            if ("operatorNextAction" in proposalResult) {
                 // Proposal build failed — still need a closure
                 closureDegraded = proposalResult;
                 const closureResult = await recordNoActionClosure(db, cycleId, closureDegraded.reason, { now });
@@ -398,7 +399,8 @@ export async function runHeartbeatCycle(db, request) {
                     status: "completed",
                     occurredAt: new Date().toISOString(),
                     reason: decision.decisionReason,
-                    sourceRefs: decision.proofRefs,
+                    sourceRefs: proposal.sourceRefs,
+                    proofRefs: decision.proofRefs,
                 });
                 // Record execution stage started
                 await recordLoopStageEvent(db, {
@@ -408,7 +410,8 @@ export async function runHeartbeatCycle(db, request) {
                     stage: "execution",
                     status: "started",
                     occurredAt: new Date().toISOString(),
-                    sourceRefs: decision.proofRefs,
+                    sourceRefs: proposal.sourceRefs,
+                    proofRefs: decision.proofRefs,
                 });
                 // Dispatch — no real external write in T-CP.R.2
                 const dispatchResult = dispatchAllowedAction(proposal, decision, { guidanceAvailable: false });
@@ -512,7 +515,8 @@ export async function runHeartbeatCycle(db, request) {
                     status: closureDegraded ? "failed" : "completed",
                     occurredAt: new Date().toISOString(),
                     reason: closureDegraded?.reason,
-                    sourceRefs: decision.proofRefs,
+                    sourceRefs: proposal.sourceRefs,
+                    proofRefs: decision.proofRefs,
                 });
             }
         }

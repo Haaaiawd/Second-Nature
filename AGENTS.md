@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-18` (Wave 116 /change backlog opened; host reality + ideal loop hemostasis planned)
-- **当前波次**: Wave 116
-- **下一步**: Execute Wave 116 tasks; run INT-R11 host reality and hemostasis gate
+- **最近一次更新**: `2026-06-20` (Wave 116C /forge AUTO: T-ROS.R.5, T-CS.R.9, T-DQ.R.9)
+- **当前波次**: Wave 116C
+- **下一步**: Execute Wave 116C tasks; run INT-R11 host reality and hemostasis gate after 116C closure
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -215,9 +215,9 @@ src/
 
 ### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
 T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
-**签入**: AUTO (Wave 116A)
+**签入**: AUTO (Wave 116C)
 **code-reviewer**: 默认执行
-- **状态**: 🟡 In Progress — Wave 116A forging (T-OBS.R.7, T-ROS.R.8, T-ROS.R.7, T-SH.R.6)
+- **状态**: 🟡 In Progress — Wave 116C forging (T-ROS.R.5, T-CS.R.9, T-DQ.R.9); 116A and 116B implementation tasks checked in `05A_TASKS.md`
 - **子波划分**: 116A 契约基础 → 116B 心跳/闭包模型 → 116C 内容/记忆/回归门
 - **目标**: repair host reality and v8 ideal-loop semantic drift so loaded/smoke/carrier-visible states cannot masquerade as real runtime health.
 - **计划产出**:
@@ -233,8 +233,8 @@ T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.
   - Content-bearing evidence minimum contract and no-fabrication handling for ID-only evidence.
   - Quiet placeholder rejection and precise Dream blocked reasons.
 - **测试计划**: INT-R11 report `reports/int-r11-wave-116-host-reality-hemostasis.md`; targeted host/plugin/setup/evidence/closure/Quiet-Dream tests plus Wave 108-115 regression sample.
-- **最高严重度**: documentation P0 closed; no implementation verdict yet
-- **下一步**: Execute Wave 116A tasks; run targeted tests; proceed to 116B after 116A closure.
+- **最高严重度**: documentation P0 closed; 116A/116B implementation completed pending 116C verification
+- **下一步**: Execute Wave 116C tasks (T-ROS.R.5, T-CS.R.9, T-DQ.R.9); run targeted tests; proceed to INT-R11 after 116C closure.
 
 ### 🌊 Wave 108 🧭 — v8 Change: Runtime Recovery Closure Backlog
 T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3

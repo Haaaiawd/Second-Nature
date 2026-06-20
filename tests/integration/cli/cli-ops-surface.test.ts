@@ -477,13 +477,22 @@ test("setup_hint and setup_ack CLI parity", async () => {
   assert.equal(hintResult.ok, true);
   assert.ok((hintResult as any).data.skill || (hintResult as any).data.guide || (hintResult as any).data.nextStep);
 
-  const ackResult = await setupAck.execute({ acceptedBy: "test", placedIn: "test-anchor" });
+  const ackResult = await setupAck.execute({
+    acceptedBy: "test",
+    placedIn: "workspace_guide",
+    placementProofRef: "tests/integration/cli/cli-ops-surface.test.ts",
+  });
   assert.equal(ackResult.ok, true);
   assert.equal((ackResult as any).data.status, "acknowledged");
   assert.ok((ackResult as any).data.markerPath);
 
   const markerPath = (ackResult as any).data.markerPath as string;
   assert.ok(fs.existsSync(markerPath));
+
+  // T-ROS.R.8: invalid placement must be rejected as incomplete.
+  const invalidAck = await setupAck.execute({ acceptedBy: "test", placedIn: "unspecified" });
+  assert.equal(invalidAck.ok, false);
+  assert.ok((invalidAck as any).data.validationErrors || (invalidAck as any).data.incompleteReasons);
 
   harness.cleanup();
 });

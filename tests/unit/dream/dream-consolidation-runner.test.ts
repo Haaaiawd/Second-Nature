@@ -15,7 +15,8 @@ describe("dream-consolidation-runner", () => {
   describe("missing inputs", () => {
     it("returns degraded when run not found", async () => {
       const result = await runDreamConsolidation(MOCK_DB, "missing_run");
-      assert.ok("status" in result && result.status === "degraded");
+      assert.ok("ownerStage" in result, "expected degraded result");
+      assert.equal(result.status, "unavailable");
     });
   });
 });

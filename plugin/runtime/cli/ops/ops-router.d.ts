@@ -12,7 +12,8 @@ import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audi
 import type { RestoreSnapshotStore } from "../../storage/services/restore-snapshot-store.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 import type { AffordanceAssembler } from "../../core/second-nature/body/tool-affordance/affordance-assembler.js";
-/** Unified response envelope for all v7 runtime-ops commands. */
+import type { EvidenceLevel } from "../../shared/types/v8-contracts.js";
+/** Unified response envelope for all v7/v8 runtime-ops commands. */
 export interface RuntimeOpsEnvelope<T = unknown> {
     ok: boolean;
     command: string;
@@ -27,6 +28,8 @@ export interface RuntimeOpsEnvelope<T = unknown> {
     };
     warnings: string[];
     sourceRefs: string[];
+    /** T-OBS.R.7: how strongly this response is backed by runtime proof. */
+    evidenceLevel?: EvidenceLevel;
 }
 export interface OpsRouterDeps {
     /** When true, packaged runtime artifacts resolved and full graph is loadable */

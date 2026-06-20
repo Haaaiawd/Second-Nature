@@ -36,7 +36,7 @@ describe("int-r1-runtime-activation-repair", () => {
         trigger: "manual",
       });
       assert.ok(
-        !("status" in cycleResult && cycleResult.status === "degraded"),
+        !("status" in cycleResult),
         "heartbeat cycle should not degrade"
       );
       assert.ok(

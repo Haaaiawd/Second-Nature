@@ -22,6 +22,7 @@
  */
 import { readDreamConsolidationRunById, readQuietDailyReviewById, } from "../../../storage/v8-state-stores.js";
 import { acceptMemoryProjection } from "./memory-projection-lifecycle.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -47,9 +48,13 @@ function buildSourceRefsFromReview(review) {
     ];
 }
 function redactSensitive(input) {
-    // Simple redaction: block credential-shaped patterns
+    // Credential-shaped patterns first — highest sensitivity.
     if (/\b(?:Bearer|token|secret|password|key)\s*[:=]\s*[a-zA-Z0-9+/=]{8,}\b/i.test(input)) {
-        return { text: "[redacted: credential shape detected]", blocked: true };
+        return { text: "[redacted: credential shape detected]", blocked: true, reason: "dream_blocked_credential" };
+    }
+    // Private context markers (names, addresses, phone numbers) — lower threshold than credential.
+    if (/\b(?:ssn|social.security|phone|address|email)\s*[:=]\s*[^\s]+/i.test(input)) {
+        return { text: "[redacted: private context]", blocked: true, reason: "dream_blocked_private_redacted" };
     }
     return { text: input, blocked: false };
 }
@@ -57,7 +62,7 @@ function generateCandidatesFromReview(runId, reviewId, reviewPayload) {
     const candidates = [];
     const summary = String(reviewPayload.reviewSummary ?? "");
     if (summary.length > 0) {
-        const { text, blocked } = redactSensitive(summary);
+        const { text, blocked, reason } = redactSensitive(summary);
         if (blocked) {
             candidates.push({
                 id: `cand_${runId}_summary`,
@@ -67,7 +72,7 @@ function generateCandidatesFromReview(runId, reviewId, reviewPayload) {
                 sourceRefs: buildSourceRefsFromReview({ id: reviewId, day: "" }),
                 confidence: 0.3,
                 validationStatus: "blocked",
-                validationReason: "redaction_blocked",
+                validationReason: reason,
             });
         }
         else {
@@ -84,7 +89,7 @@ function generateCandidatesFromReview(runId, reviewId, reviewPayload) {
     }
     const importanceSignals = reviewPayload.importanceSignals;
     if (importanceSignals && importanceSignals.length > 0) {
-        const { text, blocked } = redactSensitive(importanceSignals.join("; "));
+        const { text, blocked, reason } = redactSensitive(importanceSignals.join("; "));
         if (!blocked) {
             candidates.push({
                 id: `cand_${runId}_signals`,
@@ -96,8 +101,32 @@ function generateCandidatesFromReview(runId, reviewId, reviewPayload) {
                 validationStatus: "valid",
             });
         }
+        else {
+            candidates.push({
+                id: `cand_${runId}_signals`,
+                runId,
+                reviewId,
+                candidateText: text,
+                sourceRefs: buildSourceRefsFromReview({ id: reviewId, day: "" }),
+                confidence: 0.3,
+                validationStatus: "blocked",
+                validationReason: reason,
+            });
+        }
     }
     return candidates;
+}
+function validateCandidate(candidate) {
+    if (!candidate.candidateText || candidate.candidateText.trim().length === 0) {
+        return "dream_blocked_validation_failed";
+    }
+    if (!candidate.sourceRefs || candidate.sourceRefs.length === 0) {
+        return "dream_blocked_validation_failed";
+    }
+    if (candidate.confidence < 0.1) {
+        return "dream_blocked_validation_failed";
+    }
+    return undefined;
 }
 // ───────────────────────────────────────────────────────────────
 // Public API
@@ -111,7 +140,7 @@ export async function runDreamConsolidation(db, runId, options) {
     const run = runRead.row;
     if (!run) {
         return {
-            status: "degraded",
+            status: classifyDegradedStatus("state_unreadable"),
             reason: "state_unreadable",
             ownerStage: "dream",
             sourceRefs: [],
@@ -126,7 +155,7 @@ export async function runDreamConsolidation(db, runId, options) {
     const review = reviewRead.row;
     if (!review) {
         return {
-            status: "degraded",
+            status: classifyDegradedStatus("state_unreadable"),
             reason: "state_unreadable",
             ownerStage: "dream",
             sourceRefs: [],
@@ -135,14 +164,35 @@ export async function runDreamConsolidation(db, runId, options) {
         };
     }
     const reviewPayload = parsePayloadJson(review.payloadJson);
+    const contentStatus = String(reviewPayload.contentStatus ?? "");
+    // Block placeholder or empty Quiet reviews before candidate generation.
+    if (contentStatus === "placeholder_rejected" || contentStatus === "content_missing" || contentStatus === "empty") {
+        return {
+            runId,
+            status: "blocked",
+            candidates: [],
+            reason: "dream_blocked_no_content",
+        };
+    }
     const candidates = generateCandidatesFromReview(runId, run.quietReviewId, reviewPayload);
-    // If all candidates blocked → run blocked
+    // Run candidate validation; invalid candidates block the run with a precise reason.
+    for (const candidate of candidates) {
+        if (candidate.validationStatus === "valid") {
+            const validationReason = validateCandidate(candidate);
+            if (validationReason) {
+                candidate.validationStatus = "blocked";
+                candidate.validationReason = validationReason;
+            }
+        }
+    }
+    // If all candidates blocked → run blocked with the first precise reason.
     if (candidates.length > 0 && candidates.every((c) => c.validationStatus === "blocked")) {
+        const firstReason = candidates[0]?.validationReason;
         return {
             runId,
             status: "blocked",
             candidates,
-            reason: "dream_blocked_redaction",
+            reason: firstReason ?? "dream_blocked_private_redacted",
         };
     }
     // Accept valid candidates as active long-term memory projections.

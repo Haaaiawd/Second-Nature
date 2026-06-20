@@ -145,7 +145,7 @@ describe("runtime-recovery-closure", () => {
         trigger: "manual",
       });
 
-      assert.ok(!("status" in result && result.status === "degraded"), "heartbeat should not degrade");
+      assert.ok(!("status" in result), "heartbeat should not degrade");
       const r = result as { cycleId: string; rhythmState?: { quietStatus: string; dreamStatus: string } };
 
       const closures = await readActionClosuresByCycle(db, r.cycleId);
@@ -182,7 +182,7 @@ describe("runtime-recovery-closure", () => {
         trigger: "manual",
       });
 
-      assert.ok(!("status" in result && result.status === "degraded"), "heartbeat should not degrade");
+      assert.ok(!("status" in result), "heartbeat should not degrade");
       const r = result as { cycleId: string; rhythmState?: { quietStatus: string; dreamStatus: string } };
 
       const closures = await readActionClosuresByCycle(db, r.cycleId);

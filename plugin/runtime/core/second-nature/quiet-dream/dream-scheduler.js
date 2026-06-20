@@ -21,6 +21,7 @@
  * Test coverage: tests/unit/dream/dream-scheduler-lifecycle.test.ts
  */
 import { readQuietDailyReviewById, writeDreamConsolidationRun, } from "../../../storage/v8-state-stores.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ export async function scheduleDreamAfterQuiet(db, quietReviewId, options) {
     const review = readResult.row;
     if (!review) {
         return {
-            status: "degraded",
+            status: classifyDegradedStatus("state_unreadable"),
             reason: "state_unreadable",
             ownerStage: "dream",
             sourceRefs: [],

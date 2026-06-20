@@ -50,6 +50,7 @@ import type {
   DegradedOperationResult,
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -132,7 +133,7 @@ async function advanceAndRecordDailyRhythm(
   } catch (rhythmErr) {
     const errMsg = rhythmErr instanceof Error ? rhythmErr.message : String(rhythmErr);
     const degraded: DegradedOperationResult = {
-      status: "degraded",
+      status: classifyDegradedStatus("state_unreadable"),
       reason: "state_unreadable",
       ownerStage: "quiet",
       sourceRefs: [cycleRef],
@@ -186,7 +187,7 @@ export async function runHeartbeatCycle(
 
   if ("reason" in traceResult) {
     return {
-      status: "degraded",
+      status: classifyDegradedStatus("state_unreadable"),
       reason: "state_unreadable",
       ownerStage: "ingestion",
       sourceRefs: [cycleRef],
@@ -209,7 +210,7 @@ export async function runHeartbeatCycle(
   // ── Perception stage ──
   const perceptionResult = await buildPerceptionCards(db, { cycleId, now });
 
-  const perceptionDegraded = "status" in perceptionResult && perceptionResult.status === "degraded"
+  const perceptionDegraded = "ownerStage" in perceptionResult
     ? perceptionResult
     : null;
 
@@ -263,8 +264,8 @@ export async function runHeartbeatCycle(
       noActionReason: degradedReason as V8ReasonCode,
       degraded: perceptionDegraded
         ? {
-            status: "degraded",
-            reason: (perceptionResult as any).reason ?? "state_unreadable",
+            status: classifyDegradedStatus(degradedReason),
+            reason: degradedReason,
             ownerStage: "perception",
             sourceRefs: [cycleRef],
             operatorNextAction: "Retry heartbeat after perception recovery",
@@ -407,9 +408,9 @@ export async function runHeartbeatCycle(
       // Build proposal for the actionable verdict
       const proposalResult = await buildActionProposal(db, actionableVerdict.id, { now });
 
-      if ("status" in proposalResult && proposalResult.status === "degraded") {
+      if ("operatorNextAction" in proposalResult) {
         // Proposal build failed — still need a closure
-        closureDegraded = proposalResult as DegradedOperationResult;
+        closureDegraded = proposalResult;
         const closureResult = await recordNoActionClosure(db, cycleId, closureDegraded.reason, { now });
         if ("closureId" in closureResult) {
           closureRef = {
@@ -485,7 +486,8 @@ export async function runHeartbeatCycle(
           status: "completed",
           occurredAt: new Date().toISOString(),
           reason: decision.decisionReason,
-          sourceRefs: decision.proofRefs,
+          sourceRefs: proposal.sourceRefs,
+          proofRefs: decision.proofRefs,
         });
 
         // Record execution stage started
@@ -496,7 +498,8 @@ export async function runHeartbeatCycle(
           stage: "execution",
           status: "started",
           occurredAt: new Date().toISOString(),
-          sourceRefs: decision.proofRefs,
+          sourceRefs: proposal.sourceRefs,
+          proofRefs: decision.proofRefs,
         });
 
         // Dispatch — no real external write in T-CP.R.2
@@ -624,7 +627,8 @@ export async function runHeartbeatCycle(
           status: closureDegraded ? "failed" : "completed",
           occurredAt: new Date().toISOString(),
           reason: closureDegraded?.reason,
-          sourceRefs: decision.proofRefs,
+          sourceRefs: proposal.sourceRefs,
+          proofRefs: decision.proofRefs,
         });
       }
     }

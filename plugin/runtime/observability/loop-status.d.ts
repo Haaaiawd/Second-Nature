@@ -20,6 +20,7 @@
  */
 import type { StateDatabase } from "../storage/db/index.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
+import type { EvidenceLevel } from "../shared/types/v8-contracts.js";
 export interface RealRunHealthProjection {
     gatePassed: boolean;
     contractSmokeOnly: boolean;
@@ -47,6 +48,7 @@ export interface LoopStatusReadModel {
     connectorTerminalCount: number;
     nextAction: string;
     realRunHealth: RealRunHealthProjection;
+    evidenceLevel: EvidenceLevel;
 }
 export interface StageSummary {
     stage: string;

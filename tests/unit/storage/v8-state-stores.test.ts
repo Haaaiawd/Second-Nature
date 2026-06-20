@@ -129,7 +129,7 @@ describe("v8-state-stores", () => {
         sourceRefs: [],
       });
       assert.ok("status" in result);
-      assert.strictEqual((result as any).status, "degraded");
+      assert.strictEqual((result as any).status, "blocked");
       assert.ok("retryable" in result);
       assert.strictEqual((result as any).retryable, true);
       assert.ok("ownerStage" in result);

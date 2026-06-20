@@ -146,7 +146,7 @@ describe("loop-stage-event-sink", () => {
       const result = await recordLoopStageEvent(MOCK_DB, makeEvent({ cycleId: undefined }));
       assert.strictEqual((result as any).ok, false);
       const degraded = (result as any).degraded;
-      assert.strictEqual(degraded.status, "degraded");
+      assert.strictEqual(degraded.status, "unavailable");
       assert.strictEqual(degraded.retryable, false);
       assert.ok(degraded.operatorNextAction);
     });

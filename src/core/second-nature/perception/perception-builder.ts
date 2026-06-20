@@ -36,6 +36,7 @@ import type {
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
 import type { NormalizedEvidenceContent } from "../../../connectors/base/normalized-evidence-content.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Config
@@ -172,6 +173,14 @@ function inferRelevanceClass(score: number): PerceptionCardResult["relevanceClas
 
 function inferSummary(evidence: EvidenceItemInput): { summary: string; contentMissing: boolean } {
   const payload = parsePayload(evidence.payloadJson);
+  if (payload?.contentStatus === "content_missing") {
+    return {
+      summary: payload.contentMissingReason
+        ? `Content missing from ${evidence.platformId}: ${payload.contentMissingReason}`
+        : `Ref-only observation from ${evidence.platformId}: no readable content`,
+      contentMissing: true,
+    };
+  }
   if (payload?.summary && String(payload.summary).trim().length > 0) {
     return { summary: String(payload.summary), contentMissing: false };
   }
@@ -345,9 +354,12 @@ export async function buildPerceptionCards(
 
     if ("reason" in writeResult) {
       return {
-        status: "degraded",
-        cards,
+        status: classifyDegradedStatus(writeResult.reason),
         reason: writeResult.reason,
+        ownerStage: "perception",
+        sourceRefs: card.evidenceRefs,
+        operatorNextAction: `Failed to persist PerceptionCard: ${writeResult.reason}`,
+        retryable: true,
       };
     }
 

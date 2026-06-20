@@ -160,7 +160,7 @@ async function executeStaleScheduledDreams(
 
     if ((run.status === "scheduled" || run.status === "started") && isStaleScheduled(run, now)) {
       const consolidateResult = await runDreamConsolidation(db, runId, { now });
-      if ("status" in consolidateResult && consolidateResult.status !== "degraded") {
+          if ("status" in consolidateResult && !("ownerStage" in consolidateResult)) {
         const dreamResult = consolidateResult as Extract<typeof consolidateResult, { status: "completed" | "failed" | "blocked" }>;
         const finalStatus = dreamResult.status;
         const finalReason = dreamResult.reason ?? undefined;
@@ -271,7 +271,7 @@ export async function checkDailyRhythm(
     } else if (state.dreamStatus === "scheduled") {
       // Stale scheduled run: try to execute consolidation now
       const staleResult = await executeStaleScheduledDreams(db, state, now);
-      if ("status" in staleResult && staleResult.status === "degraded") {
+      if ("status" in staleResult) {
         return staleResult as DegradedOperationResult;
       }
       const { completed, reason } = staleResult as { completed: boolean; reason?: V8ReasonCode };
@@ -325,7 +325,7 @@ export async function checkDailyRhythm(
           // Immediately execute the freshly scheduled dream so it does not sit
           // pending forever (T-DQ.R.7).
           const consolidateResult = await runDreamConsolidation(db, dreamResult.id, { now });
-          if ("status" in consolidateResult && consolidateResult.status !== "degraded") {
+      if ("status" in consolidateResult && !("ownerStage" in consolidateResult)) {
             const dreamOutcome = consolidateResult as Extract<typeof consolidateResult, { status: "completed" | "failed" | "blocked" }>;
             const updateResult = await updateDreamConsolidationRunStatus(db, dreamResult.id, dreamOutcome.status, {
               reason: dreamOutcome.reason ?? null,
