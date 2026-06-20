@@ -95,4 +95,16 @@ describe("host-discovery-port", () => {
     assert.equal(report.toolDiscovery.hostName, "openclaw");
     assert.equal(report.nextStep, "setup_verified_by_host_discovery");
   });
+
+  it("T-ROS.R.9: default adapter is manual-smoke-only — evidenceLevel capped at carrier_ack", async () => {
+    // Option (b): carrier mode host discovery is borne by external manual smoke.
+    // The default adapter must not allow evidenceLevel to exceed carrier_ack.
+    const port = createDefaultHostDiscoveryPort();
+    const report = await probeHostDiscovery({ port });
+    assert.equal(report.evidenceLevel, "carrier_ack");
+    assert.equal(report.toolDiscovery.status, "unsupported");
+    assert.equal(report.toolDiscovery.reason, "host_probe_unsupported");
+    // Positive path requires manual host evidence — no automated real-host introspection
+    assert.equal(report.setupComplete, false);
+  });
 });

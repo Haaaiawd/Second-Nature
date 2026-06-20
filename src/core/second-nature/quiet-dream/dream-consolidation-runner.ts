@@ -10,13 +10,17 @@
  * - `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4.2`
  *
  * Dependencies:
- * - `src/storage/v8-state-stores.js` (readDreamConsolidationRunById, readQuietDailyReviewById, writeLongTermMemoryProjection)
+ * - `src/storage/v8-state-stores.js` (readDreamConsolidationRunById, readQuietDailyReviewById)
  * - `src/shared/types/v8-contracts.js` (SourceRef, DegradedOperationResult, V8ReasonCode)
  *
  * Boundary:
  * - Rules-only candidate generation; no model assist in this version.
  * - Does not accept/reject projections; only creates candidates.
  * - Redaction gate blocks sensitive private content, preserves public technical.
+ * - T-DQ.R.10: Does NOT call acceptMemoryProjection. Candidate acceptance is a
+ *   separate step owned by the caller (dream-scheduler or explicit accept API).
+ *   The runner only generates and validates candidates; it returns them for
+ *   the caller to accept via `acceptMemoryProjection(candidateId)`.
  *
  * Test coverage: tests/unit/dream/dream-consolidation-runner.test.ts
  */
@@ -26,7 +30,6 @@ import {
   readDreamConsolidationRunById,
   readQuietDailyReviewById,
 } from "../../../storage/v8-state-stores.js";
-import { acceptMemoryProjection } from "./memory-projection-lifecycle.js";
 import type {
   SourceRef,
   DegradedOperationResult,
@@ -263,32 +266,10 @@ export async function runDreamConsolidation(
     };
   }
 
-  // Accept valid candidates as active long-term memory projections.
-  // This completes the Dream→memory lifecycle so accepted projections can be
-  // loaded by EmbodiedContext in subsequent heartbeats (T-DQ.R.3 followup).
-  const validCandidates = candidates.filter((c) => c.validationStatus === "valid");
-  for (const candidate of validCandidates) {
-    const acceptResult = await acceptMemoryProjection(
-      db,
-      candidate.id,
-      `topic_${review.day}`,
-      candidate.candidateText,
-      candidate.sourceRefs,
-      { now },
-    );
-
-    if ("projectionId" in acceptResult) {
-      candidate.acceptedProjectionId = acceptResult.projectionId;
-    } else {
-      return {
-        runId,
-        status: "failed",
-        candidates,
-        reason: acceptResult.reason,
-      };
-    }
-  }
-
+  // T-DQ.R.10: Runner only generates and validates candidates.
+  // Acceptance is a separate step owned by the caller via acceptMemoryProjection.
+  // Valid candidates are returned with validationStatus="valid" for the caller
+  // to accept; the runner does NOT call acceptMemoryProjection here.
   return {
     runId,
     status: "completed",

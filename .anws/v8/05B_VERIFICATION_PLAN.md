@@ -2,7 +2,7 @@
 
 > 版本: v8
 > 产出自: /blueprint
-> 最后更新: 2026-06-11
+> 最后更新: 2026-06-21
 >
 > 执行主清单: [05A_TASKS.md](./05A_TASKS.md)
 
@@ -982,6 +982,7 @@
 - **前置数据**: T-OBS.R.7.
 - **断言**: loaded plugin is not reported as operational unless `second_nature_ops` is host-visible.
 - **证据**: automated plugin bridge assertion, host tool visibility JSON log, manual host smoke appendix
+- **T-ROS.R.9 manual-smoke-only annotation**: In carrier/packaged mode, the default `HostCapabilityDiscoveryPort` adapter returns `unsupported` with `host_probe_unsupported` reason. The positive path (host-visible `second_nature_ops`) **requires manual host evidence** — there is no automated real-host introspection in carrier mode. Required manual smoke fields: `hostName`, `hostVersion`, `timestamp`, raw tool list JSON, command envelope. `evidenceLevel` must not exceed `carrier_ack` without a real adapter or manual smoke proof.
 
 ### T-ROS.R.7
 - **关联需求**: REQ-008
@@ -1082,6 +1083,17 @@
 - **断言**: placeholder-only Quiet output cannot create Dream memory candidates; control-plane does not decide Quiet/Dream due policy.
 - **证据**: Quiet/Dream content truth tests
 
+### T-ROS.R.6
+- **关联需求**: REQ-008, REQ-009
+- **关联契约**: workspace bridge contract / runtime ops envelope
+- **风险类别**: plugin bridge masquerades as CLI surface; full-runtime commands do not surface correct mode or fail pre-existing integration tests
+- **单元测试覆盖**: none required; bridge-level integration tests cover dispatch.
+- **API接口功能测试覆盖**: `plugin-workspace-ops-bridge.test.ts` asserts full-runtime `surfaceMode="workspace_full_runtime"`, `probeOnly` `surfaceMode="capability_probe"` with `status="heartbeat_ok"`, v6/v7 ops reachability, `connector_test` ok, env-only bridge exit 0, impulse context presence.
+- **集成/E2E/冒烟覆盖**: plugin bridge regression.
+- **前置数据**: T-ROS.R.5.
+- **断言**: workspace bridge dispatch returns full-runtime semantics for full-runtime commands; no pre-existing bridge failures remain.
+- **证据**: plugin bridge test pass log
+
 ### INT-R11
 - **关联需求**: REQ-001, REQ-002, REQ-005, REQ-006, REQ-008, REQ-009
 - **关联契约**: v8 host reality + living loop hemostasis contract
@@ -1158,17 +1170,17 @@
 | Wave 114 single-status gate | regression | compile + targeted regression + plugin build | INT-R9 | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
 | v8 SourceRef serialization cleanup | schema drift / serialization ambiguity | compile + search + unit | T-SMS.R.5 | `logs/wave-115-source-refs-search.log` | ✅ |
 | Wave 115 shared serialization gate | regression | compile + targeted regression + plugin build | INT-R10 | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
-| Host-visible `second_nature_ops` | host injection / false operational status | automated plugin bridge + host discovery port + manual host smoke appendix | T-ROS.R.5 | host tool visibility JSON log | ⏳ |
-| Packaged skill projection | setup truth / skill discovery | SkillDiscoveryProbe + setup status + manual host smoke appendix | T-ROS.R.7 | skill projection evidence log | ⏳ |
-| Setup ack placement truth | false setup completion | unit + API接口功能测试 | T-ROS.R.8 | setup ack validation test | ⏳ |
-| Provenance tier separation | source/proof/trace semantic pollution | compile + unit + search | T-SH.R.6 | provenance-tier search log | ⏳ |
-| Single external heartbeat model | operator confusion / split-brain heartbeat | API接口功能测试 + integration + docs search | T-CP.R.5 | heartbeat model parity log | ⏳ |
-| CycleFinalizer exactly-one closure | closure skip / duplicate closure | unit + integration + regression | T-AC.R.2 | cycle finalizer tests | ⏳ |
-| Evidence level truth | false healthy / false proof | EvidenceLevelClassifier unit + API接口功能测试 + integration | T-OBS.R.7 | loop_status evidence-level fixtures | ⏳ |
-| Precise operational status taxonomy | generic degraded hides root cause | unit + API接口功能测试 + regression | T-OBS.R.8 | status taxonomy tests | ⏳ |
-| Content-bearing evidence minimum | ref-only content fabrication | unit + integration + regression | T-CS.R.9 | content-bearing evidence tests | ⏳ |
-| Quiet/Dream content truth | template memory / imprecise block | unit + integration + regression | T-DQ.R.9 | Quiet/Dream content truth tests | ⏳ |
-| Wave 116 host reality hemostasis gate | integrated host/runtime/content closure truth | compile + targeted regression + host smoke | INT-R11 | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
+| Host-visible `second_nature_ops` | host injection / false operational status | automated plugin bridge + host discovery port + manual host smoke appendix | T-ROS.R.5 | host tool visibility JSON log | ✅ |
+| Packaged skill projection | setup truth / skill discovery | SkillDiscoveryProbe + setup status + manual host smoke appendix | T-ROS.R.7 | skill projection evidence log | ✅ |
+| Setup ack placement truth | false setup completion | unit + API接口功能测试 | T-ROS.R.8 | setup ack validation test | ✅ |
+| Provenance tier separation | source/proof/trace semantic pollution | compile + unit + search | T-SH.R.6 | provenance-tier search log | ✅ |
+| Single external heartbeat model | operator confusion / split-brain heartbeat | API接口功能测试 + integration + docs search | T-CP.R.5 | heartbeat model parity log | ✅ |
+| CycleFinalizer exactly-one closure | closure skip / duplicate closure | unit + integration + regression | T-AC.R.2 | cycle finalizer tests | ✅ |
+| Evidence level truth | false healthy / false proof | EvidenceLevelClassifier unit + API接口功能测试 + integration | T-OBS.R.7 | loop_status evidence-level fixtures | ✅ |
+| Precise operational status taxonomy | generic degraded hides root cause | unit + API接口功能测试 + regression | T-OBS.R.8 | status taxonomy tests | ✅ |
+| Content-bearing evidence minimum | ref-only content fabrication | unit + integration + regression | T-CS.R.9 | content-bearing evidence tests | ✅ |
+| Quiet/Dream content truth | template memory / imprecise block | unit + integration + regression | T-DQ.R.9 | Quiet/Dream content truth tests | ✅ |
+| Wave 116 host reality hemostasis gate | integrated host/runtime/content closure truth | compile + targeted regression + host smoke | INT-R11 | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ✅ |
 
 ---
 
@@ -1208,8 +1220,22 @@
 | SourceRef grounding canonical shape | T-SH.R.2, T-SMS.R.3, T-SMS.R.5, INT-R10 | 编译 + 单元 + 集成 + search | `tests/unit/shared/source-ref-serialization.test.ts` | `reports/int-r10-wave-115-serialization-completion.md` | ✅ |
 | v8 schema status/serialization hygiene | T-SMS.R.3, T-SMS.R.4, INT-R9 | 单元 + 集成 + migration | `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r9-wave-114-single-status-schema.md` | ✅ |
 | SourceRef local clone removal | T-SH.R.3, T-SH.R.4, T-SH.R.5, INT-R8 | 编译 + 单元 + 集成 + plugin build | targeted Wave 113 tests | `reports/int-r8-wave-113-source-ref-clones.md` | ✅ |
-| Host reality and false-health prevention | T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-OBS.R.7, INT-R11 | automated plugin bridge + host discovery port + API接口功能测试 + manual host appendix | runtime ops host reality tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
-| v8 loop hemostasis | T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.8, INT-R11 | 编译 + 单元 + 集成 + search | provenance, heartbeat, closure, status tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
-| Content-bearing memory activation | T-CS.R.9, T-DQ.R.9, INT-R11 | 单元 + 集成 + regression | evidence and Quiet/Dream content tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ⏳ |
+| Host reality and false-health prevention | T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-OBS.R.7, INT-R11 | automated plugin bridge + host discovery port + API接口功能测试 + manual host appendix | runtime ops host reality tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ✅ |
+| v8 loop hemostasis | T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.8, INT-R11 | 编译 + 单元 + 集成 + search | provenance, heartbeat, closure, status tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ✅ |
+| Content-bearing memory activation | T-CS.R.9, T-DQ.R.9, INT-R11 | 单元 + 集成 + regression | evidence and Quiet/Dream content tests | `reports/int-r11-wave-116-host-reality-hemostasis.md` | ✅ |
+| Wave 119 contract fidelity — CycleFinalizer idempotency | T-AC.R.3 | 单元 + 集成 + 并发 | `tests/unit/control-plane/cycle-finalizer-idempotency.test.ts`, `tests/integration/control-plane/cycle-finalizer-reconcile.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — closure provenance columns | T-SH.R.7 | 单元 + 集成 + regression | `tests/unit/storage/closure-provenance-columns.test.ts`, `tests/integration/storage/v8-schema-shape.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — host discovery real probe | T-ROS.R.9 | 集成 + manual host smoke (option b) | `tests/integration/host-capability/host-discovery-real-probe.test.ts` OR 05B manual-smoke-only annotation | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — heartbeat-surface degraded cycleId | T-CP.R.6 | 单元 + 集成 | `tests/unit/ops/heartbeat-surface-degraded-cycle.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — dream candidate/acceptance separation | T-DQ.R.10 | 单元 + 集成 | `tests/unit/quiet-dream/dream-candidate-acceptance-separation.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — guidance degraded provenance | T-GVS.R.4 | 单元 | `tests/unit/guidance/guidance-degraded-provenance.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — Wave 118 release packaging backfill | T-REL.C.1 | docs / task traceability | `05A_TASKS.md` Wave 118 section | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — setup envelope alignment | T-ROS.R.10 | 单元 + 集成 | `tests/unit/cli/setup-envelope-shape.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — degraded-classifier full coverage | T-OBS.R.9 | 单元 | `tests/unit/shared/degraded-status-classifier-full-coverage.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — normalizeEnvelopeResult error preservation | T-ROS.R.11 | 单元 | `tests/unit/ops/normalize-envelope-error-preservation.test.ts` | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — plugin setup-ack unification | T-SH.R.8 | 单元 + build | `tests/unit/plugin/setup-ack-unification.test.ts`, CI diff check | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — v7 heartbeat rejection | T-CP.R.7 | 单元 + docs | `tests/unit/ops/v7-heartbeat-rejection.test.ts` OR docs annotation | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity — SourceRefFamily/surfaceMode alignment | T-DOC.R.1 | docs / contract alignment | code-docs enum comparison | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
+| Wave 119 contract fidelity regression gate | INT-R12 | 回归门 + 集成 + contract fidelity | targeted Wave 119 tests + Wave 108-117 regression sample | `reports/int-r12-wave-119-contract-fidelity-gate.md` | ⏳ |
 
 ---

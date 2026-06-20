@@ -75,7 +75,7 @@ export interface HeartbeatSurfaceResult {
   /** True when structured fields mirror a fake adapter for schema parity only */
   schemaParityOnly?: boolean;
   /** T-CP.R.2: v8 real runtime spine result when state-backed action-closure spine ran */
-  v8Spine?: RealRuntimeSpineResult & { degradedReason?: string };
+  v8Spine?: Partial<RealRuntimeSpineResult> & { degradedReason?: string };
   /** T-GVS.R.1: agent-facing impulse context artifact read pointer */
   impulseContext?: {
     available: boolean;
@@ -262,9 +262,9 @@ export async function heartbeatCheck(
         });
 
         if ("status" in v8Result && "operatorNextAction" in v8Result) {
+          // T-CP.R.6: degraded path must not fabricate cycleId/cycleSequence.
+          // Only set degradedReason; cycleId/cycleSequence remain absent.
           surfaceResult.v8Spine = {
-          cycleId: "",
-          cycleSequence: 0,
             degradedReason: v8Result.reason,
           };
           surfaceResult.reasons = [

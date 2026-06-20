@@ -38,6 +38,7 @@ import type { DegradedOperationResult, V8ReasonCode } from "../../../shared/type
 import { buildQuietDailyReview } from "./quiet-daily-review-builder.js";
 import { scheduleDreamAfterQuiet } from "./dream-scheduler.js";
 import { runDreamConsolidation } from "./dream-consolidation-runner.js";
+import { acceptMemoryProjection } from "./memory-projection-lifecycle.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -176,6 +177,27 @@ async function executeStaleScheduledDreams(
         });
         if ("reason" in updateResult) {
           return updateResult;
+        }
+
+        // T-DQ.R.10: Accept valid candidates as long-term memory projections.
+        // This step was moved out of the runner to separate candidate generation
+        // from acceptance, per design §4.2.
+        if (dreamResult.status === "completed") {
+          for (const candidate of dreamResult.candidates.filter((c) => c.validationStatus === "valid")) {
+            const acceptResult = await acceptMemoryProjection(
+              db,
+              candidate.id,
+              `topic_stale_${runId}`,
+              candidate.candidateText,
+              candidate.sourceRefs,
+              { now },
+            );
+            if ("projectionId" in acceptResult) {
+              candidate.acceptedProjectionId = acceptResult.projectionId;
+            } else {
+              return acceptResult as DegradedOperationResult;
+            }
+          }
         }
 
         lastResult = { completed: true, reason: finalReason ?? "dream_scheduled_stalled" };
@@ -341,6 +363,24 @@ export async function checkDailyRhythm(
             state.dreamReason = dreamOutcome.reason ?? (dreamOutcome.status === "completed" ? "dream_completed" : "dream_failed");
             if (dreamOutcome.status === "completed") {
               state.dreamCompletedAt = now;
+              // T-DQ.R.10: Accept valid candidates as long-term memory projections.
+              // This step was moved out of the runner to separate candidate generation
+              // from acceptance, per design §4.2.
+              for (const candidate of dreamOutcome.candidates.filter((c) => c.validationStatus === "valid")) {
+                const acceptResult = await acceptMemoryProjection(
+                  db,
+                  candidate.id,
+                  `topic_${dreamResult.id}`,
+                  candidate.candidateText,
+                  candidate.sourceRefs,
+                  { now },
+                );
+                if ("projectionId" in acceptResult) {
+                  candidate.acceptedProjectionId = acceptResult.projectionId;
+                } else {
+                  return acceptResult as DegradedOperationResult;
+                }
+              }
             }
           } else {
             const degraded = consolidateResult as DegradedOperationResult;
