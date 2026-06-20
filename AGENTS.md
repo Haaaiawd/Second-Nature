@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v8`
 - **活动任务清单**: `.anws/v8/05A_TASKS.md`
 - **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-20` (Wave 116C /forge complete; T-ROS.R.5, T-CS.R.9, T-DQ.R.9 checked; INT-R11 next)
-- **当前波次**: Wave 116C ✅
-- **下一步**: Run INT-R11 host reality and hemostasis gate; produce `reports/int-r11-wave-116-host-reality-hemostasis.md`
+- **最近一次更新**: `2026-06-21` (`/forge` Wave 119A-E complete — 14 Round 5 contract drifts repaired: T-AC.R.3 closure idempotency, T-SH.R.7 provenance columns, T-GVS.R.4 guidance degraded, T-CP.R.6 heartbeat cycleId, T-ROS.R.9 host discovery, T-DQ.R.10 dream accept, T-REL.C.1 release backfill, T-ROS.R.10 setup envelope, T-OBS.R.9 classifier, T-ROS.R.11 error preservation, T-SH.R.8 plugin setup-ack, T-CP.R.7 v7 heartbeat, T-DOC.R.1 SourceRefFamily/surfaceMode; INT-R12 gate green: 1706 tests, 1697 pass, 0 fail, 9 skipped)
+- **当前波次**: Wave 119 (complete)
+- **下一步**: Wave 119 closed all Round 5 CH-36 ~ CH-50 findings. V8 living-loop delivery claims now rest on truthful closure ledger, provenance separation, host reality, and single heartbeat truth. Next: upload `@haaaiawd/second-nature@0.2.13` to npm, or open next wave for host E2E/manual smoke backfill.
 
 ### 🌱 Genesis v8 🧭 — Living Perception Loop
 
@@ -208,18 +208,18 @@ src/
 - 验证计划: `.anws/v8/05B_VERIFICATION_PLAN.md`
 - User Story 数: 9
 - 系统数: 10
-- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成；Wave 116 `/change` Host Reality and Ideal Loop Hemostasis backlog opened
-- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 4 documentation gaps CH-24~CH-35 closed in docs; CH-30 code repair remains Wave 116 implementation work）
-- **下一步**: Optional lightweight `/challenge` closure check, then execute Wave 116 `/forge`; do not mark implementation tasks complete until code and INT-R11 evidence exist
-- **最近更新**: `2026-06-18` (`/change` Wave 116 Round 4 documentation repair completed)
+- **状态**: Wave 116A/116B/116C/116D 实现任务全部完成；Wave 117 triage complete；INT-R11 gate now passes；full `pnpm test` 1693 tests, 1684 pass, 0 fail, 9 skipped
+- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 4 documentation gaps CH-24~CH-35 closed in docs; CH-30 code repair已由 Wave 116A-D 实现闭合）
+- **下一步**: Close Wave 117; optionally open Wave 118 for host E2E/manual smoke backfill or release packaging.
+- **最近更新**: `2026-06-20` (`/forge` Wave 116D complete; `/forge` Wave 117 triage + repair complete; code review `.anws/v8/wave-reviews/wave-116d-review.md`)
 
 ### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
-T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
-**签入**: AUTO (Wave 116C)
+T-ROS.R.5, T-ROS.R.6, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
+**签入**: AUTO (Wave 116D)
 **code-reviewer**: 默认执行
-- **状态**: ✅ Wave 116C complete（T-ROS.R.5 + T-CS.R.9 + T-DQ.R.9）；116A and 116B implementation tasks checked in `05A_TASKS.md`
-- **子波划分**: 116A 契约基础 → 116B 心跳/闭包模型 → 116C 内容/记忆/回归门
-- **目标**: repair host reality and v8 ideal-loop semantic drift so loaded/smoke/carrier-visible states cannot masquerade as real runtime health.
+- **状态**: ✅ Wave 116D 完成（T-ROS.R.6 plugin workspace bridge repair merged）；116A/116B/116C implementation tasks checked in `05A_TASKS.md`
+- **子波划分**: 116A 契约基础 → 116B 心跳/闭包模型 → 116C 内容/记忆/回归门 → 116D 桥接修复
+- **目标**: repair host reality and v8 ideal-loop semantic drift so loaded/smoke/carrier-visible states cannot masquerade as real runtime health; and plugin workspace bridge does not return cli surfaceMode for full-runtime commands.
 - **计划产出**:
   - Host-visible `second_nature_ops` injection proof or explicit `host_tool_unavailable` diagnostic.
   - Packaged `SKILL.md` projection into host skill discovery or explicit `skill_projection_unavailable` diagnostic.
@@ -232,9 +232,65 @@ T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.
   - Precise stage/degraded-result states: `empty`, `partial`, `blocked`, `unavailable`, `unsafe`; `degraded` aggregate only.
   - Content-bearing evidence minimum contract and no-fabrication handling for ID-only evidence.
   - Quiet placeholder rejection and precise Dream blocked reasons.
+  - Plugin workspace bridge returns `surfaceMode: "workspace_full_runtime"` and correct statuses.
 - **测试计划**: INT-R11 report `reports/int-r11-wave-116-host-reality-hemostasis.md`; targeted host/plugin/setup/evidence/closure/Quiet-Dream tests plus Wave 108-115 regression sample.
-- **最高严重度**: documentation P0 closed; 116A/116B/116C implementation completed; code review Partial Pass (H-1 accepted residual — no host API for positive tool list probe; M-1 fixed)
-- **下一步**: Run INT-R11 host reality and hemostasis gate; produce `reports/int-r11-wave-116-host-reality-hemostasis.md`; run Wave 108-115 regression sample.
+- **最高严重度**: documentation P0 closed; 116A/116B/116C/116D implementation completed; code review `wave-116d-review.md` Partial Pass → review-fix applied
+- **下一步**: Run INT-R11 host reality and hemostasis gate; update report and verify Wave 108-115 regressions.
+
+### 🌊 Wave 117 🧭 — v8 Change: Triage Pre-existing v8 Runtime Integration Failures
+INT-R11 repair
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 117 完成（21 项预存 v8 runtime 集成失败已修复；INT-R11 gate 通过）
+- **子波目标**: triage and repair the 21 pre-existing v8 runtime integration failures surfaced by INT-R11 so the full `pnpm test` regression gate passes.
+- **根因**:
+  - `src/storage/db/index.ts` bootstrap schema for `loop_stage_event` 缺少 `proof_refs_json`/`trace_refs_json`；现有数据库通过 `applyStateSchemaMigrations` 防御性补列。
+  - `src/storage/v8-state-stores.ts` 中多个 writer 使用 `...row` 展开，把 `sourceRefs`/`proofRefs`/`traceRefs`/`closureRefs`/`payload` 数组/对象当作列值传给 Drizzle，潜在 schema 漂移风险；已在所有 v8 writer 中解构移除非列字段。
+  - T-DQ.R.9 引入的 Quiet placeholder rejection 使原本 closure-only / ID-only evidence 的测试期望 `dream completed` 不再成立；已通过 `tests/shared/content-evidence-fixture.ts` 统一注入 content-bearing evidence，或把无证据路径的期望改为 `dream_blocked_no_content`。
+  - INT-V8 guidance consumption contract 测试错误期望 `sourceRefs` 混入 `proofRefs`；已改为分别断言 `sourceRefs` 与 `proofRefs`。
+- **产出**:
+  - `src/storage/db/index.ts` — `loop_stage_event` bootstrap + defensive column migration
+  - `src/storage/v8-state-stores.ts` — 10 个 writer 的 `...row` spread 清理（evidence/perception/judgment/closure/quiet/dream/projection/cycle-trace/loop-stage/impulse/daily-rhythm/cooldown）
+  - `tests/shared/content-evidence-fixture.ts` — content-bearing evidence seed helper
+  - `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`
+  - `tests/api/dream/quiet-dream-runtime-chain.test.ts`
+  - `tests/integration/v8/int-r1-runtime-activation-repair.test.ts`
+  - `tests/integration/v8/living-perception-loop.test.ts`
+  - `tests/integration/v8/proof-memory-closure.test.ts`
+  - `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts`
+  - `tests/integration/v8/runtime-recovery-closure.test.ts`
+  - `tests/unit/dream/daily-rhythm-scheduler.test.ts`
+  - `tests/unit/dream/dream-runner-lifecycle.test.ts`
+  - `reports/int-r11-wave-117-runtime-integration-repair.md` — Wave 117 修复报告
+  - `.anws/v8/05A_TASKS.md` — INT-R11 已勾选
+  - `.anws/v8/05B_VERIFICATION_PLAN.md` — Wave 116/INT-R11 验证状态更新为 ✅
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；targeted previously-failing 9 suites 48/48 PASS；full `pnpm test` 1693 tests, 1684 pass, 0 fail, 9 skipped
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: Wave 118 release packaging.
+
+### 🌊 Wave 118 🧭 — v8 Release Packaging
+Release packaging for `@haaaiawd/second-nature@0.2.13`
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 118 完成（版本 `0.2.13`；plugin package 已构建；`npm pack --dry-run` 通过）
+- **目标**: Bump package version, rebuild plugin runtime, verify packaged artifact, and prepare for npm upload.
+- **产出**:
+  - `package.json` — version bumped to `0.2.13`
+  - `plugin/package.json` — version bumped to `0.2.13`
+  - `plugin/openclaw.plugin.json` — version bumped to `0.2.13`
+  - `plugin/index.js` + `plugin/workspace-ops-bridge.js` + `plugin/runtime/` — rebuilt
+  - `.anws/v8/06_CHANGELOG.md` — v0.2.13 release entry
+  - `AGENTS.md` — Wave 118 state updated
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `cd plugin && npm pack --dry-run` ✅ — `@haaaiawd/second-nature@0.2.13`, 635 files, 450.4 kB tarball, 2.1 MB unpacked
+  - full `pnpm test` 1693 tests, 1684 pass, 0 fail, 9 skipped
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: Upload `@haaaiawd/second-nature@0.2.13` to npm registry, or open next wave for host E2E/manual smoke backfill.
 
 ### 🌊 Wave 108 🧭 — v8 Change: Runtime Recovery Closure Backlog
 T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3

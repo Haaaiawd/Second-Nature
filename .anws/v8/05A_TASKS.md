@@ -2400,7 +2400,7 @@ graph TD
   - **优先级**: P2
   - **承接发现**: CH-48, CH-49
 
-- [ ] **INT-R12** [MILESTONE]: Wave 119 Contract Fidelity Regression Gate
+- [x] **INT-R12** [MILESTONE]: Wave 119 Contract Fidelity Regression Gate
   - **描述**: Verify Wave 119 closes all Round 5 CH-36 ~ CH-50 findings without regressing Wave 108-117 repairs. Full `pnpm test` must remain green. Targeted tests: CycleFinalizer idempotency/concurrency, closure provenance column regression, host discovery real-probe (or manual smoke appendix), heartbeat-surface degraded path, dream candidate/acceptance separation, guidance degraded provenance, setup envelope shape, degraded-classifier full coverage, normalizeEnvelopeResult error preservation, plugin setup-ack unification, v7 heartbeat rejection, SourceRefFamily/surfaceMode alignment.
   - **输入**: all Wave 119 task outputs
   - **输出**: `reports/int-r12-wave-119-contract-fidelity-gate.md`
