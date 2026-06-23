@@ -49,7 +49,8 @@ function ensureMetaTable(sqlite: Database): void {
   }
 }
 
-function getSchemaVersion(sqlite: Database): number {
+export function getSchemaVersion(sqlite: Database): number {
+  ensureMetaTable(sqlite);
   const rows = sqlite.exec(
     "SELECT value FROM _meta WHERE key = 'schema_version'"
   );
@@ -59,7 +60,8 @@ function getSchemaVersion(sqlite: Database): number {
   return parseInt(rows[0].values[0][0] as string, 10);
 }
 
-function setSchemaVersion(sqlite: Database, version: number): void {
+export function setSchemaVersion(sqlite: Database, version: number): void {
+  ensureMetaTable(sqlite);
   sqlite.exec(
     `UPDATE _meta SET value = '${version}' WHERE key = 'schema_version'`
   );
