@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-22` (`/challenge` Agent-boundary follow-up closed — attention refs cannot author actions; forbidden-pattern specs now scoped with safe counterexamples; ready for `/forge` Wave 119 / S1)
-- **当前波次**: Blueprint v9 + controlled `/change` closure (complete)
-- **下一步**: 进入 `/forge`，从 S1 Contract Spine 开始执行；编码前对照 `.anws/v9/05A_TASKS.md` 与 `.anws/v9/05B_VERIFICATION_PLAN.md`，注意 S2 已新增 `T2.2.4 ActivityThread continuation`。
+- **最近一次更新**: `2026-06-23` (Wave 121 complete; T6.2.1 checked; review-fix applied; ready for `/forge` Wave 122 / S2)
+- **当前波次**: Wave 121 ✅ — v9 S2 Affordance Baseline
+- **下一步**: `/forge` Wave 122 — S2 EmbodiedContext + SelfContinuityCard（T2.2.1 / T5.2.2）
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,28 +219,58 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 119 — S1 Contract Spine（T5.1.1, T5.1.2, T5.2.3, INT-S1）
-- **最近更新**: `2026-06-22` (`/blueprint` v9 complete)
+- **下一步**: `/forge` Wave 121 — S2 Affordance Baseline（T6.2.1）
+- **最近更新**: `2026-06-23` (Wave 120 complete; T3.2.1/T3.2.2 checked; review-fix applied)
 
-### 🌊 Wave 119 🧭 — v9 S1 Contract Spine
-T5.1.1, T5.1.2, T5.2.3, INT-S1
+### 🌊 Wave 120 ✅ — v9 S2 Attention + Stable Identity
+T3.2.1, T3.2.2
 **签入**: AUTO
 **code-reviewer**: 默认执行
-- **状态**: ✅ 完成
-- **分支**: `feature/wave-119-v9-contract-spine` @ `e836283`
+- **状态**: ✅ Wave 120 完成
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T3.2.1 AttentionSignal 装配器；T3.2.2 重复 feed 抑制与 identity_unstable 阻断
 - **产出**:
-  - `src/shared/types/v9-contracts.ts` — v9 canonical shared contracts
-  - `src/storage/db/schema/v9-entities.ts` + v8 schema extensions — v9 storage schema
-  - `src/storage/db/migrations/v9-001-self-continuity.ts` — v8→v9 migration
-  - `src/storage/v9-state-stores.ts` — bounded read/write ports
-  - `src/storage/v9-legacy-judgment-adapter.ts` — v8 JudgmentVerdict → AttentionSignal
-  - `tests/unit/contracts/v9-shared-contracts.test.ts` — 14 tests PASS
-  - `tests/integration/storage/v9-schema-migration.test.ts` — 7 tests PASS
-  - `tests/unit/memory/v9-legacy-judgment-adapter.test.ts` — 3 tests PASS
-  - `reports/int-s1-v9-contract-spine.md` + `logs/int-s1-v9-typecheck.log`
-- **最高严重度**: none (2 Low findings recorded in `wave-reviews/wave-119-review.md`)
-- **验证**: `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅; targeted v9 tests 24/24 PASS
-- **下一步**: 进入 Wave 120 / S2 Attention + Context（T3.2.1, T5.1.2 extension, T2.2.1, T2.2.4）
+  - `src/shared/types/v9-contracts.ts` — `StableEvidenceIdentity` / `AttentionSignal` 契约定型
+  - `src/storage/v9-evidence-identity-port.ts` — 只读 identity resolution over v8 evidence
+  - `src/connectors/evidence-normalizer.ts` + `src/storage/v8-state-stores.ts` — identity 列写入与幂等更新
+  - `src/core/second-nature/perception/attention-assembler.ts` — 装配器主流程
+  - `src/core/second-nature/perception/attention-scorer.ts` — relevance/risk/action/thread 评分
+  - `src/core/second-nature/perception/repetition-detector.ts` — identity 查询包装
+  - `src/core/second-nature/perception/attention-signal-validator.ts` — 最终校验门
+  - `tests/unit/attention/v9-attention-assembler.test.ts`
+  - `tests/integration/v9/stable-identity-attention.test.ts`
+  - `tests/integration/v9/repeated-feed-suppression.test.ts`
+  - `src/storage/db/index.ts` — 修复 bootstrap 在旧 DB 上引用未创建列的索引（移入迁移块）
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1750 tests, 1741 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-120-review.md` — Pass（1 Medium / 5 Low）
+- **下一步**: 进入 Wave 121；按 05A 依赖图选择就绪任务。
+- **说明**: AGENTS.md 原建议 Wave 120 同时包含 T2.2.1/T2.2.4，但 05A 依赖图显示二者依赖 T5.2.2/T7.2.2/T6.2.1 等上游任务，本波按依赖就绪顺序先做 T3.2.1/T3.2.2。
+
+### 🌊 Wave 121 ✅ — v9 S2 Affordance Baseline
+T6.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 121 完成
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T6.2.1 real-hand affordance 三轴与 scaffold/stale 降级
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 更新 `AffordancePosture` 为 design doc L1 三轴形态
+  - `src/storage/v9-state-stores.ts` — `readActiveToolRoutinesByCapabilityPattern` + `writeToolRoutine` 种子端口
+  - `src/core/second-nature/body/tool-affordance/v9-affordance-assembler.ts` — 三轴 posture 装配器
+  - `tests/unit/body/v9-affordance-posture.test.ts`
+  - `tests/integration/v9/real-hand-affordance.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1760 tests, 1751 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-121-review.md` — Pass（2 Medium / 5 Low）
+- **下一步**: 进入 Wave 122；按 05A 依赖图选择就绪任务。
+- **说明**: M-1 credential presence 已收紧为仅 `active`；M-2 v9 `ProbeStatus.not_implemented` 需等待 v9 probe runner（T6.3.x）引入，当前在代码中已标注 residual。
 
 ### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
 T-ROS.R.5, T-ROS.R.6, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11

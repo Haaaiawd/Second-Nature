@@ -30,12 +30,15 @@ import {
   attentionSignal,
   activityThread,
   activityStep,
+  toolRoutine,
   type AttentionSignalRecord,
   type NewAttentionSignalRecord,
   type ActivityThreadRecord,
   type NewActivityThreadRecord,
   type ActivityStepRecord,
   type NewActivityStepRecord,
+  type ToolRoutineRecord,
+  type NewToolRoutineRecord,
 } from "./db/schema/v9-entities.js";
 import type { SourceRef } from "../shared/types/v9-contracts.js";
 
@@ -234,6 +237,64 @@ export async function readActivityStepsByThreadId(
     .where(eq(activityStep.threadId, threadId))
     .orderBy(desc(activityStep.createdAt))
     .limit(limit);
+}
+
+// ───────────────────────────────────────────────────────────────
+// ToolRoutine read port (T6.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export async function readActiveToolRoutinesByCapabilityPattern(
+  db: StateDatabase,
+  capabilityPattern: string,
+): Promise<ToolRoutineRecord[]> {
+  return db.db
+    .select()
+    .from(toolRoutine)
+    .where(
+      and(
+        eq(toolRoutine.status, "active"),
+        eq(toolRoutine.capabilityPattern, capabilityPattern),
+      ),
+    )
+    .orderBy(desc(toolRoutine.activatedAt));
+}
+
+export interface WriteToolRoutineOptions {
+  id: string;
+  name: string;
+  version: string;
+  capabilityPattern: string;
+  status?: ToolRoutineRecord["status"];
+  sourceRefs: SourceRef[];
+  rollbackRef?: string;
+  payloadJson?: string;
+  activatedAt?: string;
+  retiredAt?: string;
+  createdAt: string;
+}
+
+export async function writeToolRoutine(
+  db: StateDatabase,
+  options: WriteToolRoutineOptions,
+): Promise<ToolRoutineRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("tool_routine sourceRefs required");
+  }
+  const row: NewToolRoutineRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    name: options.name,
+    version: options.version,
+    capabilityPattern: options.capabilityPattern,
+    status: options.status ?? "active",
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    rollbackRef: options.rollbackRef,
+    payloadJson: options.payloadJson,
+    activatedAt: options.activatedAt,
+    retiredAt: options.retiredAt,
+  };
+  await db.db.insert(toolRoutine).values(row);
+  return row as ToolRoutineRecord;
 }
 
 // ───────────────────────────────────────────────────────────────

@@ -93,8 +93,8 @@ export declare const sceneGuidanceRequestSchema: z.ZodObject<{
         }>;
     }, z.core.$strip>>;
     language: z.ZodOptional<z.ZodEnum<{
-        "en-US": "en-US";
         "zh-CN": "zh-CN";
+        "en-US": "en-US";
     }>>;
 }, z.core.$strip>;
 export declare const outreachNarrativeContextSchema: z.ZodObject<{
@@ -187,8 +187,8 @@ export declare const outreachDraftRequestSchema: z.ZodObject<{
         }>;
     }, z.core.$strip>>;
     language: z.ZodOptional<z.ZodEnum<{
-        "en-US": "en-US";
         "zh-CN": "zh-CN";
+        "en-US": "en-US";
     }>>;
     sceneType: z.ZodEnum<{
         outreach: "outreach";
@@ -291,7 +291,7 @@ export declare function safeParseOutreachDraftRequest(input: unknown): z.ZodSafe
         wordingMode: "sendable" | "not_sent_fallback_candidate";
         fallbackRef?: string | undefined;
     } | undefined;
-    language?: "en-US" | "zh-CN" | undefined;
+    language?: "zh-CN" | "en-US" | undefined;
     narrativeContext?: {
         focus?: string | undefined;
         progress?: string[] | undefined;

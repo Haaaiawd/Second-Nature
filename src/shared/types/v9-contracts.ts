@@ -48,15 +48,15 @@ export interface EvidenceIdentityPort {
 }
 
 export interface StableEvidenceIdentity {
+  logicalId: string;
   platformId: string;
   externalId?: string;
-  contentHash?: string;
-  status: RowIdentityStatus;
-  observedAt: string;
-  sourceRefs: SourceRef[];
+  contentHash: string;
+  seenCount: number;
+  firstObservedAt: string;
+  lastObservedAt: string;
+  repetitionStatus: RepetitionKind;
 }
-
-export type RowIdentityStatus = "stable" | "unstable" | "duplicate_row";
 
 export type RepetitionKind = "new" | "changed" | "duplicate" | "identity_unstable";
 
@@ -69,6 +69,7 @@ export interface EvidenceItem {
   contentHash?: string;
   observedAt: string;
   content?: string;
+  sourceRefs?: SourceRef[];
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ export interface AttentionSignal {
   risk: "none" | "low" | "medium" | "high";
   possibleActions: AttentionActionKind[];
   sourceRefs: SourceRef[];
+  summary: string;
   status: "attentive" | "attention_blocked_missing_sources" | "degraded";
   reason?: string;
 }
@@ -966,11 +968,23 @@ export type V9ReasonCode =
 // Minimal forward references for cross-system assembly
 // ───────────────────────────────────────────────────────────────
 
+export type AffordanceAccessLevel = "none" | "needs_auth" | "credentialed";
+export type AffordanceReliabilityLevel = "unproven" | "proven" | "stale" | "degraded";
+export type AffordanceFamiliarityLevel = "scaffold" | "practiced" | "routine";
+
 export interface AffordancePosture {
   platformId: string;
-  capabilityId?: string;
-  access: "scaffold" | "needs_auth" | "available" | "unavailable";
-  reliability: "unknown" | "stale" | "degraded" | "stable";
-  familiarity: "unknown" | "first_contact" | "practiced" | "routine";
+  capabilityId: string;
+  accessLevel: AffordanceAccessLevel;
+  reliabilityLevel: AffordanceReliabilityLevel;
+  familiarityLevel: AffordanceFamiliarityLevel;
+  lastProbedAt?: string;
+  lastExecutedAt?: string;
+  routineId?: string;
   sourceRefs: SourceRef[];
+}
+
+export interface AffordanceQuery {
+  platformId?: string;
+  capabilityId?: string;
 }

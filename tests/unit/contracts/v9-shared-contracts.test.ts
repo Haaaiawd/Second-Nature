@@ -24,6 +24,7 @@ import {
   type EmbodiedContextCharacterProjection,
   type EvidenceItem,
   type SelfContinuityCard,
+  type StableEvidenceIdentity,
   type ToolRoutine,
   type ToolRoutineGuardSchema,
   type V9ReasonCode,
@@ -44,6 +45,7 @@ describe("v9 shared contracts exports", () => {
       risk: "low",
       possibleActions: ["watch", "remember"],
       sourceRefs: [{ family: "evidence", id: "ev-1" }],
+      summary: "(new) moltbook/feed.read: test summary",
       status: "attentive",
       threadSuggestion: "create",
     };
@@ -217,11 +219,27 @@ describe("v9 shared contracts exports", () => {
       externalId: "post-1",
       contentHash: "hash-a",
       observedAt: new Date().toISOString(),
+      sourceRefs: [{ family: "evidence", id: "ev-1" }],
     };
     // Contract invariant: observedAt must not participate in logical identity.
     // The type shape encodes this by keeping observedAt separate from platformId/externalId/contentHash.
     assert.equal(typeof item.platformId, "string");
     assert.equal(typeof item.observedAt, "string");
+  });
+
+  it("StableEvidenceIdentity carries repetition status and seen count", () => {
+    const identity: StableEvidenceIdentity = {
+      logicalId: "ev-moltbook-post-1",
+      platformId: "moltbook",
+      externalId: "post-1",
+      contentHash: "hash-a",
+      seenCount: 3,
+      firstObservedAt: "2026-06-01T00:00:00Z",
+      lastObservedAt: "2026-06-03T00:00:00Z",
+      repetitionStatus: "duplicate",
+    };
+    assert.equal(identity.seenCount, 3);
+    assert.equal(identity.repetitionStatus, "duplicate");
   });
 
   it("ActionProposal authoring boundary types compile", () => {

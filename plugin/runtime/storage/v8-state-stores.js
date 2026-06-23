@@ -21,7 +21,7 @@
  *
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
-import { eq, and, desc, like, isNull, inArray } from "drizzle-orm";
+import { eq, and, desc, like, isNull, inArray, sql } from "drizzle-orm";
 import { evidenceItem, perceptionCard, judgmentVerdict, actionClosureRecord, quietDailyReview, dreamConsolidationRun, longTermMemoryProjection, heartbeatCycleTrace, loopStageEvent, impulseContextArtifact, dailyRhythmState, connectorCooldownState, } from "./db/schema/v8-entities.js";
 import { serializeSourceRefs, parseSourceRefs, } from "../shared/serialization.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
@@ -56,8 +56,16 @@ export async function writeEvidenceItem(db, row) {
         return validated.degraded;
     try {
         const { sourceRefs: _, ...rest } = row;
+        const identityKey = rest.stableIdentityKey ?? (rest.externalId ?? rest.contentHash ?? "");
+        const identityStatus = rest.rowIdentityStatus ??
+            (rest.externalId ? "stable" : rest.contentHash ? "unstable" : "unstable");
         const record = {
             ...rest,
+            stableIdentityKey: identityKey,
+            firstObservedAt: rest.firstObservedAt ?? rest.observedAt,
+            lastObservedAt: rest.lastObservedAt ?? rest.observedAt,
+            seenCount: rest.seenCount ?? 1,
+            rowIdentityStatus: identityStatus,
             sourceRefsJson: serializeSourceRefs(validated.record),
         };
         await db.db
@@ -68,6 +76,8 @@ export async function writeEvidenceItem(db, row) {
             set: {
                 payloadJson: record.payloadJson,
                 observedAt: record.observedAt,
+                lastObservedAt: record.observedAt,
+                seenCount: sql `COALESCE(seen_count, 1) + 1`,
             },
         });
         return { id: row.id };

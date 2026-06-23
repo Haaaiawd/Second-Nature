@@ -157,12 +157,154 @@ const STATE_SCHEMA_SQL = `
     priority_hint INTEGER NOT NULL DEFAULT 0,
     source_refs_json TEXT NOT NULL,
     accepted_by TEXT,
+    scope TEXT DEFAULT NULL,
+    expires_at TEXT DEFAULT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS agent_goal_status_idx ON agent_goal(status);
   CREATE INDEX IF NOT EXISTS agent_goal_origin_idx ON agent_goal(origin);
   CREATE INDEX IF NOT EXISTS agent_goal_updated_at_idx ON agent_goal(updated_at);
+
+  -- v7 foundation tables (mirrors v7-001-foundation migration for fresh DBs)
+  CREATE TABLE IF NOT EXISTS identity_profile (
+    profile_id TEXT PRIMARY KEY,
+    canonical_name TEXT NOT NULL,
+    canonical_avatar TEXT,
+    canonical_bio TEXT,
+    platform_handles_json TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS tool_experience (
+    experience_id TEXT PRIMARY KEY,
+    connector_id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    failure_class TEXT,
+    latency_ms INTEGER NOT NULL,
+    evidence_quality REAL NOT NULL DEFAULT 0,
+    source_refs_json TEXT NOT NULL,
+    trigger_source TEXT NOT NULL DEFAULT 'heartbeat',
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS tool_experience_connector_idx ON tool_experience(connector_id);
+  CREATE INDEX IF NOT EXISTS tool_experience_outcome_idx ON tool_experience(outcome);
+  CREATE INDEX IF NOT EXISTS tool_experience_created_at_idx ON tool_experience(created_at);
+  CREATE TABLE IF NOT EXISTS daily_diary_index (
+    diary_id TEXT PRIMARY KEY,
+    day TEXT NOT NULL UNIQUE,
+    observed_today_json TEXT NOT NULL DEFAULT '[]',
+    notable_signals_json TEXT NOT NULL DEFAULT '[]',
+    tomorrow_direction TEXT NOT NULL DEFAULT '',
+    source_refs_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS daily_diary_index_day_idx ON daily_diary_index(day);
+  CREATE TABLE IF NOT EXISTS dream_output_index (
+    output_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'candidate',
+    canonical_entries_json TEXT NOT NULL DEFAULT '[]',
+    insights_json TEXT NOT NULL DEFAULT '[]',
+    narrative_update_json TEXT,
+    relationship_update_json TEXT,
+    validation_json TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS dream_output_index_run_idx ON dream_output_index(run_id);
+  CREATE INDEX IF NOT EXISTS dream_output_index_status_idx ON dream_output_index(status);
+  CREATE TABLE IF NOT EXISTS capability_probe_result (
+    probe_result_id TEXT PRIMARY KEY,
+    capability_id TEXT NOT NULL,
+    connector_id TEXT NOT NULL,
+    actual_status TEXT NOT NULL,
+    http_status INTEGER,
+    sample_response_ref TEXT,
+    probe_config_ref TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS capability_probe_result_connector_idx ON capability_probe_result(connector_id);
+  CREATE TABLE IF NOT EXISTS restore_snapshot (
+    snapshot_id TEXT PRIMARY KEY,
+    entity_whitelist_json TEXT NOT NULL,
+    excluded_sensitive_kinds_json TEXT NOT NULL,
+    captured_at TEXT NOT NULL,
+    payload_json TEXT NOT NULL DEFAULT '{}'
+  );
+  CREATE INDEX IF NOT EXISTS restore_snapshot_captured_at_idx ON restore_snapshot(captured_at);
+  CREATE TABLE IF NOT EXISTS runtime_secret_anchor (
+    anchor_id TEXT PRIMARY KEY,
+    location_ref TEXT NOT NULL,
+    health TEXT NOT NULL DEFAULT 'missing',
+    rotation_policy_ref TEXT,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS heartbeat_digest (
+    digest_id TEXT PRIMARY KEY,
+    day TEXT NOT NULL UNIQUE,
+    connector_summary_json TEXT NOT NULL DEFAULT '[]',
+    goal_summary_json TEXT NOT NULL DEFAULT '[]',
+    quiet_count INTEGER NOT NULL DEFAULT 0,
+    dream_count INTEGER NOT NULL DEFAULT 0,
+    breaker_summary_json TEXT NOT NULL DEFAULT '[]',
+    health_status TEXT NOT NULL DEFAULT 'ok',
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS heartbeat_digest_day_idx ON heartbeat_digest(day);
+  CREATE TABLE IF NOT EXISTS narrative_timeline (
+    timeline_id TEXT PRIMARY KEY,
+    entry_type TEXT NOT NULL,
+    subject_id TEXT NOT NULL,
+    delta_json TEXT NOT NULL DEFAULT '{}',
+    previous_hash TEXT NOT NULL DEFAULT '',
+    current_hash TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS narrative_timeline_subject_idx ON narrative_timeline(subject_id);
+  CREATE INDEX IF NOT EXISTS narrative_timeline_created_at_idx ON narrative_timeline(created_at);
+
+  CREATE TABLE IF NOT EXISTS behavior_promotion (
+    promotion_id TEXT PRIMARY KEY,
+    behavior_kind TEXT NOT NULL,
+    description TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'candidate',
+    operator_id TEXT,
+    reject_reason TEXT,
+    submitted_at TEXT NOT NULL,
+    decided_at TEXT,
+    expires_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS behavior_promotion_status_idx ON behavior_promotion(status);
+  CREATE INDEX IF NOT EXISTS behavior_promotion_expires_idx ON behavior_promotion(expires_at);
+
+  CREATE TABLE IF NOT EXISTS effect_commit_ledger (
+    commit_id TEXT PRIMARY KEY,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    decision_id TEXT NOT NULL,
+    intent_id TEXT NOT NULL,
+    effect_class TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'planned',
+    outcome_ref TEXT,
+    created_at TEXT NOT NULL,
+    committed_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS effect_commit_ledger_idempotency_idx ON effect_commit_ledger(idempotency_key);
+  CREATE INDEX IF NOT EXISTS effect_commit_ledger_decision_idx ON effect_commit_ledger(decision_id);
+
+  CREATE TABLE IF NOT EXISTS circuit_breaker_state (
+    platform_id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    state TEXT NOT NULL DEFAULT 'closed',
+    failure_count INTEGER NOT NULL DEFAULT 0,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    last_failure_at TEXT,
+    opened_at TEXT,
+    last_probe_at TEXT,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (platform_id, capability_id)
+  );
+  CREATE INDEX IF NOT EXISTS circuit_breaker_state_open_idx ON circuit_breaker_state(state) WHERE state = 'open';
+
   CREATE TABLE IF NOT EXISTS memory_store (
     memory_store_id TEXT PRIMARY KEY,
     lifecycle_status TEXT NOT NULL,
@@ -199,8 +341,9 @@ const STATE_SCHEMA_SQL = `
     lifecycle_status TEXT NOT NULL DEFAULT 'pending'
   );
   CREATE UNIQUE INDEX IF NOT EXISTS evidence_item_platform_content_hash_idx ON evidence_item(platform_id, content_hash);
-  CREATE INDEX IF NOT EXISTS evidence_item_stable_identity_idx ON evidence_item(stable_identity_key);
-  CREATE INDEX IF NOT EXISTS evidence_item_last_observed_status_idx ON evidence_item(last_observed_at, row_identity_status);
+  -- Stable-identity indexes are created by applyStateSchemaMigrations after the
+  -- columns are guaranteed to exist (fresh DBs have them in the table above;
+  -- pre-existing DBs receive them via defensive ALTER TABLE).
   CREATE TABLE IF NOT EXISTS perception_card (
     id TEXT PRIMARY KEY,
     created_at TEXT NOT NULL,
@@ -586,6 +729,7 @@ function applyStateSchemaMigrations(sqlite: Database): void {
     "ALTER TABLE loop_stage_event ADD COLUMN trace_refs_json TEXT",
     "ALTER TABLE action_closure_record ADD COLUMN proof_refs_json TEXT",
     "ALTER TABLE action_closure_record ADD COLUMN trace_refs_json TEXT",
+    "ALTER TABLE perception_card ADD COLUMN relevance_class TEXT",
     "ALTER TABLE evidence_item ADD COLUMN external_id TEXT",
     "ALTER TABLE evidence_item ADD COLUMN stable_identity_key TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE evidence_item ADD COLUMN first_observed_at TEXT",

@@ -181,7 +181,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T3.2.1** [REQ-002][REQ-003]: 实现 `AttentionSignal` 装配器与 stable identity 读取
+- [x] **T3.2.1** [REQ-002][REQ-003]: 实现 `AttentionSignal` 装配器与 stable identity 读取
   - **描述**: 新增 `AttentionAssembler`, `RepetitionDetector`, `AttentionScorer`, `AttentionSignalValidator`，将 evidence 转为 source-backed attention hint，并为相关 evidence 输出 ActivityThread create/continue/pause suggestion。
   - **输入**: `04_SYSTEM_DESIGN/attention-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/attention-system.detail.md §1-§5`, `shared-v9-contracts.md §2 §3`, `T5.1.2`
   - **输出**: `src/core/second-nature/perception/attention-assembler.ts`, scorer/validator modules, `AttentionSignal` persistence handoff
@@ -200,7 +200,7 @@ graph TD
   - **依赖**: T5.1.2
   - **优先级**: P0
 
-- [ ] **T3.2.2** [REQ-002]: 实现重复 feed 抑制与 `identity_unstable` routine-signal 阻断
+- [x] **T3.2.2** [REQ-002]: 实现重复 feed 抑制与 `identity_unstable` routine-signal 阻断
   - **描述**: 将同一 externalId/contentHash 的 repeated feed 聚合到同一 logical identity，并保证 unstable identity 不进入 routine promotion。
   - **输入**: `04_SYSTEM_DESIGN/attention-system.detail.md §3.1 §5.2`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.1`, `T5.1.2`, `T3.2.1`
   - **输出**: stable identity integration path, duplicate suppression assertions
@@ -390,7 +390,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T6.2.1** [REQ-006]: 实现 real-hand affordance 三轴与 scaffold/stale 降级
+- [x] **T6.2.1** [REQ-006]: 实现 real-hand affordance 三轴与 scaffold/stale 降级
   - **描述**: 统一 probe、execution、routine 历史，输出 access/reliability/familiarity 三轴 posture，禁止 scaffold 与 stale probe 伪装真实可用。
   - **输入**: `04_SYSTEM_DESIGN/body-connector-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/body-connector-system.detail.md §3.1 §4.1 §5`, `T5.1.2`
   - **输出**: `AffordanceAssembler` v9 posture, `CapabilityProbeResult` read path
