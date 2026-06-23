@@ -288,7 +288,7 @@ graph TD
 
 ### Phase 1: Foundation
 
-- [ ] **T5.1.1** [REQ-001~REQ-008]: 建立 v9 shared contract TypeScript spine
+- [x] **T5.1.1** [REQ-001~REQ-008]: 建立 v9 shared contract TypeScript spine
   - **描述**: 将 `shared-v9-contracts.md` 的 canonical shapes 落为 `src/shared/types/v9-contracts.ts`，并禁止 ledger/routine/card/frame 本地重定义。
   - **输入**: `04_SYSTEM_DESIGN/shared-v9-contracts.md §1-§10`, `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §2.3`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §2.1 §3.2`
   - **输出**: `src/shared/types/v9-contracts.ts`, shared serializers or exports, compile-time import surface
