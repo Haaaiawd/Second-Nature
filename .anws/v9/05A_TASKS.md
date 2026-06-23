@@ -365,7 +365,7 @@ graph TD
   - **依赖**: T5.2.1, T7.2.2, T6.2.2
   - **优先级**: P0
 
-- [ ] **T5.2.3** [REQ-003]: 实现 v8 `JudgmentVerdict` legacy adapter 到 `AttentionSignal`
+- [x] **T5.2.3** [REQ-003]: 实现 v8 `JudgmentVerdict` legacy adapter 到 `AttentionSignal`
   - **描述**: 保留 v8 `judgment_verdict` 为只读 legacy，提供 `readLegacyJudgmentVerdictAsAttentionSignal` 给 replay/history，不进入 v9 realtime cycle。
   - **输入**: `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §2 AttentionSignal §3.1a`, `04_SYSTEM_DESIGN/attention-system.detail.md §2.2`, `T5.1.2`
   - **输出**: legacy read adapter, replay diagnostic reason `v8_legacy_judgment_mapped`, migrated/justified tests
