@@ -35,7 +35,7 @@ export interface HeartbeatSurfaceResult {
     /** True when structured fields mirror a fake adapter for schema parity only */
     schemaParityOnly?: boolean;
     /** T-CP.R.2: v8 real runtime spine result when state-backed action-closure spine ran */
-    v8Spine?: RealRuntimeSpineResult & {
+    v8Spine?: Partial<RealRuntimeSpineResult> & {
         degradedReason?: string;
     };
     /** T-GVS.R.1: agent-facing impulse context artifact read pointer */

@@ -233,6 +233,8 @@ const STATE_SCHEMA_SQL = `
     reason TEXT,
     next_state TEXT,
     source_refs_json TEXT NOT NULL,
+    proof_refs_json TEXT,
+    trace_refs_json TEXT,
     redaction_class TEXT NOT NULL DEFAULT 'none',
     payload_json TEXT
   );
@@ -289,6 +291,8 @@ const STATE_SCHEMA_SQL = `
     status TEXT NOT NULL,
     reason TEXT,
     source_refs_json TEXT NOT NULL,
+    proof_refs_json TEXT,
+    trace_refs_json TEXT,
     redaction_class TEXT NOT NULL DEFAULT 'none',
     occurred_at TEXT NOT NULL,
     expected_downstream_by_cycle INTEGER,
@@ -371,6 +375,10 @@ function applyStateSchemaMigrations(sqlite) {
         "ALTER TABLE action_closure_record ADD COLUMN capability_id TEXT",
         "ALTER TABLE quiet_daily_review ADD COLUMN closure_refs_json TEXT",
         "ALTER TABLE connector_cooldown_state ADD COLUMN terminal_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE loop_stage_event ADD COLUMN proof_refs_json TEXT",
+        "ALTER TABLE loop_stage_event ADD COLUMN trace_refs_json TEXT",
+        "ALTER TABLE action_closure_record ADD COLUMN proof_refs_json TEXT",
+        "ALTER TABLE action_closure_record ADD COLUMN trace_refs_json TEXT",
         "CREATE INDEX IF NOT EXISTS connector_cooldown_state_platform_capability_idx ON connector_cooldown_state(platform_id, capability_id)",
     ];
     for (const sql of addColumnMigrations) {

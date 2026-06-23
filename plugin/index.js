@@ -81,63 +81,19 @@ const HOST_SAFE_LIMITATION_MESSAGE = "Host-safe plugin package keeps synchronous
 const SETUP_MARKER_RELATIVE_PATH = path.join(".second-nature", "setup", "agent-inner-guide-ack.json");
 const SETUP_GUIDE_VERSION = "0.1.38";
 const SETUP_COMMANDS = new Set(["setup_hint", "setup_ack"]);
-const SETUP_ACK_SCHEMA_VERSION = 1;
-const VALID_PLACEMENTS = new Set([
-    "workspace_guide",
-    "host_skill_registry",
-    "agent_profile",
-    "manual_operator_instruction",
-]);
-const VALID_WRITERS = new Set(["setup_ack_command", "host_setup_bridge"]);
+// T-SH.R.8: Import shared setup-ack validator instead of duplicating.
+// Source of truth: src/shared/setup-ack.ts (copied to plugin/runtime/shared/ by build).
+import { validateSetupAck as validateSetupAckShared, SETUP_ACK_SCHEMA_VERSION, } from "./runtime/shared/setup-ack.js";
+/**
+ * Wrapper that adapts the shared validator's richer return type
+ * ({ok:true, ack} | {ok:false, errors}) to the plugin's historical
+ * ({ok:true} | {ok:false, errors}) shape. Keeps call sites unchanged.
+ */
 function validateSetupAck(raw) {
-    const errors = [];
-    if (raw.schemaVersion !== SETUP_ACK_SCHEMA_VERSION) {
-        errors.push({
-            field: "schemaVersion",
-            reason: `schemaVersion must be ${SETUP_ACK_SCHEMA_VERSION}`,
-            repairAction: "Re-run setup_ack with a current client that writes schemaVersion=1.",
-        });
-    }
-    const placedIn = typeof raw.placedIn === "string" ? raw.placedIn : undefined;
-    if (!placedIn || placedIn === "unspecified") {
-        errors.push({
-            field: "placedIn",
-            reason: "placedIn is missing or 'unspecified'",
-            repairAction: "Provide a concrete placement target such as 'workspace_guide' or 'host_skill_registry'.",
-        });
-    }
-    else if (!VALID_PLACEMENTS.has(placedIn)) {
-        errors.push({
-            field: "placedIn",
-            reason: `placedIn '${placedIn}' is not a recognized placement target`,
-            repairAction: `Use one of: ${Array.from(VALID_PLACEMENTS).join(", ")}.`,
-        });
-    }
-    const placementProofRef = typeof raw.placementProofRef === "string" ? raw.placementProofRef : undefined;
-    if (!placementProofRef || placementProofRef.trim().length === 0) {
-        errors.push({
-            field: "placementProofRef",
-            reason: "placementProofRef is missing or empty",
-            repairAction: "Provide a proof reference such as a host skill registry id, file path, or anchor URI.",
-        });
-    }
-    const writer = typeof raw.writer === "string" ? raw.writer : undefined;
-    if (!writer || !VALID_WRITERS.has(writer)) {
-        errors.push({
-            field: "writer",
-            reason: `writer '${writer ?? "missing"}' is not authorized`,
-            repairAction: `Writer must be one of: ${Array.from(VALID_WRITERS).join(", ")}.`,
-        });
-    }
-    const acknowledgedAt = typeof raw.acknowledgedAt === "string" ? raw.acknowledgedAt : undefined;
-    if (!acknowledgedAt || Number.isNaN(Date.parse(acknowledgedAt))) {
-        errors.push({
-            field: "acknowledgedAt",
-            reason: "acknowledgedAt is missing or not a valid ISO timestamp",
-            repairAction: "Re-run setup_ack so the client can write a fresh timestamp.",
-        });
-    }
-    return errors.length === 0 ? { ok: true } : { ok: false, errors };
+    const result = validateSetupAckShared(raw);
+    if (result.ok)
+        return { ok: true };
+    return { ok: false, errors: result.errors };
 }
 let activationSpine = null;
 /** T1.1.4 — lazily opened full read bridge; closed when workspace root / resolution changes. */

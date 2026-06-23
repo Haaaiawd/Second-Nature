@@ -1,4 +1,5 @@
 import { type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
+import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
 import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
@@ -18,7 +19,7 @@ export interface RuntimeOpsEnvelope<T = unknown> {
     ok: boolean;
     command: string;
     runtimeMode: "host_safe_carrier" | "workspace_full_runtime" | "unavailable";
-    surfaceMode: "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
+    surfaceMode: SurfaceMode | "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
     generatedAt: string;
     data?: T;
     error?: {

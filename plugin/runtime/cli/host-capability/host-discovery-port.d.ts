@@ -1,5 +1,5 @@
 /**
- * Host Capability Discovery Port (T-ROS.R.7)
+ * Host Capability Discovery Port (T-ROS.R.7, T-ROS.R.9)
  *
  * Core logic: provide an explicit boundary for proving that the Second Nature
  * tool (`second_nature_ops`) and packaged skill are visible to the host.
@@ -10,6 +10,17 @@
  * Dependencies: none (plain contracts)
  * Boundary: pure interface + a default fail-closed adapter that reports
  * `host_probe_unsupported` rather than inventing a discovery proof.
+ *
+ * T-ROS.R.9 manual-smoke-only contract (option b):
+ * In carrier/packaged mode, there is no OpenClaw host API available for
+ * introspection. The default adapter returns `unsupported` with
+ * `host_probe_unsupported` reason. The positive path (T-ROS.R.5
+ * "host-visible second_nature_ops") is borne by external manual host smoke.
+ * `05B_VERIFICATION_PLAN.md` marks T-ROS.R.5 as "requires manual host evidence"
+ * with required fields: hostName, hostVersion, timestamp, raw tool list JSON.
+ * Callers must not promote `evidenceLevel` beyond `carrier_ack` without
+ * a real `HostCapabilityDiscoveryPort` implementation or manual smoke proof.
+ *
  * Test coverage: tests/unit/cli/host-discovery-port.test.ts
  */
 export type HostDiscoveryStatus = "available" | "unavailable" | "unsupported" | "blocked";

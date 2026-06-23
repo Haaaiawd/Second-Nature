@@ -82,7 +82,7 @@ export declare function readJudgmentVerdictById(db: StateDatabase, id: string): 
     row?: JudgmentVerdictRecord;
     degraded?: DegradedOperationResult;
 }>;
-export declare function writeActionClosureRecord(db: StateDatabase, row: Omit<ActionClosureRecordInsert, "sourceRefsJson" | "payloadJson"> & {
+export declare function writeActionClosureRecord(db: StateDatabase, row: Omit<ActionClosureRecordInsert, "sourceRefsJson" | "proofRefsJson" | "traceRefsJson" | "payloadJson"> & {
     sourceRefs: SourceRef[];
     proofRefs?: SourceRef[];
     traceRefs?: SourceRef[];

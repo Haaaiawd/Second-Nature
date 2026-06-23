@@ -117,9 +117,9 @@ export async function heartbeatCheck(input) {
                     trigger: "host",
                 });
                 if ("status" in v8Result && "operatorNextAction" in v8Result) {
+                    // T-CP.R.6: degraded path must not fabricate cycleId/cycleSequence.
+                    // Only set degradedReason; cycleId/cycleSequence remain absent.
                     surfaceResult.v8Spine = {
-                        cycleId: "",
-                        cycleSequence: 0,
                         degradedReason: v8Result.reason,
                     };
                     surfaceResult.reasons = [

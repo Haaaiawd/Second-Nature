@@ -13,6 +13,7 @@ import {
   type HeartbeatCheckInput,
   type HeartbeatSurfaceResult,
 } from "./heartbeat-surface.js";
+import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
 import {
   showOperatorFallback,
   OperatorFallbackNotFoundError,
@@ -105,7 +106,7 @@ export interface RuntimeOpsEnvelope<T = unknown> {
   ok: boolean;
   command: string;
   runtimeMode: "host_safe_carrier" | "workspace_full_runtime" | "unavailable";
-  surfaceMode: "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
+  surfaceMode: SurfaceMode | "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
   generatedAt: string;
   data?: T;
   error?: { code: string; message: string; nextStep?: string };
@@ -156,26 +157,74 @@ function normalizeEnvelopeResult(
 ): RuntimeOpsEnvelope {
   if (isRuntimeOpsEnvelope(raw)) {
     const mode = raw.runtimeMode ?? runtimeMode ?? "host_safe_carrier";
+    const fallbackSurface = raw.surfaceMode ?? (mode === "workspace_full_runtime" ? "workspace_full_runtime" : "cli");
     const fallback = defaultEvidenceLevelForCommand(command, mode);
     return {
       ...raw,
       runtimeMode: mode,
+      surfaceMode: fallbackSurface,
       evidenceLevel: raw.evidenceLevel ?? fallback,
     };
   }
-  // Non-envelope result (e.g. plain error from an internal helper) — wrap honestly.
+  // Partial result (e.g. goal, connector_status, connector_test) — wrap into a valid envelope
+  // while preserving the caller's data and error shape.
+  if (
+    typeof raw === "object" &&
+    raw !== null &&
+    "ok" in raw &&
+    typeof (raw as { ok?: unknown }).ok === "boolean" &&
+    "command" in raw &&
+    typeof (raw as { command?: unknown }).command === "string"
+  ) {
+    const partial = raw as Record<string, unknown>;
+    const mode = runtimeMode ?? (partial.runtimeMode as RuntimeOpsEnvelope["runtimeMode"]) ?? "host_safe_carrier";
+    const fallbackSurface =
+      (partial.surfaceMode as RuntimeOpsEnvelope["surfaceMode"]) ??
+      (mode === "workspace_full_runtime" ? "workspace_full_runtime" : "cli");
+    const fallback = defaultEvidenceLevelForCommand(command, mode);
+    return {
+      ...partial,
+      runtimeMode: mode,
+      surfaceMode: fallbackSurface,
+      generatedAt: new Date().toISOString(),
+      warnings: Array.isArray(partial.warnings) ? partial.warnings : [],
+      sourceRefs: Array.isArray(partial.sourceRefs) ? partial.sourceRefs : [],
+      evidenceLevel: (partial.evidenceLevel as EvidenceLevel | undefined) ?? fallback,
+    } as RuntimeOpsEnvelope;
+  }
+  // Non-envelope result (e.g. plain error from an internal helper) — wrap honestly,
+  // but preserve any structured error already present on the raw object.
   const generatedAt = new Date().toISOString();
+  const existingError = (() => {
+    if (
+      typeof raw === "object" &&
+      raw !== null &&
+      "error" in raw &&
+      raw.error !== null &&
+      typeof raw.error === "object" &&
+      "code" in (raw.error as object)
+    ) {
+      const err = raw.error as { code: string; message?: string; nextStep?: string };
+      return {
+        code: err.code,
+        message: err.message ?? "Internal ops error",
+        nextStep: err.nextStep,
+      };
+    }
+    return undefined;
+  })();
   return {
     ok: false,
     command,
     runtimeMode: runtimeMode ?? "host_safe_carrier",
-    surfaceMode: "cli",
+    surfaceMode: runtimeMode === "workspace_full_runtime" ? "workspace_full_runtime" : "cli",
     generatedAt,
-    error: {
+    error: existingError ?? {
       code: "OPS_RESULT_NOT_AN_ENVELOPE",
-      message: typeof raw === "object" && raw !== null && "message" in raw
-        ? String((raw as { message?: unknown }).message)
-        : "Internal ops result did not match RuntimeOpsEnvelope shape",
+      message:
+        typeof raw === "object" && raw !== null && "message" in raw
+          ? String((raw as { message?: unknown }).message)
+          : "Internal ops result did not match RuntimeOpsEnvelope shape",
     },
     warnings: [],
     sourceRefs: [],
@@ -816,25 +865,25 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             }
             return "contract_smoke";
           })();
-          const heartbeatEnvelope: RuntimeOpsEnvelope = {
-            ok: result.ok,
-            command: "heartbeat_check",
+          const heartbeatEnvelope = {
+            ...result,
+            command: "heartbeat_check" as const,
             runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier",
-            surfaceMode: "cli",
+            surfaceMode: result.surfaceMode,
             generatedAt: new Date().toISOString(),
             data: result,
             warnings: [],
             sourceRefs: result.decisionId ? [`heartbeat:${result.decisionId}`] : ["heartbeat:runtime"],
             evidenceLevel: heartbeatEvidenceLevel,
           };
-          return heartbeatEnvelope;
+          return heartbeatEnvelope as RuntimeOpsEnvelope;
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           const envelope: RuntimeOpsEnvelope = {
             ok: false,
             command: "heartbeat_check",
             runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "unavailable",
-            surfaceMode: "cli",
+            surfaceMode: runtimeAvailable ? "workspace_full_runtime" : "cli",
             generatedAt: new Date().toISOString(),
             error: {
               code: "HEARTBEAT_CYCLE_EXCEPTION",
@@ -852,6 +901,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
         if (!ref) {
           return {
             ok: false,
+            command: "fallback",
             error: {
               code: "MISSING_FALLBACK_REF",
               message: "fallback requires args.ref (e.g. fallback:…)",
@@ -978,7 +1028,7 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
             force: Boolean(input?.force),
             workspaceRoot: deps.workspaceRoot,
           });
-          return result as unknown as Record<string, unknown>;
+          return { command: "connector_init", ...result } as unknown as Record<string, unknown>;
         })();
       }
       if (command === "connector_behavior_add") {
@@ -1213,37 +1263,6 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
           limit: typeof input?.limit === "number" ? input.limit : undefined,
         });
       }
-      if (command === "dream:recent") {
-        if (!deps.readModels) {
-          return {
-            ok: false,
-            error: {
-              code: "READ_MODELS_UNAVAILABLE",
-              message: "dream:recent requires workspace read models",
-              nextStep: "wire_read_models_into_ops_router",
-            },
-          };
-        }
-        const limit = typeof input?.limit === "number" ? input.limit : 5;
-        const data = await deps.readModels.loadDreamRecent(limit);
-        return { ok: true, data };
-      }
-      if (command === "cycle:recent") {
-        if (!deps.readModels) {
-          return {
-            ok: false,
-            error: {
-              code: "READ_MODELS_UNAVAILABLE",
-              message: "cycle:recent requires workspace read models",
-              nextStep: "wire_read_models_into_ops_router",
-            },
-          };
-        }
-        const limit = typeof input?.limit === "number" ? input.limit : 5;
-        const data = await deps.readModels.loadCycleRecent(limit);
-        return { ok: true, data };
-      }
-
       // ─── v8 commands (T-ROS.C.1) ─────────────────────────────────────────
 
       /**
@@ -2064,13 +2083,18 @@ export function createOpsRouter(deps: OpsRouterDeps): OpsRouter {
 
       return {
         ok: false,
+        command,
         error: {
           code: "unknown_ops_command",
           message: `Unknown ops command: ${command}`,
         },
       };
       })();
-      return normalizeEnvelopeResult(rawResult, command, typeof input?.runtimeAvailable === "boolean" ? (input.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier") : undefined);
+      const envelopeRuntimeMode: RuntimeOpsEnvelope["runtimeMode"] =
+        typeof input?.runtimeAvailable === "boolean"
+          ? (input.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier")
+          : (deps.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier");
+      return normalizeEnvelopeResult(rawResult, command, envelopeRuntimeMode);
     },
   };
 }

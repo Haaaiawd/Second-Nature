@@ -27,6 +27,7 @@ import { acceptMemoryProjection } from "../../../src/core/second-nature/quiet-dr
 import { loadAcceptedProjections } from "../../../src/core/second-nature/control-plane/accepted-projection-loader.js";
 import { buildQuietDailyReview } from "../../../src/core/second-nature/quiet-dream/quiet-daily-review-builder.js";
 import { writeActionClosureRecord, writeEvidenceItem } from "../../../src/storage/v8-state-stores.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 import type { SourceRef } from "../../../src/shared/types/v8-contracts.js";
 
 function makeRef(id: string, family: SourceRef["family"] = "evidence"): SourceRef {
@@ -64,6 +65,7 @@ describe("int-r2-proof-memory-closure", () => {
     try {
       const now = new Date().toISOString();
       const day = now.slice(0, 10);
+      await seedContentEvidence(db, { now });
       await runHeartbeatCycle(db, { workspaceRoot: "/test", requestedAt: now, trigger: "manual" });
       await checkDailyRhythm(db, { now, forceQuiet: true });
 

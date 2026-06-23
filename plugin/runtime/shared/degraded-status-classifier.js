@@ -33,6 +33,7 @@ const BLOCKED_REASONS = new Set([
 const UNSAFE_REASONS = new Set([
     "policy_denied_high_risk",
     "policy_denied_breaker_open",
+    "closure_idempotency_conflict",
 ]);
 const PARTIAL_REASONS = new Set([
     "evidence_batch_truncated",
@@ -52,6 +53,7 @@ const UNAVAILABLE_REASONS = new Set([
     "dream_scheduler_unavailable",
     "policy_denied_missing_permission",
     "closure_failed",
+    "closure_unavailable",
 ]);
 export function classifyDegradedStatus(reason) {
     if (EMPTY_REASONS.has(reason))

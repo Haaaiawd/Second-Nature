@@ -11,6 +11,7 @@ import assert from "node:assert";
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { readLoopStatus } from "../../../src/observability/loop-status.js";
 import { runHeartbeatCycle } from "../../../src/core/second-nature/control-plane/heartbeat-orchestrator.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 
 describe("loop-status-real-run-gate", () => {
   it("empty state reports degraded real-run health", async () => {
@@ -35,6 +36,7 @@ describe("loop-status-real-run-gate", () => {
     const db = createStateDatabase(":memory:");
     try {
       const now = new Date().toISOString();
+      await seedContentEvidence(db, { now });
       await runHeartbeatCycle(db, {
         workspaceRoot: "/test",
         requestedAt: now,
@@ -84,6 +86,7 @@ describe("loop-status-real-run-gate", () => {
     try {
       const now = new Date().toISOString();
       const day = now.slice(0, 10);
+      await seedContentEvidence(db, { now });
       await runHeartbeatCycle(db, {
         workspaceRoot: "/test",
         requestedAt: now,

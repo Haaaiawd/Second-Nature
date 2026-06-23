@@ -21,6 +21,7 @@ import { checkDailyRhythm } from "../../../src/core/second-nature/quiet-dream/da
 import { checkRealRunHealth } from "../../../src/observability/living-loop-health-gate.js";
 import { readLoopStatus } from "../../../src/observability/loop-status.js";
 import { writeActionClosureRecord, writeLongTermMemoryProjection } from "../../../src/storage/v8-state-stores.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 
 describe("int-r1-runtime-activation-repair", () => {
   it("full repair chain produces real runtime artifacts per stage", async () => {
@@ -28,6 +29,8 @@ describe("int-r1-runtime-activation-repair", () => {
     try {
       const now = new Date().toISOString();
       const day = now.slice(0, 10);
+
+      await seedContentEvidence(db, { now });
 
       // 1. T-CP.R.2: Run real heartbeat cycle — produces runtime closure/no-action
       const cycleResult = await runHeartbeatCycle(db, {

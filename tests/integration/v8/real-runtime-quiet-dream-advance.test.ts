@@ -10,7 +10,6 @@ import assert from "node:assert";
 
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import {
-  writeEvidenceItem,
   readActionClosuresByCycle,
   readDailyRhythmStateByDay,
   readQuietDailyReviewById,
@@ -18,6 +17,7 @@ import {
   readMemoryProjectionsByTopic,
 } from "../../../src/storage/v8-state-stores.js";
 import { runHeartbeatCycle } from "../../../src/core/second-nature/control-plane/heartbeat-orchestrator.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 import type { SourceRef } from "../../../src/shared/types/v8-contracts.js";
 
 function makeRef(id: string, family: import("../../../src/shared/types/v8-contracts.js").SourceRefFamily = "evidence"): SourceRef {
@@ -37,16 +37,7 @@ describe("real-runtime-quiet-dream-advance", () => {
       const now = new Date().toISOString();
       const day = now.slice(0, 10);
 
-      await writeEvidenceItem(db, {
-        id: "ev_qd_001",
-        createdAt: now,
-        platformId: "moltbook",
-        contentHash: "hash001",
-        observedAt: now,
-        sourceRefs: [makeRef("ev_qd_001")],
-        redactionClass: "none",
-        lifecycleStatus: "pending",
-      });
+      await seedContentEvidence(db, { now });
 
       const result = await runHeartbeatCycle(db, {
         workspaceRoot: "/test",

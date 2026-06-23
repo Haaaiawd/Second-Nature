@@ -70,22 +70,64 @@ function defaultEvidenceLevelForCommand(command, runtimeMode) {
 function normalizeEnvelopeResult(raw, command, runtimeMode) {
     if (isRuntimeOpsEnvelope(raw)) {
         const mode = raw.runtimeMode ?? runtimeMode ?? "host_safe_carrier";
+        const fallbackSurface = raw.surfaceMode ?? (mode === "workspace_full_runtime" ? "workspace_full_runtime" : "cli");
         const fallback = defaultEvidenceLevelForCommand(command, mode);
         return {
             ...raw,
             runtimeMode: mode,
+            surfaceMode: fallbackSurface,
             evidenceLevel: raw.evidenceLevel ?? fallback,
         };
     }
-    // Non-envelope result (e.g. plain error from an internal helper) — wrap honestly.
+    // Partial result (e.g. goal, connector_status, connector_test) — wrap into a valid envelope
+    // while preserving the caller's data and error shape.
+    if (typeof raw === "object" &&
+        raw !== null &&
+        "ok" in raw &&
+        typeof raw.ok === "boolean" &&
+        "command" in raw &&
+        typeof raw.command === "string") {
+        const partial = raw;
+        const mode = runtimeMode ?? partial.runtimeMode ?? "host_safe_carrier";
+        const fallbackSurface = partial.surfaceMode ??
+            (mode === "workspace_full_runtime" ? "workspace_full_runtime" : "cli");
+        const fallback = defaultEvidenceLevelForCommand(command, mode);
+        return {
+            ...partial,
+            runtimeMode: mode,
+            surfaceMode: fallbackSurface,
+            generatedAt: new Date().toISOString(),
+            warnings: Array.isArray(partial.warnings) ? partial.warnings : [],
+            sourceRefs: Array.isArray(partial.sourceRefs) ? partial.sourceRefs : [],
+            evidenceLevel: partial.evidenceLevel ?? fallback,
+        };
+    }
+    // Non-envelope result (e.g. plain error from an internal helper) — wrap honestly,
+    // but preserve any structured error already present on the raw object.
     const generatedAt = new Date().toISOString();
+    const existingError = (() => {
+        if (typeof raw === "object" &&
+            raw !== null &&
+            "error" in raw &&
+            raw.error !== null &&
+            typeof raw.error === "object" &&
+            "code" in raw.error) {
+            const err = raw.error;
+            return {
+                code: err.code,
+                message: err.message ?? "Internal ops error",
+                nextStep: err.nextStep,
+            };
+        }
+        return undefined;
+    })();
     return {
         ok: false,
         command,
         runtimeMode: runtimeMode ?? "host_safe_carrier",
-        surfaceMode: "cli",
+        surfaceMode: runtimeMode === "workspace_full_runtime" ? "workspace_full_runtime" : "cli",
         generatedAt,
-        error: {
+        error: existingError ?? {
             code: "OPS_RESULT_NOT_AN_ENVELOPE",
             message: typeof raw === "object" && raw !== null && "message" in raw
                 ? String(raw.message)
@@ -574,10 +616,10 @@ export function createOpsRouter(deps) {
                             return "contract_smoke";
                         })();
                         const heartbeatEnvelope = {
-                            ok: result.ok,
+                            ...result,
                             command: "heartbeat_check",
                             runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier",
-                            surfaceMode: "cli",
+                            surfaceMode: result.surfaceMode,
                             generatedAt: new Date().toISOString(),
                             data: result,
                             warnings: [],
@@ -592,7 +634,7 @@ export function createOpsRouter(deps) {
                             ok: false,
                             command: "heartbeat_check",
                             runtimeMode: runtimeAvailable ? "workspace_full_runtime" : "unavailable",
-                            surfaceMode: "cli",
+                            surfaceMode: runtimeAvailable ? "workspace_full_runtime" : "cli",
                             generatedAt: new Date().toISOString(),
                             error: {
                                 code: "HEARTBEAT_CYCLE_EXCEPTION",
@@ -610,6 +652,7 @@ export function createOpsRouter(deps) {
                     if (!ref) {
                         return {
                             ok: false,
+                            command: "fallback",
                             error: {
                                 code: "MISSING_FALLBACK_REF",
                                 message: "fallback requires args.ref (e.g. fallback:…)",
@@ -727,7 +770,7 @@ export function createOpsRouter(deps) {
                             force: Boolean(input?.force),
                             workspaceRoot: deps.workspaceRoot,
                         });
-                        return result;
+                        return { command: "connector_init", ...result };
                     })();
                 }
                 if (command === "connector_behavior_add") {
@@ -936,36 +979,6 @@ export function createOpsRouter(deps) {
                         originFilter: typeof input?.originFilter === "string" ? input.originFilter : undefined,
                         limit: typeof input?.limit === "number" ? input.limit : undefined,
                     });
-                }
-                if (command === "dream:recent") {
-                    if (!deps.readModels) {
-                        return {
-                            ok: false,
-                            error: {
-                                code: "READ_MODELS_UNAVAILABLE",
-                                message: "dream:recent requires workspace read models",
-                                nextStep: "wire_read_models_into_ops_router",
-                            },
-                        };
-                    }
-                    const limit = typeof input?.limit === "number" ? input.limit : 5;
-                    const data = await deps.readModels.loadDreamRecent(limit);
-                    return { ok: true, data };
-                }
-                if (command === "cycle:recent") {
-                    if (!deps.readModels) {
-                        return {
-                            ok: false,
-                            error: {
-                                code: "READ_MODELS_UNAVAILABLE",
-                                message: "cycle:recent requires workspace read models",
-                                nextStep: "wire_read_models_into_ops_router",
-                            },
-                        };
-                    }
-                    const limit = typeof input?.limit === "number" ? input.limit : 5;
-                    const data = await deps.readModels.loadCycleRecent(limit);
-                    return { ok: true, data };
                 }
                 // ─── v8 commands (T-ROS.C.1) ─────────────────────────────────────────
                 /**
@@ -1752,13 +1765,17 @@ export function createOpsRouter(deps) {
                 }
                 return {
                     ok: false,
+                    command,
                     error: {
                         code: "unknown_ops_command",
                         message: `Unknown ops command: ${command}`,
                     },
                 };
             })();
-            return normalizeEnvelopeResult(rawResult, command, typeof input?.runtimeAvailable === "boolean" ? (input.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier") : undefined);
+            const envelopeRuntimeMode = typeof input?.runtimeAvailable === "boolean"
+                ? (input.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier")
+                : (deps.runtimeAvailable ? "workspace_full_runtime" : "host_safe_carrier");
+            return normalizeEnvelopeResult(rawResult, command, envelopeRuntimeMode);
         },
     };
 }
