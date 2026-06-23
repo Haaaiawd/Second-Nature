@@ -267,7 +267,7 @@ T6.2.1
   - `pnpm typecheck` ✅
   - `pnpm build` ✅
   - `pnpm build:plugin` ✅
-  - `pnpm test` 1760 tests, 1751 pass, 0 fail, 9 skipped
+  - `pnpm test` 1761 tests, 1752 pass, 0 fail, 9 skipped
   - code-reviewer: `.anws/v9/wave-reviews/wave-121-review.md` — Pass（2 Medium / 5 Low）
 - **下一步**: 进入 Wave 122；按 05A 依赖图选择就绪任务。
 - **说明**: M-1 credential presence 已收紧为仅 `active`；M-2 v9 `ProbeStatus.not_implemented` 需等待 v9 probe runner（T6.3.x）引入，当前在代码中已标注 residual。
