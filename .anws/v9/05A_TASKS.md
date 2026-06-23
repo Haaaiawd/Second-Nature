@@ -619,7 +619,7 @@ graph TD
 
 ## INT 集成验证任务
 
-- [ ] **INT-S1** [MILESTONE]: S1 集成验证 — Contract Spine
+- [x] **INT-S1** [MILESTONE]: S1 集成验证 — Contract Spine
   - **描述**: 验证 shared contracts、storage schema、legacy adapter 基线可用。
   - **输入**: T5.1.1, T5.1.2, T5.2.3 的产出
   - **输出**: `reports/int-s1-v9-contract-spine.md`
