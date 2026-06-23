@@ -226,10 +226,21 @@ src/
 T5.1.1, T5.1.2, T5.2.3, INT-S1
 **签入**: AUTO
 **code-reviewer**: 默认执行
-- **状态**: 🔄 `/forge` 执行中
-- **分支**: `feature/wave-119-v9-contract-spine`
-- **S1 起点**: T5.1.1 v9 shared contracts；T5.1.2 v9 storage schema/migration；T5.2.3 v8 JudgmentVerdict legacy adapter；INT-S1 contract spine gate
-- **下一步**: 顺序执行 T5.1.1 → T5.1.2 → T5.2.3 → INT-S1，波末 code-reviewer + §3.8 交付索引
+- **状态**: ✅ 完成
+- **分支**: `feature/wave-119-v9-contract-spine` @ `e836283`
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — v9 canonical shared contracts
+  - `src/storage/db/schema/v9-entities.ts` + v8 schema extensions — v9 storage schema
+  - `src/storage/db/migrations/v9-001-self-continuity.ts` — v8→v9 migration
+  - `src/storage/v9-state-stores.ts` — bounded read/write ports
+  - `src/storage/v9-legacy-judgment-adapter.ts` — v8 JudgmentVerdict → AttentionSignal
+  - `tests/unit/contracts/v9-shared-contracts.test.ts` — 14 tests PASS
+  - `tests/integration/storage/v9-schema-migration.test.ts` — 7 tests PASS
+  - `tests/unit/memory/v9-legacy-judgment-adapter.test.ts` — 3 tests PASS
+  - `reports/int-s1-v9-contract-spine.md` + `logs/int-s1-v9-typecheck.log`
+- **最高严重度**: none (2 Low findings recorded in `wave-reviews/wave-119-review.md`)
+- **验证**: `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅; targeted v9 tests 24/24 PASS
+- **下一步**: 进入 Wave 120 / S2 Attention + Context（T3.2.1, T5.1.2 extension, T2.2.1, T2.2.4）
 
 ### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
 T-ROS.R.5, T-ROS.R.6, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
