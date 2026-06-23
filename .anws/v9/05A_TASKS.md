@@ -306,7 +306,7 @@ graph TD
   - **依赖**: 无
   - **优先级**: P0
 
-- [ ] **T5.1.2** [REQ-002][REQ-003][REQ-004][REQ-005][REQ-008]: 实现 v9 storage schema 与 v8 compatibility migrations
+- [x] **T5.1.2** [REQ-002][REQ-003][REQ-004][REQ-005][REQ-008]: 实现 v9 storage schema 与 v8 compatibility migrations
   - **描述**: 新增/迁移 `attention_signal`, stable identity fields, `activity_thread`, `activity_step`, procedural projection, tool routine, self continuity card, character frame, connector version/evolution plan 与 routine execution trace。
   - **输入**: `04_SYSTEM_DESIGN/memory-continuity-system.md §6.1`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §2`, `T5.1.1`
   - **输出**: `src/storage/db/schema/v9-entities.ts` or v8 schema extension, migrations, `src/storage/v9-state-stores.ts`
