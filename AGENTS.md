@@ -222,18 +222,14 @@ src/
 - **下一步**: `/forge` Wave 119 — S1 Contract Spine（T5.1.1, T5.1.2, T5.2.3, INT-S1）
 - **最近更新**: `2026-06-22` (`/blueprint` v9 complete)
 
-### 🌊 Wave 119 🧭 — v9 Blueprint: Contract Spine Ready
-S1 Contract Spine planned
+### 🌊 Wave 119 🧭 — v9 S1 Contract Spine
+T5.1.1, T5.1.2, T5.2.3, INT-S1
 **签入**: AUTO
 **code-reviewer**: 默认执行
-- **状态**: ✅ Blueprint 完成；等待 `/forge` 执行
-- **产出**:
-  - `.anws/v9/05A_TASKS.md` — 6 个 Sprint、26 个实现任务、6 个 INT 关门任务、8 个 User Story Overlay 全覆盖
-  - `.anws/v9/05B_VERIFICATION_PLAN.md` — Task-by-Task 验证、Contract Coverage Overlay、Testing Coverage Overlay、Verification Traceability Matrix
-  - `AGENTS.md` — v9 双文档入口更新
+- **状态**: 🔄 `/forge` 执行中
+- **分支**: `feature/wave-119-v9-contract-spine`
 - **S1 起点**: T5.1.1 v9 shared contracts；T5.1.2 v9 storage schema/migration；T5.2.3 v8 JudgmentVerdict legacy adapter；INT-S1 contract spine gate
-- **验证门禁**: 每个 05A task 均有 `验证引用` 与 `证据产出`；05B 包含单元测试与 API接口功能测试职责；E2E 仅记录触发设想，未执行
-- **下一步**: `/forge` 执行 S1，完成后跑 INT-S1 并更新本 Wave 状态
+- **下一步**: 顺序执行 T5.1.1 → T5.1.2 → T5.2.3 → INT-S1，波末 code-reviewer + §3.8 交付索引
 
 ### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
 T-ROS.R.5, T-ROS.R.6, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
