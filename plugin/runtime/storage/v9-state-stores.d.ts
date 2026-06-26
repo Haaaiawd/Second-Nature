@@ -24,8 +24,9 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import type { StateDatabase } from "./db/index.js";
-import { type AttentionSignalRecord, type ActivityThreadRecord, type ActivityStepRecord, type ToolRoutineRecord } from "./db/schema/v9-entities.js";
+import { type AttentionSignalRecord, type ActivityThreadRecord, type ActivityStepRecord, type ToolRoutineRecord, type ProceduralProjectionRecord, type ConnectorEvolutionPlanRecord } from "./db/schema/v9-entities.js";
 import type { SourceRef } from "../shared/types/v9-contracts.js";
+import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
 declare function serializeSourceRefs(refs: SourceRef[]): string;
 declare function parseSourceRefs(json: string | null | undefined): SourceRef[];
 export interface WriteAttentionSignalOptions {
@@ -92,4 +93,44 @@ export interface WriteToolRoutineOptions {
     createdAt: string;
 }
 export declare function writeToolRoutine(db: StateDatabase, options: WriteToolRoutineOptions): Promise<ToolRoutineRecord>;
+export interface WriteProceduralProjectionOptions {
+    id: string;
+    createdAt: string;
+    candidateId: string;
+    capabilityPattern: string;
+    status?: ProceduralProjectionRecord["status"];
+    sourceRefs: SourceRef[];
+    payloadJson?: string;
+}
+export declare function writeProceduralProjection(db: StateDatabase, options: WriteProceduralProjectionOptions): Promise<ProceduralProjectionRecord>;
+export declare function readProceduralProjectionsByStatus(db: StateDatabase, status: ProceduralProjectionRecord["status"]): Promise<{
+    rows: ProceduralProjectionRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function readProceduralProjectionsByCapabilityPattern(db: StateDatabase, capabilityPattern: string): Promise<{
+    rows: ProceduralProjectionRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function updateProceduralProjectionStatus(db: StateDatabase, id: string, status: ProceduralProjectionRecord["status"], payloadJson?: string): Promise<ProceduralProjectionRecord | undefined>;
+export interface WriteConnectorEvolutionPlanOptions {
+    id: string;
+    createdAt: string;
+    platformId: string;
+    planType: ConnectorEvolutionPlanRecord["planType"];
+    status?: ConnectorEvolutionPlanRecord["status"];
+    sourceRefs: SourceRef[];
+    payloadJson?: string;
+    previousStableRef?: string;
+    rollbackCommandHint?: string;
+}
+export declare function writeConnectorEvolutionPlan(db: StateDatabase, options: WriteConnectorEvolutionPlanOptions): Promise<ConnectorEvolutionPlanRecord>;
+export declare function readConnectorEvolutionPlansByStatus(db: StateDatabase, status: ConnectorEvolutionPlanRecord["status"]): Promise<{
+    rows: ConnectorEvolutionPlanRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function readConnectorEvolutionPlansByPlatform(db: StateDatabase, platformId: string): Promise<{
+    rows: ConnectorEvolutionPlanRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function updateConnectorEvolutionPlanStatus(db: StateDatabase, id: string, status: ConnectorEvolutionPlanRecord["status"], payloadJson?: string): Promise<ConnectorEvolutionPlanRecord | undefined>;
 export { serializeSourceRefs, parseSourceRefs };

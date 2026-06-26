@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-23` (Wave 121 complete; T6.2.1 checked; review-fix applied; ready for `/forge` Wave 122 / S2)
-- **当前波次**: Wave 121 ✅ — v9 S2 Affordance Baseline
-- **下一步**: `/forge` Wave 122 — S2 EmbodiedContext + SelfContinuityCard（T2.2.1 / T5.2.2）
+- **最近一次更新**: `2026-06-26` (Wave 122 已结算；T5.2.1 已签入；review-fix 完成)
+- **当前波次**: Wave 122 ✅ — v9 S2 Continuity Foundation
+- **下一步**: `/forge` Wave 123 — S2 Continuation Unblockers（T7.2.1 + T8.1.1，为下游 T7.2.2 / T6.3.1 / T5.2.2 解锁）
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,8 +219,31 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 121 — S2 Affordance Baseline（T6.2.1）
-- **最近更新**: `2026-06-23` (Wave 120 complete; T3.2.1/T3.2.2 checked; review-fix applied)
+- **下一步**: `/forge` Wave 123 — S2 SelfContinuityCard assembly（T5.2.2 / T7.2.2 / T6.2.2 ready when dependencies satisfied）
+- **最近更新**: `2026-06-26` (Wave 122 complete; T5.2.1 checked; review-fix applied)
+
+### 🌊 Wave 122 ✅ — v9 S2 Continuity Foundation
+T5.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 122 完成
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T5.2.1 扩展 Quiet/Dream 输出族与 projection lifecycle
+- **产出**:
+  - `src/storage/v9-state-stores.ts` — `procedural_projection` / `connector_evolution_plan` 读写端口（degraded-aware）
+  - `src/core/second-nature/quiet-dream/v9-dream-consolidation-runner.ts` — memory/procedural/self_continuity/connector_evolution/character 五族候选生成，placeholder/no-content 阻断，credential/private redaction
+  - `src/core/second-nature/quiet-dream/v9-procedural-projection-lifecycle.ts` — accept/supersede/reject/retire 生命周期
+  - `tests/unit/dream/v9-dream-consolidation-runner.test.ts`
+  - `tests/unit/dream/v9-procedural-projection-lifecycle.test.ts`
+  - `tests/integration/v9/quiet-dream-continuity.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1774 tests, 1765 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-122-review.md` — 待生成
+- **下一步**: 进入 Wave 123；按 05A 依赖图选择就绪任务。
+- **说明**: T5.2.1 产出仅包含候选生成与 procedural 生命周期；SelfContinuityCard（T5.2.2）/ CharacterFrame（T7.2.2）/ ToolRoutine registry（T6.2.2）/ ConnectorEvolutionPlan gates（T6.3.1）为下游依赖，需等待上游就绪。
 
 ### 🌊 Wave 120 ✅ — v9 S2 Attention + Stable Identity
 T3.2.1, T3.2.2

@@ -24,10 +24,21 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import { eq, and, desc } from "drizzle-orm";
-import { attentionSignal, activityThread, activityStep, toolRoutine, } from "./db/schema/v9-entities.js";
+import { attentionSignal, activityThread, activityStep, toolRoutine, proceduralProjection, connectorEvolutionPlan, } from "./db/schema/v9-entities.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
+function makeDegraded(reason, ownerStage, operatorNextAction, sourceRefs = []) {
+    return {
+        status: classifyDegradedStatus(reason),
+        reason,
+        ownerStage,
+        sourceRefs: sourceRefs,
+        operatorNextAction,
+        retryable: true,
+    };
+}
 function serializeSourceRefs(refs) {
     return JSON.stringify(refs);
 }
@@ -155,6 +166,136 @@ export async function writeToolRoutine(db, options) {
     };
     await db.db.insert(toolRoutine).values(row);
     return row;
+}
+export async function writeProceduralProjection(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("procedural_projection sourceRefs required");
+    }
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        candidateId: options.candidateId,
+        capabilityPattern: options.capabilityPattern,
+        status: options.status ?? "candidate",
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        payloadJson: options.payloadJson,
+    };
+    await db.db.insert(proceduralProjection).values(row);
+    return row;
+}
+export async function readProceduralProjectionsByStatus(db, status) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(proceduralProjection)
+            .where(eq(proceduralProjection.status, status))
+            .orderBy(desc(proceduralProjection.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readProceduralProjectionsByCapabilityPattern(db, capabilityPattern) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(proceduralProjection)
+            .where(eq(proceduralProjection.capabilityPattern, capabilityPattern))
+            .orderBy(desc(proceduralProjection.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function updateProceduralProjectionStatus(db, id, status, payloadJson) {
+    try {
+        await db.db
+            .update(proceduralProjection)
+            .set({ status, payloadJson })
+            .where(eq(proceduralProjection.id, id));
+        const rows = await db.db
+            .select()
+            .from(proceduralProjection)
+            .where(eq(proceduralProjection.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeConnectorEvolutionPlan(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("connector_evolution_plan sourceRefs required");
+    }
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        platformId: options.platformId,
+        planType: options.planType,
+        status: options.status ?? "proposed",
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        payloadJson: options.payloadJson,
+        previousStableRef: options.previousStableRef,
+        rollbackCommandHint: options.rollbackCommandHint,
+    };
+    await db.db.insert(connectorEvolutionPlan).values(row);
+    return row;
+}
+export async function readConnectorEvolutionPlansByStatus(db, status) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorEvolutionPlan)
+            .where(eq(connectorEvolutionPlan.status, status))
+            .orderBy(desc(connectorEvolutionPlan.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readConnectorEvolutionPlansByPlatform(db, platformId) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorEvolutionPlan)
+            .where(eq(connectorEvolutionPlan.platformId, platformId))
+            .orderBy(desc(connectorEvolutionPlan.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function updateConnectorEvolutionPlanStatus(db, id, status, payloadJson) {
+    try {
+        await db.db
+            .update(connectorEvolutionPlan)
+            .set({ status, payloadJson })
+            .where(eq(connectorEvolutionPlan.id, id));
+        const rows = await db.db
+            .select()
+            .from(connectorEvolutionPlan)
+            .where(eq(connectorEvolutionPlan.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
 }
 // ───────────────────────────────────────────────────────────────
 // Re-export serialization helpers for downstream v9 modules

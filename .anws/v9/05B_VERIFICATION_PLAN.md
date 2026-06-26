@@ -212,7 +212,7 @@
 - **集成/E2E/冒烟覆盖**: Quiet→Dream continuity chain; INT-S2/S3/S4 feed off outputs
 - **前置数据**: quiet review with memory/routine/connector/character signals
 - **断言**: candidates carry sourceRefs and blocked paths use canonical reasons
-- **证据**: `tests/unit/dream/v9-dream-output-families.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
+- **证据**: `tests/unit/dream/v9-dream-consolidation-runner.test.ts`, `tests/unit/dream/v9-procedural-projection-lifecycle.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
 
 ### T5.2.2
 - **关联需求**: REQ-001

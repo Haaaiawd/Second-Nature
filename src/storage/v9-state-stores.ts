@@ -31,6 +31,8 @@ import {
   activityThread,
   activityStep,
   toolRoutine,
+  proceduralProjection,
+  connectorEvolutionPlan,
   type AttentionSignalRecord,
   type NewAttentionSignalRecord,
   type ActivityThreadRecord,
@@ -39,12 +41,34 @@ import {
   type NewActivityStepRecord,
   type ToolRoutineRecord,
   type NewToolRoutineRecord,
+  type ProceduralProjectionRecord,
+  type NewProceduralProjectionRecord,
+  type ConnectorEvolutionPlanRecord,
+  type NewConnectorEvolutionPlanRecord,
 } from "./db/schema/v9-entities.js";
 import type { SourceRef } from "../shared/types/v9-contracts.js";
+import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
+
+function makeDegraded(
+  reason: DegradedOperationResult["reason"],
+  ownerStage: DegradedOperationResult["ownerStage"],
+  operatorNextAction: string,
+  sourceRefs: SourceRef[] = [],
+): DegradedOperationResult {
+  return {
+    status: classifyDegradedStatus(reason),
+    reason,
+    ownerStage,
+    sourceRefs: sourceRefs as unknown as import("../shared/types/v8-contracts.js").SourceRef[],
+    operatorNextAction,
+    retryable: true,
+  };
+}
 
 function serializeSourceRefs(refs: SourceRef[]): string {
   return JSON.stringify(refs);
@@ -295,6 +319,196 @@ export async function writeToolRoutine(
   };
   await db.db.insert(toolRoutine).values(row);
   return row as ToolRoutineRecord;
+}
+
+// ───────────────────────────────────────────────────────────────
+// ProceduralProjection read/write ports (T5.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteProceduralProjectionOptions {
+  id: string;
+  createdAt: string;
+  candidateId: string;
+  capabilityPattern: string;
+  status?: ProceduralProjectionRecord["status"];
+  sourceRefs: SourceRef[];
+  payloadJson?: string;
+}
+
+export async function writeProceduralProjection(
+  db: StateDatabase,
+  options: WriteProceduralProjectionOptions,
+): Promise<ProceduralProjectionRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("procedural_projection sourceRefs required");
+  }
+  const row: NewProceduralProjectionRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    candidateId: options.candidateId,
+    capabilityPattern: options.capabilityPattern,
+    status: options.status ?? "candidate",
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    payloadJson: options.payloadJson,
+  };
+  await db.db.insert(proceduralProjection).values(row);
+  return row as ProceduralProjectionRecord;
+}
+
+export async function readProceduralProjectionsByStatus(
+  db: StateDatabase,
+  status: ProceduralProjectionRecord["status"],
+): Promise<{ rows: ProceduralProjectionRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(proceduralProjection)
+      .where(eq(proceduralProjection.status, status))
+      .orderBy(desc(proceduralProjection.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readProceduralProjectionsByCapabilityPattern(
+  db: StateDatabase,
+  capabilityPattern: string,
+): Promise<{ rows: ProceduralProjectionRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(proceduralProjection)
+      .where(eq(proceduralProjection.capabilityPattern, capabilityPattern))
+      .orderBy(desc(proceduralProjection.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateProceduralProjectionStatus(
+  db: StateDatabase,
+  id: string,
+  status: ProceduralProjectionRecord["status"],
+  payloadJson?: string,
+): Promise<ProceduralProjectionRecord | undefined> {
+  try {
+    await db.db
+      .update(proceduralProjection)
+      .set({ status, payloadJson })
+      .where(eq(proceduralProjection.id, id));
+    const rows = await db.db
+      .select()
+      .from(proceduralProjection)
+      .where(eq(proceduralProjection.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// ConnectorEvolutionPlan read/write ports (T5.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteConnectorEvolutionPlanOptions {
+  id: string;
+  createdAt: string;
+  platformId: string;
+  planType: ConnectorEvolutionPlanRecord["planType"];
+  status?: ConnectorEvolutionPlanRecord["status"];
+  sourceRefs: SourceRef[];
+  payloadJson?: string;
+  previousStableRef?: string;
+  rollbackCommandHint?: string;
+}
+
+export async function writeConnectorEvolutionPlan(
+  db: StateDatabase,
+  options: WriteConnectorEvolutionPlanOptions,
+): Promise<ConnectorEvolutionPlanRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("connector_evolution_plan sourceRefs required");
+  }
+  const row: NewConnectorEvolutionPlanRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    platformId: options.platformId,
+    planType: options.planType,
+    status: options.status ?? "proposed",
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    payloadJson: options.payloadJson,
+    previousStableRef: options.previousStableRef,
+    rollbackCommandHint: options.rollbackCommandHint,
+  };
+  await db.db.insert(connectorEvolutionPlan).values(row);
+  return row as ConnectorEvolutionPlanRecord;
+}
+
+export async function readConnectorEvolutionPlansByStatus(
+  db: StateDatabase,
+  status: ConnectorEvolutionPlanRecord["status"],
+): Promise<{ rows: ConnectorEvolutionPlanRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorEvolutionPlan)
+      .where(eq(connectorEvolutionPlan.status, status))
+      .orderBy(desc(connectorEvolutionPlan.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readConnectorEvolutionPlansByPlatform(
+  db: StateDatabase,
+  platformId: string,
+): Promise<{ rows: ConnectorEvolutionPlanRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorEvolutionPlan)
+      .where(eq(connectorEvolutionPlan.platformId, platformId))
+      .orderBy(desc(connectorEvolutionPlan.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateConnectorEvolutionPlanStatus(
+  db: StateDatabase,
+  id: string,
+  status: ConnectorEvolutionPlanRecord["status"],
+  payloadJson?: string,
+): Promise<ConnectorEvolutionPlanRecord | undefined> {
+  try {
+    await db.db
+      .update(connectorEvolutionPlan)
+      .set({ status, payloadJson })
+      .where(eq(connectorEvolutionPlan.id, id));
+    const rows = await db.db
+      .select()
+      .from(connectorEvolutionPlan)
+      .where(eq(connectorEvolutionPlan.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
 }
 
 // ───────────────────────────────────────────────────────────────

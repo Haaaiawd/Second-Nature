@@ -327,10 +327,10 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T5.2.1** [REQ-001][REQ-004][REQ-005][REQ-008]: 扩展 Quiet/Dream 输出族与 projection lifecycle
+- [x] **T5.2.1** [REQ-001][REQ-004][REQ-005][REQ-008]: 扩展 Quiet/Dream 输出族与 projection lifecycle
   - **描述**: 让 Dream consolidation 产生 memory、procedural、self-continuity、connector-evolution、character signals，并维护 accept/supersede/reject/retire 生命周期。
   - **输入**: `04_SYSTEM_DESIGN/memory-continuity-system.md §5.1`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.2-§3.4 §4.1`, `T5.1.2`
-  - **输出**: Dream output family routing, `ProceduralProjection`, `ConnectorEvolutionPlan`, character refresh handoff
+  - **输出**: `src/core/second-nature/quiet-dream/v9-dream-consolidation-runner.ts`, `src/core/second-nature/quiet-dream/v9-procedural-projection-lifecycle.ts`, `src/storage/v9-state-stores.ts` 新增 `proceduralProjection` / `connectorEvolutionPlan` 读写端口, character refresh handoff
   - **契约承接**: Continuity Projection output family；Quiet placeholder rejection；Dream blocked no content
   - **参考**: ADR-003, ADR-005, ADR-006
   - **验收标准**:
@@ -341,7 +341,7 @@ graph TD
   - **E2E触发设想**: 无
   - **验证摘要**: Covers output routing, no-content blocked path, supersede lifecycle.
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t5-2-1`
-  - **证据产出**: `tests/unit/dream/v9-dream-output-families.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
+  - **证据产出**: `tests/unit/dream/v9-dream-consolidation-runner.test.ts`, `tests/unit/dream/v9-procedural-projection-lifecycle.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
   - **估时**: 2d
   - **依赖**: T5.1.2
   - **优先级**: P0
