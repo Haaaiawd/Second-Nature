@@ -24,13 +24,20 @@ graph TD
     T5_1_1[T5.1.1 v9 shared contracts] --> T5_1_2[T5.1.2 storage schema]
     T5_1_2 --> T3_2_1[T3.2.1 AttentionSignal]
     T5_1_2 --> T6_2_1[T6.2.1 affordance baseline]
-    T3_2_1 --> T2_2_1[T2.2.1 EmbodiedContext]
+    T5_1_2 --> T2_2_1[T2.2.1 EmbodiedContext read ports]
+    T5_2_1[T5.2.1 Quiet/Dream outputs] --> T2_2_1
+    T5_2_1 --> T5_2_2[T5.2.2 SelfContinuityCard assembly]
+    T5_2_1 --> T7_2_1[T7.2.1 CharacterFrame builder]
+    T5_2_1 --> T6_3_1[T6.3.1 connector evolution]
+    T6_2_1 --> T2_2_1
+    T7_2_1 --> T2_2_1
+    T7_2_1 --> T7_2_2[T7.2.2 CharacterFrame lifecycle]
+    T3_2_1 --> T2_2_1
     T2_2_1 --> T2_2_4[T2.2.4 ActivityThread continuation]
     T2_2_1 --> T4_2_1[T4.2.1 action proposal]
-    T5_2_1[T5.2.1 Quiet/Dream outputs] --> T5_2_2[T5.2.2 SelfContinuityCard]
-    T5_2_1 --> T7_2_1[T7.2.1 CharacterFrame]
-    T5_2_1 --> T6_3_1[T6.3.1 connector evolution]
     T4_2_2[T4.2.2 routine policy gate] --> T6_2_2[T6.2.2 ToolRoutine registry]
+    T6_2_2 --> T5_2_2
+    T7_2_2 --> T5_2_2
     T6_3_1 --> T8_2_2[T8.2.2 rollback watchdog]
     T8_2_1[T8.2.1 health ledger] --> T1_2_1[T1.2.1 ops surface]
     T1_2_1 --> INT_S6[INT-S6]
@@ -101,7 +108,7 @@ graph TD
 
 - [ ] **T2.2.1** [REQ-001][REQ-008]: 扩展 `EmbodiedContext` 装配 SelfContinuityCard 与 CharacterFrame
   - **描述**: 在 context assembly 中并行加载 `SelfContinuityCard`、`CharacterFramePointer`、独立 `EmbodiedContextCharacterProjection`、active projections、routine list、active ActivityThreads 与 affordance slices。
-  - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3 §3.5`, `shared-v9-contracts.md §3.5 §4 §5 §10`, `T5.2.2`, `T7.2.2`, `T6.2.1`
+  - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3 §3.5`, `shared-v9-contracts.md §3.5 §4 §5 §10`, `T5.1.2`, `T5.2.1`, `T6.2.1`, `T7.2.1`
   - **输出**: `src/core/second-nature/control-plane/embodied-context-assembler.ts` v9 slices, `ContextSerializer` v9 projection rendering
   - **契约承接**: `EmbodiedContext.selfContinuityCard`, `characterFramePointer`, `characterFrameProjection`, `routineList`, `activityThreads`, 1200/900/200 字符预算；Agent-boundary labels prevent continuity/activity/routine/health from becoming Agent controller text
   - **参考**: ADR-003, ADR-006
@@ -115,7 +122,7 @@ graph TD
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t2-2-1`
   - **证据产出**: `tests/unit/control-plane/v9-embodied-context.test.ts`, `tests/integration/v9/context-continuity-injection.test.ts`
   - **估时**: 1.5d
-  - **依赖**: T5.2.2, T7.2.2, T6.2.1
+  - **依赖**: T5.1.2, T5.2.1, T6.2.1, T7.2.1
   - **优先级**: P0
 
 - [ ] **T2.2.2** [REQ-003]: 将 heartbeat 主链路从 JudgmentVerdict 切换到 AttentionSignal
