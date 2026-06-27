@@ -46,6 +46,7 @@ import type {
 } from "../../../shared/types/v8-contracts.js";
 import type {
   ActivityThread,
+  ActivityStep,
   CharacterFramePointer,
   ContextSlice,
   ContinuityReadPort,
@@ -59,6 +60,10 @@ import type {
   SourceRef,
 } from "../../../shared/types/v9-contracts.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
+import type {
+  ActivityStepRecord,
+  ActivityThreadRecord,
+} from "../../../storage/db/schema/v9-entities.js";
 import {
   buildEmbodiedContextProjection,
   buildCharacterFramePointer,
@@ -66,7 +71,14 @@ import {
   type CharacterFrameStorePort,
 } from "../character/character-frame-lifecycle.js";
 import { createCharacterFrameStoreAdapter } from "../memory/self-continuity-card-assembler.js";
-import { readActivityThreadsByStatus } from "../../../storage/v9-state-stores.js";
+import {
+  readActivityThreadById,
+  readActivityThreadsByStatus,
+  updateActivityThreadProgress,
+  writeActivityStep,
+  writeActivityThread,
+} from "../../../storage/v9-state-stores.js";
+import type { ActivityThreadPort } from "./activity-thread-coordinator.js";
 
 // ───────────────────────────────────────────────────────────────
 // Constants
@@ -95,14 +107,6 @@ export interface CharacterLoaderPort {
     projection?: EmbodiedContextCharacterProjection;
     degraded?: { reason: string; code: string };
   }>;
-}
-
-export interface ActivityThreadPort {
-  loadActivityThreads(options: {
-    workspaceRoot: string;
-    status: ("active" | "paused")[];
-    limit: number;
-  }): Promise<{ threads: ActivityThread[]; degraded?: { reason: string; code: string } }>;
 }
 
 export interface V9EmbodiedContextAssemblerDeps {
@@ -217,30 +221,124 @@ export function createActivityThreadPort(db: StateDatabase): ActivityThreadPort 
           orderBy: "desc",
         });
         for (const row of rows) {
-          all.push({
-            threadId: row.id,
-            originAttentionSignalId: row.originAttentionSignalId,
-            status: row.status as ActivityThread["status"],
-            currentFocus: row.currentFocus,
-            associations: parseJsonArray(row.associationsJson),
-            nextPossibleMoves: parseJsonArray(row.nextPossibleMovesJson) as ActivityThread["nextPossibleMoves"],
-            completedStepCount: row.completedStepCount,
-            lastStepKind: row.lastStepKind as ActivityThread["lastStepKind"] | undefined,
-            blockerReason: row.blockerReason ?? undefined,
-            stopCondition: row.stopCondition as ActivityThread["stopCondition"],
-            lastHeartbeatSequence: row.lastHeartbeatSequence,
-            sourceRefs: parseSourceRefs(row.sourceRefsJson),
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-          });
+          all.push(rowToActivityThread(row));
         }
       }
-      // Sort by updatedAt desc across statuses and trim.
       all.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
       const threads = all.slice(0, options.limit);
       return { threads };
     },
+
+    async createActivityThread(input) {
+      const record = await writeActivityThread(db, {
+        id: input.threadId,
+        originAttentionSignalId: input.originAttentionSignalId,
+        status: input.status,
+        currentFocus: input.currentFocus,
+        associations: input.associations,
+        nextPossibleMoves: input.nextPossibleMoves,
+        completedStepCount: input.completedStepCount,
+        lastStepKind: input.lastStepKind,
+        blockerReason: input.blockerReason,
+        stopCondition: input.stopCondition,
+        lastHeartbeatSequence: input.lastHeartbeatSequence,
+        sourceRefs: input.sourceRefs,
+        createdAt: input.createdAt,
+        updatedAt: input.updatedAt,
+      });
+      return { thread: rowToActivityThread(record) };
+    },
+
+    async appendActivityStep(input) {
+      const record = await writeActivityStep(db, {
+        id: input.stepId,
+        threadId: input.threadId,
+        cycleId: input.cycleId,
+        stepKind: input.stepKind,
+        summary: input.summary,
+        sourceRefs: input.sourceRefs,
+        closureRef: input.closureRef,
+        createdAt: input.createdAt,
+      });
+      return { step: rowToActivityStep(record) };
+    },
+
+    async updateActivityThreadStatus(threadId, status, reason) {
+      await updateActivityThreadProgress(db, threadId, {
+        status,
+        blockerReason: reason,
+        updatedAt: new Date().toISOString(),
+      });
+      const record = await readActivityThreadById(db, threadId);
+      if (!record) {
+        return {
+          thread: {} as ActivityThread,
+          degraded: { reason: "Activity thread not found after status update", code: "activity_thread_missing" },
+        };
+      }
+      return { thread: rowToActivityThread(record) };
+    },
+
+    async updateActivityThreadProgress(threadId, patch) {
+      await updateActivityThreadProgress(db, threadId, {
+        status: patch.status,
+        currentFocus: patch.currentFocus,
+        completedStepCount: patch.completedStepCount,
+        lastStepKind: patch.lastStepKind,
+        blockerReason: patch.blockerReason,
+        lastHeartbeatSequence: patch.lastHeartbeatSequence,
+        updatedAt: patch.updatedAt ?? new Date().toISOString(),
+      });
+      const record = await readActivityThreadById(db, threadId);
+      if (!record) {
+        return {
+          thread: {} as ActivityThread,
+          degraded: { reason: "Activity thread not found after progress update", code: "activity_thread_missing" },
+        };
+      }
+      return { thread: rowToActivityThread(record) };
+    },
   };
+}
+
+function rowToActivityThread(row: ActivityThreadRecord): ActivityThread {
+  return {
+    threadId: row.id,
+    originAttentionSignalId: row.originAttentionSignalId,
+    status: row.status as ActivityThread["status"],
+    currentFocus: row.currentFocus,
+    associations: parseJsonArray(row.associationsJson),
+    nextPossibleMoves: parseJsonArray(row.nextPossibleMovesJson) as ActivityThread["nextPossibleMoves"],
+    completedStepCount: row.completedStepCount,
+    lastStepKind: row.lastStepKind as ActivityThread["lastStepKind"] | undefined,
+    blockerReason: row.blockerReason ?? undefined,
+    stopCondition: row.stopCondition as ActivityThread["stopCondition"],
+    lastHeartbeatSequence: row.lastHeartbeatSequence,
+    sourceRefs: parseSourceRefs(row.sourceRefsJson),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
+
+function rowToActivityStep(row: ActivityStepRecord): ActivityStep {
+  return {
+    stepId: row.id,
+    threadId: row.threadId,
+    cycleId: row.cycleId,
+    stepKind: row.stepKind as ActivityStep["stepKind"],
+    summary: row.summary,
+    sourceRefs: parseSourceRefs(row.sourceRefsJson),
+    closureRef: row.closureRefJson ? parseSourceRef(row.closureRefJson) : undefined,
+    createdAt: row.createdAt,
+  };
+}
+
+function parseSourceRef(json: string): SourceRef {
+  try {
+    return JSON.parse(json) as SourceRef;
+  } catch {
+    return { family: "activity", id: "parse_failed" };
+  }
 }
 
 function parseJsonArray(json: string | null | undefined): string[] {

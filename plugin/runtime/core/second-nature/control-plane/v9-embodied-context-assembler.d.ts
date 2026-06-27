@@ -37,8 +37,9 @@
 import type { EmbodiedContextStatePort } from "../../../storage/services/embodied-context-state-port.js";
 import type { AffordanceAssembler } from "../body/tool-affordance/affordance-assembler.js";
 import type { SelfHealthSnapshot } from "../../../shared/types/v7-entities.js";
-import type { ActivityThread, CharacterFramePointer, ContinuityReadPort, ContinuityScope, EmbodiedContext, EmbodiedContextCharacterProjection } from "../../../shared/types/v9-contracts.js";
+import type { CharacterFramePointer, ContinuityReadPort, ContinuityScope, EmbodiedContext, EmbodiedContextCharacterProjection } from "../../../shared/types/v9-contracts.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
+import type { ActivityThreadPort } from "./activity-thread-coordinator.js";
 export interface SelfHealthProvider {
     loadSelfHealth(): Promise<{
         status: "loaded";
@@ -52,19 +53,6 @@ export interface CharacterLoaderPort {
     loadActiveCharacterFrame(scope: ContinuityScope): Promise<{
         pointer?: CharacterFramePointer;
         projection?: EmbodiedContextCharacterProjection;
-        degraded?: {
-            reason: string;
-            code: string;
-        };
-    }>;
-}
-export interface ActivityThreadPort {
-    loadActivityThreads(options: {
-        workspaceRoot: string;
-        status: ("active" | "paused")[];
-        limit: number;
-    }): Promise<{
-        threads: ActivityThread[];
         degraded?: {
             reason: string;
             code: string;

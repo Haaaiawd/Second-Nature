@@ -461,7 +461,7 @@
 | Attention scoring and source blocker | Mind/body 边界 | 单元 + integration | T3.2.1 | `tests/unit/attention/v9-attention-assembler.test.ts` | ⬜ |
 | Repeated feed suppression | 数据增长 | 集成 + before/after row count | T3.2.2 | `tests/integration/v9/repeated-feed-suppression.test.ts` | ⬜ |
 | Context card/frame injection | Agent-facing context | 单元 + integration | T2.2.1, T5.2.2, T7.2.2 | `tests/integration/v9/context-continuity-injection.test.ts` | ✅ |
-| ActivityThread continuation | Runaway prevention / sustained activity | Unit + integration + API health | T2.2.4, T8.2.1 | `tests/integration/v9/activity-thread-continuation.test.ts` | ⬜ |
+| ActivityThread continuation | Runaway prevention / sustained activity | Unit + integration + API health | T2.2.4, T8.2.1 | `tests/integration/v9/activity-thread-continuation.test.ts` | ✅ |
 | Heartbeat no final judgment and exactly-one closure | Loop semantics | 单元 + integration | T2.2.2, T4.2.3 | `tests/integration/v9/attention-to-closure-chain.test.ts` | ⬜ |
 | Routine guard permission expansion | Authority boundary | 单元 + integration | T4.2.2, T6.2.2 | `tests/integration/v9/routine-policy-closure.test.ts` | ⬜ |
 | Real-hand affordance truth | Tool truth | 单元 + integration | T6.2.1 | `tests/integration/v9/real-hand-affordance.test.ts` | ⬜ |

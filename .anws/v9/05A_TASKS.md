@@ -163,7 +163,7 @@ graph TD
   - **依赖**: T2.2.1
   - **优先级**: P1
 
-- [ ] **T2.2.4** [REQ-003]: 实现 `ActivityThread` 跨 heartbeat continuation spine
+- [x] **T2.2.4** [REQ-003]: 实现 `ActivityThread` 跨 heartbeat continuation spine
   - **描述**: 新增 `ActivityThreadCoordinator`，根据 `AttentionSignal.threadSuggestion` 与 active threads 创建/延续/暂停/完成 thread；每轮最多推进一个 bounded `ActivityStep`，side-effecting step 仍交给 action policy。
   - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §3.9`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.1b`, `shared-v9-contracts.md §3.5`, `T2.2.1`, `T3.2.1`, `T5.1.2`
   - **输出**: `activity-thread-coordinator.ts`, ActivityThread read/write port wiring, heartbeat progress stage events
