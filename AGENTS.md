@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-27` (Wave 126 完成；T2.2.1 已实现、验证并通过 code-reviewer)
-- **当前波次**: Wave 126 — v9 S2 EmbodiedContext Continuity Injection
-- **下一步**: 进入 Wave 127；按 05A 依赖图选择就绪任务
+- **最近一次更新**: `2026-06-27` (Wave 127 完成；T2.2.4 已实现、验证并通过 code-reviewer)
+- **当前波次**: Wave 127 — v9 S2 ActivityThread Cross-Heartbeat Continuation
+- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,8 +219,32 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 127 — 按 05A 依赖图选择就绪任务
-- **最近更新**: `2026-06-27` (Wave 126 complete; T2.2.1 checked; review-fix applied)
+- **下一步**: `/forge` Wave 128 — 按 05A 依赖图选择就绪任务
+- **最近更新**: `2026-06-27` (Wave 127 complete; T2.2.4 checked; review-fix applied)
+
+### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
+T2.2.4
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 127 完成（code-reviewer final verdict: Partial Pass → review-fix applied → verified）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T2.2.4 `ActivityThread` 跨 heartbeat 延续脊柱：create/continue/pause/complete、每轮最多推进一个 bounded step、runaway guard（max steps / stale / blocked）
+- **产出**:
+  - `src/core/second-nature/control-plane/activity-thread-coordinator.ts` — `createActivityThreadCoordinator`、`advanceActivityThread` 操作状态机；`observe/associate/ask_agent/propose_action` step 推进；side-effecting step 仅记录不执行
+  - `src/core/second-nature/control-plane/v9-embodied-context-assembler.ts` — `ActivityThreadPort` 工厂（`ContextSlice<ActivityThread[]>` 形状）、active/paused thread 加载 wiring
+  - `tests/unit/control-plane/v9-activity-thread-coordinator.test.ts` — create/continue/pause/complete、max-step、stale、`threadSuggestion="none"` skip、terminal status stop、source-free association 阻断
+  - `tests/integration/v9/activity-thread-continuation.test.ts` — end-to-end cross-heartbeat continuation 与 runaway guard
+  - `.anws/v9/05A_TASKS.md` — T2.2.4 已勾选
+  - `.anws/v9/05B_VERIFICATION_PLAN.md` — T2.2.4 验证项已更新
+  - `.anws/v9/wave-reviews/wave-127-review.md` — Partial Pass → review-fix applied
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1872 tests, 1863 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-127-review.md` — Partial Pass → review-fix applied
+- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务。
+- **说明**: T2.2.4 产出包含 ActivityThread 跨 heartbeat 延续与 runaway guard；下游 `T4.2.1` action-closure handoff、`T8.2.1` activity health classification 与 `INT-S2` 可继续推进。
 
 ### 🌊 Wave 126 ✅ — v9 S2 EmbodiedContext Continuity Injection
 T2.2.1

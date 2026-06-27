@@ -26,49 +26,19 @@
  * - `tests/unit/control-plane/v9-activity-thread-coordinator.test.ts`
  * - `tests/integration/v9/activity-thread-continuation.test.ts`
  */
-import type { ActivityStep, ActivityThread, AttentionSignal, EmbodiedContext, SourceRef } from "../../../shared/types/v9-contracts.js";
-export declare const ACTIVITY_THREAD_MAX_STEPS = 20;
-export declare const ACTIVITY_THREAD_STALE_HEARTBEATS = 3;
+import type { ActivityStep, ActivityThread, AttentionSignal, ContextSlice, EmbodiedContext, SourceRef } from "../../../shared/types/v9-contracts.js";
+export declare const ACTIVITY_THREAD_MAX_STEPS = 8;
+export declare const ACTIVITY_THREAD_STALE_HEARTBEATS = 6;
 export interface ActivityThreadPort {
     loadActivityThreads(options: {
         workspaceRoot: string;
-        status: ("active" | "paused")[];
+        status: ActivityThread["status"][];
         limit: number;
-    }): Promise<{
-        threads: ActivityThread[];
-        degraded?: {
-            reason: string;
-            code: string;
-        };
-    }>;
-    createActivityThread(input: ActivityThread): Promise<{
-        thread: ActivityThread;
-        degraded?: {
-            reason: string;
-            code: string;
-        };
-    }>;
-    appendActivityStep(input: ActivityStep): Promise<{
-        step: ActivityStep;
-        degraded?: {
-            reason: string;
-            code: string;
-        };
-    }>;
-    updateActivityThreadStatus(threadId: string, status: ActivityThread["status"], reason?: string): Promise<{
-        thread: ActivityThread;
-        degraded?: {
-            reason: string;
-            code: string;
-        };
-    }>;
-    updateActivityThreadProgress(threadId: string, patch: Partial<Pick<ActivityThread, "status" | "currentFocus" | "completedStepCount" | "lastStepKind" | "blockerReason" | "lastHeartbeatSequence" | "updatedAt">>): Promise<{
-        thread: ActivityThread;
-        degraded?: {
-            reason: string;
-            code: string;
-        };
-    }>;
+    }): Promise<ContextSlice<ActivityThread[]>>;
+    createActivityThread(input: ActivityThread): Promise<ContextSlice<ActivityThread>>;
+    appendActivityStep(input: ActivityStep): Promise<ContextSlice<ActivityStep>>;
+    updateActivityThreadStatus(threadId: string, status: ActivityThread["status"], reason?: string): Promise<ContextSlice<ActivityThread>>;
+    updateActivityThreadProgress(threadId: string, patch: Partial<Pick<ActivityThread, "status" | "currentFocus" | "completedStepCount" | "lastStepKind" | "blockerReason" | "stopCondition" | "lastHeartbeatSequence" | "nextPossibleMoves" | "updatedAt">>): Promise<ContextSlice<ActivityThread>>;
 }
 export interface ActivityStageEvent {
     cycleId: string;

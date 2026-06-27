@@ -29,8 +29,8 @@
 // ───────────────────────────────────────────────────────────────
 // Constants
 // ───────────────────────────────────────────────────────────────
-export const ACTIVITY_THREAD_MAX_STEPS = 20;
-export const ACTIVITY_THREAD_STALE_HEARTBEATS = 3;
+export const ACTIVITY_THREAD_MAX_STEPS = 8;
+export const ACTIVITY_THREAD_STALE_HEARTBEATS = 6;
 // ───────────────────────────────────────────────────────────────
 // Coordinator
 // ───────────────────────────────────────────────────────────────
@@ -43,16 +43,16 @@ export function createActivityThreadCoordinator(deps) {
 }
 export async function advanceActivityThread(options) {
     const { cycleRef, attention, context, threadPort, recordLoopStageEvent } = options;
-    if (attention.status !== "attentive") {
+    if (attention.status !== "attentive" || attention.threadSuggestion === "none") {
         await emitStageEvent(recordLoopStageEvent, {
             stage: "activity",
             status: "skipped",
-            reason: "attention_not_attentive",
+            reason: attention.threadSuggestion === "none" ? "attention_thread_suggestion_none" : "attention_not_attentive",
             cycleId: cycleRef.cycleId,
             cycleSequence: cycleRef.cycleSequence,
             sourceRefs: attention.sourceRefs,
         });
-        return { status: "skipped", reason: "attention_not_attentive" };
+        return { status: "skipped", reason: attention.threadSuggestion === "none" ? "attention_thread_suggestion_none" : "attention_not_attentive" };
     }
     if (attention.sourceRefs.length === 0) {
         await emitStageEvent(recordLoopStageEvent, {
@@ -67,24 +67,43 @@ export async function advanceActivityThread(options) {
     }
     const activeThreads = context.activityThreads?.status === "loaded" ? context.activityThreads.data : [];
     const related = selectRelatedThread(activeThreads, attention);
+    const now = new Date().toISOString();
     if (related && shouldStopThread(related, cycleRef.cycleSequence)) {
+        // Terminal lifecycle states are already stopped; do not mutate them.
+        if (related.status === "blocked" || related.status === "completed" || related.status === "abandoned") {
+            await emitStageEvent(recordLoopStageEvent, {
+                stage: "activity",
+                status: "skipped",
+                reason: "activity_thread_terminal_status",
+                cycleId: cycleRef.cycleId,
+                cycleSequence: cycleRef.cycleSequence,
+                sourceRefs: related.sourceRefs,
+            });
+            return { status: "stopped", thread: related, reason: "activity_thread_terminal_status" };
+        }
         const status = related.completedStepCount >= ACTIVITY_THREAD_MAX_STEPS ? "blocked" : "paused";
         const reason = stopReason(related, cycleRef.cycleSequence);
-        const result = await threadPort.updateActivityThreadStatus(related.threadId, status, reason);
-        if (result.degraded) {
-            return { status: "degraded", reason: result.degraded.reason };
+        const stopCondition = status === "blocked" ? "max_steps" : "stale";
+        const result = await threadPort.updateActivityThreadProgress(related.threadId, {
+            status,
+            blockerReason: reason,
+            stopCondition,
+            lastHeartbeatSequence: cycleRef.cycleSequence,
+            updatedAt: now,
+        });
+        if (result.status !== "loaded") {
+            return { status: "degraded", reason: result.reason ?? "activity_thread_progress_failed" };
         }
         await emitStageEvent(recordLoopStageEvent, {
             stage: "activity",
-            status: "blocked",
-            reason: status === "blocked" ? "activity_thread_overlong" : "activity_thread_stale",
+            status: status === "blocked" ? "blocked" : "skipped",
+            reason,
             cycleId: cycleRef.cycleId,
             cycleSequence: cycleRef.cycleSequence,
             sourceRefs: related.sourceRefs,
         });
-        return { status: "stopped", thread: result.thread, reason };
+        return { status: "stopped", thread: result.data, reason };
     }
-    const now = new Date().toISOString();
     let thread;
     if (related) {
         thread = related;
@@ -92,10 +111,10 @@ export async function advanceActivityThread(options) {
             lastHeartbeatSequence: cycleRef.cycleSequence,
             updatedAt: now,
         });
-        if (progressResult.degraded) {
-            return { status: "degraded", reason: progressResult.degraded.reason };
+        if (progressResult.status !== "loaded") {
+            return { status: "degraded", reason: progressResult.reason ?? "activity_thread_progress_failed" };
         }
-        thread = progressResult.thread;
+        thread = progressResult.data;
     }
     else {
         const createResult = await threadPort.createActivityThread({
@@ -112,10 +131,10 @@ export async function advanceActivityThread(options) {
             createdAt: now,
             updatedAt: now,
         });
-        if (createResult.degraded) {
-            return { status: "degraded", reason: createResult.degraded.reason };
+        if (createResult.status !== "loaded") {
+            return { status: "degraded", reason: createResult.reason ?? "activity_thread_create_failed" };
         }
-        thread = createResult.thread;
+        thread = createResult.data;
     }
     const stepKind = chooseNextStepKind(thread, attention);
     const step = {
@@ -128,21 +147,28 @@ export async function advanceActivityThread(options) {
         createdAt: now,
     };
     const appendResult = await threadPort.appendActivityStep(step);
-    if (appendResult.degraded) {
-        return { status: "degraded", reason: appendResult.degraded.reason };
+    if (appendResult.status !== "loaded") {
+        return { status: "degraded", reason: appendResult.reason ?? "activity_step_append_failed" };
     }
     const nextStatus = stepKind === "complete" ? "completed" : stepKind === "pause" ? "paused" : thread.status;
     const nextBlockerReason = nextStatus === "blocked" ? stepKind : thread.blockerReason;
+    const nextStopCondition = nextStatus === "blocked"
+        ? "max_steps"
+        : nextStatus === "paused"
+            ? "stale"
+            : thread.stopCondition;
     const progressResult = await threadPort.updateActivityThreadProgress(thread.threadId, {
         status: nextStatus,
         completedStepCount: thread.completedStepCount + 1,
         lastStepKind: stepKind,
         lastHeartbeatSequence: cycleRef.cycleSequence,
         blockerReason: nextBlockerReason,
+        stopCondition: nextStopCondition,
+        nextPossibleMoves: deriveNextPossibleMoves(attention),
         updatedAt: now,
     });
-    if (progressResult.degraded) {
-        return { status: "degraded", reason: progressResult.degraded.reason };
+    if (progressResult.status !== "loaded") {
+        return { status: "degraded", reason: progressResult.reason ?? "activity_thread_progress_failed" };
     }
     await emitStageEvent(recordLoopStageEvent, {
         stage: "activity",
@@ -152,7 +178,7 @@ export async function advanceActivityThread(options) {
         cycleSequence: cycleRef.cycleSequence,
         sourceRefs: thread.sourceRefs,
     });
-    return { status: "advanced", thread: progressResult.thread, step: appendResult.step };
+    return { status: "advanced", thread: progressResult.data, step: appendResult.data };
 }
 // ───────────────────────────────────────────────────────────────
 // Selection & lifecycle helpers
@@ -163,11 +189,11 @@ function selectRelatedThread(threads, attention) {
         if (exact)
             return exact;
     }
-    // Fallback: match by overlapping source refs or similar focus.
+    // Only continue a thread when there is a shared source ref.
     return threads
         .filter((t) => t.status === "active")
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-        .find((t) => sourceOverlap(t.sourceRefs, attention.sourceRefs) || focusSimilar(t, attention));
+        .find((t) => sourceOverlap(t.sourceRefs, attention.sourceRefs));
 }
 function shouldStopThread(thread, cycleSequence) {
     if (thread.completedStepCount >= ACTIVITY_THREAD_MAX_STEPS)
@@ -274,11 +300,6 @@ function summarizeStep(stepKind, attention) {
 function sourceOverlap(a, b) {
     const set = new Set(a.map((ref) => `${ref.family}:${ref.id}`));
     return b.some((ref) => set.has(`${ref.family}:${ref.id}`));
-}
-function focusSimilar(thread, attention) {
-    const focus = thread.currentFocus.toLowerCase();
-    const summary = attention.summary.toLowerCase();
-    return summary.length > 0 && (focus.includes(summary) || summary.includes(focus));
 }
 async function emitStageEvent(recorder, event) {
     if (!recorder)

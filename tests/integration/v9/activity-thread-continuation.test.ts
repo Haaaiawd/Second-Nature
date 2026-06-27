@@ -112,9 +112,10 @@ describe("ActivityThread continuation", () => {
       limit: 10,
     });
 
-    assert.equal(loaded.threads.length, 1);
-    assert.equal(loaded.threads[0].completedStepCount, 3);
-    assert.equal(loaded.threads[0].status, "active");
+    assert.equal(loaded.status, "loaded");
+    assert.equal(loaded.data.length, 1);
+    assert.equal(loaded.data[0].completedStepCount, 3);
+    assert.equal(loaded.data[0].status, "active");
     assert.equal(events.length, 3);
     assert.ok(events.every((e) => e.sourceRefs.length > 0));
   });

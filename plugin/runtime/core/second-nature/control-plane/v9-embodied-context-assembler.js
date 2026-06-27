@@ -113,85 +113,132 @@ export function createCharacterLoaderPort(db) {
 export function createActivityThreadPort(db) {
     return {
         async loadActivityThreads(options) {
-            const all = [];
-            for (const status of options.status) {
-                const rows = await readActivityThreadsByStatus(db, status, {
-                    limit: options.limit,
-                    orderBy: "desc",
-                });
-                for (const row of rows) {
-                    all.push(rowToActivityThread(row));
+            try {
+                const all = [];
+                for (const status of options.status) {
+                    const rows = await readActivityThreadsByStatus(db, status, {
+                        limit: options.limit,
+                        orderBy: "desc",
+                    });
+                    for (const row of rows) {
+                        all.push(rowToActivityThread(row));
+                    }
                 }
+                all.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+                const threads = all.slice(0, options.limit);
+                return { status: "loaded", data: threads };
             }
-            all.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-            const threads = all.slice(0, options.limit);
-            return { threads };
+            catch (err) {
+                return {
+                    status: "degraded",
+                    data: [],
+                    reason: err instanceof Error ? err.message : String(err),
+                };
+            }
         },
         async createActivityThread(input) {
-            const record = await writeActivityThread(db, {
-                id: input.threadId,
-                originAttentionSignalId: input.originAttentionSignalId,
-                status: input.status,
-                currentFocus: input.currentFocus,
-                associations: input.associations,
-                nextPossibleMoves: input.nextPossibleMoves,
-                completedStepCount: input.completedStepCount,
-                lastStepKind: input.lastStepKind,
-                blockerReason: input.blockerReason,
-                stopCondition: input.stopCondition,
-                lastHeartbeatSequence: input.lastHeartbeatSequence,
-                sourceRefs: input.sourceRefs,
-                createdAt: input.createdAt,
-                updatedAt: input.updatedAt,
-            });
-            return { thread: rowToActivityThread(record) };
+            try {
+                const record = await writeActivityThread(db, {
+                    id: input.threadId,
+                    originAttentionSignalId: input.originAttentionSignalId,
+                    status: input.status,
+                    currentFocus: input.currentFocus,
+                    associations: input.associations,
+                    nextPossibleMoves: input.nextPossibleMoves,
+                    completedStepCount: input.completedStepCount,
+                    lastStepKind: input.lastStepKind,
+                    blockerReason: input.blockerReason,
+                    stopCondition: input.stopCondition,
+                    lastHeartbeatSequence: input.lastHeartbeatSequence,
+                    sourceRefs: input.sourceRefs,
+                    createdAt: input.createdAt,
+                    updatedAt: input.updatedAt,
+                });
+                return { status: "loaded", data: rowToActivityThread(record) };
+            }
+            catch (err) {
+                return {
+                    status: "degraded",
+                    data: {},
+                    reason: err instanceof Error ? err.message : String(err),
+                };
+            }
         },
         async appendActivityStep(input) {
-            const record = await writeActivityStep(db, {
-                id: input.stepId,
-                threadId: input.threadId,
-                cycleId: input.cycleId,
-                stepKind: input.stepKind,
-                summary: input.summary,
-                sourceRefs: input.sourceRefs,
-                closureRef: input.closureRef,
-                createdAt: input.createdAt,
-            });
-            return { step: rowToActivityStep(record) };
+            try {
+                const record = await writeActivityStep(db, {
+                    id: input.stepId,
+                    threadId: input.threadId,
+                    cycleId: input.cycleId,
+                    stepKind: input.stepKind,
+                    summary: input.summary,
+                    sourceRefs: input.sourceRefs,
+                    closureRef: input.closureRef,
+                    createdAt: input.createdAt,
+                });
+                return { status: "loaded", data: rowToActivityStep(record) };
+            }
+            catch (err) {
+                return {
+                    status: "degraded",
+                    data: {},
+                    reason: err instanceof Error ? err.message : String(err),
+                };
+            }
         },
         async updateActivityThreadStatus(threadId, status, reason) {
-            await updateActivityThreadProgress(db, threadId, {
-                status,
-                blockerReason: reason,
-                updatedAt: new Date().toISOString(),
-            });
-            const record = await readActivityThreadById(db, threadId);
-            if (!record) {
+            try {
+                await updateActivityThreadProgress(db, threadId, {
+                    status,
+                    blockerReason: reason,
+                    updatedAt: new Date().toISOString(),
+                });
+                const record = await readActivityThreadById(db, threadId);
+                if (!record) {
+                    return {
+                        status: "degraded",
+                        data: {},
+                        reason: "Activity thread not found after status update",
+                    };
+                }
+                return { status: "loaded", data: rowToActivityThread(record) };
+            }
+            catch (err) {
                 return {
-                    thread: {},
-                    degraded: { reason: "Activity thread not found after status update", code: "activity_thread_missing" },
+                    status: "degraded",
+                    data: {},
+                    reason: err instanceof Error ? err.message : String(err),
                 };
             }
-            return { thread: rowToActivityThread(record) };
         },
         async updateActivityThreadProgress(threadId, patch) {
-            await updateActivityThreadProgress(db, threadId, {
-                status: patch.status,
-                currentFocus: patch.currentFocus,
-                completedStepCount: patch.completedStepCount,
-                lastStepKind: patch.lastStepKind,
-                blockerReason: patch.blockerReason,
-                lastHeartbeatSequence: patch.lastHeartbeatSequence,
-                updatedAt: patch.updatedAt ?? new Date().toISOString(),
-            });
-            const record = await readActivityThreadById(db, threadId);
-            if (!record) {
+            try {
+                await updateActivityThreadProgress(db, threadId, {
+                    status: patch.status,
+                    currentFocus: patch.currentFocus,
+                    completedStepCount: patch.completedStepCount,
+                    lastStepKind: patch.lastStepKind,
+                    blockerReason: patch.blockerReason,
+                    lastHeartbeatSequence: patch.lastHeartbeatSequence,
+                    updatedAt: patch.updatedAt ?? new Date().toISOString(),
+                });
+                const record = await readActivityThreadById(db, threadId);
+                if (!record) {
+                    return {
+                        status: "degraded",
+                        data: {},
+                        reason: "Activity thread not found after progress update",
+                    };
+                }
+                return { status: "loaded", data: rowToActivityThread(record) };
+            }
+            catch (err) {
                 return {
-                    thread: {},
-                    degraded: { reason: "Activity thread not found after progress update", code: "activity_thread_missing" },
+                    status: "degraded",
+                    data: {},
+                    reason: err instanceof Error ? err.message : String(err),
                 };
             }
-            return { thread: rowToActivityThread(record) };
         },
     };
 }
@@ -221,7 +268,7 @@ function rowToActivityStep(row) {
         stepKind: row.stepKind,
         summary: row.summary,
         sourceRefs: parseSourceRefs(row.sourceRefsJson),
-        closureRef: row.closureRefJson ? parseSourceRef(row.closureRefJson) : undefined,
+        closureRef: row.closureRefJson ? parseSourceRef(row.closureRefJson) ?? undefined : undefined,
         createdAt: row.createdAt,
     };
 }
@@ -230,7 +277,7 @@ function parseSourceRef(json) {
         return JSON.parse(json);
     }
     catch {
-        return { family: "activity", id: "parse_failed" };
+        return undefined;
     }
 }
 function parseJsonArray(json) {
@@ -482,14 +529,21 @@ export function createV9EmbodiedContextAssembler(deps) {
                 limit: activityThreadLimit,
             })
                 .then((result) => {
-                if (result.degraded) {
+                if (result.status === "degraded") {
                     return {
                         status: "degraded",
                         data: [],
-                        reason: result.degraded.reason,
+                        reason: result.reason,
                     };
                 }
-                return { status: "loaded", data: result.threads };
+                if (result.status === "blocked") {
+                    return {
+                        status: "blocked",
+                        data: [],
+                        reason: result.reason,
+                    };
+                }
+                return { status: "loaded", data: result.data };
             }), hardDeadlineMs);
             return {
                 identity: identitySlice,

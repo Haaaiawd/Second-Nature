@@ -7,8 +7,10 @@
  * - attentive attention continues an existing thread by source overlap
  * - degraded / blocked attention skips without mutation
  * - missing source refs blocks advance
+ * - threadSuggestion="none" skips without creating a thread
  * - max-step guard blocks overlong threads
  * - stale heartbeat guard pauses stale threads
+ * - pre-existing terminal status threads are stopped
  * - pause / complete suggestions transition thread lifecycle
  * - propose_action step is recorded but not executed by coordinator
  * - stage events are emitted on advance / skip / stop
@@ -29,6 +31,7 @@ import type {
   ActivityThread,
   ActivityStep,
   AttentionSignal,
+  ContextSlice,
   EmbodiedContext,
 } from "../../../src/shared/types/v9-contracts.js";
 
@@ -79,7 +82,7 @@ function makeThread(overrides?: Partial<ActivityThread>): ActivityThread {
     status: "active",
     currentFocus: "project alpha",
     associations: ["possible: watch"],
-    nextPossibleMoves: ["observe"],
+    nextPossibleMoves: ["associate"],
     completedStepCount: 0,
     stopCondition: "single_step_done",
     lastHeartbeatSequence: 1,
@@ -94,30 +97,31 @@ function mockPort(overrides?: Partial<ActivityThreadPort>, initialThreads?: Acti
   const threads = new Map<string, ActivityThread>(initialThreads?.map((t) => [t.threadId, t]));
   const steps = new Map<string, ActivityStep>();
   return {
-    async loadActivityThreads() {
-      return { threads: [] };
+    async loadActivityThreads({ status }) {
+      const filtered = Array.from(threads.values()).filter((t) => status.includes(t.status));
+      return { status: "loaded", data: filtered };
     },
     async createActivityThread(input) {
       threads.set(input.threadId, input);
-      return { thread: input };
+      return { status: "loaded", data: input };
     },
     async appendActivityStep(input) {
       steps.set(input.stepId, input);
-      return { step: input };
+      return { status: "loaded", data: input };
     },
     async updateActivityThreadStatus(threadId, status, reason) {
       const t = threads.get(threadId);
-      if (!t) return { thread: {} as ActivityThread, degraded: { reason: "missing", code: "x" } };
+      if (!t) return { status: "degraded", data: {} as ActivityThread, reason: "missing" };
       const updated = { ...t, status, blockerReason: reason, updatedAt: new Date().toISOString() };
       threads.set(threadId, updated);
-      return { thread: updated };
+      return { status: "loaded", data: updated };
     },
     async updateActivityThreadProgress(threadId, patch) {
       const t = threads.get(threadId);
-      if (!t) return { thread: {} as ActivityThread, degraded: { reason: "missing", code: "x" } };
+      if (!t) return { status: "degraded", data: {} as ActivityThread, reason: "missing" };
       const updated = { ...t, ...patch, updatedAt: new Date().toISOString() };
       threads.set(threadId, updated);
-      return { thread: updated };
+      return { status: "loaded", data: updated };
     },
     ...overrides,
   };
@@ -179,7 +183,7 @@ describe("advanceActivityThread", () => {
   });
 
   it("continues the thread referenced by activityThreadId", async () => {
-    const existing = makeThread({ threadId: "thread_2", completedStepCount: 1, lastStepKind: "observe" });
+    const existing = makeThread({ threadId: "thread_2", completedStepCount: 1, lastStepKind: "associate" });
     const result = await advanceActivityThread({
       cycleRef: { cycleId: "c1", cycleSequence: 3 },
       attention: makeAttention({ activityThreadId: "thread_2", threadSuggestion: "continue" }),
@@ -190,7 +194,7 @@ describe("advanceActivityThread", () => {
     assertAdvanced(result);
     assert.equal(result.thread.threadId, "thread_2");
     assert.equal(result.thread.completedStepCount, 2);
-    assert.equal(result.step.stepKind, "associate");
+    assert.equal(result.step.stepKind, "observe");
   });
 
   it("continues a thread with overlapping source refs", async () => {
@@ -204,6 +208,19 @@ describe("advanceActivityThread", () => {
 
     assertAdvanced(result);
     assert.equal(result.thread.threadId, "thread_3");
+  });
+
+  it("does not continue a thread without shared source refs", async () => {
+    const existing = makeThread({ threadId: "thread_orphan" });
+    const result = await advanceActivityThread({
+      cycleRef: { cycleId: "c1", cycleSequence: 3 },
+      attention: makeAttention({ sourceRefs: [{ family: "evidence", id: "ev_other" }] }),
+      context: makeContext([existing]),
+      threadPort: mockPort(undefined, [existing]),
+    });
+
+    assertAdvanced(result);
+    assert.notEqual(result.thread.threadId, "thread_orphan");
   });
 
   it("skips when attention is not attentive", async () => {
@@ -232,6 +249,17 @@ describe("advanceActivityThread", () => {
     assertSkipped(result, "attention_blocked_missing_sources");
   });
 
+  it("skips when threadSuggestion is none", async () => {
+    const result = await advanceActivityThread({
+      cycleRef: { cycleId: "c1", cycleSequence: 2 },
+      attention: makeAttention({ threadSuggestion: "none" }),
+      context: makeContext(),
+      threadPort: mockPort(),
+    });
+
+    assertSkipped(result, "attention_thread_suggestion_none");
+  });
+
   it("blocks overlong threads at max steps", async () => {
     const existing = makeThread({
       threadId: "thread_max",
@@ -248,8 +276,9 @@ describe("advanceActivityThread", () => {
 
     assertStopped(result);
     assert.equal(result.thread.status, "blocked");
+    assert.equal(result.thread.stopCondition, "max_steps");
     assert.equal(result.reason, "activity_thread_overlong");
-    assert.equal(events[0].reason, "activity_thread_overlong");
+    assert.equal(events[0].status, "blocked");
   });
 
   it("pauses stale threads after too many heartbeats", async () => {
@@ -258,16 +287,35 @@ describe("advanceActivityThread", () => {
       completedStepCount: 2,
       lastHeartbeatSequence: 1,
     });
+    const events: ActivityStageEvent[] = [];
     const result = await advanceActivityThread({
       cycleRef: { cycleId: "c1", cycleSequence: 1 + ACTIVITY_THREAD_STALE_HEARTBEATS + 1 },
       attention: makeAttention({ activityThreadId: "thread_stale" }),
       context: makeContext([existing]),
       threadPort: mockPort(undefined, [existing]),
+      recordLoopStageEvent: async (e) => { events.push(e); },
     });
 
     assertStopped(result);
     assert.equal(result.thread.status, "paused");
+    assert.equal(result.thread.stopCondition, "stale");
     assert.equal(result.reason, "activity_thread_stale");
+    assert.equal(events[0].status, "skipped");
+  });
+
+  it("stops terminal status threads without advancing", async () => {
+    for (const terminalStatus of ["blocked", "completed", "abandoned"] as const) {
+      const existing = makeThread({ threadId: `thread_${terminalStatus}`, status: terminalStatus });
+      const result = await advanceActivityThread({
+        cycleRef: { cycleId: "c1", cycleSequence: existing.lastHeartbeatSequence + 1 },
+        attention: makeAttention({ activityThreadId: existing.threadId }),
+        context: makeContext([existing]),
+        threadPort: mockPort(undefined, [existing]),
+      });
+
+      assertStopped(result);
+      assert.equal(result.thread.status, terminalStatus);
+    }
   });
 
   it("pauses thread when suggestion is pause", async () => {
@@ -317,7 +365,7 @@ describe("advanceActivityThread", () => {
       context: makeContext(),
       threadPort: mockPort({
         async createActivityThread() {
-          return { thread: {} as ActivityThread, degraded: { reason: "db unavailable", code: "state_unreadable" } };
+          return { status: "degraded", data: {} as ActivityThread, reason: "db unavailable" };
         },
       }),
     });
