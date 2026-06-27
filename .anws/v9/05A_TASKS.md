@@ -353,7 +353,7 @@ graph TD
   - **依赖**: T5.1.2
   - **优先级**: P0
 
-- [ ] **T5.2.2** [REQ-001]: 实现 `SelfContinuityCard` assembly 与 bounded read model
+- [x] **T5.2.2** [REQ-001]: 实现 `SelfContinuityCard` assembly 与 bounded read model
   - **描述**: 从 active memory/procedural projections、ToolRoutine、CharacterFrame pointer 组装 canonical section ordering 的 `SelfContinuityCard`。
   - **输入**: `shared-v9-contracts.md §4`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.7`, `T5.2.1`, `T7.2.2`, `T6.2.2`
   - **输出**: `assembleSelfContinuityCard`, `ContinuityReadPort.loadSelfContinuityCard`, card store/read model
@@ -481,7 +481,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T7.2.1** [REQ-008]: 实现 `CharacterFrame` builder、五剖面 extractor 与 source validator
+- [x] **T7.2.1** [REQ-008]: 实现 `CharacterFrame` builder、五剖面 extractor 与 source validator
   - **描述**: 从 normalized `CharacterRefreshInput` 的 source-backed closure、tool experience、feedback、projection、expression outcome 生成五剖面 `CharacterFrame` candidate，并阻断空泛人格、人格分数、情绪断言、硬控制规则。
   - **输入**: `04_SYSTEM_DESIGN/character-continuity-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/character-continuity-system.detail.md §1-§3.5`, `shared-v9-contracts.md §5`, `T5.2.1`
   - **输出**: `src/core/second-nature/character/character-frame-builder.ts`, `frame-source-validator.ts`, `character-refresh-input-normalizer.ts`, extractor modules
@@ -500,7 +500,7 @@ graph TD
   - **依赖**: T5.2.1
   - **优先级**: P0
 
-- [ ] **T7.2.2** [REQ-008]: 实现 CharacterFrame lifecycle、contest/re-authoring 与 EmbodiedContext projection adapter
+- [x] **T7.2.2** [REQ-008]: 实现 CharacterFrame lifecycle、contest/re-authoring 与 EmbodiedContext projection adapter
   - **描述**: 实现 candidate/accepted/rejected/retired/superseded 状态机、accept/reject/revise/retire 动作、bounded projection serializer、`newlyProposed` first-injection 标记与 contest prompt。
   - **输入**: `04_SYSTEM_DESIGN/character-continuity-system.detail.md §2 §3.2 §3.3 §4.2 §5.1`, `T7.2.1`
   - **输出**: `character-continuity-lifecycle.ts`, `buildEmbodiedContextProjection`, CharacterFrame store port integration
@@ -525,7 +525,7 @@ graph TD
 
 ### Phase 1: Foundation
 
-- [ ] **T8.1.1** [REQ-007]: 实现 canonical `AutonomousChangeLedger` write/read port
+- [x] **T8.1.1** [REQ-007]: 实现 canonical `AutonomousChangeLedger` write/read port
   - **描述**: 建立 ledger append-only 写入、read model、sourceRefs 非空校验与 canonical type import，供 routine install 与 connector evolution 使用。
   - **输入**: `shared-v9-contracts.md §8`, `04_SYSTEM_DESIGN/observability-recovery-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §2.1 §3.2`, `T5.1.1`, `T5.1.2`
   - **输出**: `AutonomousChangeLedgerWritePort`, ledger store, redacted read model

@@ -16,6 +16,23 @@
  * Test coverage: `tests/unit/contracts/v9-shared-contracts.test.ts`
  */
 
+import type {
+  DegradedOperationResult,
+} from "./v8-contracts.js";
+
+export type { DegradedOperationResult } from "./v8-contracts.js";
+
+// ───────────────────────────────────────────────────────────────
+// 0. Opaque forward declarations
+// ───────────────────────────────────────────────────────────────
+
+// Forward declarations owned by other systems; v9 contracts keep them as
+// opaque interfaces so the EmbodiedContext shape can be assembled here.
+export interface IdentityProfile {}
+export interface AgentGoal {}
+export interface Interaction {}
+export interface ToolExperience {}
+
 // ───────────────────────────────────────────────────────────────
 // 1. SourceRef
 // ───────────────────────────────────────────────────────────────
@@ -169,6 +186,17 @@ export interface SelfContinuityCard {
   sourceRefs: SourceRef[];
   acceptedAt: string;
   status: "active" | "deferred" | "unavailable";
+  redactionClass?: "none" | "redacted" | "blocked";
+}
+
+export interface SelfContinuityCardSections {
+  summary: string;
+  bodyIntuition: string;
+  relationshipPosture: string;
+  valuePosture: string;
+  behaviorHabits: string[];
+  activeRoutinePointers: RoutinePointer[];
+  currentProhibitions: string[];
 }
 
 export interface SelfContinuityCardRow {
@@ -178,7 +206,21 @@ export interface SelfContinuityCardRow {
   sourceRefsJson: string;
   characterFramePointerJson: string;
   status: "active" | "deferred" | "unavailable";
-  acceptedAt: string;
+  createdAt: string;
+}
+
+export interface ContinuityScope {
+  workspaceRoot: string;
+  now?: string;
+  maxSummaryLength?: number;
+}
+
+export interface ContinuityReadPort {
+  loadSelfContinuityCard(scope: ContinuityScope): Promise<SelfContinuityCard | DegradedOperationResult>;
+  loadRoutineList(filters: { workspaceRoot: string; status?: ("installed" | "disabled" | "rollback")[]; capabilityPattern?: string }): Promise<{ routines: RoutineListItem[]; degraded?: DegradedOperationResult }>;
+  loadActiveMemoryProjections(filters: { workspaceRoot: string; now?: string }): Promise<{ projections: MemoryProjection[]; degraded?: DegradedOperationResult }>;
+  loadActiveProceduralProjections(filters: { workspaceRoot: string; now?: string }): Promise<{ projections: ProceduralProjection[]; degraded?: DegradedOperationResult }>;
+  loadActiveCharacterFramePointer(scope: ContinuityScope): Promise<{ pointer?: CharacterFramePointer; degraded?: DegradedOperationResult }>;
 }
 
 export interface RoutinePointer {
@@ -214,6 +256,7 @@ export interface CharacterFrame {
   revisionOf: string | null;
   createdAt: string;
   acceptedAt?: string;
+  payloadJson?: string;
 }
 
 export interface EmergentHabit {
@@ -256,6 +299,17 @@ export interface CharacterFramePointer {
   contestPrompt: string;
   sourceRefs: SourceRef[];
   status: "active" | "deferred" | "contested" | "superseded";
+  newlyProposed?: boolean;
+}
+
+export type CharacterContestAction = "accept" | "reject" | "revise" | "retire";
+
+export interface CharacterContestResult {
+  frameId: string;
+  previousStatus: CharacterFrameStatus;
+  newStatus: CharacterFrameStatus;
+  successorFrameId?: string;
+  sourceRefs: SourceRef[];
 }
 
 export interface EmbodiedContextCharacterProjection {
@@ -268,6 +322,7 @@ export interface EmbodiedContextCharacterProjection {
 }
 
 export interface CharacterRefreshInput {
+  kind: "input";
   refreshId: string;
   workspaceRoot: string;
   locale: "zh-CN" | "en" | "mixed";
@@ -477,12 +532,6 @@ export interface ContextSlice<T> {
   reason?: string;
 }
 
-// Forward declarations owned by other systems; v9 contracts keep them as
-// opaque interfaces so the EmbodiedContext shape can be assembled here.
-export interface IdentityProfile {}
-export interface AgentGoal {}
-export interface Interaction {}
-export interface ToolExperience {}
 export interface MemoryProjection {
   id: string;
   kind: "memory";

@@ -98,6 +98,7 @@ describe("v9 shared contracts exports", () => {
 
   it("CharacterRefreshInput blocks raw payload by contract shape", () => {
     const input: CharacterRefreshInput = {
+      kind: "input",
       refreshId: "ref-1",
       workspaceRoot: "/tmp/ws",
       locale: "zh-CN",
