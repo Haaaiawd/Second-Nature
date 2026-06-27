@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-26` (Wave 124 完成；T7.2.2 已实现、验证并通过 code-reviewer)
-- **当前波次**: Wave 124 — v9 S2 Character Continuity Projection
-- **下一步**: 进入 Wave 125；按 05A 依赖图选择就绪任务
+- **最近一次更新**: `2026-06-27` (Wave 126 完成；T2.2.1 已实现、验证并通过 code-reviewer)
+- **当前波次**: Wave 126 — v9 S2 EmbodiedContext Continuity Injection
+- **下一步**: 进入 Wave 127；按 05A 依赖图选择就绪任务
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,8 +219,33 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 126 — 按 05A 依赖图选择就绪任务
-- **最近更新**: `2026-06-27` (Wave 125 complete; T5.2.2 checked; review-fix applied)
+- **下一步**: `/forge` Wave 127 — 按 05A 依赖图选择就绪任务
+- **最近更新**: `2026-06-27` (Wave 126 complete; T2.2.1 checked; review-fix applied)
+
+### 🌊 Wave 126 ✅ — v9 S2 EmbodiedContext Continuity Injection
+T2.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 126 完成（code-reviewer final verdict: Partial Pass → review-fix applied → verified）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T2.2.1 扩展 `EmbodiedContext` 装配 SelfContinuityCard、CharacterFrame、routines、activity threads 与 affordance slices
+- **产出**:
+  - `src/core/second-nature/control-plane/v9-embodied-context-assembler.ts` — v9 全切片并行装配、CharacterLoaderPort、ActivityThreadPort、工厂 wiring
+  - `src/core/second-nature/control-plane/context-serializer.ts` — contestable marker、newlyProposed、Agent-boundary forbidden-pattern 检测与 blocked section 替换
+  - `src/storage/v9-state-stores.ts` — `readActivityThreadsByStatus` read port
+  - `src/core/second-nature/memory/self-continuity-card-assembler.ts` — 导出 `createCharacterFrameStoreAdapter`
+  - `tests/unit/control-plane/v9-embodied-context.test.ts` — happy path、deferred path、hard_control/emotion_claim/identity_lock/allowed counterexample 覆盖
+  - `tests/integration/v9/context-continuity-injection.test.ts` — end-to-end assembler + serializer 集成
+  - `.anws/v9/05A_TASKS.md` — T2.2.1 已勾选
+  - `.anws/v9/05B_VERIFICATION_PLAN.md` — T2.2.1 验证项已更新
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1851 tests, 1842 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-126-review.md` — Partial Pass → review-fix applied
+- **下一步**: 进入 Wave 127；按 05A 依赖图选择就绪任务。
+- **说明**: T2.2.1 产出包含 EmbodiedContext v9 全切片装配与 ContextSerializer；下游 T2.2.2 attention-to-intent、T2.2.4 activity continuation 与 T1.2.1 ops surface 可继续推进。
 
 ### 🌊 Wave 125 ✅ — v9 S2 SelfContinuityCard Assembly
 T5.2.2

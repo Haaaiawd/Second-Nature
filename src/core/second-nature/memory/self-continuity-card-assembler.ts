@@ -361,7 +361,7 @@ function collectSourceRefs(
 // CharacterFrame store adapter
 // ───────────────────────────────────────────────────────────────
 
-async function createCharacterFrameStoreAdapter(db: StateDatabase): Promise<CharacterFrameStorePort> {
+export async function createCharacterFrameStoreAdapter(db: StateDatabase): Promise<CharacterFrameStorePort> {
   const stores = await import("../../../storage/v9-state-stores.js");
   return {
     async readFrameById(id: string) {

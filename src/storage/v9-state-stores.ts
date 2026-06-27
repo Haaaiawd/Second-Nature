@@ -206,6 +206,20 @@ export async function readActivityThreadById(
   return rows[0];
 }
 
+export async function readActivityThreadsByStatus(
+  db: StateDatabase,
+  status: ActivityThreadRecord["status"],
+  options: { limit?: number; orderBy?: "asc" | "desc" } = {},
+): Promise<ActivityThreadRecord[]> {
+  const { desc, asc } = await import("drizzle-orm");
+  const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
+  const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
+  if (options.limit !== undefined && options.limit > 0) {
+    return await query.limit(options.limit);
+  }
+  return await query;
+}
+
 export async function updateActivityThreadProgress(
   db: StateDatabase,
   id: string,

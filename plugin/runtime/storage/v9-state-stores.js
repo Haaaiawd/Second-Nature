@@ -24,7 +24,7 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import { eq, and, desc } from "drizzle-orm";
-import { attentionSignal, activityThread, activityStep, toolRoutine, proceduralProjection, connectorEvolutionPlan, } from "./db/schema/v9-entities.js";
+import { attentionSignal, activityThread, activityStep, toolRoutine, proceduralProjection, connectorEvolutionPlan, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
@@ -109,6 +109,15 @@ export async function readActivityThreadById(db, id) {
     const rows = await db.db.select().from(activityThread).where(eq(activityThread.id, id));
     return rows[0];
 }
+export async function readActivityThreadsByStatus(db, status, options = {}) {
+    const { desc, asc } = await import("drizzle-orm");
+    const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
+    const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
+    if (options.limit !== undefined && options.limit > 0) {
+        return await query.limit(options.limit);
+    }
+    return await query;
+}
 export async function updateActivityThreadProgress(db, id, patch) {
     await db.db.update(activityThread).set(patch).where(eq(activityThread.id, id));
 }
@@ -146,6 +155,22 @@ export async function readActiveToolRoutinesByCapabilityPattern(db, capabilityPa
         .from(toolRoutine)
         .where(and(eq(toolRoutine.status, "active"), eq(toolRoutine.capabilityPattern, capabilityPattern)))
         .orderBy(desc(toolRoutine.activatedAt));
+}
+export async function readToolRoutinesByStatus(db, status) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(toolRoutine)
+            .where(eq(toolRoutine.status, status))
+            .orderBy(desc(toolRoutine.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
 }
 export async function writeToolRoutine(db, options) {
     if (options.sourceRefs.length === 0) {
@@ -291,6 +316,226 @@ export async function updateConnectorEvolutionPlanStatus(db, id, status, payload
             .select()
             .from(connectorEvolutionPlan)
             .where(eq(connectorEvolutionPlan.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeCharacterFrame(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("character_frame sourceRefs required");
+    }
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        version: options.version,
+        validFrom: options.validFrom,
+        sectionsJson: options.sectionsJson,
+        contestPrompt: options.contestPrompt,
+        charCount: options.charCount,
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        status: options.status ?? "candidate",
+        supersededBy: options.supersededBy,
+        revisionOf: options.revisionOf,
+        acceptedAt: options.acceptedAt,
+        validUntil: options.validUntil,
+        payloadJson: options.payloadJson,
+    };
+    await db.db.insert(characterFrame).values(row);
+    return row;
+}
+export async function readCharacterFrameById(db, id) {
+    const rows = await db.db.select().from(characterFrame).where(eq(characterFrame.id, id));
+    return rows[0];
+}
+export async function readCharacterFramesByStatus(db, status) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(characterFrame)
+            .where(eq(characterFrame.status, status))
+            .orderBy(desc(characterFrame.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readLatestAcceptedCharacterFrame(db) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(characterFrame)
+            .where(eq(characterFrame.status, "accepted"))
+            .orderBy(desc(characterFrame.acceptedAt))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readCharacterFrameRevisionCandidates(db, revisionOf) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(characterFrame)
+            .where(and(eq(characterFrame.status, "candidate"), eq(characterFrame.revisionOf, revisionOf)))
+            .orderBy(desc(characterFrame.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function updateCharacterFrameStatus(db, id, status, patch) {
+    try {
+        const set = { status, ...patch };
+        await db.db.update(characterFrame).set(set).where(eq(characterFrame.id, id));
+        const rows = await db.db.select().from(characterFrame).where(eq(characterFrame.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeSelfContinuityCard(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("self_continuity_card sourceRefs required");
+    }
+    if (new TextEncoder().encode(options.cardText).length > 4000) {
+        throw new Error("self_continuity_card cardText exceeds hard byte ceiling");
+    }
+    try {
+        const row = {
+            id: options.id,
+            createdAt: options.createdAt,
+            version: options.version ?? 1,
+            cardText: options.cardText,
+            sectionsJson: options.sectionsJson,
+            sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+            characterFramePointerJson: options.characterFramePointerJson,
+            status: options.status ?? "active",
+            redactionClass: options.redactionClass ?? "none",
+            payloadJson: options.payloadJson,
+        };
+        await db.db.insert(selfContinuityCard).values(row);
+        return row;
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function readLatestSelfContinuityCard(db) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(selfContinuityCard)
+            .orderBy(desc(selfContinuityCard.createdAt))
+            .limit(1);
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readSelfContinuityCardById(db, id) {
+    try {
+        const rows = await db.db.select().from(selfContinuityCard).where(eq(selfContinuityCard.id, id));
+        return { row: rows[0] };
+    }
+    catch {
+        return {
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function updateSelfContinuityCardStatus(db, id, status) {
+    try {
+        await db.db.update(selfContinuityCard).set({ status }).where(eq(selfContinuityCard.id, id));
+        const rows = await db.db.select().from(selfContinuityCard).where(eq(selfContinuityCard.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeAutonomousChangeLedger(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("autonomous_change_ledger sourceRefs required");
+    }
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        workspaceRoot: options.workspaceRoot,
+        changeKind: options.changeKind,
+        targetId: options.targetId,
+        previousStableRef: options.previousStableRef,
+        status: options.status ?? "proposed",
+        gateResultsJson: options.gateResultsJson,
+        rollbackRef: options.rollbackRef,
+        rollbackCommandHint: options.rollbackCommandHint,
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        redactedPayloadJson: options.redactedPayloadJson,
+        activatedAt: options.activatedAt,
+        rolledBackAt: options.rolledBackAt,
+    };
+    await db.db.insert(autonomousChangeLedger).values(row);
+    return row;
+}
+export async function readAutonomousChangeLedgerById(db, id) {
+    const rows = await db.db.select().from(autonomousChangeLedger).where(eq(autonomousChangeLedger.id, id));
+    return rows[0];
+}
+export async function readAutonomousChangeLedgerByTarget(db, targetId, limit = 50) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(autonomousChangeLedger)
+            .where(eq(autonomousChangeLedger.targetId, targetId))
+            .orderBy(desc(autonomousChangeLedger.createdAt))
+            .limit(limit);
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readAutonomousChangeLedgerByStatus(db, status) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(autonomousChangeLedger)
+            .where(eq(autonomousChangeLedger.status, status))
+            .orderBy(desc(autonomousChangeLedger.createdAt));
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function updateAutonomousChangeLedgerStatus(db, id, status, patch) {
+    try {
+        const set = { status, ...patch };
+        await db.db.update(autonomousChangeLedger).set(set).where(eq(autonomousChangeLedger.id, id));
+        const rows = await db.db.select().from(autonomousChangeLedger).where(eq(autonomousChangeLedger.id, id));
         return rows[0];
     }
     catch {

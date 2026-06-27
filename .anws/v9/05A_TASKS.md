@@ -106,7 +106,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T2.2.1** [REQ-001][REQ-008]: 扩展 `EmbodiedContext` 装配 SelfContinuityCard 与 CharacterFrame
+- [x] **T2.2.1** [REQ-001][REQ-008]: 扩展 `EmbodiedContext` 装配 SelfContinuityCard 与 CharacterFrame
   - **描述**: 在 context assembly 中并行加载 `SelfContinuityCard`、`CharacterFramePointer`、独立 `EmbodiedContextCharacterProjection`、active projections、routine list、active ActivityThreads 与 affordance slices。
   - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3 §3.5`, `shared-v9-contracts.md §3.5 §4 §5 §10`, `T5.1.2`, `T5.2.1`, `T6.2.1`, `T7.2.1`
   - **输出**: `src/core/second-nature/control-plane/embodied-context-assembler.ts` v9 slices, `ContextSerializer` v9 projection rendering

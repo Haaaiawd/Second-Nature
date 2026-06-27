@@ -125,13 +125,16 @@ export const V9_001_SELF_CONTINUITY = {
       id TEXT PRIMARY KEY,
       created_at TEXT NOT NULL,
       version INTEGER NOT NULL DEFAULT 1,
+      valid_from TEXT NOT NULL,
       sections_json TEXT NOT NULL,
       contest_prompt TEXT NOT NULL,
+      char_count INTEGER NOT NULL DEFAULT 0,
       source_refs_json TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'candidate',
       superseded_by TEXT,
       revision_of TEXT,
       accepted_at TEXT,
+      valid_until TEXT,
       redaction_class TEXT NOT NULL DEFAULT 'none',
       payload_json TEXT
     );

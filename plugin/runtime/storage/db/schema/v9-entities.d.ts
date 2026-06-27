@@ -1428,6 +1428,25 @@ export declare const characterFrame: import("drizzle-orm/sqlite-core").SQLiteTab
             identity: undefined;
             generated: undefined;
         }, {}, {}>;
+        validFrom: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "valid_from";
+            tableName: "character_frame";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         sectionsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "sections_json";
             tableName: "character_frame";
@@ -1466,6 +1485,23 @@ export declare const characterFrame: import("drizzle-orm/sqlite-core").SQLiteTab
         }, {}, {
             length: number | undefined;
         }>;
+        charCount: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "char_count";
+            tableName: "character_frame";
+            dataType: "number";
+            columnType: "SQLiteInteger";
+            data: number;
+            driverParam: number;
+            notNull: true;
+            hasDefault: true;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: undefined;
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {}>;
         sourceRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "source_refs_json";
             tableName: "character_frame";
@@ -1544,6 +1580,25 @@ export declare const characterFrame: import("drizzle-orm/sqlite-core").SQLiteTab
         }>;
         acceptedAt: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "accepted_at";
+            tableName: "character_frame";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        validUntil: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "valid_until";
             tableName: "character_frame";
             dataType: "string";
             columnType: "SQLiteText";
