@@ -15,4 +15,55 @@
  * Boundary: Type definitions only; no runtime logic.
  * Test coverage: `tests/unit/contracts/v9-shared-contracts.test.ts`
  */
-export {};
+export const V9_ACTION_KIND_REGISTRY = {
+    ignore: {
+        kind: "ignore",
+        sideEffectClass: "none",
+        allowedDowngrades: [],
+    },
+    watch: {
+        kind: "watch",
+        sideEffectClass: "local_state",
+        allowedDowngrades: [],
+    },
+    remember: {
+        kind: "remember",
+        sideEffectClass: "local_state",
+        allowedDowngrades: ["watch"],
+    },
+    notify_owner: {
+        kind: "notify_owner",
+        sideEffectClass: "owner_attention",
+        allowedDowngrades: ["watch"],
+    },
+    draft_reply: {
+        kind: "draft_reply",
+        sideEffectClass: "local_state",
+        allowedDowngrades: ["notify_owner", "watch"],
+    },
+    auto_reply: {
+        kind: "auto_reply",
+        sideEffectClass: "external_write",
+        allowedDowngrades: ["draft_reply", "notify_owner", "watch"],
+    },
+    draft_publish: {
+        kind: "draft_publish",
+        sideEffectClass: "local_state",
+        allowedDowngrades: ["notify_owner", "watch"],
+    },
+    auto_publish: {
+        kind: "auto_publish",
+        sideEffectClass: "external_write",
+        allowedDowngrades: ["draft_publish", "notify_owner", "watch"],
+    },
+    run_connector: {
+        kind: "run_connector",
+        sideEffectClass: "capability_declared",
+        allowedDowngrades: ["notify_owner", "watch"],
+    },
+    routine: {
+        kind: "routine",
+        sideEffectClass: "routine",
+        allowedDowngrades: ["notify_owner", "watch"],
+    },
+};

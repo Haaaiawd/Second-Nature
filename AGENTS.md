@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-27` (Wave 127 完成；T2.2.4 已实现、验证并通过 code-reviewer)
-- **当前波次**: Wave 127 — v9 S2 ActivityThread Cross-Heartbeat Continuation
-- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务
+- **最近一次更新**: `2026-06-27` (Wave 128 完成；T4.2.1 已实现、验证并通过 code-reviewer)
+- **当前波次**: Wave 128 — v9 S3 ActionProposalBuilder v9 Spine
+- **下一步**: 进入 Wave 129；按 05A 依赖图选择就绪任务
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,8 +219,32 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 128 — 按 05A 依赖图选择就绪任务
-- **最近更新**: `2026-06-27` (Wave 127 complete; T2.2.4 checked; review-fix applied)
+- **下一步**: `/forge` Wave 129 — 按 05A 依赖图选择就绪任务
+- **最近更新**: `2026-06-27` (Wave 128 complete; T4.2.1 checked; review-fix applied)
+
+### 🌊 Wave 128 ✅ — v9 S3 ActionProposalBuilder v9 Spine
+T4.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 128 完成（code-reviewer final verdict: Partial Pass → review-fix applied → Pass）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T4.2.1 扩展 `ActionProposalBuilder` 接收 Agent intent、ActivityStep、RoutineInvocation，并使用 AttentionSignal refs 作为 grounding
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 新增 `V9_ACTION_KIND_REGISTRY` 与 `ActionKindMetadata`，覆盖 `PlatformNeutralActionKind` 全枚举
+  - `src/core/second-nature/action/v9-action-proposal-builder.ts` — `buildV9ActionProposal`、`buildV9ActionProposals`、Agent/ActivityStep/RoutineInvocation 归一化、AttentionSignal grounding-only、source-ref gate、`MAX_PROPOSALS_PER_CYCLE`
+  - `src/core/second-nature/action/v9-autonomy-policy-evaluator.ts` — v9 policy evaluator：external_write/capability_declared/routine/owner_attention 决策表、source-ref gate、affordance proofRefs
+  - `tests/unit/action/v9-action-proposal-builder.test.ts` — Agent/activity/routine/attention-only/missing source refs/batch cap 覆盖
+  - `tests/unit/action/v9-autonomy-policy-evaluator.test.ts` — allow/deny/downgrade/defer/routine 决策表覆盖
+  - `.anws/v9/05A_TASKS.md` — T4.2.1 已勾选
+  - `.anws/v9/wave-reviews/wave-128-review.md` — Partial Pass → review-fix applied → Pass
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1903 tests, 1894 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-128-review.md` — Partial Pass → review-fix applied → Pass
+- **下一步**: 进入 Wave 129；按 05A 依赖图选择就绪任务。
+- **说明**: T4.2.1 产出包含 v9 ActionProposalBuilder 与 policy evaluator 脊柱；下游 `T2.2.2` attention-to-closure、`T4.2.2` routine guard policy、`T4.2.3` closure recorder 可继续推进。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4

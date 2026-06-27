@@ -431,6 +431,12 @@ export interface EmbodiedContext {
 }
 export type PlatformNeutralActionKind = "ignore" | "watch" | "remember" | "notify_owner" | "draft_reply" | "auto_reply" | "draft_publish" | "auto_publish" | "run_connector" | "routine";
 export type ActionSideEffectClass = "none" | "local_state" | "owner_attention" | "external_write" | "external_read" | "capability_declared" | "routine";
+export interface ActionKindMetadata {
+    kind: PlatformNeutralActionKind;
+    sideEffectClass: ActionSideEffectClass;
+    allowedDowngrades: PlatformNeutralActionKind[];
+}
+export declare const V9_ACTION_KIND_REGISTRY: Readonly<Record<PlatformNeutralActionKind, ActionKindMetadata>>;
 export interface AgentActionIntent {
     intentId: string;
     actionKind: PlatformNeutralActionKind;

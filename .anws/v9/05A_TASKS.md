@@ -232,7 +232,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T4.2.1** [REQ-003][REQ-004]: 扩展 `ActionProposalBuilder` 接收 Agent intent、ActivityStep 与 RoutineInvocation，并使用 AttentionSignal refs 作为 grounding
+- [x] **T4.2.1** [REQ-003][REQ-004]: 扩展 `ActionProposalBuilder` 接收 Agent intent、ActivityStep 与 RoutineInvocation，并使用 AttentionSignal refs 作为 grounding
   - **描述**: 将 Agent-authored intent、policy-bound ActivityStep intent 与 RoutineInvocation 归一为 policy-bound `ActionProposal`；AttentionSignal refs 只用于 source/risk/rationale grounding，attention-only 不生成 action proposal。
   - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.md §5.1`, `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §2.1 §3.1`, `T3.2.1`, `T2.2.4`
   - **输出**: `ActionProposalBuilder` v9 inputs, `AgentActionIntent`, `ActivityStepIntent`, `AttentionSignalRef` grounding, `RoutineInvocation` mapping
