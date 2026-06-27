@@ -125,7 +125,7 @@ graph TD
   - **依赖**: T5.1.2, T5.2.1, T6.2.1, T7.2.1
   - **优先级**: P0
 
-- [ ] **T2.2.2** [REQ-003]: 将 heartbeat 主链路从 JudgmentVerdict 切换到 AttentionSignal
+- [x] **T2.2.2** [REQ-003]: 将 heartbeat 主链路从 JudgmentVerdict 切换到 AttentionSignal
   - **描述**: 更新 heartbeat orchestrator，让 `AttentionSignal` 作为提示进入 Agent/routine-authored action intent，不再把 v8 `JudgmentVerdict` 当最终 decision 输入。
   - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §3.4 §8.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §3.1 §5`, `T3.2.1`, `T4.2.1`
   - **输出**: `runHeartbeatCycle` v9 attention path, `AgentActionIntent` handoff, degraded path closure handling
@@ -270,7 +270,7 @@ graph TD
   - **依赖**: T5.1.1, T4.2.1
   - **优先级**: P0
 
-- [ ] **T4.2.3** [REQ-003][REQ-007]: 保持 v9 exactly-one closure 与 routine execution trace
+- [x] **T4.2.3** [REQ-003][REQ-007]: 保持 v9 exactly-one closure 与 routine execution trace
   - **描述**: 扩展 closure recorder payload，支持 routineInvocationId/routineVersion 与 activityThreadId/activityStepId，同时保持每 cycle exactly-one closure invariant。
   - **输入**: `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §3.4-§3.6`, `shared-v9-contracts.md §9`, `T4.2.1`
   - **输出**: v9 closure write payload, routine closure refs, no-action fallback

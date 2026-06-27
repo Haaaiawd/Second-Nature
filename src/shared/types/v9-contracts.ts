@@ -519,6 +519,10 @@ export interface ActionClosureRecord {
   closureRefs: SourceRef[];
   payloadJson?: string;
   reasonCode: string;
+  routineInvocationId?: string;
+  routineVersion?: string;
+  activityThreadId?: string;
+  activityStepId?: string;
   createdAt: string;
 }
 
@@ -1069,10 +1073,12 @@ export type V9ReasonCode =
   | "loop_blocked_gate_failure"
   | "timeline_window_too_large"
   | "timeline_window_truncated"
+  | "state_unreadable"
   // Fallback
   | "no_actionable_intent"
   | "policy_denied_missing_sources"
-  | "guidance_unavailable";
+  | "guidance_unavailable"
+  | "runtime_unavailable";
 
 // ───────────────────────────────────────────────────────────────
 // Minimal forward references for cross-system assembly
