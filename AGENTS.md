@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 135 完成；T8.2.2 已交付)
-- **当前波次**: Wave 135 ✅ — v9 S4 Rollback Liveness Watchdog
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.3 digest/timeline 或 T1.2.1
+- **最近一次更新**: `2026-06-28` (Wave 136 完成；T8.2.3 已交付)
+- **当前波次**: Wave 136 ✅ — v9 S4 Digest & Timeline Read Models
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.1 或 INT-S4 集成验证
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -411,6 +411,27 @@ T8.2.2
   - code-reviewer: `.anws/v9/wave-reviews/wave-135-review.md` — Partial Pass
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.3 digest/timeline 或 T1.2.1。
 - **说明**: T8.2.2 关闭 DR-05 rollback liveness gap——当 plan 处于 gating/blocked 状态超过 MAX_WAIT_MS(30s) 或 MAX_HEARTBEATS(5) 且缺少 rollback event 时，watchdog 推断 rollback_failed 并发射 inferred stage event，aggregateLoopHealth 看到 → overall = blocked。适配：§3.7 pseudocode 使用 `rolling_back` 状态，但 ConnectorEvolutionStatus 契约只有 `gating`/`blocked`，实现按契约适配。解锁 T8.2.3 的 rollback health 维度。
+
+### 🌊 Wave 136 ✅ — v9 S4 Digest & Timeline Read Models
+T8.2.3
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 136 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T8.2.3 实现 v9 digest 与 timeline read models
+- **产出**:
+  - `src/observability/v9-digest-timeline.ts` — assembleDigest（§3.8：aggregateLoopStatus sections + sourceRefCount + persistDigest）、queryTimeline（§3.9：family/kind/sourceRef filter + cursor pagination + redactTimelinePayload on read）、computeDigestWindow（24h default）、clampTimelineWindow（7d max）、countUniqueSourceRefs、filterCharacterFrameEvents（§1.5a whitelist）、CHARACTER_FRAME_EVENT_KINDS、DIGEST_PERF 常量
+  - `tests/unit/observability/v9-digest-timeline.test.ts` — 29 tests：digest window、timeline clamp、sourceRefCount、assembleDigest（sections/persist/JSON-serializable/safety）、queryTimeline（filter/pagination/redaction/empty/max-limit）、filterCharacterFrameEvents、CHARACTER_FRAME_EVENT_KINDS
+  - `tests/api/runtime-ops/v9-digest-timeline.test.ts` — 12 tests：digest JSON shape、4 sections、safety validation、sourceRefCount、empty window、timeline JSON shape、pagination、redaction、family filter、empty window、max limit、character whitelist
+  - `.anws/v9/05A_TASKS.md` — T8.2.3 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2185 tests, 2176 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-136-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.1 或 INT-S4 集成验证。
+- **说明**: T8.2.3 关闭 v9 S4 observability digest/timeline read models 脊柱——digest 聚合 4 health sections + sourceRefCount + redacted output；timeline 支持 family/kind/sourceRef filter + cursor pagination + 7d window clamp + redacted payload on read + character frame event whitelist（§1.5a）。Digest output 通过 ADR-006 safety validation。observability-recovery-system Phase 2 全部完成（T8.2.1 + T8.2.2 + T8.2.3）。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4
