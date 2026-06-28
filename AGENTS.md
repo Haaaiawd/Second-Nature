@@ -299,7 +299,7 @@ T4.2.2
 T6.2.2
 **签入**: AUTO
 **code-reviewer**: 默认执行
-- **状态**: ✅ Wave 131 完成（code-reviewer 待执行）
+- **状态**: ✅ Wave 131 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞，M-1 契约不一致已适配）
 - **分支**: `feature/wave-119-v9-contract-spine`
 - **任务**: T6.2.2 实现 ToolRoutine registry、guard schema syntax/sandbox validation、routine invocation trace 与 rollback ref，打通 install→invoke→trace 的完整 routine 脊柱
 - **产出**:
@@ -315,7 +315,7 @@ T6.2.2
   - `pnpm build` ✅
   - `pnpm build:plugin` ✅
   - `pnpm test` 1971 tests, 1962 pass, 0 fail, 9 skipped
-  - code-reviewer: `.anws/v9/wave-reviews/wave-131-review.md` 待生成
+  - code-reviewer: `.anws/v9/wave-reviews/wave-131-review.md` — Partial Pass（M-1 契约不一致已适配，建议下波前 /change 回流）
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.1 connector evolution 7-gate 或 INT-S3。
 - **说明**: T6.2.2 关闭 v9 S3 routine 脊柱——install（guard syntax + sandbox compliance + ledger）→ invoke（policy gate + step trace + RoutineExecutionTrace）→ retire（ledger + status）。下游 T6.3.1 connector evolution 7-gate、INT-S3、T4.2.3 closure trace 可继续推进。
 
