@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 131 完成；T6.2.2 已交付)
-- **当前波次**: Wave 131 ✅ — v9 S3 ToolRoutine Registry & Invocation Port
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.1 connector evolution 7-gate 或 INT-S3
+- **最近一次更新**: `2026-06-28` (Wave 132 完成；T6.3.1 已交付)
+- **当前波次**: Wave 132 ✅ — v9 S3 Connector Evolution 7-Gate Orchestrator
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.2 connector rollback 或 T8.1.2 redaction projector
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -318,6 +318,30 @@ T6.2.2
   - code-reviewer: `.anws/v9/wave-reviews/wave-131-review.md` — Partial Pass（M-1 契约不一致已适配，建议下波前 /change 回流）
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.1 connector evolution 7-gate 或 INT-S3。
 - **说明**: T6.2.2 关闭 v9 S3 routine 脊柱——install（guard syntax + sandbox compliance + ledger）→ invoke（policy gate + step trace + RoutineExecutionTrace）→ retire（ledger + status）。下游 T6.3.1 connector evolution 7-gate、INT-S3、T4.2.3 closure trace 可继续推进。
+
+### 🌊 Wave 132 ✅ — v9 S3 Connector Evolution 7-Gate Orchestrator
+T6.3.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 132 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞，M-1 §1 数组顺序矛盾已适配）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T6.3.1 对 Dream 生成的 `ConnectorEvolutionPlan` 串行执行 schema、permission、sandbox、fixture、wet-probe、rollback_setup、post-activation canary，并激活或 blocked/rollback
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 新增 §7b 契约类型：`EvolutionGateName`、`PRE_ACTIVATION_GATES`、`RollbackResult`、`EvolutionApplyResult`、`StageEvent`、`StageEventSink`
+  - `src/core/second-nature/body/connector-evolution/v9-connector-evolution-gates.ts` — 7 个 gate 函数（schema/permission/sandbox/fixture/wet_probe/rollback_setup/canary）+ `parseProposedChanges` + `GATE_RUNNERS` registry + `GateDeps` 注入接口
+  - `src/core/second-nature/body/connector-evolution/v9-connector-evolution-engine.ts` — `applyConnectorEvolution`（§3.8 + §4.2）、`rollbackConnectorVersion`（§3.9）、`deriveTargetVersion`（§3.7）、`buildRollbackCommandHint`、state-store backed ports + ledger port factories
+  - `src/storage/v9-state-stores.ts` — 新增 `writeConnectorVersion`、`readConnectorVersionById`、`readActiveConnectorVersion`、`updateConnectorVersionStatus` + `WriteConnectorVersionOptions`
+  - `tests/unit/connectors/v9-connector-evolution-gates.test.ts` — 38 tests：7 gate 独立验证 + orchestrator 全流程（active/blocked/rolled_back/rollback blocked）+ `buildRollbackCommandHint` + `deriveTargetVersion`
+  - `tests/integration/v9/connector-evolution-activation.test.ts` — 4 tests：全链路 activation + ledger + schema block + canary rollback + no-previous block
+  - `.anws/v9/05A_TASKS.md` — T6.3.1 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2013 tests, 2004 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-132-review.md` — Partial Pass（M-1 §1 数组顺序矛盾已适配，建议下波前 /change 回流）
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.2 connector rollback 或 T8.1.2 redaction projector。
+- **说明**: T6.3.1 关闭 v9 S3 connector evolution 7-gate 脊柱——pre-activation gates（schema→permission→sandbox→fixture→wet_probe→rollback_setup）→ activate + ledger → post-activation canary → rollback on fail。Gate 函数为结构化验证器，真实 adapter 执行（fixture run、wet probe network call）由 T6.3.2 提供。解锁 T6.3.2、T1.2.1、T8.2.1、T8.2.2。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4

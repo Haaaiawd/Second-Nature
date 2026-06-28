@@ -621,6 +621,62 @@ export interface GateResult {
 }
 
 // ───────────────────────────────────────────────────────────────
+// 7b. Connector Evolution Engine contracts (T6.3.1)
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * 7-gate names in execution order per §4.2 decision tree.
+ * Pre-activation: schema → permission → sandbox → fixture → wet_probe → rollback_setup
+ * Post-activation: canary
+ */
+export type EvolutionGateName =
+  | "schema"
+  | "permission"
+  | "sandbox"
+  | "fixture"
+  | "wet_probe"
+  | "rollback_setup"
+  | "canary";
+
+/** Pre-activation gates in §4.2 order. */
+export const PRE_ACTIVATION_GATES: readonly EvolutionGateName[] = [
+  "schema",
+  "permission",
+  "sandbox",
+  "fixture",
+  "wet_probe",
+  "rollback_setup",
+] as const;
+
+export interface RollbackResult {
+  status: "rolled_back" | "blocked";
+  restoredVersionId?: string;
+  reason?: string;
+}
+
+export interface EvolutionApplyResult {
+  status: "active" | "blocked" | "rolled_back";
+  version?: ConnectorVersion;
+  gate?: string;
+  gateResults: GateResult[];
+  rollback?: RollbackResult;
+}
+
+/** Stage event for observability sink (§3.8 recordStageEvent). */
+export interface StageEvent {
+  stage: "connector_evolution" | "rollback";
+  platformId: string;
+  versionId: string;
+  outcome: "blocked" | "activated" | "started" | "ok";
+  reasonCode: string;
+  sourceRefs: SourceRef[];
+}
+
+export interface StageEventSink {
+  recordStageEvent(event: StageEvent): Promise<void>;
+}
+
+// ───────────────────────────────────────────────────────────────
 // 8. AutonomousChangeLedger
 // ───────────────────────────────────────────────────────────────
 

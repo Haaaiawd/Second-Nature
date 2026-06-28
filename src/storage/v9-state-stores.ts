@@ -34,6 +34,7 @@ import {
   routineExecutionTrace,
   proceduralProjection,
   connectorEvolutionPlan,
+  connectorVersion,
   characterFrame,
   selfContinuityCard,
   autonomousChangeLedger,
@@ -51,6 +52,8 @@ import {
   type NewProceduralProjectionRecord,
   type ConnectorEvolutionPlanRecord,
   type NewConnectorEvolutionPlanRecord,
+  type ConnectorVersionRecord,
+  type NewConnectorVersionRecord,
   type CharacterFrameRecord,
   type NewCharacterFrameRecord,
   type SelfContinuityCardRecord,
@@ -58,7 +61,12 @@ import {
   type AutonomousChangeLedgerRecord,
   type NewAutonomousChangeLedgerRecord,
 } from "./db/schema/v9-entities.js";
-import type { SourceRef } from "../shared/types/v9-contracts.js";
+import type {
+  SourceRef,
+  ConnectorVersionStatus,
+  ConnectorPlanType,
+  GateResult,
+} from "../shared/types/v9-contracts.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
@@ -697,6 +705,140 @@ export async function updateConnectorEvolutionPlanStatus(
       .select()
       .from(connectorEvolutionPlan)
       .where(eq(connectorEvolutionPlan.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// ConnectorVersion (T6.3.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteConnectorVersionOptions {
+  id: string;
+  createdAt: string;
+  platformId: string;
+  versionId: string;
+  sequence?: number;
+  /** { manifestPath, recipePath?, adapterPath? } serialized into assetPathsJson. */
+  manifestPath?: string;
+  recipePath?: string;
+  adapterPath?: string;
+  declaredCapabilities?: string[];
+  status?: ConnectorVersionStatus;
+  previousStableRef?: string;
+  rollbackRef?: string;
+  rollbackCommandHint?: string;
+  sourceRefs: SourceRef[];
+  /** Additional payload (gateResults, workspaceRoot, planType) stored in payloadJson. */
+  workspaceRoot?: string;
+  planType?: ConnectorPlanType;
+  gateResults?: GateResult[];
+  activatedAt?: string;
+  rolledBackAt?: string;
+}
+
+export async function writeConnectorVersion(
+  db: StateDatabase,
+  options: WriteConnectorVersionOptions,
+): Promise<ConnectorVersionRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("connector_version sourceRefs required");
+  }
+  const assetPaths: Record<string, string> = {};
+  if (options.manifestPath) assetPaths.manifestPath = options.manifestPath;
+  if (options.recipePath) assetPaths.recipePath = options.recipePath;
+  if (options.adapterPath) assetPaths.adapterPath = options.adapterPath;
+  const payload: Record<string, unknown> = {};
+  if (options.workspaceRoot) payload.workspaceRoot = options.workspaceRoot;
+  if (options.planType) payload.planType = options.planType;
+  if (options.gateResults) payload.gateResults = options.gateResults;
+  const row: NewConnectorVersionRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    platformId: options.platformId,
+    versionId: options.versionId,
+    sequence: options.sequence,
+    assetPathsJson: Object.keys(assetPaths).length > 0 ? JSON.stringify(assetPaths) : null,
+    declaredCapabilitiesJson: options.declaredCapabilities
+      ? JSON.stringify(options.declaredCapabilities)
+      : null,
+    status: options.status ?? "candidate",
+    previousStableRef: options.previousStableRef,
+    rollbackRef: options.rollbackRef,
+    rollbackCommandHint: options.rollbackCommandHint,
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    payloadJson: Object.keys(payload).length > 0 ? JSON.stringify(payload) : null,
+    activatedAt: options.activatedAt,
+    rolledBackAt: options.rolledBackAt,
+  };
+  await db.db.insert(connectorVersion).values(row).onConflictDoNothing();
+  return row as ConnectorVersionRecord;
+}
+
+export async function readConnectorVersionById(
+  db: StateDatabase,
+  versionId: string,
+): Promise<ConnectorVersionRecord | undefined> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorVersion)
+      .where(eq(connectorVersion.versionId, versionId));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+export async function readActiveConnectorVersion(
+  db: StateDatabase,
+  platformId: string,
+): Promise<ConnectorVersionRecord | undefined> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorVersion)
+      .where(
+        and(
+          eq(connectorVersion.platformId, platformId),
+          eq(connectorVersion.status, "active"),
+        ),
+      )
+      .orderBy(desc(connectorVersion.createdAt));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+export async function updateConnectorVersionStatus(
+  db: StateDatabase,
+  versionId: string,
+  status: ConnectorVersionStatus,
+  patch?: Partial<{
+    rollbackRef: string;
+    rollbackCommandHint: string;
+    activatedAt: string;
+    rolledBackAt: string;
+  }>,
+): Promise<ConnectorVersionRecord | undefined> {
+  try {
+    const updateSet: Record<string, unknown> = { status };
+    if (patch?.rollbackRef !== undefined) updateSet.rollbackRef = patch.rollbackRef;
+    if (patch?.rollbackCommandHint !== undefined)
+      updateSet.rollbackCommandHint = patch.rollbackCommandHint;
+    if (patch?.activatedAt !== undefined) updateSet.activatedAt = patch.activatedAt;
+    if (patch?.rolledBackAt !== undefined) updateSet.rolledBackAt = patch.rolledBackAt;
+    await db.db
+      .update(connectorVersion)
+      .set(updateSet)
+      .where(eq(connectorVersion.versionId, versionId));
+    const rows = await db.db
+      .select()
+      .from(connectorVersion)
+      .where(eq(connectorVersion.versionId, versionId));
     return rows[0];
   } catch {
     return undefined;

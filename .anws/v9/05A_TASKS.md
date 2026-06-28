@@ -437,7 +437,7 @@ graph TD
 
 ### Phase 3: Integration
 
-- [ ] **T6.3.1** [REQ-005][REQ-007]: 实现 workspace connector evolution 7-gate orchestrator
+- [x] **T6.3.1** [REQ-005][REQ-007]: 实现 workspace connector evolution 7-gate orchestrator
   - **描述**: 对 Dream 生成的 `ConnectorEvolutionPlan` 串行执行 schema、permission、sandbox、fixture、wet-probe、rollback_setup、post-activation canary，并激活或 blocked/rollback。
   - **输入**: `04_SYSTEM_DESIGN/body-connector-system.md §5.1`, `04_SYSTEM_DESIGN/body-connector-system.detail.md §3.8 §4.2 §5`, `T5.2.1`, `T8.1.1`
   - **输出**: `ConnectorEvolutionEngine`, `ConnectorVersion` activation, gate result writer, ledger write calls

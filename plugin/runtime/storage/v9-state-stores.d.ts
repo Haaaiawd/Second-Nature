@@ -24,8 +24,8 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import type { StateDatabase } from "./db/index.js";
-import { type AttentionSignalRecord, type ActivityThreadRecord, type ActivityStepRecord, type ToolRoutineRecord, type RoutineExecutionTraceRecord, type ProceduralProjectionRecord, type ConnectorEvolutionPlanRecord, type CharacterFrameRecord, type SelfContinuityCardRecord, type AutonomousChangeLedgerRecord } from "./db/schema/v9-entities.js";
-import type { SourceRef } from "../shared/types/v9-contracts.js";
+import { type AttentionSignalRecord, type ActivityThreadRecord, type ActivityStepRecord, type ToolRoutineRecord, type RoutineExecutionTraceRecord, type ProceduralProjectionRecord, type ConnectorEvolutionPlanRecord, type ConnectorVersionRecord, type CharacterFrameRecord, type SelfContinuityCardRecord, type AutonomousChangeLedgerRecord } from "./db/schema/v9-entities.js";
+import type { SourceRef, ConnectorVersionStatus, ConnectorPlanType, GateResult } from "../shared/types/v9-contracts.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
 declare function serializeSourceRefs(refs: SourceRef[]): string;
 declare function parseSourceRefs(json: string | null | undefined): SourceRef[];
@@ -170,6 +170,38 @@ export declare function readConnectorEvolutionPlansByPlatform(db: StateDatabase,
     degraded?: DegradedOperationResult;
 }>;
 export declare function updateConnectorEvolutionPlanStatus(db: StateDatabase, id: string, status: ConnectorEvolutionPlanRecord["status"], payloadJson?: string): Promise<ConnectorEvolutionPlanRecord | undefined>;
+export interface WriteConnectorVersionOptions {
+    id: string;
+    createdAt: string;
+    platformId: string;
+    versionId: string;
+    sequence?: number;
+    /** { manifestPath, recipePath?, adapterPath? } serialized into assetPathsJson. */
+    manifestPath?: string;
+    recipePath?: string;
+    adapterPath?: string;
+    declaredCapabilities?: string[];
+    status?: ConnectorVersionStatus;
+    previousStableRef?: string;
+    rollbackRef?: string;
+    rollbackCommandHint?: string;
+    sourceRefs: SourceRef[];
+    /** Additional payload (gateResults, workspaceRoot, planType) stored in payloadJson. */
+    workspaceRoot?: string;
+    planType?: ConnectorPlanType;
+    gateResults?: GateResult[];
+    activatedAt?: string;
+    rolledBackAt?: string;
+}
+export declare function writeConnectorVersion(db: StateDatabase, options: WriteConnectorVersionOptions): Promise<ConnectorVersionRecord>;
+export declare function readConnectorVersionById(db: StateDatabase, versionId: string): Promise<ConnectorVersionRecord | undefined>;
+export declare function readActiveConnectorVersion(db: StateDatabase, platformId: string): Promise<ConnectorVersionRecord | undefined>;
+export declare function updateConnectorVersionStatus(db: StateDatabase, versionId: string, status: ConnectorVersionStatus, patch?: Partial<{
+    rollbackRef: string;
+    rollbackCommandHint: string;
+    activatedAt: string;
+    rolledBackAt: string;
+}>): Promise<ConnectorVersionRecord | undefined>;
 export interface WriteCharacterFrameOptions {
     id: string;
     createdAt: string;

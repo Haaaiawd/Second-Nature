@@ -24,7 +24,7 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import { eq, and, desc } from "drizzle-orm";
-import { attentionSignal, activityThread, activityStep, toolRoutine, routineExecutionTrace, proceduralProjection, connectorEvolutionPlan, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
+import { attentionSignal, activityThread, activityStep, toolRoutine, routineExecutionTrace, proceduralProjection, connectorEvolutionPlan, connectorVersion, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
@@ -414,6 +414,96 @@ export async function updateConnectorEvolutionPlanStatus(db, id, status, payload
             .select()
             .from(connectorEvolutionPlan)
             .where(eq(connectorEvolutionPlan.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeConnectorVersion(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("connector_version sourceRefs required");
+    }
+    const assetPaths = {};
+    if (options.manifestPath)
+        assetPaths.manifestPath = options.manifestPath;
+    if (options.recipePath)
+        assetPaths.recipePath = options.recipePath;
+    if (options.adapterPath)
+        assetPaths.adapterPath = options.adapterPath;
+    const payload = {};
+    if (options.workspaceRoot)
+        payload.workspaceRoot = options.workspaceRoot;
+    if (options.planType)
+        payload.planType = options.planType;
+    if (options.gateResults)
+        payload.gateResults = options.gateResults;
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        platformId: options.platformId,
+        versionId: options.versionId,
+        sequence: options.sequence,
+        assetPathsJson: Object.keys(assetPaths).length > 0 ? JSON.stringify(assetPaths) : null,
+        declaredCapabilitiesJson: options.declaredCapabilities
+            ? JSON.stringify(options.declaredCapabilities)
+            : null,
+        status: options.status ?? "candidate",
+        previousStableRef: options.previousStableRef,
+        rollbackRef: options.rollbackRef,
+        rollbackCommandHint: options.rollbackCommandHint,
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        payloadJson: Object.keys(payload).length > 0 ? JSON.stringify(payload) : null,
+        activatedAt: options.activatedAt,
+        rolledBackAt: options.rolledBackAt,
+    };
+    await db.db.insert(connectorVersion).values(row).onConflictDoNothing();
+    return row;
+}
+export async function readConnectorVersionById(db, versionId) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorVersion)
+            .where(eq(connectorVersion.versionId, versionId));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function readActiveConnectorVersion(db, platformId) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorVersion)
+            .where(and(eq(connectorVersion.platformId, platformId), eq(connectorVersion.status, "active")))
+            .orderBy(desc(connectorVersion.createdAt));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function updateConnectorVersionStatus(db, versionId, status, patch) {
+    try {
+        const updateSet = { status };
+        if (patch?.rollbackRef !== undefined)
+            updateSet.rollbackRef = patch.rollbackRef;
+        if (patch?.rollbackCommandHint !== undefined)
+            updateSet.rollbackCommandHint = patch.rollbackCommandHint;
+        if (patch?.activatedAt !== undefined)
+            updateSet.activatedAt = patch.activatedAt;
+        if (patch?.rolledBackAt !== undefined)
+            updateSet.rolledBackAt = patch.rolledBackAt;
+        await db.db
+            .update(connectorVersion)
+            .set(updateSet)
+            .where(eq(connectorVersion.versionId, versionId));
+        const rows = await db.db
+            .select()
+            .from(connectorVersion)
+            .where(eq(connectorVersion.versionId, versionId));
         return rows[0];
     }
     catch {
