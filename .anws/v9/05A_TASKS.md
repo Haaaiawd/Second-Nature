@@ -416,7 +416,7 @@ graph TD
   - **依赖**: T5.1.2
   - **优先级**: P1
 
-- [ ] **T6.2.2** [REQ-004][REQ-007]: 实现 ToolRoutine registry、syntax/sandbox validation 与 invocation port
+- [x] **T6.2.2** [REQ-004][REQ-007]: 实现 ToolRoutine registry、syntax/sandbox validation 与 invocation port
   - **描述**: 实现 `ToolRoutine` lifecycle、guard schema syntax validation、sandbox compliance validation、routine invocation trace 和 rollback ref。
   - **输入**: `04_SYSTEM_DESIGN/body-connector-system.detail.md §2 §3.5 §3.6`, `shared-v9-contracts.md §6.3`, `T4.2.2`, `T5.1.2`
   - **输出**: `ToolRoutineRegistry`, `validateGuardSchema`, `invokeToolRoutine`, `RoutineExecutionTrace`

@@ -31,6 +31,7 @@ import {
   activityThread,
   activityStep,
   toolRoutine,
+  routineExecutionTrace,
   proceduralProjection,
   connectorEvolutionPlan,
   characterFrame,
@@ -44,6 +45,8 @@ import {
   type NewActivityStepRecord,
   type ToolRoutineRecord,
   type NewToolRoutineRecord,
+  type RoutineExecutionTraceRecord,
+  type NewRoutineExecutionTraceRecord,
   type ProceduralProjectionRecord,
   type NewProceduralProjectionRecord,
   type ConnectorEvolutionPlanRecord,
@@ -287,7 +290,7 @@ export async function readActivityStepsByThreadId(
 }
 
 // ───────────────────────────────────────────────────────────────
-// ToolRoutine read port (T6.2.1)
+// ToolRoutine read/write ports (T6.2.1 affordance + T6.2.2 registry)
 // ───────────────────────────────────────────────────────────────
 
 export async function readActiveToolRoutinesByCapabilityPattern(
@@ -325,6 +328,14 @@ export async function readToolRoutinesByStatus(
   }
 }
 
+export async function readToolRoutineById(
+  db: StateDatabase,
+  id: string,
+): Promise<ToolRoutineRecord | undefined> {
+  const rows = await db.db.select().from(toolRoutine).where(eq(toolRoutine.id, id));
+  return rows[0];
+}
+
 export interface WriteToolRoutineOptions {
   id: string;
   name: string;
@@ -333,10 +344,48 @@ export interface WriteToolRoutineOptions {
   status?: ToolRoutineRecord["status"];
   sourceRefs: SourceRef[];
   rollbackRef?: string;
+  // T6.2.2: guard evidence refs + ledger linkage + redaction class
+  guardRefs?: SourceRef[];
+  ledgerRef?: string;
+  redactionClass?: ToolRoutineRecord["redactionClass"];
+  // T6.2.2: routine body fields persisted into payloadJson as a single object.
+  // When provided, these are merged into payloadJson alongside any explicit payloadJson.
+  triggerCapabilities?: string[];
+  triggerConditionsJson?: string;
+  stepsJson?: string;
+  guardSchemaJson?: string;
   payloadJson?: string;
   activatedAt?: string;
   retiredAt?: string;
   createdAt: string;
+}
+
+function buildToolRoutinePayloadJson(options: WriteToolRoutineOptions): string | undefined {
+  const explicit = options.payloadJson ? safeParseJson(options.payloadJson) : {};
+  const merged: Record<string, unknown> = { ...(explicit ?? {}) };
+  if (options.triggerCapabilities !== undefined) {
+    merged.triggerCapabilities = options.triggerCapabilities;
+  }
+  if (options.triggerConditionsJson !== undefined) {
+    merged.triggerConditionsJson = options.triggerConditionsJson;
+  }
+  if (options.stepsJson !== undefined) {
+    merged.stepsJson = options.stepsJson;
+  }
+  if (options.guardSchemaJson !== undefined) {
+    merged.guardSchemaJson = options.guardSchemaJson;
+  }
+  if (Object.keys(merged).length === 0) return options.payloadJson;
+  return JSON.stringify(merged);
+}
+
+function safeParseJson(s: string): Record<string, unknown> | null {
+  try {
+    const v = JSON.parse(s);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function writeToolRoutine(
@@ -355,12 +404,113 @@ export async function writeToolRoutine(
     status: options.status ?? "active",
     sourceRefsJson: serializeSourceRefs(options.sourceRefs),
     rollbackRef: options.rollbackRef,
-    payloadJson: options.payloadJson,
+    guardRefsJson: options.guardRefs ? JSON.stringify(options.guardRefs) : undefined,
+    ledgerRef: options.ledgerRef,
+    redactionClass: options.redactionClass ?? "none",
+    payloadJson: buildToolRoutinePayloadJson(options),
     activatedAt: options.activatedAt,
     retiredAt: options.retiredAt,
   };
   await db.db.insert(toolRoutine).values(row);
   return row as ToolRoutineRecord;
+}
+
+export async function updateToolRoutineStatus(
+  db: StateDatabase,
+  id: string,
+  status: ToolRoutineRecord["status"],
+  patch?: Partial<
+    Pick<ToolRoutineRecord, "activatedAt" | "retiredAt" | "ledgerRef" | "payloadJson">
+  >,
+): Promise<ToolRoutineRecord | undefined> {
+  try {
+    const set: Partial<ToolRoutineRecord> = { status, ...patch };
+    await db.db.update(toolRoutine).set(set).where(eq(toolRoutine.id, id));
+    const rows = await db.db.select().from(toolRoutine).where(eq(toolRoutine.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// RoutineExecutionTrace read/write ports (T6.2.2)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteRoutineExecutionTraceOptions {
+  id: string;
+  routineId: string;
+  cycleId: string;
+  status: RoutineExecutionTraceRecord["status"];
+  sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
+  payloadJson?: string;
+  createdAt: string;
+}
+
+export async function writeRoutineExecutionTrace(
+  db: StateDatabase,
+  options: WriteRoutineExecutionTraceOptions,
+): Promise<RoutineExecutionTraceRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("routine_execution_trace sourceRefs required");
+  }
+  const row: NewRoutineExecutionTraceRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    routineId: options.routineId,
+    cycleId: options.cycleId,
+    status: options.status,
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    proofRefsJson: options.proofRefs ? JSON.stringify(options.proofRefs) : undefined,
+    traceRefsJson: options.traceRefs ? JSON.stringify(options.traceRefs) : undefined,
+    payloadJson: options.payloadJson,
+  };
+  await db.db.insert(routineExecutionTrace).values(row);
+  return row as RoutineExecutionTraceRecord;
+}
+
+export async function readRoutineExecutionTracesByRoutine(
+  db: StateDatabase,
+  routineId: string,
+  limit = 50,
+): Promise<{ rows: RoutineExecutionTraceRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(routineExecutionTrace)
+      .where(eq(routineExecutionTrace.routineId, routineId))
+      .orderBy(desc(routineExecutionTrace.createdAt))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readRoutineExecutionTracesByCycle(
+  db: StateDatabase,
+  cycleId: string,
+  limit = 50,
+): Promise<{ rows: RoutineExecutionTraceRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(routineExecutionTrace)
+      .where(eq(routineExecutionTrace.cycleId, cycleId))
+      .orderBy(desc(routineExecutionTrace.createdAt))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
 }
 
 // ───────────────────────────────────────────────────────────────

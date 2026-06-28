@@ -475,6 +475,103 @@ export function parseToolRoutineGuardSchema(
 }
 
 // ───────────────────────────────────────────────────────────────
+// 6.4 ToolRoutine install / invoke / trace contracts (T6.2.2)
+// ───────────────────────────────────────────────────────────────
+
+/**
+ * A single typed step inside a ToolRoutine's `stepsJson`.
+ * - `declarative`: pure data/parameter step, no scriptable adapter execution.
+ * - `scriptable`: workspace sandboxed adapter step (rejected when guard.sandboxPolicy=declarative_only).
+ */
+export interface RoutineStep {
+  stepId: string;
+  kind: "declarative" | "scriptable";
+  capabilityId: string;
+  summary: string;
+  timeoutMs: number;
+}
+
+/**
+ * Install-time routine candidate. Body-connector verifies guard syntax +
+ * sandbox compliance; action-closure-policy-system already evaluated policy
+ * context (passed in as `policyGate`).
+ */
+export interface RoutineCandidate {
+  routineId: string;
+  name: string;
+  version: string;
+  capabilityPattern: string;
+  triggerCapabilities: string[];
+  triggerConditionsJson: string;
+  stepsJson: string;
+  guardSchemaJson: string;
+  rollbackRef: string;
+  sourceRefs: SourceRef[];
+  workspaceRoot: string;
+  previousRoutineId?: string;
+}
+
+export type RoutineInstallStatus = "active" | "denied";
+
+export interface RoutineInstallResult {
+  status: RoutineInstallStatus;
+  reason?: V9ReasonCode;
+  routine?: ToolRoutine;
+  ledgerRef?: string;
+  sourceRefs: SourceRef[];
+  detail?: string;
+}
+
+/**
+ * Invocation-time context. `policyAllowed` is the result of
+ * action-closure-policy-system's invocation-time guard re-evaluation.
+ */
+export interface RoutineInvocationContext {
+  cycleId: string;
+  payload: Record<string, unknown>;
+  sourceRefs: SourceRef[];
+  policyAllowed: boolean;
+  policyReason?: V9ReasonCode;
+  now?: string;
+}
+
+export type RoutineStepOutcome = "success" | "failure" | "skipped" | "denied";
+
+export interface RoutineStepTrace {
+  stepId: string;
+  capabilityId: string;
+  outcome: RoutineStepOutcome;
+  detail?: string;
+  durationMs?: number;
+}
+
+export type RoutineInvocationStatus = "executed" | "denied";
+
+export interface RoutineInvocationResult {
+  status: RoutineInvocationStatus;
+  reason?: V9ReasonCode;
+  trace?: RoutineStepTrace[];
+  traceId?: string;
+  routineId?: string;
+  sourceRefs: SourceRef[];
+}
+
+/**
+ * Persisted trace row shape (mirrors `routine_execution_trace` table).
+ */
+export interface RoutineExecutionTrace {
+  id: string;
+  routineId: string;
+  cycleId: string;
+  status: RoutineInvocationStatus;
+  sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
+  payload?: Record<string, unknown>;
+  createdAt: string;
+}
+
+// ───────────────────────────────────────────────────────────────
 // 7. ConnectorEvolutionPlan & ConnectorVersion
 // ───────────────────────────────────────────────────────────────
 

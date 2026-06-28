@@ -24,7 +24,7 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import type { StateDatabase } from "./db/index.js";
-import { type AttentionSignalRecord, type ActivityThreadRecord, type ActivityStepRecord, type ToolRoutineRecord, type ProceduralProjectionRecord, type ConnectorEvolutionPlanRecord, type CharacterFrameRecord, type SelfContinuityCardRecord, type AutonomousChangeLedgerRecord } from "./db/schema/v9-entities.js";
+import { type AttentionSignalRecord, type ActivityThreadRecord, type ActivityStepRecord, type ToolRoutineRecord, type RoutineExecutionTraceRecord, type ProceduralProjectionRecord, type ConnectorEvolutionPlanRecord, type CharacterFrameRecord, type SelfContinuityCardRecord, type AutonomousChangeLedgerRecord } from "./db/schema/v9-entities.js";
 import type { SourceRef } from "../shared/types/v9-contracts.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
 declare function serializeSourceRefs(refs: SourceRef[]): string;
@@ -87,6 +87,7 @@ export declare function readToolRoutinesByStatus(db: StateDatabase, status: Tool
     rows: ToolRoutineRecord[];
     degraded?: DegradedOperationResult;
 }>;
+export declare function readToolRoutineById(db: StateDatabase, id: string): Promise<ToolRoutineRecord | undefined>;
 export interface WriteToolRoutineOptions {
     id: string;
     name: string;
@@ -95,12 +96,40 @@ export interface WriteToolRoutineOptions {
     status?: ToolRoutineRecord["status"];
     sourceRefs: SourceRef[];
     rollbackRef?: string;
+    guardRefs?: SourceRef[];
+    ledgerRef?: string;
+    redactionClass?: ToolRoutineRecord["redactionClass"];
+    triggerCapabilities?: string[];
+    triggerConditionsJson?: string;
+    stepsJson?: string;
+    guardSchemaJson?: string;
     payloadJson?: string;
     activatedAt?: string;
     retiredAt?: string;
     createdAt: string;
 }
 export declare function writeToolRoutine(db: StateDatabase, options: WriteToolRoutineOptions): Promise<ToolRoutineRecord>;
+export declare function updateToolRoutineStatus(db: StateDatabase, id: string, status: ToolRoutineRecord["status"], patch?: Partial<Pick<ToolRoutineRecord, "activatedAt" | "retiredAt" | "ledgerRef" | "payloadJson">>): Promise<ToolRoutineRecord | undefined>;
+export interface WriteRoutineExecutionTraceOptions {
+    id: string;
+    routineId: string;
+    cycleId: string;
+    status: RoutineExecutionTraceRecord["status"];
+    sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
+    payloadJson?: string;
+    createdAt: string;
+}
+export declare function writeRoutineExecutionTrace(db: StateDatabase, options: WriteRoutineExecutionTraceOptions): Promise<RoutineExecutionTraceRecord>;
+export declare function readRoutineExecutionTracesByRoutine(db: StateDatabase, routineId: string, limit?: number): Promise<{
+    rows: RoutineExecutionTraceRecord[];
+    degraded?: DegradedOperationResult;
+}>;
+export declare function readRoutineExecutionTracesByCycle(db: StateDatabase, cycleId: string, limit?: number): Promise<{
+    rows: RoutineExecutionTraceRecord[];
+    degraded?: DegradedOperationResult;
+}>;
 export interface WriteProceduralProjectionOptions {
     id: string;
     createdAt: string;

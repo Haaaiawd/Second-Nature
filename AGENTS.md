@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 130 完成；T4.2.2 已交付)
-- **当前波次**: Wave 130 ✅ — v9 S3 ToolRoutine Guard Policy Integration
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.2.2 ToolRoutine registry 或 INT-S3
+- **最近一次更新**: `2026-06-28` (Wave 131 完成；T6.2.2 已交付)
+- **当前波次**: Wave 131 ✅ — v9 S3 ToolRoutine Registry & Invocation Port
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.1 connector evolution 7-gate 或 INT-S3
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -294,6 +294,30 @@ T4.2.2
   - code-reviewer: `.anws/v9/wave-reviews/wave-130-review.md` — Pass
 - **下一步**: 按 05A 依赖图选择就绪任务。
 - **说明**: T4.2.2 产出为 v9 routine policy gate；下游 T6.2.2 ToolRoutine registry 与 INT-S3 可继续推进。
+
+### 🌊 Wave 131 ✅ — v9 S3 ToolRoutine Registry & Invocation Port
+T6.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 131 完成（code-reviewer 待执行）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T6.2.2 实现 ToolRoutine registry、guard schema syntax/sandbox validation、routine invocation trace 与 rollback ref，打通 install→invoke→trace 的完整 routine 脊柱
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 新增 §6.4 契约类型：`RoutineStep`、`RoutineCandidate`、`RoutineInstallResult`、`RoutineInvocationContext`、`RoutineStepTrace`、`RoutineInvocationResult`、`RoutineExecutionTrace`
+  - `src/core/second-nature/body/tool-routine/v9-routine-validation.ts` — `validateGuardSchema`（语法+权限扩张）、`validateSandboxCompliance`（declarative_only/scriptable 拒绝、step count/timeout/capability 门禁）、`parseRoutineSteps`
+  - `src/core/second-nature/body/tool-routine/v9-tool-routine-registry.ts` — `installToolRoutine`（§3.5）、`invokeToolRoutine`（§3.6）、`retireToolRoutine`、`loadActiveRoutine`、`listRoutinesByStatus`、`listActiveRoutinesByCapabilityPattern`、`readRoutineTraces`、state-store backed ports factory + ledger port
+  - `src/storage/v9-state-stores.ts` — 扩展 `WriteToolRoutineOptions`（guardRefs/ledgerRef/redactionClass/triggerCapabilities/triggerConditionsJson/stepsJson/guardSchemaJson）、新增 `readToolRoutineById`、`updateToolRoutineStatus`、`writeRoutineExecutionTrace`、`readRoutineExecutionTracesByRoutine`、`readRoutineExecutionTracesByCycle`
+  - `tests/unit/body/v9-tool-routine-registry.test.ts` — 30 tests：guard syntax/expansion、sandbox policy、install active/denied、invoke executed/denied/skipped、retire、read models
+  - `tests/integration/v9/tool-routine-install-invoke.test.ts` — 5 tests：install+invoke+trace 全链路、permission expansion denied、policy denied trace、retire 阻断、read model from DB
+  - `.anws/v9/05A_TASKS.md` — T6.2.2 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1971 tests, 1962 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-131-review.md` 待生成
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.1 connector evolution 7-gate 或 INT-S3。
+- **说明**: T6.2.2 关闭 v9 S3 routine 脊柱——install（guard syntax + sandbox compliance + ledger）→ invoke（policy gate + step trace + RoutineExecutionTrace）→ retire（ledger + status）。下游 T6.3.1 connector evolution 7-gate、INT-S3、T4.2.3 closure trace 可继续推进。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4
