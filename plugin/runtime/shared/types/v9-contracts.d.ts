@@ -877,3 +877,56 @@ export interface AffordanceQuery {
     platformId?: string;
     capabilityId?: string;
 }
+export type EvidenceLevel = "carrier_ack" | "contract_smoke" | "state_present" | "real_runtime" | "durable_verified";
+export type SurfaceMode = "carrier" | "full_runtime" | "workspace_full_runtime";
+export interface DegradedReason {
+    code: string;
+    message: string;
+    system?: string;
+}
+export interface RuntimeDiagnostics {
+    surfaceMode: SurfaceMode;
+    host_tool_unavailable?: boolean;
+    skill_projection_unavailable?: boolean;
+    state_store_unavailable?: boolean;
+    redactedKeys?: string[];
+    latencyMs?: number;
+}
+export interface RuntimeOpsEnvelopeV9<T = unknown> {
+    ok: boolean;
+    command: string;
+    evidenceLevel: EvidenceLevel;
+    surfaceMode: SurfaceMode;
+    payload: T;
+    degradedReasons: DegradedReason[];
+    diagnostics: RuntimeDiagnostics;
+    sourceRefs: SourceRef[];
+    generatedAt: string;
+}
+export interface ContinuityReadResult {
+    status: "available" | "unavailable";
+    card?: SelfContinuityCard;
+    characterFrameProjection?: EmbodiedContextCharacterProjection;
+    unavailableReason?: string;
+    sourceRefs: SourceRef[];
+}
+export interface RoutineReadModel {
+    routineId: string;
+    capabilityRef: string;
+    version: string;
+    status: "installed" | "disabled" | "rollback";
+    installedAt: string;
+    rollbackRef: SourceRef;
+    sourceRefs: SourceRef[];
+}
+export interface ConnectorEvolutionStatusReadModel {
+    planId: string;
+    platformId: string;
+    targetVersion: string;
+    previousStableRef?: SourceRef;
+    gateResults: GateResult[];
+    status: ConnectorEvolutionStatus;
+    activatedAt?: string;
+    rollbackRef?: SourceRef;
+    sourceRefs: SourceRef[];
+}

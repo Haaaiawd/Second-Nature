@@ -62,7 +62,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T1.2.1** [REQ-001][REQ-005][REQ-007]: 实现 v9 ops command surface 与 JSON-first envelope
+- [x] **T1.2.1** [REQ-001][REQ-005][REQ-007]: 实现 v9 ops command surface 与 JSON-first envelope
   - **描述**: 扩展 CLI 与 OpenClaw plugin bridge，暴露 `continuity.read`, `routine.list/show/rollback`, `connector_evolution.status/trigger/rollback`, `loop_status.read`，并通过 `loop_status.read` 返回 activity health 维度与统一 `RuntimeOpsEnvelope`。
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.md §5.1`, `04_SYSTEM_DESIGN/runtime-ops-system.detail.md §5`, `T8.2.1` 产出的 health read ports, `T5.2.2` 产出的 card read port, `T6.2.2` 产出的 routine read port, `T6.3.1` 产出的 evolution port
   - **输出**: `src/cli/ops/ops-router.ts` v9 command handlers, `src/cli/commands/index.ts` registrations, `plugin/workspace-ops-bridge.ts` v9 command allowlist, `RuntimeOpsEnvelope` shared type

@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 136 完成；T8.2.3 已交付)
-- **当前波次**: Wave 136 ✅ — v9 S4 Digest & Timeline Read Models
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.1 或 INT-S4 集成验证
+- **最近一次更新**: `2026-06-28` (Wave 137 完成；T1.2.1 已交付)
+- **当前波次**: Wave 137 ✅ — v9 S1 Runtime Ops Command Surface
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.2 ops redaction 或 T2.2.3 context deadline
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -432,6 +432,27 @@ T8.2.3
   - code-reviewer: `.anws/v9/wave-reviews/wave-136-review.md` — Partial Pass
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.1 或 INT-S4 集成验证。
 - **说明**: T8.2.3 关闭 v9 S4 observability digest/timeline read models 脊柱——digest 聚合 4 health sections + sourceRefCount + redacted output；timeline 支持 family/kind/sourceRef filter + cursor pagination + 7d window clamp + redacted payload on read + character frame event whitelist（§1.5a）。Digest output 通过 ADR-006 safety validation。observability-recovery-system Phase 2 全部完成（T8.2.1 + T8.2.2 + T8.2.3）。
+
+### 🌊 Wave 137 ✅ — v9 S1 Runtime Ops Command Surface
+T1.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 137 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T1.2.1 实现 v9 ops command surface 与 JSON-first envelope
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 新增 RuntimeOpsEnvelopeV9（§2.1：ok/command/evidenceLevel/surfaceMode/payload/degradedReasons/diagnostics/sourceRefs/generatedAt）、EvidenceLevel、SurfaceMode、DegradedReason、RuntimeDiagnostics、ContinuityReadResult（§2.2）、RoutineReadModel（§2.3）、ConnectorEvolutionStatusReadModel（§2.4）
+  - `src/cli/ops/v9-ops-handlers.ts` — 8 v9 command handlers：continuity.read（SelfContinuityCard read）、routine.list/show/rollback（ToolRoutine registry read + rollback stub）、connector_evolution.status/trigger/rollback（evolution plan read + trigger/rollback stubs）、loop_status.read（aggregateLoopStatus with activity health）、dispatchV9OpsCommand（master dispatch）、makeEnvelope/promoteEvidenceLevel（§3.2 evidence level promotion）、carrier mode honest degradation（§4.1）
+  - `tests/api/runtime-ops/v9-ops-surface.test.ts` — 25 tests：continuity.read（carrier/missing workspace/missing state）、routine.list（carrier/missing state）、routine.show（missing id/carrier）、routine.rollback（carrier/missing id/stub）、connector_evolution.status（carrier/missing state）、connector_evolution.trigger（carrier/missing id/stub）、connector_evolution.rollback（carrier/missing id）、loop_status.read（carrier/not wired/with inputs）、dispatchV9OpsCommand（unknown/dispatch/JSON-serializable）
+  - `.anws/v9/05A_TASKS.md` — T1.2.1 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2210 tests, 2201 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-137-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.2 ops redaction 或 T2.2.3 context deadline。
+- **说明**: T1.2.1 关闭 v9 S1 runtime ops command surface 脊柱——8 v9 commands + RuntimeOpsEnvelopeV9 JSON-first envelope + evidenceLevel promotion（carrier_ack→contract_smoke→state_present→real_runtime→durable_verified）+ carrier mode honest degradation + loop_status.read with activity health。routine.rollback/connector_evolution.trigger/rollback 为 stubs（待 T6.3.x integration wiring）。解锁 T1.2.2 ops redaction gate。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4
