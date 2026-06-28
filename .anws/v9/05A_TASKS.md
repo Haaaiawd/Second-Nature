@@ -603,7 +603,7 @@ graph TD
   - **依赖**: T6.3.2, T8.2.1
   - **优先级**: P0
 
-- [ ] **T8.2.3** [REQ-001][REQ-008]: 实现 v9 digest 与 timeline read models
+- [x] **T8.2.3** [REQ-001][REQ-008]: 实现 v9 digest 与 timeline read models
   - **描述**: 扩展 digest/timeline，支持 loop、continuity、routine、connector evolution、character events 的 redacted 查询与分页。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.md §5.1`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §3.8 §3.9 §5.6 §5.7`, `T8.2.1`
   - **输出**: `DigestAssembler` v9 sections, `TimelineQueryService` filters and pagination
