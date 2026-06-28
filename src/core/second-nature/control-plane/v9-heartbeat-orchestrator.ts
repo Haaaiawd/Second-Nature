@@ -353,11 +353,12 @@ function createDefaultActionClosurePort(
 
       const proposal = proposalResult.proposal;
       const affordancePosture = inferAffordancePosture(context, intent);
+      const isCredentialed = affordancePosture.accessLevel === "credentialed";
       const policyContext = {
         affordancePosture,
-        platformPermissionDeclared: false,
+        platformPermissionDeclared: isCredentialed,
         circuitBreakerClosed: true,
-        ownerPreference: false,
+        ownerPreference: isCredentialed,
         credentialHealth: "ok" as const,
       };
 

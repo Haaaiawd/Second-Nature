@@ -312,6 +312,13 @@ export interface ToolRoutineGuardSchema {
     maxTimeoutMs: number;
     sandboxPolicy: "strict" | "declarative_only";
 }
+export declare function parseToolRoutineGuardSchema(input: string | Record<string, unknown> | ToolRoutineGuardSchema | undefined): {
+    ok: true;
+    guard: ToolRoutineGuardSchema;
+} | {
+    ok: false;
+    reason: string;
+};
 export type ConnectorPlanType = "manifest_delta" | "recipe_delta" | "adapter_delta";
 export type ConnectorEvolutionStatus = "proposed" | "gating" | "activated" | "rolled_back" | "blocked";
 export type ConnectorVersionStatus = "candidate" | "staged" | "active" | "rolled_back";
@@ -462,10 +469,12 @@ export interface AttentionSignalRef {
 export interface ToolRoutineReadModel {
     routineId: string;
     capabilityPattern: string;
+    triggerCapabilities: string[];
     version: string;
     status: RoutineRegistryStatus;
     sourceRefs: SourceRef[];
     rollbackRef?: SourceRef;
+    guardSchemaJson?: string;
 }
 export interface PolicyEvaluationContext {
     affordancePosture: AffordancePosture;
@@ -478,8 +487,10 @@ export interface RoutineInvocation {
     routineId: string;
     version: string;
     capabilityPattern: string;
+    triggerCapabilities: string[];
     payload: Record<string, unknown>;
     sourceRefs: SourceRef[];
+    guardSchemaJson?: string;
 }
 export interface ActionProposal {
     id: string;
@@ -487,6 +498,8 @@ export interface ActionProposal {
     actionKind: PlatformNeutralActionKind;
     targetPlatformId?: string;
     targetCapabilityId?: string;
+    capabilityPattern?: string;
+    triggerCapabilities?: string[];
     sourceRefs: SourceRef[];
     proofRefs: SourceRef[];
     reason: V9ReasonCode;
@@ -495,6 +508,7 @@ export interface ActionProposal {
     idempotencyKey: string;
     routineInvocationId?: string;
     routineVersion?: string;
+    guard?: ToolRoutineGuardSchema;
     createdAt: string;
 }
 export interface ActionPolicyDecision {
@@ -506,10 +520,6 @@ export interface ActionPolicyDecision {
     downgradedActionKind?: PlatformNeutralActionKind;
     proofRefs: SourceRef[];
     decidedAt: string;
-}
-export interface RoutinePolicyEvaluationContext extends PolicyEvaluationContext {
-    guard: ToolRoutineGuardSchema;
-    routineSourceRefs: SourceRef[];
 }
 export type RoutineInvocationProposal = Omit<ActionProposal, "actionKind" | "sideEffectClass"> & {
     actionKind: "routine";

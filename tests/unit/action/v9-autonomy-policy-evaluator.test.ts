@@ -17,7 +17,21 @@ import {
   evaluateV9ActionPolicy,
   type EvaluateV9ActionPolicyContext,
 } from "../../../src/core/second-nature/action/v9-autonomy-policy-evaluator.js";
-import type { ActionProposal } from "../../../src/shared/types/v9-contracts.js";
+import type { ActionProposal, ToolRoutineGuardSchema } from "../../../src/shared/types/v9-contracts.js";
+
+function makeGuard(overrides: Partial<ToolRoutineGuardSchema> = {}): ToolRoutineGuardSchema {
+  return {
+    version: "1.0.0",
+    allowedCapabilities: ["feed.read"],
+    deniedCapabilities: [],
+    maxSideEffectClass: "owner_attention",
+    requiresOwnerConfirm: false,
+    maxStepCount: 10,
+    maxTimeoutMs: 5000,
+    sandboxPolicy: "declarative_only",
+    ...overrides,
+  };
+}
 
 function makeProposal(
   overrides: Partial<ActionProposal> = {},
@@ -94,7 +108,7 @@ describe("v9-autonomy-policy-evaluator", () => {
         makeContext(),
       );
       assert.equal(decision.decision, "deny");
-      assert.equal(decision.decisionReason, "policy_denied_missing_permission");
+      assert.equal(decision.decisionReason, "policy_denied_missing_sources");
     });
   });
 
@@ -109,7 +123,7 @@ describe("v9-autonomy-policy-evaluator", () => {
         makeContext(),
       );
       assert.equal(decision.decision, "deny");
-      assert.equal(decision.decisionReason, "policy_denied_missing_permission");
+      assert.equal(decision.decisionReason, "policy_denied_missing_sources");
     });
 
     it("denies blocked risk", () => {
@@ -194,7 +208,7 @@ describe("v9-autonomy-policy-evaluator", () => {
         makeContext(),
       );
       assert.equal(decision.decision, "deny");
-      assert.equal(decision.decisionReason, "policy_denied_missing_permission");
+      assert.equal(decision.decisionReason, "policy_denied_missing_sources");
     });
   });
 
@@ -233,6 +247,10 @@ describe("v9-autonomy-policy-evaluator", () => {
           sideEffectClass: "routine",
           routineInvocationId: "routine-1",
           routineVersion: "1.0.0",
+          targetCapabilityId: "feed.read",
+          capabilityPattern: "feed.read",
+          triggerCapabilities: ["feed.read"],
+          guard: makeGuard(),
         }),
         makeContext({ routineStatus: "active" }),
       );
@@ -257,6 +275,13 @@ describe("v9-autonomy-policy-evaluator", () => {
         makeProposal({
           actionKind: "routine",
           sideEffectClass: "routine",
+          targetCapabilityId: "feed.write",
+          capabilityPattern: "feed.write",
+          triggerCapabilities: ["feed.write"],
+          guard: makeGuard({
+            allowedCapabilities: ["feed.write"],
+            maxSideEffectClass: "external_write",
+          }),
         }),
         makeContext({
           routineStatus: "active",

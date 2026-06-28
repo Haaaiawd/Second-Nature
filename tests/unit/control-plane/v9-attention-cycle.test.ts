@@ -189,6 +189,7 @@ describe("v9-heartbeat-orchestrator", () => {
         routineId: "routine-1",
         version: "1.0.0",
         capabilityPattern: "moltbook:feed.read",
+        triggerCapabilities: ["moltbook:feed.read"],
         payload: {},
         sourceRefs: [{ family: "routine", id: "routine-1" }],
       },

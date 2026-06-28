@@ -27,12 +27,14 @@
 import {
   type ActionPolicyDecision,
   type ActionProposal,
+  type ActionSideEffectClass,
   type PlatformNeutralActionKind,
   type PolicyEvaluationContext,
   type RoutineRegistryStatus,
   type SourceRef,
   type V9ReasonCode,
   V9_ACTION_KIND_REGISTRY,
+  parseToolRoutineGuardSchema,
 } from "../../../shared/types/v9-contracts.js";
 
 // ───────────────────────────────────────────────────────────────
@@ -76,9 +78,171 @@ function buildProofRefs(
   ];
 }
 
-// ───────────────────────────────────────────────────────────────
-// Public API
-// ───────────────────────────────────────────────────────────────
+const SIDE_EFFECT_CLASS_RANK: Record<
+  "none" | "owner_attention" | "external_write",
+  number
+> = {
+  none: 0,
+  owner_attention: 1,
+  external_write: 2,
+};
+
+function matchesCapabilityPattern(
+  capabilityId: string,
+  pattern: string,
+): boolean {
+  if (pattern === capabilityId) return true;
+  // Simple glob support: "*" matches any segment, "?" matches single char.
+  const regex = new RegExp(
+    "^" + pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".") + "$",
+  );
+  return regex.test(capabilityId);
+}
+
+function isCapabilityInTriggerSet(
+  capabilityId: string,
+  triggerCapabilities: string[] | undefined,
+  capabilityPattern: string | undefined,
+): boolean {
+  if (triggerCapabilities?.some((tc) => tc === capabilityId)) return true;
+  if (capabilityPattern && matchesCapabilityPattern(capabilityId, capabilityPattern)) return true;
+  return false;
+}
+
+/**
+ * Infer the side-effect class ceiling of a capability from its id.
+ * This is an interim heuristic until T6.2.2 provides a capability metadata registry.
+ */
+function inferCapabilitySideEffectClass(
+  capabilityId: string,
+): "none" | "owner_attention" | "external_write" {
+  const lastSegment = capabilityId.split(":").pop() ?? "";
+  const actionHint = lastSegment.split(".").pop() ?? "";
+  const writeHints = new Set([
+    "write",
+    "claim",
+    "publish",
+    "reply",
+    "send",
+    "post",
+    "create",
+    "update",
+    "delete",
+    "submit",
+  ]);
+  const notifyHints = new Set(["notify", "alert", "remind", "prompt"]);
+  if (writeHints.has(actionHint)) return "external_write";
+  if (notifyHints.has(actionHint)) return "owner_attention";
+  return "owner_attention"; // read/search/inspect default to owner-attention ceiling
+}
+
+function maxOfTriggerCapabilities(
+  triggerCapabilities: string[] | undefined,
+  capabilityPattern: string | undefined,
+  targetCapabilityId: string | undefined,
+): "none" | "owner_attention" | "external_write" {
+  const candidates: string[] = [];
+  if (triggerCapabilities?.length) candidates.push(...triggerCapabilities);
+  if (capabilityPattern) candidates.push(capabilityPattern);
+  if (targetCapabilityId && candidates.length === 0) candidates.push(targetCapabilityId);
+
+  if (candidates.length === 0) return "none";
+
+  let maxRank = 0;
+  for (const cap of candidates) {
+    const cls = inferCapabilitySideEffectClass(cap);
+    maxRank = Math.max(maxRank, SIDE_EFFECT_CLASS_RANK[cls]);
+  }
+  if (maxRank >= 2) return "external_write";
+  if (maxRank >= 1) return "owner_attention";
+  return "none";
+}
+
+function evaluateRoutineGuard(
+  proposal: ActionProposal,
+  context: EvaluateV9ActionPolicyContext,
+): { decision?: ActionPolicyDecision["decision"]; reason?: V9ReasonCode; autonomyLevel?: ActionPolicyDecision["autonomyLevel"]; downgradedActionKind?: PlatformNeutralActionKind } {
+  const targetCapabilityId = proposal.targetCapabilityId;
+  const triggerCapabilities = proposal.triggerCapabilities;
+  const capabilityPattern = proposal.capabilityPattern;
+
+  // Missing or unparseable guard schema is a policy denial.
+  if (!proposal.guard) {
+    return { decision: "deny", reason: "routine_guard_policy_denied", autonomyLevel: "none" };
+  }
+  const guard = proposal.guard;
+
+  // Guard schema structural validation (should already be parsed, but re-validate defensively).
+  const parsed = parseToolRoutineGuardSchema(guard);
+  if (!parsed.ok) {
+    return { decision: "deny", reason: "routine_guard_schema_invalid", autonomyLevel: "none" };
+  }
+
+  // Permission expansion: allowed capabilities must not exceed the routine's trigger provenance.
+  const expansionCheckTarget = targetCapabilityId ?? capabilityPattern;
+  if (expansionCheckTarget) {
+    const expandsCapability = guard.allowedCapabilities.some(
+      (cap) => !isCapabilityInTriggerSet(cap, triggerCapabilities, capabilityPattern),
+    );
+    if (expandsCapability) {
+      return { decision: "deny", reason: "routine_permission_expansion_denied", autonomyLevel: "none" };
+    }
+  }
+
+  // Denied capability list blocks invocation of any matching capability.
+  const deniedMatch = guard.deniedCapabilities.find(
+    (cap) =>
+      cap === targetCapabilityId ||
+      cap === capabilityPattern ||
+      isCapabilityInTriggerSet(cap, triggerCapabilities, capabilityPattern),
+  );
+  if (deniedMatch) {
+    return { decision: "deny", reason: "routine_guard_policy_denied", autonomyLevel: "none" };
+  }
+
+  // Side-effect class ceiling: guard may not claim a higher side-effect class than the
+  // routine's trigger capability provenance.
+  const triggerMaxClass = maxOfTriggerCapabilities(
+    triggerCapabilities,
+    capabilityPattern,
+    targetCapabilityId,
+  );
+  if (
+    SIDE_EFFECT_CLASS_RANK[guard.maxSideEffectClass] >
+    SIDE_EFFECT_CLASS_RANK[triggerMaxClass]
+  ) {
+    return { decision: "deny", reason: "routine_permission_expansion_denied", autonomyLevel: "none" };
+  }
+
+  // Invocation-time policy context for external_write ceiling.
+  if (
+    guard.maxSideEffectClass === "external_write" &&
+    (!context.platformPermissionDeclared || !context.circuitBreakerClosed || !context.ownerPreference)
+  ) {
+    return { decision: "deny", reason: "routine_guard_policy_denied", autonomyLevel: "none" };
+  }
+
+  // owner_attention ceiling requires owner preference.
+  if (
+    guard.maxSideEffectClass === "owner_attention" &&
+    !context.ownerPreference
+  ) {
+    return { decision: "deny", reason: "routine_guard_policy_denied", autonomyLevel: "none" };
+  }
+
+  // requiresOwnerConfirm overrides autonomy to owner_confirm.
+  if (guard.requiresOwnerConfirm) {
+    const target = downgradeTarget(proposal.actionKind);
+    return {
+      decision: "downgrade",
+      reason: "policy_downgraded_to_draft",
+      autonomyLevel: "owner_confirm",
+      downgradedActionKind: target,
+    };
+  }
+
+  return {};
+}
 
 export function evaluateV9ActionPolicy(
   proposal: ActionProposal,
@@ -113,7 +277,7 @@ export function evaluateV9ActionPolicy(
     proposal.sourceRefs.length === 0 &&
     proposal.sideEffectClass !== "none"
   ) {
-    return decision("deny", "policy_denied_missing_permission", "none");
+    return decision("deny", "policy_denied_missing_sources", "none");
   }
 
   // 2. Risk blocked → deny.
@@ -121,18 +285,22 @@ export function evaluateV9ActionPolicy(
     return decision("deny", "policy_denied_high_risk", "none");
   }
 
-  // 3. Routine proposal → active + healthy context required.
+  // 3. Routine proposal → active + guard evaluation required.
   if (proposal.sideEffectClass === "routine") {
     if (context.routineStatus !== "active") {
       return decision("deny", "routine_invocation_denied", "none");
     }
-    if (
-      !context.platformPermissionDeclared ||
-      !context.circuitBreakerClosed ||
-      !context.ownerPreference
-    ) {
-      return decision("deny", "routine_guard_policy_denied", "none");
+
+    const guardResult = evaluateRoutineGuard(proposal, context);
+    if (guardResult.decision) {
+      return decision(
+        guardResult.decision,
+        guardResult.reason ?? "routine_guard_policy_denied",
+        guardResult.autonomyLevel ?? "none",
+        guardResult.downgradedActionKind,
+      );
     }
+
     return decision("allow", "policy_allowed", "auto_allowed");
   }
 

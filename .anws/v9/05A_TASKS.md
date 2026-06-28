@@ -251,7 +251,7 @@ graph TD
   - **依赖**: T3.2.1, T2.2.4
   - **优先级**: P0
 
-- [ ] **T4.2.2** [REQ-004][REQ-007]: 集成 `ToolRoutineGuardSchema` 到 policy evaluator
+- [x] **T4.2.2** [REQ-004][REQ-007]: 集成 `ToolRoutineGuardSchema` 到 policy evaluator
   - **描述**: 在 routine install/invocation 时由 action policy 复核 guard 的 permission expansion、owner confirm、breaker、permission 与 owner preference。
   - **输入**: `shared-v9-contracts.md §6.3`, `04_SYSTEM_DESIGN/action-closure-policy-system.detail.md §2.3 §4.2`, `T5.1.1`, `T4.2.1`
   - **输出**: `RoutinePolicyEvaluationContext`, guard policy evaluator branches, `routine_permission_expansion_denied` reason

@@ -59,6 +59,7 @@ function makeRoutineInvocation(
     routineId: "routine-1",
     version: "1.0.0",
     capabilityPattern: "moltbook:feed.read",
+    triggerCapabilities: ["moltbook:feed.read"],
     payload: { limit: 10 },
     sourceRefs: [{ family: "routine", id: "routine-1" }],
     ...overrides,
@@ -71,6 +72,7 @@ function makeRoutineReadModel(
   return {
     routineId: "routine-1",
     capabilityPattern: "moltbook:feed.read",
+    triggerCapabilities: ["moltbook:feed.read"],
     version: "1.0.0",
     status: "active",
     sourceRefs: [{ family: "routine", id: "routine-1" }],

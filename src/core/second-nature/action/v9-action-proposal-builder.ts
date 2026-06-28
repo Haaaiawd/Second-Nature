@@ -45,6 +45,7 @@ import {
   type ToolRoutineReadModel,
   type V9ReasonCode,
   V9_ACTION_KIND_REGISTRY,
+  parseToolRoutineGuardSchema,
 } from "../../../shared/types/v9-contracts.js";
 
 // ───────────────────────────────────────────────────────────────
@@ -203,6 +204,8 @@ export function buildV9ActionProposal(
   let selectedKind: PlatformNeutralActionKind | undefined;
   let targetPlatformId: string | undefined;
   let targetCapabilityId: string | undefined;
+  let capabilityPattern: string | undefined;
+  let triggerCapabilities: string[] | undefined;
   let intentSourceRefs: SourceRef[] = [];
   let routineInvocationId: string | undefined;
   let routineVersion: string | undefined;
@@ -218,6 +221,8 @@ export function buildV9ActionProposal(
       targetCapabilityId =
         agentIntent.routineInvocation.capabilityPattern ??
         agentIntent.targetCapabilityId;
+      capabilityPattern = agentIntent.routineInvocation.capabilityPattern;
+      triggerCapabilities = agentIntent.routineInvocation.triggerCapabilities;
       routineInvocationId = agentIntent.routineInvocation.routineId;
       routineVersion = agentIntent.routineInvocation.version;
       intentSourceRefs = dedupeSourceRefs([
@@ -290,12 +295,33 @@ export function buildV9ActionProposal(
   const riskPosture = computeRiskPosture(selectedKind, attentionRefs);
   const reason: V9ReasonCode = "proposal_created";
 
+  // Parse routine guard schema if present.
+  let guard: ActionProposal["guard"];
+  if (selectedKind === "routine") {
+    const guardInput =
+      agentIntent?.routineInvocation?.guardSchemaJson ??
+      routineReadModel?.guardSchemaJson;
+    const parsed = parseToolRoutineGuardSchema(guardInput);
+    if (parsed.ok) {
+      guard = parsed.guard;
+    }
+    // Fall back to read model for routine provenance when invocation omitted it.
+    if (!capabilityPattern && routineReadModel?.capabilityPattern) {
+      capabilityPattern = routineReadModel.capabilityPattern;
+    }
+    if (!triggerCapabilities?.length && routineReadModel?.triggerCapabilities) {
+      triggerCapabilities = routineReadModel.triggerCapabilities;
+    }
+  }
+
   const proposal: ActionProposal = {
     id: generateId("prop"),
     cycleId,
     actionKind: selectedKind,
     targetPlatformId,
     targetCapabilityId,
+    capabilityPattern,
+    triggerCapabilities,
     sourceRefs,
     proofRefs: [],
     reason,
@@ -308,6 +334,7 @@ export function buildV9ActionProposal(
     ),
     routineInvocationId,
     routineVersion,
+    guard,
     createdAt: now,
   };
 
