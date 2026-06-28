@@ -584,7 +584,7 @@ graph TD
   - **依赖**: T8.1.1, T2.2.1, T2.2.4, T6.3.1, T7.2.2
   - **优先级**: P0
 
-- [ ] **T8.2.2** [REQ-007]: 实现 rollback liveness watchdog 与 missing-event 推断
+- [x] **T8.2.2** [REQ-007]: 实现 rollback liveness watchdog 与 missing-event 推断
   - **描述**: 监听 `ConnectorEvolutionPlan` rollback 状态，当超过时间/heartbeat 阈值且缺少 rollback success/failure event 时写入 inferred `rollback_failed`，并将 loop health 提升为 blocked。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §1.7 §3.7 §5.4`, `04_SYSTEM_DESIGN/body-connector-system.detail.md §3.9`, `T6.3.2`, `T8.2.1`
   - **输出**: `RollbackHealthGate`, watchdog scheduler/read path, inferred stage event

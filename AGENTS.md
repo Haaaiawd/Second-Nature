@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 134 完成；T8.1.2 + T8.2.1 已交付)
-- **当前波次**: Wave 134 ✅ — v9 S4 Redaction Projector + Loop Health Aggregator
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.2 rollback watchdog 或 T8.2.3 digest/timeline
+- **最近一次更新**: `2026-06-28` (Wave 135 完成；T8.2.2 已交付)
+- **当前波次**: Wave 135 ✅ — v9 S4 Rollback Liveness Watchdog
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.3 digest/timeline 或 T1.2.1
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -390,6 +390,27 @@ T8.1.2, T8.2.1
   - code-reviewer: `.anws/v9/wave-reviews/wave-134-review.md` — Partial Pass
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.2 rollback watchdog 或 T8.2.3 digest/timeline。
 - **说明**: T8.1.2 + T8.2.1 关闭 v9 S4 observability redaction + health aggregation 脊柱——credential value 检测（pattern-based，非 cryptographic）+ structure-preserving redaction + ledger_redaction_blocked + 13-stage loop health attribution + activity/continuity/routine/evolution/character health monitors + composite overall。Character summary 通过 ADR-006 safety validation。解锁 T8.2.2、T8.2.3、T1.2.1。
+
+### 🌊 Wave 135 ✅ — v9 S4 Rollback Liveness Watchdog
+T8.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 135 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T8.2.2 实现 rollback liveness watchdog 与 missing-event 推断
+- **产出**:
+  - `src/observability/v9-rollback-health-gate.ts` — rollbackHealthGate（§3.7：success/failure/timeout-inference/heartbeat-count-inference/pending）、rollbackHealthGateBatch（批量 watchdog sweep）、needsWatchdogMonitoring（gating/blocked 过滤）、ROLLBACK_WATCHDOG 常量（MAX_WAIT_MS=30s, MAX_HEARTBEATS=5）
+  - `tests/unit/observability/v9-rollback-watchdog.test.ts` — 21 tests：success、explicit failure、timeout inference、heartbeat-count inference、pending、no monitoring needed、event filtering、batch evaluation、needsWatchdogMonitoring
+  - `tests/integration/v9/rollback-liveness-gate.test.ts` — 6 tests：timeout inference → blocked、inferred event → aggregateLoopHealth → blocked、explicit success → healthy、explicit failure → blocked、heartbeat-count inference、within thresholds → degraded
+  - `.anws/v9/05A_TASKS.md` — T8.2.2 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2144 tests, 2135 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-135-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.3 digest/timeline 或 T1.2.1。
+- **说明**: T8.2.2 关闭 DR-05 rollback liveness gap——当 plan 处于 gating/blocked 状态超过 MAX_WAIT_MS(30s) 或 MAX_HEARTBEATS(5) 且缺少 rollback event 时，watchdog 推断 rollback_failed 并发射 inferred stage event，aggregateLoopHealth 看到 → overall = blocked。适配：§3.7 pseudocode 使用 `rolling_back` 状态，但 ConnectorEvolutionStatus 契约只有 `gating`/`blocked`，实现按契约适配。解锁 T8.2.3 的 rollback health 维度。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4
