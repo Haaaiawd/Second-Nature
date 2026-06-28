@@ -89,11 +89,27 @@ export interface LedgerWritePort {
   }): Promise<{ id: string }>;
 }
 
+/**
+ * Optional file-level rollback hook (T6.3.2).
+ * When provided, `rollbackConnectorVersion` will call this after DB-level
+ * rollback to swap workspace asset files (manifest/recipe/adapter) from
+ * the previous version back over the current version.
+ */
+export interface FileRollbackPort {
+  rollbackFiles(
+    currentAssets: { manifestPath?: string; recipePath?: string; adapterPath?: string },
+    previousAssets: { manifestPath?: string; recipePath?: string; adapterPath?: string },
+    workspaceRoot: string,
+  ): Promise<{ rolledBack: string[]; skipped: string[] }>;
+}
+
 export interface ConnectorEvolutionEngineDeps {
   store: ConnectorVersionStorePort;
   ledger: LedgerWritePort;
   observability: StageEventSink;
   gates: GateDeps;
+  /** Optional file-level rollback (T6.3.2). When absent, only DB-level rollback runs. */
+  fileRollback?: FileRollbackPort;
   generateId?: () => string;
   now?: () => string;
 }
@@ -369,6 +385,45 @@ export async function rollbackConnectorVersion(
     activatedAt: now(),
   });
 
+  // T6.3.2: File-level rollback — swap workspace asset files from previous version.
+  let fileRollbackResult: { rolledBack: string[]; skipped: string[] } | undefined;
+  if (deps.fileRollback) {
+    try {
+      fileRollbackResult = await deps.fileRollback.rollbackFiles(
+        {
+          manifestPath: current.manifestPath,
+          recipePath: current.recipePath,
+          adapterPath: current.adapterPath,
+        },
+        {
+          manifestPath: previous.manifestPath,
+          recipePath: previous.recipePath,
+          adapterPath: previous.adapterPath,
+        },
+        current.workspaceRoot,
+      );
+      await deps.observability.recordStageEvent({
+        stage: "rollback",
+        platformId: current.platformId,
+        versionId: current.versionId,
+        outcome: "ok",
+        reasonCode: "file_rollback_completed",
+        sourceRefs: current.sourceRefs,
+      });
+    } catch (err) {
+      // File rollback failure is non-fatal — DB-level rollback already succeeded.
+      // Log and continue; operator can manually restore files using rollbackCommandHint.
+      await deps.observability.recordStageEvent({
+        stage: "rollback",
+        platformId: current.platformId,
+        versionId: current.versionId,
+        outcome: "ok",
+        reasonCode: "file_rollback_failed_db_rollback_succeeded",
+        sourceRefs: current.sourceRefs,
+      });
+    }
+  }
+
   await deps.observability.recordStageEvent({
     stage: "rollback",
     platformId: current.platformId,
@@ -378,7 +433,11 @@ export async function rollbackConnectorVersion(
     sourceRefs: current.sourceRefs,
   });
 
-  return { status: "rolled_back", restoredVersionId: previous.versionId };
+  return {
+    status: "rolled_back",
+    restoredVersionId: previous.versionId,
+    fileRollback: fileRollbackResult,
+  };
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -567,6 +626,21 @@ export function createStateStoreLedgerPort(db: StateDatabase): LedgerWritePort {
         activatedAt: entry.activatedAt,
       });
       return { id: row.id };
+    },
+  };
+}
+
+/**
+ * File-system backed file rollback port (T6.3.2).
+ * Uses `rollbackConnectorFiles` from v9-connector-file-ops to swap
+ * workspace asset files from the previous version.
+ */
+import { rollbackConnectorFiles } from "./v9-connector-file-ops.js";
+
+export function createFileRollbackPort(): FileRollbackPort {
+  return {
+    async rollbackFiles(currentAssets, previousAssets, workspaceRoot) {
+      return rollbackConnectorFiles(currentAssets, previousAssets, workspaceRoot);
     },
   };
 }

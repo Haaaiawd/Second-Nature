@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 132 完成；T6.3.1 已交付；code-reviewer Partial Pass)
-- **当前波次**: Wave 133 🔄 — v9 S3 Connector Rollback & V8 Manifest Migration
-- **下一步**: T6.3.2 实现 connector rollback 与 v8 manifest migration
+- **最近一次更新**: `2026-06-28` (Wave 133 完成；T6.3.2 已交付)
+- **当前波次**: Wave 133 ✅ — v9 S3 Connector Rollback & V8 Manifest Migration
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.1.2 redaction projector 或 T8.2.1 health aggregator
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -343,17 +343,29 @@ T6.3.1
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.3.2 connector rollback 或 T8.1.2 redaction projector。
 - **说明**: T6.3.1 关闭 v9 S3 connector evolution 7-gate 脊柱——pre-activation gates（schema→permission→sandbox→fixture→wet_probe→rollback_setup）→ activate + ledger → post-activation canary → rollback on fail。Gate 函数为结构化验证器，真实 adapter 执行（fixture run、wet probe network call）由 T6.3.2 提供。解锁 T6.3.2、T1.2.1、T8.2.1、T8.2.2。
 
-### 🌊 Wave 133 🧭 — v9 S3 Connector Rollback & V8 Manifest Migration
+### 🌊 Wave 133 ✅ — v9 S3 Connector Rollback & V8 Manifest Migration
 T6.3.2
 **签入**: AUTO
 **code-reviewer**: 默认执行
-- **状态**: 🔄 Wave 133 进行中
+- **状态**: ✅ Wave 133 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
 - **分支**: `feature/wave-119-v9-contract-spine`
 - **任务**: T6.3.2 实现 connector rollback 命令、v8 manifest migration 与 workspace file 回滚
-- **产出**: 待交付
-- **验证**: 待执行
-- **下一步**: 完成 Wave 133 后按 05A 依赖图选择就绪任务。
-- **说明**: T6.3.2 是 T6.3.1 的直接下游，提供真实 workspace file 回滚 + v8 manifest 兼容迁移。解锁 T8.2.3。
+- **产出**:
+  - `src/core/second-nature/body/connector-evolution/v9-connector-file-ops.ts` — file lock（advisory lockfile + timeout）、atomic write（temp + rename）、safeReadJson/safeReadYaml、rollbackConnectorFiles（swap manifest/recipe/adapter from previous version）
+  - `src/core/second-nature/body/connector-evolution/v9-manifest-migration.ts` — V8ConnectorManifest interface、migrateV8ConnectorManifest（§3.11：v8 manifest → candidate ConnectorVersion with fixture/wet_probe/canary gates pending）、scanAndMigrateV8Manifests（scan connectors dir, skip platforms with existing v9 version）
+  - `src/core/second-nature/body/connector-evolution/v9-connector-evolution-engine.ts` — 扩展 FileRollbackPort + createFileRollbackPort factory；rollbackConnectorVersion 集成 file-level rollback（DB rollback → file swap → ledger → observability）
+  - `src/shared/types/v9-contracts.ts` — RollbackResult 新增 fileRollback 字段
+  - `tests/integration/connectors/v9-manifest-migration.test.ts` — 13 tests：v8 manifest.json/yaml migration、skip when v9 exists、skip when migrated exists、scanAndMigrate、file ops（atomic write/safe read/lock/rollback）、rollbackConnectorVersion with file rollback
+  - `tests/api/runtime-ops/v9-connector-rollback.test.ts` — 4 tests：before/after rollback state、file swap、blocked when no previous
+  - `.anws/v9/05A_TASKS.md` — T6.3.2 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2030 tests, 2021 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-133-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.1.2 redaction projector 或 T8.2.1 health aggregator。
+- **说明**: T6.3.2 关闭 v9 S3 connector rollback + v8 manifest migration 脊柱——file lock + atomic write + file rollback + v8 manifest → candidate migration（fixture/wet_probe/canary gates pending）。rollbackConnectorVersion 现在同时执行 DB-level + file-level rollback，file rollback 失败不阻塞 DB rollback（non-fatal degradation）。解锁 T8.2.3。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4

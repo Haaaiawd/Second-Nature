@@ -456,7 +456,7 @@ graph TD
   - **依赖**: T5.2.1, T8.1.1
   - **优先级**: P0
 
-- [ ] **T6.3.2** [REQ-005][REQ-007]: 实现 connector rollback 与 v8 manifest migration
+- [x] **T6.3.2** [REQ-005][REQ-007]: 实现 connector rollback 与 v8 manifest migration
   - **描述**: 实现 `rollbackConnectorVersion`、v8 manifest → candidate `ConnectorVersion` migration、file lock 与 atomic rename 策略。
   - **输入**: `04_SYSTEM_DESIGN/body-connector-system.detail.md §1 §3.9 §3.11 §5`, `T6.3.1`
   - **输出**: migration scanner, rollback port, file lock/atomic write helpers

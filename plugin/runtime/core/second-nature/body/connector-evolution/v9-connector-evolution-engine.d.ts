@@ -63,11 +63,33 @@ export interface LedgerWritePort {
         id: string;
     }>;
 }
+/**
+ * Optional file-level rollback hook (T6.3.2).
+ * When provided, `rollbackConnectorVersion` will call this after DB-level
+ * rollback to swap workspace asset files (manifest/recipe/adapter) from
+ * the previous version back over the current version.
+ */
+export interface FileRollbackPort {
+    rollbackFiles(currentAssets: {
+        manifestPath?: string;
+        recipePath?: string;
+        adapterPath?: string;
+    }, previousAssets: {
+        manifestPath?: string;
+        recipePath?: string;
+        adapterPath?: string;
+    }, workspaceRoot: string): Promise<{
+        rolledBack: string[];
+        skipped: string[];
+    }>;
+}
 export interface ConnectorEvolutionEngineDeps {
     store: ConnectorVersionStorePort;
     ledger: LedgerWritePort;
     observability: StageEventSink;
     gates: GateDeps;
+    /** Optional file-level rollback (T6.3.2). When absent, only DB-level rollback runs. */
+    fileRollback?: FileRollbackPort;
     generateId?: () => string;
     now?: () => string;
 }
@@ -86,3 +108,4 @@ export declare function rollbackConnectorVersion(versionId: string, deps: Connec
 import type { StateDatabase } from "../../../../storage/db/index.js";
 export declare function createStateStoreVersionPort(db: StateDatabase): ConnectorVersionStorePort;
 export declare function createStateStoreLedgerPort(db: StateDatabase): LedgerWritePort;
+export declare function createFileRollbackPort(): FileRollbackPort;

@@ -455,6 +455,11 @@ export interface RollbackResult {
     status: "rolled_back" | "blocked";
     restoredVersionId?: string;
     reason?: string;
+    /** T6.3.2: File-level rollback result (present when fileRollback port is configured). */
+    fileRollback?: {
+        rolledBack: string[];
+        skipped: string[];
+    };
 }
 export interface EvolutionApplyResult {
     status: "active" | "blocked" | "rolled_back";
