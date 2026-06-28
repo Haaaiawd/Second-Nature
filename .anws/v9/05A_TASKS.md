@@ -544,7 +544,7 @@ graph TD
   - **依赖**: T5.1.1, T5.1.2
   - **优先级**: P0
 
-- [ ] **T8.1.2** [REQ-007][REQ-008]: 扩展 redaction projector 覆盖 ledger、timeline 与 CharacterFrame events
+- [x] **T8.1.2** [REQ-007][REQ-008]: 扩展 redaction projector 覆盖 ledger、timeline 与 CharacterFrame events
   - **描述**: 对 ledger payload、timeline payload、character events 执行 credential/private/prompt redaction，命中 credential value 时拒绝写入并记录 blocked stage event。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §1.8 §3.2 §4.2 §5.3`, `T8.1.1`
   - **输出**: v9 redaction projector extensions, `ledger_redaction_blocked` handling
@@ -565,7 +565,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T8.2.1** [REQ-001][REQ-005][REQ-007][REQ-008]: 实现 loop/activity/continuity/routine/evolution health aggregator
+- [x] **T8.2.1** [REQ-001][REQ-005][REQ-007][REQ-008]: 实现 loop/activity/continuity/routine/evolution health aggregator
   - **描述**: 聚合 stage events、cycle traces、activity thread states、card results、routine registry、connector evolution results、character events，形成 `loop_status` read model。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.md §5.1`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §3.3-§3.6`, `T8.1.1`, `T2.2.1`, `T2.2.4`, `T6.3.1`, `T7.2.2`
   - **输出**: `LoopHealthAggregator`, `ActivityThreadHealthMonitor`, `ContinuityHealthMonitor`, `RoutineHealthMonitor`, `ConnectorEvolutionHealthMonitor`, `CharacterFrame` observability events
