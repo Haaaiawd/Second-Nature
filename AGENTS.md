@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-27` (Wave 127 完成；T2.2.4 已实现、验证并通过 code-reviewer)
-- **当前波次**: Wave 127 — v9 S2 ActivityThread Cross-Heartbeat Continuation
-- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务
+- **最近一次更新**: `2026-06-28` (Wave 134 完成；T8.1.2 + T8.2.1 已交付)
+- **当前波次**: Wave 134 ✅ — v9 S4 Redaction Projector + Loop Health Aggregator
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.2 rollback watchdog 或 T8.2.3 digest/timeline
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -221,6 +221,30 @@ src/
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
 - **下一步**: `/forge` Wave 128 — 按 05A 依赖图选择就绪任务
 - **最近更新**: `2026-06-27` (Wave 127 complete; T2.2.4 checked; review-fix applied)
+
+### 🌊 Wave 134 ✅ — v9 S4 Redaction Projector + Loop Health Aggregator
+T8.1.2, T8.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 134 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T8.1.2 扩展 redaction projector 覆盖 ledger/timeline/character events；T8.2.1 实现 loop/activity/continuity/routine/evolution/character health aggregator
+- **产出**:
+  - `src/observability/v9-redaction-projector.ts` — containsCredentialValue（JWT/AWS key/长 hex/长 base64 模式检测）、redactPayloadJson（structure-preserving）、redactLedgerEntry（block on credential value + ledger_redaction_blocked）、redactTimelinePayload、redactCharacterFrameEvent、validateCharacterSafety（ADR-006 中英双语 emotion/personality/identity-lock/hard-control 检测）
+  - `src/observability/v9-loop-health-aggregator.ts` — aggregateLoopHealth（§3.3 13-stage attribution + missing closure + activity health + rollback blocked）、aggregateActivityThreadHealth（§3.3a stale/overlong/missing-closure/blocked）、aggregateContinuityHealth（§3.4 available/unavailable/stale）、aggregateRoutineHealth（§3.5 installed/pending/denied/rollbackReady）、aggregateConnectorEvolutionHealth（§3.6 gate/canary/rollback）、aggregateCharacterFrameHealth（ADR-006 safe summary）、aggregateLoopStatus（composite overall）
+  - `tests/unit/observability/v9-redaction-projector.test.ts` — 39 tests：credential detection（JWT/AWS/nested/empty）、redactPayloadJson、redactLedgerEntry、redactTimelinePayload、redactCharacterFrameEvent、validateCharacterSafety（中英双语 10+ forbidden patterns）
+  - `tests/integration/v9/ledger-redaction-block.test.ts` — 5 tests：block on credential value、persist safe payload、redact sensitive fields、nested credential、JWT
+  - `tests/unit/observability/v9-loop-health.test.ts` — 32 tests：loop health classification、activity thread health、continuity health、routine health、connector evolution health、character frame health、composite loop status
+  - `tests/api/runtime-ops/v9-loop-status.test.ts` — 11 tests：JSON-serializable shape、13 stage kinds、activity terminal counts、continuity/routine/evolution/character sections、blocked classification、unique reasons
+  - `.anws/v9/05A_TASKS.md` — T8.1.2 + T8.2.1 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2117 tests, 2108 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-134-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.2 rollback watchdog 或 T8.2.3 digest/timeline。
+- **说明**: T8.1.2 + T8.2.1 关闭 v9 S4 observability redaction + health aggregation 脊柱——credential value 检测（pattern-based，非 cryptographic）+ structure-preserving redaction + ledger_redaction_blocked + 13-stage loop health attribution + activity/continuity/routine/evolution/character health monitors + composite overall。Character summary 通过 ADR-006 safety validation。解锁 T8.2.2、T8.2.3、T1.2.1。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4
