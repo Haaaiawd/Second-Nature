@@ -137,3 +137,4 @@ export const V9_ACTION_KIND_REGISTRY = {
         allowedDowngrades: ["notify_owner", "watch"],
     },
 };
+// EmbodiedContextCharacterProjection already defined at line 315.
