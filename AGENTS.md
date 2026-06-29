@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-28` (Wave 137 完成；T1.2.1 已交付)
-- **当前波次**: Wave 137 ✅ — v9 S1 Runtime Ops Command Surface
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.2 ops redaction 或 T2.2.3 context deadline
+- **最近一次更新**: `2026-06-29` (Wave 138 完成；T1.2.2 已交付)
+- **当前波次**: Wave 138 ✅ — v9 S1 Ops Redaction & Evidence-Level Truth Gate
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T2.2.3 context deadline 或 INT-S5 集成验证
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -308,6 +308,18 @@ T1.2.1
   - code-reviewer: `.anws/v9/wave-reviews/wave-137-review.md` — Partial Pass
 - **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.2 ops redaction 或 T2.2.3 context deadline。
 - **说明**: T1.2.1 关闭 v9 S1 runtime ops command surface 脊柱——8 v9 commands + RuntimeOpsEnvelopeV9 JSON-first envelope + evidenceLevel promotion（carrier_ack→contract_smoke→state_present→real_runtime→durable_verified）+ carrier mode honest degradation + loop_status.read with activity health。routine.rollback/connector_evolution.trigger/rollback 为 stubs（待 T6.3.x integration wiring）。解锁 T1.2.2 ops redaction gate。
+
+### 🌊 Wave 138 🧭 — v9 S1 Ops Redaction & Evidence-Level Truth Gate
+T1.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 🔄 Wave 138 进行中
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T1.2.2 实现 ops redaction 与 evidence-level truth gate
+- **产出**: 待交付
+- **验证**: 待执行
+- **下一步**: 完成 Wave 138 后按 05A 依赖图选择就绪任务。
+- **说明**: T1.2.2 在 v9 ops envelope 组装阶段统一执行 payload redaction、credential/private/prompt 泄漏阻断与 evidence level 提升/封顶。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4

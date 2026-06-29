@@ -81,7 +81,7 @@ graph TD
   - **依赖**: T5.2.2, T6.2.2, T6.3.1, T8.2.1
   - **优先级**: P0
 
-- [ ] **T1.2.2** [REQ-001][REQ-007]: 实现 ops redaction 与 evidence-level truth gate
+- [x] **T1.2.2** [REQ-001][REQ-007]: 实现 ops redaction 与 evidence-level truth gate
   - **描述**: 在 v9 ops envelope 组装阶段统一执行 payload redaction、credential/private/prompt 泄漏阻断与 evidence level 提升/封顶。
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.detail.md §1.2 §3.2 §3.3`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §1.8 §3.2`, `T8.1.2` 产出的 redaction projector
   - **输出**: `RuntimeOpsEnvelopeFactory`, `DiagnosticsCollector`, redaction diagnostics
