@@ -15,7 +15,8 @@ describe("dream-scheduler", () => {
   describe("missing review", () => {
     it("returns degraded when quiet review not found", async () => {
       const result = await scheduleDreamAfterQuiet(MOCK_DB, "missing_review");
-      assert.ok("status" in result && result.status === "degraded");
+      assert.ok("ownerStage" in result, "expected degraded result");
+      assert.equal(result.status, "unavailable");
     });
   });
 

@@ -12,6 +12,7 @@ import { V8_002_PERCEPTION_CONTRACT_ALIGNMENT } from "./v8-002-perception-contra
 import { V8_003_QUIET_CLOSURE_REFS } from "./v8-003-quiet-closure-refs.js";
 import { V8_004_SCHEMA_CLOSURE } from "./v8-004-schema-closure.js";
 import { V8_005_SINGLE_STATUS_SCHEMA } from "./v8-005-single-status-schema.js";
+import { V9_001_SELF_CONTINUITY } from "./v9-001-self-continuity.js";
 
 export const ALL_MIGRATIONS: readonly Migration[] = [
   V7_001_FOUNDATION,
@@ -23,4 +24,5 @@ export const ALL_MIGRATIONS: readonly Migration[] = [
   V8_003_QUIET_CLOSURE_REFS,
   V8_004_SCHEMA_CLOSURE,
   V8_005_SINGLE_STATUS_SCHEMA,
+  V9_001_SELF_CONTINUITY,
 ];

@@ -35,6 +35,8 @@ import type { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
 import type { AuditEnvelope } from "../audit/audit-envelope.js";
 import type { StateDatabase } from "../../storage/db/index.js";
 import { checkRealRunHealth } from "../living-loop-health-gate.js";
+import { classifyEvidenceLevel } from "../../shared/evidence-level-classifier.js";
+import type { EvidenceLevel } from "../../shared/types/v8-contracts.js";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -103,6 +105,8 @@ export interface HeartbeatDigest {
   healthSummary: HealthDaySummary;
   /** Real-run health gate result (T-OBS.R.3) */
   realRunHealth: RealRunHealthDigestProjection;
+  /** T-OBS.R.7: evidence level for this digest */
+  evidenceLevel: EvidenceLevel;
   /** Set when delivery succeeded */
   deliveredAt?: string;
   /** Proof of successful delivery (channel + message hash, no raw content) */
@@ -505,6 +509,14 @@ export async function generateHeartbeatDigest(
     }
   }
 
+  const evidenceLevel = classifyEvidenceLevel({
+    hasCarrierEnvelope: true,
+    hasContractSmoke: !deps.db,
+    hasStatePresent: Boolean(deps.db) && !realRunHealth.gatePassed && !realRunHealth.hasRealClosure,
+    hasCycleExecution: realRunHealth.hasRealClosure,
+    hasReadbackVerification: realRunHealth.gatePassed,
+  });
+
   const digest: HeartbeatDigest = {
     date,
     generatedAt,
@@ -514,6 +526,7 @@ export async function generateHeartbeatDigest(
     quietDreamSummary,
     healthSummary,
     realRunHealth,
+    evidenceLevel,
   };
 
   // T-OBS.C.4: delivery hook — attempt delivery if adapter is provided

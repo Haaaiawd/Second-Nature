@@ -81,16 +81,16 @@
 
 > **注意**: 这是项目文件中的保留部分，由 `/genesis`、`/blueprint` 和 `/forge` 自动维护。
 
-- **最新架构版本**: `.anws/v8`
-- **活动任务清单**: `.anws/v8/05A_TASKS.md`
-- **活动验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-16` (Wave 115 completed; all v8 CH-12/CH-16 repair waves closed)
-- **当前波次**: Wave 115
-- **下一步**: Wave 115 settlement; all v8 /change repair waves complete
+- **最新架构版本**: `.anws/v9`
+- **活动任务清单**: `.anws/v9/05A_TASKS.md`
+- **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
+- **最近一次更新**: `2026-06-22` (`/challenge` Agent-boundary follow-up closed — attention refs cannot author actions; forbidden-pattern specs now scoped with safe counterexamples; ready for `/forge` Wave 119 / S1)
+- **当前波次**: Blueprint v9 + controlled `/change` closure (complete)
+- **下一步**: 进入 `/forge`，从 S1 Contract Spine 开始执行；编码前对照 `.anws/v9/05A_TASKS.md` 与 `.anws/v9/05B_VERIFICATION_PLAN.md`，注意 S2 已新增 `T2.2.4 ActivityThread continuation`。
 
-### 🌱 Genesis v8 🧭 — Living Perception Loop
+### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
-v8 将 Second Nature 从“能收集证据的身体”推进为“能自然行动并形成长期记忆的生活闭环”。新增 EvidenceItem、PerceptionCard、JudgmentVerdict、ActionProposal、ActionPolicyDecision、ActionClosureRecord、Quiet Daily Review、Dream-backed long-term memory projection 与 causal loop health。长期记忆只由 Quiet/Dream 日回顾形成；实时层负责 perception / judgment / action closure。
+v9 将 Second Nature 从“闭环能运行”推进为“上下文清空后仍能继承身体直觉，并通过工具、外部刺激、反馈、持续活动脉络和闭环长出习惯与人格”。新增 Continuity Projection、SelfContinuityCard、ActivityThread、CharacterFrame、ProceduralProjection、ToolRoutine、workspace-only ConnectorEvolutionPlan 与 AutonomousChangeLedger。`ActivityThread` 让 attention、联想、观察、行动闭包与暂停/完成跨 heartbeat 延续，但不把 heartbeat 变成无限内部循环；`character-continuity-system` 产出 source-backed、contestable 的 emergent character/habit projection，不是人格分数表、控制器或情绪断言；Claw Agent 仍是开放心智，Second Nature 提供 attention、body intuition、policy closure、Dream-backed continuity、activity continuity、character continuity 与可回滚的 workspace connector 演化。
 
 ---
 
@@ -121,36 +121,46 @@ src/
 └── shared/
 
 .anws/
-└── v8/
+└── v9/
    ├── 00_MANIFEST.md
-   ├── 00_DEEPWIKI_MECHANISM_AUDIT.md
+   ├── 00_TECH_EVALUATION.md
    ├── 01_PRD.md
    ├── 02_ARCHITECTURE_OVERVIEW.md
    ├── 03_ADR/
-   │   ├── ADR_001_TECH_STACK.md
-   │   ├── ADR_002_LIVING_PERCEPTION_LOOP.md
-   │   ├── ADR_003_QUIET_DREAM_LONG_TERM_MEMORY.md
-   │   ├── ADR_004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md
-   │   └── ADR_005_CAUSAL_LOOP_HEALTH.md
+   │   ├── ADR_001_CONTINUE_TYPESCRIPT_NODE_OPENCLAW_SQLITE.md
+   │   ├── ADR_002_ATTENTION_NOT_AGENT_MIND.md
+   │   ├── ADR_003_CONTINUITY_PROJECTION_AFTER_DREAM.md
+    │   ├── ADR_004_WORKSPACE_ONLY_CONNECTOR_EVOLUTION.md
+    │   ├── ADR_005_PROCEDURAL_MEMORY_AS_VERIFIED_ROUTINE.md
+    │   └── ADR_006_CHARACTER_CONTINUITY_AS_EMERGENT_PROJECTION.md
    ├── 04_SYSTEM_DESIGN/
-   │   ├── shared-v8-contracts.md
+   │   ├── README.md
+   │   ├── shared-v9-contracts.md
    │   ├── runtime-ops-system.md
-   │   ├── control-plane-system.md
-   │   ├── perception-judgment-system.md
-   │   ├── perception-judgment-system.detail.md
+   │   ├── runtime-ops-system.detail.md
+   │   ├── control-context-system.md
+   │   ├── control-context-system.detail.md
+   │   ├── attention-system.md
+   │   ├── attention-system.detail.md
    │   ├── action-closure-policy-system.md
    │   ├── action-closure-policy-system.detail.md
-   │   ├── state-memory-system.md
-   │   ├── body-tool-system.md
-   │   ├── connector-system.md
-   │   ├── dream-quiet-memory-system.md
-   │   ├── dream-quiet-memory-system.detail.md
-   │   ├── guidance-voice-system.md
-   │   ├── observability-health-system.md
-   │   └── observability-health-system.detail.md
-   ├── 05A_TASKS.md
-   ├── 05B_VERIFICATION_PLAN.md
-   ├── 07_CHALLENGE_REPORT.md
+   │   ├── memory-continuity-system.md
+   │   ├── memory-continuity-system.detail.md
+   │   ├── character-continuity-system.md
+   │   ├── character-continuity-system.detail.md
+   │   ├── body-connector-system.md
+   │   ├── body-connector-system.detail.md
+   │   ├── observability-recovery-system.md
+   │   ├── observability-recovery-system.detail.md
+   │   ├── _research/
+   │   │   └── memory-continuity-system-research.md
+   │   └── _review/
+   │       ├── cross-system-design-review.md
+   │       ├── cross-system-design-review-2-fix-report.md
+   │       ├── character-continuity-boundary-review.md
+   │       ├── character-continuity-boundary-review-2.md
+   │       ├── shared-contracts-spot-review.md
+   │       └── connector-alignment-spot-review-2.md
    ├── 06_CHANGELOG.md
    └── concept_model.json
 ```
@@ -161,13 +171,13 @@ src/
 
 > **注意**: 此部分由 `/genesis` 维护。
 
-- **架构总览**: `.anws/v8/02_ARCHITECTURE_OVERVIEW.md`
-- **PRD**: `.anws/v8/01_PRD.md`
-- **ADR**: `.anws/v8/03_ADR/` (跨系统决策的唯一记录源)
-- **详细设计**: `.anws/v8/04_SYSTEM_DESIGN/`
-- **执行主清单**: `.anws/v8/05A_TASKS.md`
-- **验证计划**: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- **质疑报告**: `.anws/v8/07_CHALLENGE_REPORT.md`
+- **架构总览**: `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- **PRD**: `.anws/v9/01_PRD.md`
+- **ADR**: `.anws/v9/03_ADR/` (跨系统决策的唯一记录源)
+- **详细设计**: `.anws/v9/04_SYSTEM_DESIGN/`（待 `/design-system`）
+- **执行主清单**: `.anws/v9/05A_TASKS.md`
+- **验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
+- **质疑报告**: `.anws/v9/07_CHALLENGE_REPORT.md`
 
 ### ADR ↔ SYSTEM_DESIGN 关系
 
@@ -181,37 +191,135 @@ src/
 - 语言: TypeScript
 - Runtime: Node.js + OpenClaw native plugin
 - 存储: SQLite/sql.js index + Markdown/JSON workspace artifacts
-- 主运行入口: OpenClaw heartbeat + plugin ops surface + bounded embodied context
+- 主运行入口: OpenClaw heartbeat + plugin ops surface + bounded EmbodiedContext + SelfContinuityCard/CharacterFrame injection
 - Runtime secret: `SECOND_NATURE_ENCRYPTION_KEY` 必须由宿主稳定持久化；AGENTS/README/self_health 只记录管理位置与恢复原则，不记录 key 明文
 
 ### 系统边界
-- `runtime-ops-system`: OpenClaw plugin / CLI / ops surface / `loop_status` — 详见 `.anws/v8/04_SYSTEM_DESIGN/runtime-ops-system.md`
-- `control-plane-system`: heartbeat 主循环、EmbodiedContext assembly、跨系统编排 — 详见 `.anws/v8/04_SYSTEM_DESIGN/control-plane-system.md`
-- `perception-judgment-system`: EvidenceItem → PerceptionCard → JudgmentVerdict，区分 public technical 与 credential-shaped risk — 详见 `.anws/v8/04_SYSTEM_DESIGN/perception-judgment-system.md`
-- `action-closure-policy-system`: ActionProposal、ActionPolicyDecision、ActionClosureRecord 与 no-action reason — 详见 `.anws/v8/04_SYSTEM_DESIGN/action-closure-policy-system.md`
-- `state-memory-system`: Evidence / perception / judgment / closure / Quiet / Dream / projection 的 bounded state 与 read models — 详见 `.anws/v8/04_SYSTEM_DESIGN/state-memory-system.md`
-- `body-tool-system`: ToolAffordance、ToolExperience、CircuitBreaker；回答“能不能做”，不回答“该不该做” — 详见 `.anws/v8/04_SYSTEM_DESIGN/body-tool-system.md`
-- `connector-system`: manifest/trust/credential-gated execution；执行能力但不拥有 agent 判断 — 详见 `.anws/v8/04_SYSTEM_DESIGN/connector-system.md`
-- `dream-quiet-memory-system`: Quiet Daily Review、Dream Consolidation、accepted long-term memory projection — 详见 `.anws/v8/04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
-- `guidance-voice-system`: source-backed draft / notify / reply / publish 文案生成，不拥有投递权 — 详见 `.anws/v8/04_SYSTEM_DESIGN/guidance-voice-system.md`
-- `observability-health-system`: causal loop health、audit、redaction、trace、digest 与 stall reason — 详见 `.anws/v8/04_SYSTEM_DESIGN/observability-health-system.md`
+- `runtime-ops-system`: OpenClaw plugin / CLI / ops surface / continuity and evolution diagnostics — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `control-context-system`: heartbeat、EmbodiedContext assembly、SelfContinuityCard 注入、daily rhythm trigger — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `attention-system`: Evidence/Perception → AttentionSignal；提示 Agent，不替代 Agent mind — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `action-closure-policy-system`: Agent/routine action intent → policy decision → execution/closure — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `memory-continuity-system`: state、Quiet/Dream、MemoryProjection、ProceduralProjection、SelfContinuityCard、ConnectorEvolutionPlan — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `character-continuity-system`: CharacterFrame、emergent habits、value/relationship/expression posture、growth tensions、contest/re-authoring；滋养 Agent，不替代 Agent mind，不声称真实情绪 — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `body-connector-system`: real-hand affordance、ToolExperience、ToolRoutine、connector execution、workspace connector evolution — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
+- `observability-recovery-system`: loop/continuity/routine/evolution health、AutonomousChangeLedger、rollback health — 详见 `.anws/v9/02_ARCHITECTURE_OVERVIEW.md`
 
 ### 活跃 ADR
-- ADR-001: Continue TypeScript / Node / OpenClaw Runtime
-- ADR-002: Introduce the Living Perception Loop
-- ADR-003: Long-Term Memory Must Be Formed by Quiet and Dream
-- ADR-004: Use Platform-Neutral Autonomy Policy
-- ADR-005: Add Causal Loop Health
+- ADR-001: Continue TypeScript / Node / OpenClaw / SQLite Runtime
+- ADR-002: Narrow Real-Time Semantics to Attention, Not Agent Mind
+- ADR-003: Add Continuity Projection After Quiet/Dream
+- ADR-004: Allow Workspace-Only Autonomous Connector Evolution
+- ADR-005: Model Procedural Memory as Verified Routine
+- ADR-006: Model Character Continuity as Emergent Projection
 
 ### 当前任务状态
-- 执行主清单: `.anws/v8/05A_TASKS.md`
-- 验证计划: `.anws/v8/05B_VERIFICATION_PLAN.md`
-- User Story 数: 9
-- 系统数: 10
-- **状态**: v8 `/design-system`、设计层 `/challenge`、`/blueprint`、任务层 `/challenge` Round 2 全部修复已完成；Wave 108 `/forge` Runtime Recovery Closure 已完成
-- **Challenge**: `.anws/v8/07_CHALLENGE_REPORT.md`（Round 1 + Round 2 全部发现已闭合）
-- **下一步**: Wave 108 波末 code-reviewer 或用户指令进入发布
-- **最近更新**: `2026-06-12` (`/forge` Wave 108 — Runtime Recovery Closure completed)
+- 执行主清单: `.anws/v9/05A_TASKS.md`
+- 验证计划: `.anws/v9/05B_VERIFICATION_PLAN.md`
+- User Story 数: 8
+- 系统数: 8
+- **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
+- **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
+- **下一步**: `/forge` Wave 119 — S1 Contract Spine（T5.1.1, T5.1.2, T5.2.3, INT-S1）
+- **最近更新**: `2026-06-22` (`/blueprint` v9 complete)
+
+### 🌊 Wave 119 🧭 — v9 S1 Contract Spine
+T5.1.1, T5.1.2, T5.2.3, INT-S1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ 完成
+- **分支**: `feature/wave-119-v9-contract-spine` @ `e836283`
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — v9 canonical shared contracts
+  - `src/storage/db/schema/v9-entities.ts` + v8 schema extensions — v9 storage schema
+  - `src/storage/db/migrations/v9-001-self-continuity.ts` — v8→v9 migration
+  - `src/storage/v9-state-stores.ts` — bounded read/write ports
+  - `src/storage/v9-legacy-judgment-adapter.ts` — v8 JudgmentVerdict → AttentionSignal
+  - `tests/unit/contracts/v9-shared-contracts.test.ts` — 14 tests PASS
+  - `tests/integration/storage/v9-schema-migration.test.ts` — 7 tests PASS
+  - `tests/unit/memory/v9-legacy-judgment-adapter.test.ts` — 3 tests PASS
+  - `reports/int-s1-v9-contract-spine.md` + `logs/int-s1-v9-typecheck.log`
+- **最高严重度**: none (2 Low findings recorded in `wave-reviews/wave-119-review.md`)
+- **验证**: `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅; targeted v9 tests 24/24 PASS
+- **下一步**: 进入 Wave 120 / S2 Attention + Context（T3.2.1, T5.1.2 extension, T2.2.1, T2.2.4）
+
+### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
+T-ROS.R.5, T-ROS.R.6, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
+**签入**: AUTO (Wave 116D)
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 116D 完成（T-ROS.R.6 plugin workspace bridge repair merged）；116A/116B/116C implementation tasks checked in `05A_TASKS.md`
+- **子波划分**: 116A 契约基础 → 116B 心跳/闭包模型 → 116C 内容/记忆/回归门 → 116D 桥接修复
+- **目标**: repair host reality and v8 ideal-loop semantic drift so loaded/smoke/carrier-visible states cannot masquerade as real runtime health; and plugin workspace bridge does not return cli surfaceMode for full-runtime commands.
+- **计划产出**:
+  - Host-visible `second_nature_ops` injection proof or explicit `host_tool_unavailable` diagnostic.
+  - Packaged `SKILL.md` projection into host skill discovery or explicit `skill_projection_unavailable` diagnostic.
+  - Setup ack truth gate rejecting `placedIn: "unspecified"` as complete.
+  - `HostCapabilityDiscoveryPort`, skill discovery probe, setup ack schema, and host smoke minimum evidence fields.
+  - Provenance tiers: `sourceRefs`, `proofRefs`, `traceRefs`.
+  - Single operator-facing v8 living-loop heartbeat model; v7 only as internal adapter trace.
+  - `CycleFinalizer` exactly-one closure invariant.
+  - `EvidenceLevelClassifier`: `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, `durable_verified` promotion/cap rules.
+  - Precise stage/degraded-result states: `empty`, `partial`, `blocked`, `unavailable`, `unsafe`; `degraded` aggregate only.
+  - Content-bearing evidence minimum contract and no-fabrication handling for ID-only evidence.
+  - Quiet placeholder rejection and precise Dream blocked reasons.
+  - Plugin workspace bridge returns `surfaceMode: "workspace_full_runtime"` and correct statuses.
+- **测试计划**: INT-R11 report `reports/int-r11-wave-116-host-reality-hemostasis.md`; targeted host/plugin/setup/evidence/closure/Quiet-Dream tests plus Wave 108-115 regression sample.
+- **最高严重度**: documentation P0 closed; 116A/116B/116C/116D implementation completed; code review `wave-116d-review.md` Partial Pass → review-fix applied
+- **下一步**: Run INT-R11 host reality and hemostasis gate; update report and verify Wave 108-115 regressions.
+
+### 🌊 Wave 117 🧭 — v8 Change: Triage Pre-existing v8 Runtime Integration Failures
+INT-R11 repair
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 117 完成（21 项预存 v8 runtime 集成失败已修复；INT-R11 gate 通过）
+- **子波目标**: triage and repair the 21 pre-existing v8 runtime integration failures surfaced by INT-R11 so the full `pnpm test` regression gate passes.
+- **根因**:
+  - `src/storage/db/index.ts` bootstrap schema for `loop_stage_event` 缺少 `proof_refs_json`/`trace_refs_json`；现有数据库通过 `applyStateSchemaMigrations` 防御性补列。
+  - `src/storage/v8-state-stores.ts` 中多个 writer 使用 `...row` 展开，把 `sourceRefs`/`proofRefs`/`traceRefs`/`closureRefs`/`payload` 数组/对象当作列值传给 Drizzle，潜在 schema 漂移风险；已在所有 v8 writer 中解构移除非列字段。
+  - T-DQ.R.9 引入的 Quiet placeholder rejection 使原本 closure-only / ID-only evidence 的测试期望 `dream completed` 不再成立；已通过 `tests/shared/content-evidence-fixture.ts` 统一注入 content-bearing evidence，或把无证据路径的期望改为 `dream_blocked_no_content`。
+  - INT-V8 guidance consumption contract 测试错误期望 `sourceRefs` 混入 `proofRefs`；已改为分别断言 `sourceRefs` 与 `proofRefs`。
+- **产出**:
+  - `src/storage/db/index.ts` — `loop_stage_event` bootstrap + defensive column migration
+  - `src/storage/v8-state-stores.ts` — 10 个 writer 的 `...row` spread 清理（evidence/perception/judgment/closure/quiet/dream/projection/cycle-trace/loop-stage/impulse/daily-rhythm/cooldown）
+  - `tests/shared/content-evidence-fixture.ts` — content-bearing evidence seed helper
+  - `tests/api/runtime-ops/loop-status-real-run-gate.test.ts`
+  - `tests/api/dream/quiet-dream-runtime-chain.test.ts`
+  - `tests/integration/v8/int-r1-runtime-activation-repair.test.ts`
+  - `tests/integration/v8/living-perception-loop.test.ts`
+  - `tests/integration/v8/proof-memory-closure.test.ts`
+  - `tests/integration/v8/real-runtime-quiet-dream-advance.test.ts`
+  - `tests/integration/v8/runtime-recovery-closure.test.ts`
+  - `tests/unit/dream/daily-rhythm-scheduler.test.ts`
+  - `tests/unit/dream/dream-runner-lifecycle.test.ts`
+  - `reports/int-r11-wave-117-runtime-integration-repair.md` — Wave 117 修复报告
+  - `.anws/v8/05A_TASKS.md` — INT-R11 已勾选
+  - `.anws/v8/05B_VERIFICATION_PLAN.md` — Wave 116/INT-R11 验证状态更新为 ✅
+- **测试**: `pnpm typecheck` ✅；`pnpm build` ✅；`pnpm build:plugin` ✅；targeted previously-failing 9 suites 48/48 PASS；full `pnpm test` 1693 tests, 1684 pass, 0 fail, 9 skipped
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: Wave 118 release packaging.
+
+### 🌊 Wave 118 🧭 — v8 Release Packaging
+Release packaging for `@haaaiawd/second-nature@0.2.13`
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 118 完成（版本 `0.2.13`；plugin package 已构建；`npm pack --dry-run` 通过）
+- **目标**: Bump package version, rebuild plugin runtime, verify packaged artifact, and prepare for npm upload.
+- **产出**:
+  - `package.json` — version bumped to `0.2.13`
+  - `plugin/package.json` — version bumped to `0.2.13`
+  - `plugin/openclaw.plugin.json` — version bumped to `0.2.13`
+  - `plugin/index.js` + `plugin/workspace-ops-bridge.js` + `plugin/runtime/` — rebuilt
+  - `.anws/v8/06_CHANGELOG.md` — v0.2.13 release entry
+  - `AGENTS.md` — Wave 118 state updated
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `cd plugin && npm pack --dry-run` ✅ — `@haaaiawd/second-nature@0.2.13`, 635 files, 450.4 kB tarball, 2.1 MB unpacked
+  - full `pnpm test` 1693 tests, 1684 pass, 0 fail, 9 skipped
+- **最高严重度**: none
+- **残留待跟进**: 无
+- **下一步**: Upload `@haaaiawd/second-nature@0.2.13` to npm registry, or open next wave for host E2E/manual smoke backfill.
 
 ### 🌊 Wave 108 🧭 — v8 Change: Runtime Recovery Closure Backlog
 T-CP.R.3, T-DQ.R.5, T-CS.R.2, T-CS.R.3, T-OBS.R.4, INT-R3
@@ -643,7 +751,7 @@ T-CS.C.11, T-CS.C.12, INT-S9
   - `tests/unit/connectors/scriptable-node-runner.test.ts` — 4 单元测试
   - `tests/integration/connectors/scriptable-node-e2e.test.ts` — 4 集成测试（scanner→executor→mapLifeEvidence→full chain）
   - `reports/int-s9-connector-chain.md` — S9 完整性验证报告
-  - `scripts/int-s9-db-validation.js` — DB before/after 验证脚本
+  - `scripts/verification/int-s9-db-validation.js` — DB before/after 验证脚本
 - **测试**: T-CS.C.11 4/4 PASS；T-CS.C.12 4/4 PASS；S9 全部任务测试通过；connector 全回归 157/158 PASS
 - **最高严重度**: none
 - **残留待跟进**: 4 项 Low 风险（credential optional route-planner / evomap env / agent-world env / timeout 硬编码）
@@ -1040,28 +1148,28 @@ T-SMS.C.6, T-SMS.C.7, T-CS.C.2, T-CS.C.3
 ### 🌊 Wave 50 ✅ — v7 S2 Core State + Connector: WriteValidationGate + Registry
 T-SMS.C.1, T-CS.C.1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-50-review.md`（最高严重度：Low — `resolveCapability` unqualified intent fallback 设计 accepted）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-50-review.md`（最高严重度：Low — `resolveCapability` unqualified intent fallback 设计 accepted）  
 
 ### 🌊 Wave 49 ✅ — v7 S1 Foundation: INT-S1 Integration Verification
 INT-S1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-49-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-49-review.md`（最高严重度：无）  
 
 ### 🌊 Wave 48 ✅ — v7 S1 Foundation: Write Queue
 T-SMS.F.3
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-48-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-48-review.md`（最高严重度：无）  
 
 ### 🌊 Wave 47 ✅ — v7 S1 Foundation: Schema Migration + Audit Family Registry
 T-SMS.F.2, T-OBS.F.1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-47-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-47-review.md`（最高严重度：无）  
 **风险备注**: 同 Wave 46——`04_SYSTEM_DESIGN/` 物理缺失，以 05A + ADR 为编码权威。
 
 ### 🌊 Wave 46 ✅ — v7 S1 Foundation: Shared Types
 T-SMS.F.1
 **签入**: AUTO  
-**code-reviewer**: `wave-reviews/wave-46-review.md`（最高严重度：无）  
+**code-reviewer**: `.anws/v7/wave-reviews/wave-46-review.md`（最高严重度：无）  
 **风险备注**: `04_SYSTEM_DESIGN/` 8 个系统详细设计文档物理缺失；以 05A 任务契约 + 02_ARCHITECTURE_OVERVIEW + ADR 作为编码权威。
 
 > **历史 Wave 说明**: 下方 Wave 1-45 是 v5/v6 实现历史记录。v7 已生成 `05A_TASKS.md` 与 `05B_VERIFICATION_PLAN.md`；进入实现前建议先执行任务层 `/challenge`，通过后再 `/forge`。

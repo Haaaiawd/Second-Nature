@@ -32,6 +32,12 @@ import type {
   V8ReasonCode,
   MemoryReviewCandidateClosure,
 } from "../../../shared/types/v8-contracts.js";
+import {
+  buildClosureProvenance,
+  cycleTraceRef,
+  closureTraceRef,
+  decisionProofRef,
+} from "../../../shared/provenance-tier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -60,6 +66,8 @@ export interface ActionClosureRecord {
   nextState: string;
   reason: V8ReasonCode;
   sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
   memoryReviewCandidate?: MemoryReviewCandidateClosure;
   closedAt: string;
 }
@@ -115,7 +123,8 @@ export async function recordNoActionClosure(
     status: "no_action",
     reason: noActionReason,
     nextState: "await_next_cycle",
-    sourceRefs: [
+    sourceRefs: [cycleTraceRef(cycleId)],
+    proofRefs: [
       {
         uri: `sn://closure/no_action/${cycleId}`,
         family: "action_closure",
@@ -124,8 +133,9 @@ export async function recordNoActionClosure(
         resolveStatus: "resolvable",
       },
     ],
+    traceRefs: [cycleTraceRef(cycleId)],
     redactionClass: "none",
-    payloadJson: JSON.stringify({ dispatchAttempt: 0, inputSummary: "no-action" }),
+    payload: { dispatchAttempt: 0, inputSummary: "no-action" },
   });
 
   if ("reason" in result) {
@@ -148,6 +158,11 @@ export async function recordRememberClosure(
   const now = options?.now ?? new Date().toISOString();
   const closureId = `cls_remember_${cycleId}_${now.replace(/[:.]/g, "")}`;
 
+  const provenance = buildClosureProvenance({
+    sourceRefs: memoryReviewCandidate.sourceRefs,
+    traceRefs: [cycleTraceRef(cycleId)],
+  });
+
   const result = await writeActionClosureRecord(db, {
     id: closureId,
     createdAt: now,
@@ -157,13 +172,15 @@ export async function recordRememberClosure(
     status: "completed",
     reason: "remember_for_review",
     nextState: "pending_daily_review",
-    sourceRefs: memoryReviewCandidate.sourceRefs,
+    sourceRefs: provenance.sourceRefs,
+    proofRefs: provenance.proofRefs,
+    traceRefs: provenance.traceRefs,
     redactionClass: "none",
-    payloadJson: JSON.stringify({
+    payload: {
       memoryReviewCandidate,
       dispatchAttempt: 1,
       inputSummary: `remember_for_review topic=${memoryReviewCandidate.topicKey}`,
-    }),
+    },
   });
 
   if ("reason" in result) {
@@ -196,25 +213,22 @@ export async function recordPolicyOutcomeClosure(
   const now = options?.now ?? new Date().toISOString();
   const closureId = `cls_${closureStatus}_${cycleId}_${now.replace(/[:.]/g, "")}`;
 
-  const sourceRefs: SourceRef[] = [
-    {
-      uri: `sn://closure/${closureStatus}/${cycleId}`,
-      family: "action_closure",
-      id: cycleId,
-      redactionClass: "none",
-      resolveStatus: "resolvable",
-    },
-  ];
+  const sourceRefs: SourceRef[] = params.proposalId
+    ? [
+        {
+          uri: `sn://proposal/${params.proposalId}`,
+          family: "action_closure",
+          id: params.proposalId,
+          redactionClass: "none",
+          resolveStatus: "resolvable",
+        },
+      ]
+    : [];
 
-  if (params.decisionId) {
-    sourceRefs.push({
-      uri: `sn://decision/${params.decisionId}`,
-      family: "action_closure",
-      id: params.decisionId,
-      redactionClass: "none",
-      resolveStatus: "resolvable",
-    });
-  }
+  const proofRefs: SourceRef[] = [
+    closureTraceRef(closureId),
+    ...(params.decisionId ? [decisionProofRef(params.decisionId)] : []),
+  ];
 
   const result = await writeActionClosureRecord(db, {
     id: closureId,
@@ -228,13 +242,15 @@ export async function recordPolicyOutcomeClosure(
     reason,
     nextState: params.nextState ?? "await_next_cycle",
     sourceRefs,
+    proofRefs,
+    traceRefs: [cycleTraceRef(cycleId)],
     redactionClass: "none",
-    payloadJson: JSON.stringify({
+    payload: {
       dispatchAttempt: 1,
       inputSummary: buildInputSummary(params.proposalId, params.decisionId),
       postProcessing: params.postProcessing ?? [],
       downgradedActionKind: params.downgradedActionKind,
-    }),
+    },
   });
 
   if ("reason" in result) {
@@ -268,14 +284,20 @@ export async function recordExecutionClosure(
   const now = options?.now ?? new Date().toISOString();
   const closureId = `cls_exec_${closureStatus}_${cycleId}_${now.replace(/[:.]/g, "")}`;
 
-  const sourceRefs: SourceRef[] = [
-    {
-      uri: `sn://closure/${closureStatus}/${cycleId}`,
-      family: "action_closure",
-      id: cycleId,
-      redactionClass: "none",
-      resolveStatus: "resolvable",
-    },
+  const sourceRefs: SourceRef[] = params.executionResultRef
+    ? [
+        {
+          uri: params.executionResultRef,
+          family: "connector_result",
+          id: params.executionResultRef,
+          redactionClass: "none",
+          resolveStatus: "resolvable",
+        },
+      ]
+    : [];
+
+  const proofRefs: SourceRef[] = [
+    closureTraceRef(closureId),
   ];
 
   const result = await writeActionClosureRecord(db, {
@@ -290,14 +312,16 @@ export async function recordExecutionClosure(
     reason,
     nextState: params.nextState ?? (closureStatus === "completed" ? "await_next_cycle" : "retryable"),
     sourceRefs,
+    proofRefs,
+    traceRefs: [cycleTraceRef(cycleId)],
     redactionClass: "none",
-    payloadJson: JSON.stringify({
+    payload: {
       dispatchAttempt: 1,
       executionResultRef: params.executionResultRef,
       outputSummary: params.outputSummary,
       inputSummary: buildInputSummary(params.proposalId, params.decisionId),
       retryable: params.retryable ?? closureStatus === "failed",
-    }),
+    },
   });
 
   if ("reason" in result) {

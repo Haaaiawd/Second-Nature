@@ -31,6 +31,7 @@
  *   tests/integration/observability/digest-delivery.test.ts (T-OBS.C.4)
  */
 import { checkRealRunHealth } from "../living-loop-health-gate.js";
+import { classifyEvidenceLevel } from "../../shared/evidence-level-classifier.js";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function isSameDayUtc(isoTimestamp, dateStr) {
     // dateStr: "YYYY-MM-DD"
@@ -262,6 +263,13 @@ export async function generateHeartbeatDigest(date, deps) {
             };
         }
     }
+    const evidenceLevel = classifyEvidenceLevel({
+        hasCarrierEnvelope: true,
+        hasContractSmoke: !deps.db,
+        hasStatePresent: Boolean(deps.db) && !realRunHealth.gatePassed && !realRunHealth.hasRealClosure,
+        hasCycleExecution: realRunHealth.hasRealClosure,
+        hasReadbackVerification: realRunHealth.gatePassed,
+    });
     const digest = {
         date,
         generatedAt,
@@ -271,6 +279,7 @@ export async function generateHeartbeatDigest(date, deps) {
         quietDreamSummary,
         healthSummary,
         realRunHealth,
+        evidenceLevel,
     };
     // T-OBS.C.4: delivery hook — attempt delivery if adapter is provided
     if (deliveryAdapter) {

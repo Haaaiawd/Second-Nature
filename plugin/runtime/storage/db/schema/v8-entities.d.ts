@@ -968,6 +968,44 @@ export declare const actionClosureRecord: import("drizzle-orm/sqlite-core").SQLi
         }, {}, {
             length: number | undefined;
         }>;
+        proofRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "proof_refs_json";
+            tableName: "action_closure_record";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        traceRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "trace_refs_json";
+            tableName: "action_closure_record";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         redactionClass: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "redaction_class";
             tableName: "action_closure_record";
@@ -1862,6 +1900,44 @@ export declare const loopStageEvent: import("drizzle-orm/sqlite-core").SQLiteTab
             data: string;
             driverParam: string;
             notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        proofRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "proof_refs_json";
+            tableName: "loop_stage_event";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
+        traceRefsJson: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "trace_refs_json";
+            tableName: "loop_stage_event";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
             hasDefault: false;
             isPrimaryKey: false;
             isAutoincrement: false;

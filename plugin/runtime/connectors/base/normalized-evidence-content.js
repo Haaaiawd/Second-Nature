@@ -226,8 +226,25 @@ function normalizeSingleItem(item, options) {
     const tags = extractTags(item);
     const entities = extractEntities(item);
     const metrics = extractMetrics(item);
-    const rawText = bodyText ?? title ?? "[no readable content]";
-    const summary = truncate(rawText, 160);
+    const hasReadableContent = isNonEmptyString(bodyText) || isNonEmptyString(title);
+    const hasContentMarkers = isNonEmptyString(url) ||
+        (actor?.displayName && actor.displayName.length > 0) ||
+        tags.length > 0 ||
+        entities.length > 0 ||
+        (metrics && Object.keys(metrics).length > 0);
+    let contentStatus = "content_present";
+    let contentMissingReason;
+    let summary;
+    if (!hasReadableContent && !hasContentMarkers) {
+        contentStatus = "content_missing";
+        contentMissingReason = externalId ? "id_only" : "empty_payload";
+        summary = `Content missing: ${contentMissingReason === "id_only" ? "id-only evidence" : "empty payload"}`;
+    }
+    else {
+        const rawText = bodyText ?? title ?? "[no readable content]";
+        summary = truncate(rawText, 160);
+    }
+    const rawText = bodyText ?? title ?? "";
     const excerpt = rawText.length > summary.length ? truncate(rawText, options.excerptMaxChars ?? 240) : undefined;
     const canonicalText = truncate(rawText, options.canonicalTextMaxChars ?? 2000);
     return {
@@ -238,6 +255,8 @@ function normalizeSingleItem(item, options) {
         externalId,
         title,
         summary,
+        contentStatus,
+        contentMissingReason,
         excerpt,
         canonicalText,
         actor,

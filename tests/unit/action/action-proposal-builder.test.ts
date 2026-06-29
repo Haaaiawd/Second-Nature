@@ -16,7 +16,8 @@ describe("action-proposal-builder", () => {
   describe("degraded handling", () => {
     it("returns degraded on missing verdict with MOCK_DB", async () => {
       const result = await buildActionProposal(MOCK_DB, "nonexistent_verdict");
-      assert.ok("status" in result && result.status === "degraded");
+      assert.ok("ownerStage" in result, "expected degraded result");
+      assert.equal(result.status, "unavailable");
     });
   });
 

@@ -51,7 +51,7 @@ describe("perception-builder", () => {
         cycleId: "cyc_004",
       });
       if ("status" in result) {
-        assert.ok(result.status === "degraded" || result.status === "empty");
+        assert.equal(result.status, "unavailable");
       }
     });
   });

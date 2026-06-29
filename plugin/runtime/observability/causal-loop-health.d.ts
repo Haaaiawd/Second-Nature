@@ -21,7 +21,7 @@
  * Test coverage: tests/unit/observability/causal-loop-health.test.ts
  */
 import type { StateDatabase } from "../storage/db/index.js";
-import type { LoopStage, DegradedOperationResult } from "../shared/types/v8-contracts.js";
+import type { LoopStage, DegradedOperationResult, EvidenceLevel } from "../shared/types/v8-contracts.js";
 export interface StageHealth {
     stage: LoopStage;
     lastEventAt?: string;
@@ -36,6 +36,7 @@ export interface CausalLoopHealthSnapshot {
     lastHeartbeatAt?: string;
     stages: StageHealth[];
     reason?: string;
+    evidenceLevel: EvidenceLevel;
 }
 export interface AssembleLoopStatusOptions {
     stallThresholdCycles?: number;

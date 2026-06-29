@@ -135,6 +135,7 @@ describe("normalized-evidence-content", () => {
       capabilityId: "feed.read",
       externalId: "x",
       summary: "same",
+      contentStatus: "content_present",
       observedAt: "2026-06-15T10:00:00Z",
       summaryProducer: "connector_rules",
     });
@@ -145,9 +146,50 @@ describe("normalized-evidence-content", () => {
       capabilityId: "feed.read",
       externalId: "x",
       summary: "same",
+      contentStatus: "content_present",
       observedAt: "2026-06-15T11:00:00Z",
       summaryProducer: "connector_rules",
     });
     assert.equal(a, b);
+  });
+
+  it("flags id-only evidence as content_missing with id_only reason", () => {
+    const items = extractNormalizedEvidenceItems([{ id: "abc123" }], {
+      platformId: "moltbook",
+      capabilityId: "feed.read",
+      observedAt: "2026-06-15T10:00:00Z",
+      summaryProducer: "connector_rules",
+    });
+
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.contentStatus, "content_missing");
+    assert.equal(items[0]?.contentMissingReason, "id_only");
+    assert.ok(String(items[0]?.summary).includes("id-only"));
+  });
+
+  it("flags empty payload as content_missing with empty_payload reason", () => {
+    const items = extractNormalizedEvidenceItems([{}], {
+      platformId: "moltbook",
+      capabilityId: "feed.read",
+      observedAt: "2026-06-15T10:00:00Z",
+      summaryProducer: "connector_rules",
+    });
+
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.contentStatus, "content_missing");
+    assert.equal(items[0]?.contentMissingReason, "empty_payload");
+  });
+
+  it("preserves content_present for evidence with readable text", () => {
+    const items = extractNormalizedEvidenceItems([{ id: "p1", content: "Deep extraction works" }], {
+      platformId: "moltbook",
+      capabilityId: "feed.read",
+      observedAt: "2026-06-15T10:00:00Z",
+      summaryProducer: "connector_rules",
+    });
+
+    assert.equal(items.length, 1);
+    assert.equal(items[0]?.contentStatus, "content_present");
+    assert.ok(!items[0]?.contentMissingReason);
   });
 });

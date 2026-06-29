@@ -29,10 +29,11 @@ export interface GuidanceOutput {
     mode: "draft" | "notify";
     textRef: SourceRef;
     sourceRefs: SourceRef[];
+    proofRefs: SourceRef[];
     deliveryClaim: "not_delivered";
     decisionId: string;
     actionKind: PlatformNeutralActionKind;
-    ownerVisible: boolean;
+    ownerVisible: true;
 }
 export type GuidanceValidationResult = {
     ok: true;

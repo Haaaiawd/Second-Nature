@@ -29,6 +29,7 @@ import type {
   DegradedOperationResult,
   RedactionClass,
 } from "../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Validation
@@ -137,7 +138,7 @@ export async function recordLoopStageEvent(
   const validation = validateEvent(event);
   if (!validation.ok) {
     const degraded: DegradedOperationResult = {
-      status: "degraded",
+      status: classifyDegradedStatus("stage_event_missing"),
       reason: "stage_event_missing",
       ownerStage: (event.stage as any) || "ingestion",
       sourceRefs: event.sourceRefs || [],
@@ -149,6 +150,8 @@ export async function recordLoopStageEvent(
 
   const now = options?.now ?? new Date().toISOString();
   const sourceRefs = event.sourceRefs ?? [];
+  const proofRefs = event.proofRefs ?? [];
+  const traceRefs = event.traceRefs ?? [];
   const { redacted: redactedRefs, redactionClass } = redactSourceRefs(sourceRefs);
 
   const record = {
@@ -159,6 +162,8 @@ export async function recordLoopStageEvent(
     status: event.status!,
     reason: event.reason,
     sourceRefs: redactedRefs,
+    proofRefs,
+    traceRefs,
     redactionClass,
     occurredAt: event.occurredAt!,
     expectedDownstreamByCycle: event.expectedDownstreamByCycle,

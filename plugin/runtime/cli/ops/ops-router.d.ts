@@ -1,4 +1,5 @@
 import { type HeartbeatCheckInput, type HeartbeatSurfaceResult } from "./heartbeat-surface.js";
+import type { SurfaceMode } from "../runtime/runtime-artifact-boundary.js";
 import type { CliReadModels } from "../read-models/index.js";
 import type { RuntimeDecisionRecorder } from "../../observability/services/runtime-decision-recorder.js";
 import type { StateDatabase } from "../../storage/db/index.js";
@@ -12,12 +13,13 @@ import { AppendOnlyAuditStore } from "../../observability/audit/append-only-audi
 import type { RestoreSnapshotStore } from "../../storage/services/restore-snapshot-store.js";
 import type { CapabilityContractRegistry } from "../../connectors/base/manifest.js";
 import type { AffordanceAssembler } from "../../core/second-nature/body/tool-affordance/affordance-assembler.js";
-/** Unified response envelope for all v7 runtime-ops commands. */
+import type { EvidenceLevel } from "../../shared/types/v8-contracts.js";
+/** Unified response envelope for all v7/v8 runtime-ops commands. */
 export interface RuntimeOpsEnvelope<T = unknown> {
     ok: boolean;
     command: string;
     runtimeMode: "host_safe_carrier" | "workspace_full_runtime" | "unavailable";
-    surfaceMode: "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
+    surfaceMode: SurfaceMode | "cli" | "openclaw_tool" | "plugin_command" | "cron_probe";
     generatedAt: string;
     data?: T;
     error?: {
@@ -27,6 +29,8 @@ export interface RuntimeOpsEnvelope<T = unknown> {
     };
     warnings: string[];
     sourceRefs: string[];
+    /** T-OBS.R.7: how strongly this response is backed by runtime proof. */
+    evidenceLevel?: EvidenceLevel;
 }
 export interface OpsRouterDeps {
     /** When true, packaged runtime artifacts resolved and full graph is loadable */

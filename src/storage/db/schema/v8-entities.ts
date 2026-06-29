@@ -23,8 +23,14 @@ export const evidenceItem = sqliteTable("evidence_item", {
   id: text("id").primaryKey(),
   createdAt: text("created_at").notNull(),
   platformId: text("platform_id").notNull(),
+  externalId: text("external_id"),
   contentHash: text("content_hash").notNull(),
+  stableIdentityKey: text("stable_identity_key").notNull().default(""),
   observedAt: text("observed_at").notNull(),
+  firstObservedAt: text("first_observed_at"),
+  lastObservedAt: text("last_observed_at"),
+  seenCount: integer("seen_count").notNull().default(1),
+  rowIdentityStatus: text("row_identity_status").notNull().default("stable"),
   sensitivityHint: text("sensitivity_hint"),
   sourceRefsJson: text("source_refs_json").notNull(),
   redactionClass: text("redaction_class").notNull().default("none"),
@@ -32,6 +38,8 @@ export const evidenceItem = sqliteTable("evidence_item", {
   lifecycleStatus: text("lifecycle_status").notNull().default("pending"),
 }, (table) => ({
   platformContentHashIdx: uniqueIndex("evidence_item_platform_content_hash_idx").on(table.platformId, table.contentHash),
+  stableIdentityIdx: index("evidence_item_stable_identity_idx").on(table.stableIdentityKey),
+  lastObservedStatusIdx: index("evidence_item_last_observed_status_idx").on(table.lastObservedAt, table.rowIdentityStatus),
 }));
 
 export type EvidenceItemRecord = typeof evidenceItem.$inferSelect;
@@ -101,8 +109,13 @@ export const actionClosureRecord = sqliteTable("action_closure_record", {
   reason: text("reason"),
   nextState: text("next_state"),
   sourceRefsJson: text("source_refs_json").notNull(),
+  proofRefsJson: text("proof_refs_json"),
+  traceRefsJson: text("trace_refs_json"),
   redactionClass: text("redaction_class").notNull().default("none"),
   payloadJson: text("payload_json"),
+  routineId: text("routine_id"),
+  activityThreadId: text("activity_thread_id"),
+  activityStepId: text("activity_step_id"),
 });
 
 export type ActionClosureRecordSelect = typeof actionClosureRecord.$inferSelect;
@@ -197,6 +210,8 @@ export const loopStageEvent = sqliteTable("loop_stage_event", {
   status: text("status").notNull(),
   reason: text("reason"),
   sourceRefsJson: text("source_refs_json").notNull(),
+  proofRefsJson: text("proof_refs_json"),
+  traceRefsJson: text("trace_refs_json"),
   redactionClass: text("redaction_class").notNull().default("none"),
   occurredAt: text("occurred_at").notNull(),
   expectedDownstreamByCycle: integer("expected_downstream_by_cycle"),

@@ -31,6 +31,7 @@ import type {
   DegradedOperationResult,
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -68,7 +69,7 @@ export async function scheduleDreamAfterQuiet(
   const review = readResult.row;
   if (!review) {
     return {
-      status: "degraded",
+      status: classifyDegradedStatus("state_unreadable"),
       reason: "state_unreadable",
       ownerStage: "dream",
       sourceRefs: [],

@@ -32,6 +32,7 @@
  */
 import type { AppendOnlyAuditStore } from "../audit/append-only-audit-store.js";
 import type { StateDatabase } from "../../storage/db/index.js";
+import type { EvidenceLevel } from "../../shared/types/v8-contracts.js";
 export interface ConnectorDaySummary {
     platformId: string;
     capability: string;
@@ -91,6 +92,8 @@ export interface HeartbeatDigest {
     healthSummary: HealthDaySummary;
     /** Real-run health gate result (T-OBS.R.3) */
     realRunHealth: RealRunHealthDigestProjection;
+    /** T-OBS.R.7: evidence level for this digest */
+    evidenceLevel: EvidenceLevel;
     /** Set when delivery succeeded */
     deliveredAt?: string;
     /** Proof of successful delivery (channel + message hash, no raw content) */

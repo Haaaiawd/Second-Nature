@@ -62,4 +62,5 @@ export type BuildQuietDailyReviewOutput = {
     status: "empty";
     reason: V8ReasonCode;
 } | DegradedOperationResult;
+export type QuietReviewContentStatus = "content_present" | "empty" | "placeholder_rejected" | "content_missing";
 export declare function buildQuietDailyReview(db: StateDatabase, options?: BuildQuietDailyReviewOptions): Promise<BuildQuietDailyReviewOutput>;

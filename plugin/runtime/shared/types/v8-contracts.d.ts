@@ -38,6 +38,12 @@ export interface SourceRef {
     resolveStatus?: SourceResolveStatus;
     resolveFailureReason?: string;
 }
+export interface ProvenanceBundle {
+    sourceRefs: SourceRef[];
+    proofRefs: SourceRef[];
+    traceRefs: SourceRef[];
+}
+export type ProvenanceTier = "source" | "proof" | "trace";
 export type HeartbeatCycleStatus = "started" | "completed" | "failed" | "degraded";
 export interface HeartbeatCycleTrace {
     cycleId: string;
@@ -59,11 +65,14 @@ export interface LoopStageEvent {
     status: LoopStageEventStatus;
     reason?: V8ReasonCode;
     sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
     redactionClass: RedactionClass;
     occurredAt: string;
     expectedDownstreamByCycle?: number;
     payloadJson?: string;
 }
+export type EvidenceLevel = "carrier_ack" | "contract_smoke" | "state_present" | "real_runtime" | "durable_verified";
 export type MemoryReviewClosureSubtype = "remember_for_review";
 export interface MemoryReviewCandidateClosure {
     closureSubtype: MemoryReviewClosureSubtype;
@@ -75,12 +84,14 @@ export interface MemoryReviewCandidateClosure {
     sourceRefs: [SourceRef, ...SourceRef[]];
 }
 export interface DegradedOperationResult {
-    status: "degraded" | "blocked";
+    status: "empty" | "partial" | "blocked" | "unavailable" | "unsafe";
     reason: V8ReasonCode;
     ownerStage: LoopStage;
     sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
     operatorNextAction: string;
     retryable: boolean;
 }
-export type V8ReasonCode = "quiet_completed" | "quiet_empty_input" | "quiet_state_unreadable" | "quiet_validation_failed" | "quiet_redaction_blocked" | "dream_scheduled" | "dream_scheduled_stalled" | "dream_scheduler_unavailable" | "dream_started" | "dream_completed" | "dream_failed" | "dream_blocked_redaction" | "dream_interval_active" | "dream_rules_only" | "dream_model_timeout" | "projection_candidate_created" | "projection_accepted" | "projection_rejected" | "projection_superseded" | "projection_topic_matched" | "proposal_created" | "proposal_no_action" | "proposal_missing_source_refs" | "proposal_risk_blocked" | "policy_allowed" | "policy_deferred_owner_confirmation" | "policy_downgraded_to_draft" | "policy_denied_missing_permission" | "policy_denied_high_risk" | "policy_denied_breaker_open" | "guidance_unavailable" | "closure_completed" | "closure_no_action" | "closure_denied" | "closure_deferred" | "closure_downgraded" | "closure_downgraded_without_draft" | "closure_failed" | "perception_rules_only" | "perception_contract_drift" | "evidence_batch_empty" | "evidence_batch_truncated" | "evidence_content_missing" | "judgment_low_confidence" | "judgment_missing_source_refs" | "source_refs_unresolved" | "state_unreadable" | "stage_event_missing" | "ingestion_no_data" | "ingestion_empty" | "ingestion_state_unreadable" | "ingestion_connector_failed" | "execution_completed" | "execution_failed" | "execution_timeout" | "execution_unavailable";
+export type V8ReasonCode = "quiet_completed" | "quiet_empty_input" | "quiet_state_unreadable" | "quiet_validation_failed" | "quiet_redaction_blocked" | "dream_scheduled" | "dream_scheduled_stalled" | "dream_scheduler_unavailable" | "dream_started" | "dream_completed" | "dream_failed" | "dream_blocked_redaction" | "dream_blocked_no_content" | "dream_blocked_private_redacted" | "dream_blocked_credential" | "dream_blocked_validation_failed" | "dream_interval_active" | "dream_rules_only" | "dream_model_timeout" | "projection_candidate_created" | "projection_accepted" | "projection_rejected" | "projection_superseded" | "projection_topic_matched" | "proposal_created" | "proposal_no_action" | "proposal_missing_source_refs" | "proposal_risk_blocked" | "policy_allowed" | "policy_deferred_owner_confirmation" | "policy_downgraded_to_draft" | "policy_denied_missing_permission" | "policy_denied_high_risk" | "policy_denied_breaker_open" | "guidance_unavailable" | "closure_completed" | "closure_no_action" | "closure_denied" | "closure_deferred" | "closure_downgraded" | "closure_downgraded_without_draft" | "closure_failed" | "closure_idempotency_conflict" | "closure_unavailable" | "perception_rules_only" | "perception_contract_drift" | "evidence_batch_empty" | "evidence_batch_truncated" | "evidence_content_missing" | "judgment_low_confidence" | "judgment_missing_source_refs" | "source_refs_unresolved" | "state_unreadable" | "stage_event_missing" | "ingestion_no_data" | "ingestion_empty" | "ingestion_state_unreadable" | "ingestion_connector_failed" | "execution_completed" | "execution_failed" | "execution_timeout" | "execution_unavailable";
 export declare const ACTION_KIND_REGISTRY: Readonly<Record<PlatformNeutralActionKind, ActionKindMetadata>>;

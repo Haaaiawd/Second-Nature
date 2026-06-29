@@ -40,10 +40,11 @@ export interface GuidanceOutput {
   mode: "draft" | "notify";
   textRef: SourceRef;
   sourceRefs: SourceRef[];
+  proofRefs: SourceRef[];
   deliveryClaim: "not_delivered";
   decisionId: string;
   actionKind: PlatformNeutralActionKind;
-  ownerVisible: boolean;
+  ownerVisible: true;
 }
 
 export type GuidanceValidationResult =
@@ -114,7 +115,8 @@ function buildGuidanceOutput(
     id: `guidance_${decision.id}_${Date.now()}`,
     mode,
     textRef,
-    sourceRefs: [...proposal.sourceRefs, ...decision.proofRefs],
+    sourceRefs: proposal.sourceRefs,
+    proofRefs: decision.proofRefs,
     deliveryClaim: "not_delivered",
     decisionId: decision.id,
     actionKind,
@@ -138,7 +140,8 @@ export function consumeGuidanceProposal(
         status: "blocked",
         reason: "policy_denied_high_risk",
         ownerStage: "execution",
-        sourceRefs: decision.proofRefs,
+        sourceRefs: proposal.sourceRefs,
+        proofRefs: decision.proofRefs,
         operatorNextAction: "Review policy decision before requesting guidance",
         retryable: false,
       },

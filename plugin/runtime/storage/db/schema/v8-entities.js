@@ -83,6 +83,8 @@ export const actionClosureRecord = sqliteTable("action_closure_record", {
     reason: text("reason"),
     nextState: text("next_state"),
     sourceRefsJson: text("source_refs_json").notNull(),
+    proofRefsJson: text("proof_refs_json"),
+    traceRefsJson: text("trace_refs_json"),
     redactionClass: text("redaction_class").notNull().default("none"),
     payloadJson: text("payload_json"),
 });
@@ -154,6 +156,8 @@ export const loopStageEvent = sqliteTable("loop_stage_event", {
     status: text("status").notNull(),
     reason: text("reason"),
     sourceRefsJson: text("source_refs_json").notNull(),
+    proofRefsJson: text("proof_refs_json"),
+    traceRefsJson: text("trace_refs_json"),
     redactionClass: text("redaction_class").notNull().default("none"),
     occurredAt: text("occurred_at").notNull(),
     expectedDownstreamByCycle: integer("expected_downstream_by_cycle"),

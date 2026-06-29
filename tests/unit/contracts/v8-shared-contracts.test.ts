@@ -85,7 +85,7 @@ function makeDegradedOperationResult(
   overrides?: Partial<DegradedOperationResult>,
 ): DegradedOperationResult {
   return {
-    status: "degraded",
+    status: "unavailable",
     reason: "state_unreadable",
     ownerStage: "perception",
     sourceRefs: [makeSourceRef()],
@@ -328,14 +328,14 @@ describe("v8-shared-contracts", () => {
       assert.strictEqual(result.ownerStage, "closure");
     });
 
-    it("distinguishes degraded vs blocked status", () => {
-      const degraded = makeDegradedOperationResult({ status: "degraded" });
+    it("distinguishes unavailable vs blocked status", () => {
+      const unavailable = makeDegradedOperationResult({ status: "unavailable" });
       const blocked = makeDegradedOperationResult({
         status: "blocked",
         reason: "source_refs_unresolved",
         retryable: false,
       });
-      assert.strictEqual(degraded.status, "degraded");
+      assert.strictEqual(unavailable.status, "unavailable");
       assert.strictEqual(blocked.status, "blocked");
       assert.strictEqual(blocked.retryable, false);
     });

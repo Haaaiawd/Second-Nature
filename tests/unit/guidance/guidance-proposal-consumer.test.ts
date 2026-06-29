@@ -123,6 +123,36 @@ describe("guidance-proposal-consumer", () => {
       }
     });
 
+    it("degraded branch separates sourceRefs from proofRefs (T-GVS.R.4)", () => {
+      const proposal = makeProposal();
+      const decision = makeDecision({ decision: "deny", decisionReason: "policy_denied_high_risk" });
+      const result = consumeGuidanceProposal(proposal, decision);
+
+      assert.strictEqual(result.ok, false);
+      if (!result.ok) {
+        // sourceRefs must be proposal.sourceRefs (real evidence), NOT decision.proofRefs
+        assert.deepStrictEqual(
+          result.degraded.sourceRefs,
+          proposal.sourceRefs,
+          "degraded.sourceRefs must equal proposal.sourceRefs, not decision.proofRefs",
+        );
+        // proofRefs must carry decision.proofRefs (policy proof)
+        assert.deepStrictEqual(
+          result.degraded.proofRefs,
+          decision.proofRefs,
+          "degraded.proofRefs must equal decision.proofRefs",
+        );
+        // ensure no cross-contamination: proofRefs ids must not appear in sourceRefs
+        const sourceIds = new Set(result.degraded.sourceRefs.map((r) => r.id));
+        for (const proof of result.degraded.proofRefs ?? []) {
+          assert.ok(
+            !sourceIds.has(proof.id),
+            `proofRef ${proof.id} must not appear in sourceRefs`,
+          );
+        }
+      }
+    });
+
     it("returns degraded for deferred decisions", () => {
       const proposal = makeProposal();
       const decision = makeDecision({ decision: "defer", decisionReason: "policy_deferred_owner_confirmation" });

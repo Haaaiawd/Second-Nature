@@ -75,7 +75,7 @@ export interface HeartbeatSurfaceResult {
   /** True when structured fields mirror a fake adapter for schema parity only */
   schemaParityOnly?: boolean;
   /** T-CP.R.2: v8 real runtime spine result when state-backed action-closure spine ran */
-  v8Spine?: RealRuntimeSpineResult & { degradedReason?: string };
+  v8Spine?: Partial<RealRuntimeSpineResult> & { degradedReason?: string };
   /** T-GVS.R.1: agent-facing impulse context artifact read pointer */
   impulseContext?: {
     available: boolean;
@@ -140,8 +140,8 @@ export interface HeartbeatCheckInput {
   /** T-OBS.R.1: shared audit sink for connector/Quiet events consumed by heartbeat_digest. */
   auditStore?: AppendOnlyAuditStore;
   /**
-   * T-CP.R.2: when true and state DB is wired, runs the v8 real runtime action-closure spine
-   * in addition to the v7 heartbeat loop. Produces state-backed closure/no-action records.
+   * T-CP.R.5: v8 living-loop spine is the default operator-facing heartbeat model.
+   * Explicit false can be used by legacy callers to force a carrier-only path.
    */
   v8SpineEnabled?: boolean;
 }
@@ -250,8 +250,9 @@ export async function heartbeatCheck(
     const cycle = await run(signal);
     const surfaceResult = mapCycleToSurface(cycle, "workspace_full_runtime");
 
-    // T-CP.R.2: run v8 real runtime spine when enabled and state is available
-    if (input.v8SpineEnabled && input.state && input.workspaceRoot) {
+    // T-CP.R.5: v8 living-loop spine is the default operator-facing model when state is wired
+    const v8SpineEnabled = input.v8SpineEnabled !== false && Boolean(input.state && input.workspaceRoot);
+    if (v8SpineEnabled && input.state && input.workspaceRoot) {
       try {
         const v8Result = await runRealRuntimeHeartbeatCycle({
           workspaceRoot: input.workspaceRoot,
@@ -260,10 +261,10 @@ export async function heartbeatCheck(
           trigger: "host",
         });
 
-        if ("status" in v8Result && v8Result.status === "degraded") {
+        if ("status" in v8Result && "operatorNextAction" in v8Result) {
+          // T-CP.R.6: degraded path must not fabricate cycleId/cycleSequence.
+          // Only set degradedReason; cycleId/cycleSequence remain absent.
           surfaceResult.v8Spine = {
-            cycleId: "",
-            cycleSequence: 0,
             degradedReason: v8Result.reason,
           };
           surfaceResult.reasons = [

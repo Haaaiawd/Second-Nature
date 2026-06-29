@@ -8,7 +8,7 @@
 **契约真源**
 
 - 心跳语义、成功/下一步边界：**`HEARTBEAT.md`**
-- 插件根目录几何（为何需要 `SECOND_NATURE_WORKSPACE_ROOT`）：**`explore/reports/2026-05-04_openclaw-plugin-install-vs-workspace-root.md`**
+- 插件根目录几何（为何需要 `SECOND_NATURE_WORKSPACE_ROOT`）：**`HEARTBEAT.md` 与 `.anws/v5/05_TASKS.md` T1.1.4 运维约定**
 - E2E / PRD 矩阵（US 对照）：**`docs/validation/e2e-v5-prd-full-lived-experience.md`**（RTM）；执行细节回填 **`reports/int-s4-release-readiness.md`**
 - T1.1.4 旅程表（J-HOST / J-REPO）：**`docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`**
 
