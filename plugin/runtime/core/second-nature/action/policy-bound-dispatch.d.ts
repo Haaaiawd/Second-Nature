@@ -33,6 +33,7 @@ export interface ConnectorDispatchRequest {
         decision: string;
     };
     sourceRefs: string;
+    proofRefs: string;
 }
 export interface GuidanceDispatchRequest {
     type: "guidance";
@@ -43,6 +44,7 @@ export interface GuidanceDispatchRequest {
         decision: string;
     };
     sourceRefs: string;
+    proofRefs: string;
 }
 export interface NoDispatchResult {
     type: "none";

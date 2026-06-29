@@ -11,7 +11,6 @@ import assert from "node:assert";
 
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import {
-  writeEvidenceItem,
   writeActionClosureRecord,
   readActionClosuresByCycle,
   readDailyRhythmStateByDay,
@@ -19,6 +18,7 @@ import {
 } from "../../../src/storage/v8-state-stores.js";
 import { runHeartbeatCycle } from "../../../src/core/second-nature/control-plane/heartbeat-orchestrator.js";
 import { readLoopStatus } from "../../../src/observability/loop-status.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 import {
   CapabilityContractRegistry,
   ChannelHealthStore,
@@ -128,16 +128,7 @@ describe("runtime-recovery-closure", () => {
       const now = new Date().toISOString();
       const day = now.slice(0, 10);
 
-      await writeEvidenceItem(db, {
-        id: "ev_int_r3_001",
-        createdAt: now,
-        platformId: "moltbook",
-        contentHash: "hash_int_r3_001",
-        observedAt: now,
-        sourceRefs: [makeRef("ev_int_r3_001")],
-        redactionClass: "none",
-        lifecycleStatus: "pending",
-      });
+      await seedContentEvidence(db, { now });
 
       const result = await runHeartbeatCycle(db, {
         workspaceRoot: "/test",
@@ -145,7 +136,7 @@ describe("runtime-recovery-closure", () => {
         trigger: "manual",
       });
 
-      assert.ok(!("status" in result && result.status === "degraded"), "heartbeat should not degrade");
+      assert.ok(!("status" in result), "heartbeat should not degrade");
       const r = result as { cycleId: string; rhythmState?: { quietStatus: string; dreamStatus: string } };
 
       const closures = await readActionClosuresByCycle(db, r.cycleId);
@@ -182,7 +173,7 @@ describe("runtime-recovery-closure", () => {
         trigger: "manual",
       });
 
-      assert.ok(!("status" in result && result.status === "degraded"), "heartbeat should not degrade");
+      assert.ok(!("status" in result), "heartbeat should not degrade");
       const r = result as { cycleId: string; rhythmState?: { quietStatus: string; dreamStatus: string } };
 
       const closures = await readActionClosuresByCycle(db, r.cycleId);
@@ -191,7 +182,8 @@ describe("runtime-recovery-closure", () => {
       const rhythm = await readDailyRhythmStateByDay(db, day);
       assert.ok(rhythm.row, "rhythm state exists after no-action closure");
       assert.equal(rhythm.row?.quietStatus, "completed");
-      assert.equal(rhythm.row?.dreamStatus, "completed");
+      assert.equal(rhythm.row?.dreamStatus, "blocked");
+      assert.equal(rhythm.row?.dreamReason, "dream_blocked_no_content");
 
       const quiet = await readQuietDailyReviewById(db, `quiet_${day}`);
       assert.ok(quiet.row, "quiet review exists even without evidence");

@@ -106,8 +106,9 @@ export async function heartbeatCheck(input) {
     try {
         const cycle = await run(signal);
         const surfaceResult = mapCycleToSurface(cycle, "workspace_full_runtime");
-        // T-CP.R.2: run v8 real runtime spine when enabled and state is available
-        if (input.v8SpineEnabled && input.state && input.workspaceRoot) {
+        // T-CP.R.5: v8 living-loop spine is the default operator-facing model when state is wired
+        const v8SpineEnabled = input.v8SpineEnabled !== false && Boolean(input.state && input.workspaceRoot);
+        if (v8SpineEnabled && input.state && input.workspaceRoot) {
             try {
                 const v8Result = await runRealRuntimeHeartbeatCycle({
                     workspaceRoot: input.workspaceRoot,
@@ -115,10 +116,10 @@ export async function heartbeatCheck(input) {
                     requestedAt: timestamp,
                     trigger: "host",
                 });
-                if ("status" in v8Result && v8Result.status === "degraded") {
+                if ("status" in v8Result && "operatorNextAction" in v8Result) {
+                    // T-CP.R.6: degraded path must not fabricate cycleId/cycleSequence.
+                    // Only set degradedReason; cycleId/cycleSequence remain absent.
                     surfaceResult.v8Spine = {
-                        cycleId: "",
-                        cycleSequence: 0,
                         degradedReason: v8Result.reason,
                     };
                     surfaceResult.reasons = [

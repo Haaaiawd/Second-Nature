@@ -130,7 +130,8 @@ describe("INT-V8: full living perception loop", () => {
       assert.strictEqual(result.ok, true);
       if (result.ok) {
         assert.strictEqual(result.output.deliveryClaim, "not_delivered");
-        assert.ok(result.output.sourceRefs.length >= 2);
+        assert.ok(result.output.sourceRefs.length >= 1);
+        assert.ok(result.output.proofRefs.length >= 1);
       }
     });
 

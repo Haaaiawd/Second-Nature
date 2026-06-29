@@ -21,6 +21,7 @@
  * Test coverage: tests/unit/observability/causal-loop-health.test.ts
  */
 import { readHeartbeatCycleTraces, readLoopStageEventsByStage, } from "../storage/v8-state-stores.js";
+import { classifyEvidenceLevel } from "../shared/evidence-level-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Config
 // ───────────────────────────────────────────────────────────────
@@ -77,6 +78,7 @@ export async function assembleLoopStatus(db, options) {
             lastCycleSequence: 0,
             stages: [],
             reason: "no heartbeat cycles recorded",
+            evidenceLevel: classifyEvidenceLevel({ hasCarrierEnvelope: true }),
         };
     }
     const lastCycle = cycles[0];
@@ -114,5 +116,10 @@ export async function assembleLoopStatus(db, options) {
         lastHeartbeatAt: lastCycle.heartbeatStartedAt,
         stages,
         reason: stalledAt ? `stage ${stalledAt} stalled for >=${threshold} cycles` : undefined,
+        evidenceLevel: classifyEvidenceLevel({
+            hasCarrierEnvelope: true,
+            hasContractSmoke: true,
+            hasCycleExecution: stalledAt === undefined,
+        }),
     };
 }

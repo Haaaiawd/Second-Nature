@@ -32,6 +32,7 @@ import type {
   DegradedOperationResult,
   V8ReasonCode,
 } from "../../../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -64,7 +65,7 @@ export async function acceptMemoryProjection(
 
   if (sourceRefs.length === 0) {
     return {
-      status: "degraded",
+      status: classifyDegradedStatus("source_refs_unresolved"),
       reason: "source_refs_unresolved",
       ownerStage: "projection",
       sourceRefs: [],

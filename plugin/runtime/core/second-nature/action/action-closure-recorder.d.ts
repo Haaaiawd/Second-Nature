@@ -38,6 +38,8 @@ export interface ActionClosureRecord {
     nextState: string;
     reason: V8ReasonCode;
     sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
     memoryReviewCandidate?: MemoryReviewCandidateClosure;
     closedAt: string;
 }

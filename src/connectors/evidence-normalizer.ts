@@ -36,6 +36,8 @@ import {
   extractNormalizedEvidenceItems,
   computeEvidenceContentHashSync,
   type NormalizedEvidenceContent,
+  type EvidenceContentStatus,
+  type EvidenceContentMissingReason,
 } from "./base/normalized-evidence-content.js";
 
 // ───────────────────────────────────────────────────────────────
@@ -76,6 +78,11 @@ export interface EvidenceNormalizationResult {
 
 function computeLegacyContentHash(content: string): string {
   return crypto.createHash("sha256").update(content).digest("hex").slice(0, 16);
+}
+
+function truncate(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars)}…`;
 }
 
 function buildSourceRef(
@@ -292,6 +299,36 @@ async function normalizeLegacyConnectorEvidence(
       item.sensitivityHint,
     );
 
+    const trimmedContent = item.content.trim();
+    const looksLikeIdOnly = /^[a-z0-9_-]+$/i.test(trimmedContent) && trimmedContent.length < 64;
+    const contentStatus: EvidenceContentStatus = looksLikeIdOnly || trimmedContent.length === 0
+      ? "content_missing"
+      : "content_present";
+    const contentMissingReason: EvidenceContentMissingReason | undefined =
+      contentStatus === "content_missing"
+        ? trimmedContent.length === 0
+          ? "empty_payload"
+          : "id_only"
+        : undefined;
+
+    const normalized: NormalizedEvidenceContent = {
+      schemaVersion: 1,
+      sourceKind: "unknown",
+      platformId: result.platformId,
+      capabilityId: result.capabilityId,
+      externalId: item.id,
+      summary:
+        contentStatus === "content_missing"
+          ? `Content missing: ${contentMissingReason === "id_only" ? "id-only evidence" : "empty payload"}`
+          : truncate(trimmedContent, 160),
+      contentStatus,
+      contentMissingReason,
+      excerpt: contentStatus === "content_present" ? truncate(trimmedContent, 240) : undefined,
+      canonicalText: contentStatus === "content_present" ? truncate(trimmedContent, 2000) : undefined,
+      observedAt,
+      summaryProducer: "connector_rules",
+    };
+
     const writeResult = await writeEvidenceItem(db, {
       id: `ev_${result.platformId}_${itemId}_${observedAt.replace(/[:.]/g, "")}`,
       createdAt: now,
@@ -302,7 +339,7 @@ async function normalizeLegacyConnectorEvidence(
       sourceRefs: [sourceRef],
       redactionClass: sensitivityHint === "sensitive" ? "blocked" : "none",
       lifecycleStatus: "pending",
-      payloadJson: item.metadata ? JSON.stringify(item.metadata) : null,
+      payloadJson: JSON.stringify(normalized),
     });
 
     if ("id" in writeResult) {

@@ -36,6 +36,17 @@ export type EvidenceSourceKind =
 
 export type SummaryProducer = "connector_rules" | "model_assist" | "operator_supplied";
 
+export type EvidenceContentStatus =
+  | "content_present"
+  | "content_missing"
+  | "content_redacted";
+
+export type EvidenceContentMissingReason =
+  | "id_only"
+  | "empty_payload"
+  | "unsupported_shape"
+  | "redacted_private";
+
 export interface EvidenceActor {
   id?: string;
   displayName?: string;
@@ -50,6 +61,8 @@ export interface NormalizedEvidenceContent {
   externalId?: string;
   title?: string;
   summary: string;
+  contentStatus: EvidenceContentStatus;
+  contentMissingReason?: EvidenceContentMissingReason;
   excerpt?: string;
   canonicalText?: string;
   actor?: EvidenceActor;
@@ -286,9 +299,30 @@ function normalizeSingleItem(
   const entities = extractEntities(item);
   const metrics = extractMetrics(item);
 
-  const rawText = bodyText ?? title ?? "[no readable content]";
-  const summary = truncate(rawText, 160);
-  const excerpt = rawText.length > summary.length ? truncate(rawText, options.excerptMaxChars ?? 240) : undefined;
+  const hasReadableContent = isNonEmptyString(bodyText) || isNonEmptyString(title);
+  const hasContentMarkers =
+    isNonEmptyString(url) ||
+    (actor?.displayName && actor.displayName.length > 0) ||
+    tags.length > 0 ||
+    entities.length > 0 ||
+    (metrics && Object.keys(metrics).length > 0);
+
+  let contentStatus: EvidenceContentStatus = "content_present";
+  let contentMissingReason: EvidenceContentMissingReason | undefined;
+  let summary: string;
+
+  if (!hasReadableContent && !hasContentMarkers) {
+    contentStatus = "content_missing";
+    contentMissingReason = externalId ? "id_only" : "empty_payload";
+    summary = `Content missing: ${contentMissingReason === "id_only" ? "id-only evidence" : "empty payload"}`;
+  } else {
+    const rawText = bodyText ?? title ?? "[no readable content]";
+    summary = truncate(rawText, 160);
+  }
+
+  const rawText = bodyText ?? title ?? "";
+  const excerpt =
+    rawText.length > summary.length ? truncate(rawText, options.excerptMaxChars ?? 240) : undefined;
   const canonicalText = truncate(rawText, options.canonicalTextMaxChars ?? 2000);
 
   return {
@@ -299,6 +333,8 @@ function normalizeSingleItem(
     externalId,
     title,
     summary,
+    contentStatus,
+    contentMissingReason,
     excerpt,
     canonicalText,
     actor,

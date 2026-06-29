@@ -36,6 +36,7 @@ import type {
   MemoryReviewCandidateClosure,
 } from "../../../shared/types/v8-contracts.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Types
@@ -134,7 +135,7 @@ export async function buildActionProposal(
   const verdict = readResult.row;
   if (!verdict) {
     return {
-      status: "degraded",
+      status: classifyDegradedStatus("state_unreadable"),
       reason: "state_unreadable",
       ownerStage: "policy",
       sourceRefs: [],
@@ -261,10 +262,10 @@ export async function buildActionProposals(
       noActions.push(result);
     } else if ("status" in result && result.status === "remember_for_review") {
       rememberForReviews.push(result);
-    } else if ("status" in result && result.status === "degraded") {
+    } else if ("operatorNextAction" in result) {
       failed.push({
         judgmentVerdictId,
-        degraded: result as DegradedOperationResult,
+        degraded: result,
       });
     } else {
       failed.push({

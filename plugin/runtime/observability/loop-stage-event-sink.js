@@ -21,6 +21,7 @@
  * Test coverage: tests/unit/observability/loop-stage-event-sink.test.ts
  */
 import { writeLoopStageEvent } from "../storage/v8-state-stores.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 function validateEvent(event) {
     if (!event.cycleId || event.cycleId.trim().length === 0) {
         return { ok: false, reason: "cycle_id_required", field: "cycleId" };
@@ -100,7 +101,7 @@ export async function recordLoopStageEvent(db, event, options) {
     const validation = validateEvent(event);
     if (!validation.ok) {
         const degraded = {
-            status: "degraded",
+            status: classifyDegradedStatus("stage_event_missing"),
             reason: "stage_event_missing",
             ownerStage: event.stage || "ingestion",
             sourceRefs: event.sourceRefs || [],
@@ -111,6 +112,8 @@ export async function recordLoopStageEvent(db, event, options) {
     }
     const now = options?.now ?? new Date().toISOString();
     const sourceRefs = event.sourceRefs ?? [];
+    const proofRefs = event.proofRefs ?? [];
+    const traceRefs = event.traceRefs ?? [];
     const { redacted: redactedRefs, redactionClass } = redactSourceRefs(sourceRefs);
     const record = {
         id: event.id ?? `evt_${now.replace(/[:.]/g, "")}_${event.cycleId}_${event.stage}`,
@@ -120,6 +123,8 @@ export async function recordLoopStageEvent(db, event, options) {
         status: event.status,
         reason: event.reason,
         sourceRefs: redactedRefs,
+        proofRefs,
+        traceRefs,
         redactionClass,
         occurredAt: event.occurredAt,
         expectedDownstreamByCycle: event.expectedDownstreamByCycle,

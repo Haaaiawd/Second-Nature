@@ -100,7 +100,7 @@
 
 ### Coverage gaps
 
-- **会话工具可见性前置**：若 agent 会话枚举的工具列表不含 `second_nature_ops`，则 **`J-HOST-01`～`04` 不得开工判定 PASS**，也不得把失败归因成「模型不肯调工具」；须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 与 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 排查宿主 profile、tool allowlist、插件加载与版本对齐（心跳侧「正常」与会话工具表分裂在架构上可并存）。
+- **会话工具可见性前置**：若 agent 会话枚举的工具列表不含 `second_nature_ops`，则 **`J-HOST-01`～`04` 不得开工判定 PASS**，也不得把失败归因成「模型不肯调工具」；须先按 `reports/second-nature-ops-tool-visibility-issue-2026-05-06.md` 排查宿主 profile、tool allowlist、插件加载与版本对齐（心跳侧「正常」与会话工具表分裂在架构上可并存）。
 - 若无法修改宿主 env，`J-HOST-02` 会被阻塞；只能做 `J-HOST-01` 与部分 `J-HOST-03`
 - 若目标环境没有 fixture / staging 数据，`fallback` / `report` / `session` / `credential` 可暂记 blocker，但不能把空结果写成 PASS
 - `process.chdir()` 的并发风险不在本指南直接判定；若宿主支持并发工具调用，应另开专项验证

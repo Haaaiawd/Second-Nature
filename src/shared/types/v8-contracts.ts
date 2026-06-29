@@ -100,6 +100,18 @@ export interface SourceRef {
 }
 
 // ───────────────────────────────────────────────────────────────
+// 2.2 Provenance Tier Contract
+// ───────────────────────────────────────────────────────────────
+
+export interface ProvenanceBundle {
+  sourceRefs: SourceRef[];
+  proofRefs: SourceRef[];
+  traceRefs: SourceRef[];
+}
+
+export type ProvenanceTier = "source" | "proof" | "trace";
+
+// ───────────────────────────────────────────────────────────────
 // 3. HeartbeatCycleTrace and LoopStageEvent
 // ───────────────────────────────────────────────────────────────
 
@@ -146,6 +158,8 @@ export interface LoopStageEvent {
   status: LoopStageEventStatus;
   reason?: V8ReasonCode;
   sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
   redactionClass: RedactionClass;
   occurredAt: string;
   expectedDownstreamByCycle?: number;
@@ -155,6 +169,13 @@ export interface LoopStageEvent {
 // ───────────────────────────────────────────────────────────────
 // 4. Memory Review Closure Contract
 // ───────────────────────────────────────────────────────────────
+
+export type EvidenceLevel =
+  | "carrier_ack"
+  | "contract_smoke"
+  | "state_present"
+  | "real_runtime"
+  | "durable_verified";
 
 export type MemoryReviewClosureSubtype = "remember_for_review";
 
@@ -173,10 +194,12 @@ export interface MemoryReviewCandidateClosure {
 // ───────────────────────────────────────────────────────────────
 
 export interface DegradedOperationResult {
-  status: "degraded" | "blocked";
+  status: "empty" | "partial" | "blocked" | "unavailable" | "unsafe";
   reason: V8ReasonCode;
   ownerStage: LoopStage;
   sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
   operatorNextAction: string;
   retryable: boolean;
 }
@@ -199,6 +222,10 @@ export type V8ReasonCode =
   | "dream_completed"
   | "dream_failed"
   | "dream_blocked_redaction"
+  | "dream_blocked_no_content"
+  | "dream_blocked_private_redacted"
+  | "dream_blocked_credential"
+  | "dream_blocked_validation_failed"
   | "dream_interval_active"
   | "dream_rules_only"
   | "dream_model_timeout"
@@ -226,6 +253,8 @@ export type V8ReasonCode =
   | "closure_downgraded"
   | "closure_downgraded_without_draft"
   | "closure_failed"
+  | "closure_idempotency_conflict"
+  | "closure_unavailable"
   // Perception / Judgment / Observability
   | "perception_rules_only"
   | "perception_contract_drift"

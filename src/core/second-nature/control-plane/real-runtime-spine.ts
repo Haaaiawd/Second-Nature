@@ -67,7 +67,7 @@ export async function runRealRuntimeHeartbeatCycle(
   const result = await runHeartbeatCycle(options.state, request);
 
   // Pass through degraded results directly
-  if ("status" in result && result.status === "degraded") {
+  if ("status" in result) {
     return result as DegradedOperationResult;
   }
 

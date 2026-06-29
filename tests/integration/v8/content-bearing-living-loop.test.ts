@@ -52,6 +52,21 @@ function makeContentPayload(): Record<string, unknown> {
   };
 }
 
+function makeIdOnlyPayload(): Record<string, unknown> {
+  return {
+    schemaVersion: 1,
+    sourceKind: "connector_payload",
+    platformId: "moltbook",
+    capabilityId: "feed.read",
+    externalId: "post_id_only",
+    observedAt: new Date().toISOString(),
+    summaryProducer: "connector_rules",
+    summary: "Content missing: id-only evidence",
+    contentStatus: "content_missing",
+    contentMissingReason: "id_only",
+  };
+}
+
 describe("INT-R4: content-bearing living loop", () => {
   it("evidence carries readable content after ingestion", async () => {
     const db = createStateDatabase(":memory:");
@@ -161,6 +176,53 @@ describe("INT-R4: content-bearing living loop", () => {
 
       const projections = await readMemoryProjectionsByStatus(db, "active");
       assert.ok(projections.rows.length > 0, "long-term memory projections auto-accepted as active");
+    } finally {
+      db.close();
+    }
+  });
+
+  it("id-only evidence does not fabricate memory candidates and Dream blocks with no_content", async () => {
+    const db = createStateDatabase(":memory:");
+    try {
+      await writeEvidenceItem(db, {
+        id: "ev_id_only_001",
+        createdAt: new Date().toISOString(),
+        platformId: "moltbook",
+        contentHash: "id_only_hash_001",
+        observedAt: new Date().toISOString(),
+        sourceRefs: [makeRef("ev_id_only_001")],
+        redactionClass: "none",
+        lifecycleStatus: "pending",
+        payloadJson: JSON.stringify(makeIdOnlyPayload()),
+      });
+
+      const result = await runHeartbeatCycle(db, {
+        workspaceRoot: "/test",
+        requestedAt: new Date().toISOString(),
+        trigger: "manual",
+      });
+
+      const r = result as { cycleId: string };
+      const closures = await readActionClosuresByCycle(db, r.cycleId);
+      assert.equal(closures.rows.length, 1, "exactly one closure");
+
+      const day = new Date().toISOString().slice(0, 10);
+      const quiet = await readQuietDailyReviewById(db, `quiet_${day}`);
+      assert.ok(quiet.row, "QuietDailyReview written");
+      const quietPayload = JSON.parse(quiet.row!.payloadJson ?? "{}");
+      assert.equal(
+        quietPayload.contentStatus,
+        "content_missing",
+        "id-only evidence should produce content_missing Quiet review",
+      );
+
+      const rhythm = await readDailyRhythmStateByDay(db, day);
+      assert.ok(rhythm.row, "rhythm row exists");
+      assert.equal(rhythm.row!.dreamStatus, "blocked", "Dream blocked when Quiet has no content");
+      assert.equal(rhythm.row!.dreamReason, "dream_blocked_no_content", "precise no_content reason");
+
+      const projections = await readMemoryProjectionsByStatus(db, "active");
+      assert.equal(projections.rows.length, 0, "no active projection fabricated from id-only evidence");
     } finally {
       db.close();
     }

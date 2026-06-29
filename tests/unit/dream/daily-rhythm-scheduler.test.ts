@@ -15,6 +15,7 @@ import {
   writeDreamConsolidationRun,
   updateDreamConsolidationRunStatus,
 } from "../../../src/storage/v8-state-stores.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 
 describe("daily-rhythm-scheduler", () => {
   function makeClosure(day: string, overrides?: Record<string, unknown>) {
@@ -57,9 +58,11 @@ describe("daily-rhythm-scheduler", () => {
   it("marks due and runs Quiet when closures exist", async () => {
     const db = createStateDatabase(":memory:");
     try {
-      await writeActionClosureRecord(db, makeClosure("2026-06-05"));
+      const day = "2026-06-05";
+      await seedContentEvidence(db, { now: `${day}T08:00:00Z` });
+      await writeActionClosureRecord(db, makeClosure(day));
 
-      const result = await checkDailyRhythm(db, { now: "2026-06-05T10:00:00Z", forceQuiet: true });
+      const result = await checkDailyRhythm(db, { now: `${day}T10:00:00Z`, forceQuiet: true });
       assert.equal(result.status, "checked");
       if (result.status === "checked") {
         assert.equal(result.state.quietStatus, "completed");
@@ -98,14 +101,16 @@ describe("daily-rhythm-scheduler", () => {
   it("persists state across multiple checks", async () => {
     const db = createStateDatabase(":memory:");
     try {
-      await writeActionClosureRecord(db, makeClosure("2026-06-05"));
+      const day = "2026-06-05";
+      await seedContentEvidence(db, { now: `${day}T08:00:00Z` });
+      await writeActionClosureRecord(db, makeClosure(day));
 
       // First check
-      const r1 = await checkDailyRhythm(db, { now: "2026-06-05T10:00:00Z", forceQuiet: true });
+      const r1 = await checkDailyRhythm(db, { now: `${day}T10:00:00Z`, forceQuiet: true });
       assert.equal(r1.status, "checked");
 
       // Second check should not re-run
-      const r2 = await checkDailyRhythm(db, { now: "2026-06-05T11:00:00Z" });
+      const r2 = await checkDailyRhythm(db, { now: `${day}T11:00:00Z` });
       assert.equal(r2.status, "checked");
       if (r2.status === "checked") {
         assert.equal(r2.state.quietStatus, "completed");
@@ -120,16 +125,20 @@ describe("daily-rhythm-scheduler", () => {
     const db = createStateDatabase(":memory:");
     try {
       // Day 1: closure + Quiet + Dream completed
-      await writeActionClosureRecord(db, makeClosure("2026-06-05"));
-      const r1 = await checkDailyRhythm(db, { now: "2026-06-05T10:00:00Z", forceQuiet: true });
+      const day1 = "2026-06-05";
+      await seedContentEvidence(db, { now: `${day1}T08:00:00Z` });
+      await writeActionClosureRecord(db, makeClosure(day1));
+      const r1 = await checkDailyRhythm(db, { now: `${day1}T10:00:00Z`, forceQuiet: true });
       assert.equal(r1.status, "checked");
       if (r1.status === "checked") {
         assert.equal(r1.state.dreamStatus, "completed");
       }
 
       // Day 2 (within 7 days): another closure + Quiet, but Dream should honor interval
-      await writeActionClosureRecord(db, makeClosure("2026-06-06"));
-      const r2 = await checkDailyRhythm(db, { now: "2026-06-06T10:00:00Z", forceQuiet: true });
+      const day2 = "2026-06-06";
+      await seedContentEvidence(db, { now: `${day2}T08:00:00Z` });
+      await writeActionClosureRecord(db, makeClosure(day2));
+      const r2 = await checkDailyRhythm(db, { now: `${day2}T10:00:00Z`, forceQuiet: true });
       assert.equal(r2.status, "checked");
       if (r2.status === "checked") {
         assert.equal(r2.state.quietStatus, "completed");

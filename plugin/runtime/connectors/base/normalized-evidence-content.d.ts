@@ -23,6 +23,8 @@
 export declare const NORMALIZED_EVIDENCE_SCHEMA_VERSION = 1;
 export type EvidenceSourceKind = "post" | "comment" | "profile" | "task" | "event" | "game_state" | "notification" | "document" | "unknown";
 export type SummaryProducer = "connector_rules" | "model_assist" | "operator_supplied";
+export type EvidenceContentStatus = "content_present" | "content_missing" | "content_redacted";
+export type EvidenceContentMissingReason = "id_only" | "empty_payload" | "unsupported_shape" | "redacted_private";
 export interface EvidenceActor {
     id?: string;
     displayName?: string;
@@ -36,6 +38,8 @@ export interface NormalizedEvidenceContent {
     externalId?: string;
     title?: string;
     summary: string;
+    contentStatus: EvidenceContentStatus;
+    contentMissingReason?: EvidenceContentMissingReason;
     excerpt?: string;
     canonicalText?: string;
     actor?: EvidenceActor;

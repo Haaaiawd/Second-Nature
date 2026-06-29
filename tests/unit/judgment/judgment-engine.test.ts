@@ -16,7 +16,8 @@ describe("judgment-engine", () => {
   describe("degraded handling", () => {
     it("returns degraded on missing card with MOCK_DB", async () => {
       const result = await runAgentJudgment(MOCK_DB, "nonexistent_card");
-      assert.ok("status" in result && result.status === "degraded");
+      assert.ok("ownerStage" in result, "expected degraded result");
+      assert.equal(result.status, "unavailable");
     });
   });
 

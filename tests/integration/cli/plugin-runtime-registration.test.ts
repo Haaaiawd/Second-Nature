@@ -374,14 +374,15 @@ test("T1.4.3 setup nudge is one-shot and setup_ack persists marker", async () =>
           command: "setup_ack",
           args: {
             acceptedBy: "agent",
-            placedIn: "workspace/IDENTITY.md",
+            placedIn: "workspace_guide",
+            placementProofRef: "workspace/IDENTITY.md",
           },
           workspaceRoot,
         })
       ).content[0]?.text ?? "{}",
     ) as { ok: boolean; data?: { markerPath?: string; placedIn?: string } };
     assert.equal(ack.ok, true);
-    assert.equal(ack.data?.placedIn, "workspace/IDENTITY.md");
+    assert.equal(ack.data?.placedIn, "workspace_guide");
     assert.equal(fs.existsSync(ack.data?.markerPath ?? ""), true);
 
     const after = JSON.parse(

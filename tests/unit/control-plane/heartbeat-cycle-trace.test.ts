@@ -16,7 +16,8 @@ describe("heartbeat-orchestrator", () => {
   describe("degraded path", () => {
     it("returns degraded on unreadable state", async () => {
       const result = await runHeartbeatCycle(MOCK_DB, { workspaceRoot: "/test" });
-      assert.ok("status" in result && result.status === "degraded");
+      assert.ok("status" in result, "expected degraded result");
+      assert.equal(result.status, "unavailable");
     });
   });
 

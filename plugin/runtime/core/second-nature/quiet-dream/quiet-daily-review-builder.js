@@ -107,6 +107,25 @@ function groupByStatus(entries) {
     }
     return groups;
 }
+// Placeholder/template detector: true when the review has no content-bearing
+// evidence or perception signals and no memory-review candidates. Closure-only
+// system text is not meaningful memory input.
+function isPlaceholderReview(notableSignals, memoryCandidates, evidenceRows, perceptionRows) {
+    if (memoryCandidates.length > 0)
+        return false;
+    if (notableSignals.length > 0)
+        return false;
+    const hasContentEvidence = evidenceRows.some((ev) => {
+        const payload = parsePayloadJson(ev.payloadJson);
+        return payload.contentStatus !== "content_missing";
+    });
+    if (hasContentEvidence)
+        return false;
+    const hasContentPerception = perceptionRows.some((p) => !!p.summary);
+    if (hasContentPerception)
+        return false;
+    return true;
+}
 // ───────────────────────────────────────────────────────────────
 // Public API
 // ───────────────────────────────────────────────────────────────
@@ -177,11 +196,18 @@ export async function buildQuietDailyReview(db, options) {
     }
     for (const perception of perceptionRows) {
         if (perception.summary) {
+            const perceptionPayload = parsePayloadJson(perception.payloadJson);
+            if (perceptionPayload.contentMissing) {
+                continue;
+            }
             notableSignals.push(`Perception: ${perception.summary}`);
         }
     }
     for (const evidence of evidenceRows) {
         const payload = parsePayloadJson(evidence.payloadJson);
+        if (payload.contentStatus === "content_missing") {
+            continue;
+        }
         if (payload.summary) {
             notableSignals.push(`${evidence.platformId}: ${String(payload.summary)}`);
         }
@@ -245,6 +271,12 @@ export async function buildQuietDailyReview(db, options) {
     const reviewSummary = firstTopic
         ? `Day ${day}: ${closures.length} closures around ${firstTopic}${notableSignals.length > 0 ? ` with ${notableSignals.length} notable signals` : ""}.`
         : `Day ${day}: ${closures.length} closures (${completedCount} completed, ${deniedCount} deferred/denied, ${failedCount} failed)`;
+    const isPlaceholder = isPlaceholderReview(notableSignals, memoryCandidates, evidenceRows, perceptionRows);
+    const contentStatus = isPlaceholder
+        ? "placeholder_rejected"
+        : (notableSignals.length > 0 || memoryCandidates.length > 0)
+            ? "content_present"
+            : "content_missing";
     const importanceSignals = [];
     if (memoryCandidates.length > 0) {
         importanceSignals.push(`${memoryCandidates.length} memory-review candidates`);
@@ -268,6 +300,7 @@ export async function buildQuietDailyReview(db, options) {
         lifecycleStatus: "pending",
         payloadJson: JSON.stringify({
             reviewSummary,
+            contentStatus,
             importanceSignals,
             memoryCandidates,
             sections,

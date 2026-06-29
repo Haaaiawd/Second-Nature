@@ -35,7 +35,7 @@ export interface HeartbeatSurfaceResult {
     /** True when structured fields mirror a fake adapter for schema parity only */
     schemaParityOnly?: boolean;
     /** T-CP.R.2: v8 real runtime spine result when state-backed action-closure spine ran */
-    v8Spine?: RealRuntimeSpineResult & {
+    v8Spine?: Partial<RealRuntimeSpineResult> & {
         degradedReason?: string;
     };
     /** T-GVS.R.1: agent-facing impulse context artifact read pointer */
@@ -101,8 +101,8 @@ export interface HeartbeatCheckInput {
     /** T-OBS.R.1: shared audit sink for connector/Quiet events consumed by heartbeat_digest. */
     auditStore?: AppendOnlyAuditStore;
     /**
-     * T-CP.R.2: when true and state DB is wired, runs the v8 real runtime action-closure spine
-     * in addition to the v7 heartbeat loop. Produces state-backed closure/no-action records.
+     * T-CP.R.5: v8 living-loop spine is the default operator-facing heartbeat model.
+     * Explicit false can be used by legacy callers to force a carrier-only path.
      */
     v8SpineEnabled?: boolean;
 }

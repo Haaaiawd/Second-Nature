@@ -24,6 +24,7 @@
 import { readPerceptionCardById, writeJudgmentVerdict, } from "../../../storage/v8-state-stores.js";
 import { parseSourceRefs } from "../../../shared/serialization.js";
 import { ACTION_KIND_REGISTRY } from "../../../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Config
 // ───────────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ export async function runAgentJudgment(db, perceptionCardId, options) {
     const card = readResult.row;
     if (!card) {
         return {
-            status: "degraded",
+            status: classifyDegradedStatus("state_unreadable"),
             reason: "state_unreadable",
             ownerStage: "judgment",
             sourceRefs: [],
@@ -194,9 +195,12 @@ export async function runAgentJudgment(db, perceptionCardId, options) {
     });
     if ("reason" in writeResult) {
         return {
-            status: "degraded",
-            verdicts: [],
+            status: classifyDegradedStatus(writeResult.reason),
             reason: writeResult.reason,
+            ownerStage: "judgment",
+            sourceRefs: [],
+            operatorNextAction: `Failed to persist JudgmentVerdict: ${writeResult.reason}`,
+            retryable: true,
         };
     }
     return {
@@ -218,7 +222,7 @@ export async function runAgentJudgments(db, perceptionCardIds, options) {
                 failed.push({
                     perceptionCardId,
                     degraded: {
-                        status: "degraded",
+                        status: classifyDegradedStatus(result.reason ?? "judgment_low_confidence"),
                         reason: result.reason ?? "judgment_low_confidence",
                         ownerStage: "judgment",
                         sourceRefs: [],

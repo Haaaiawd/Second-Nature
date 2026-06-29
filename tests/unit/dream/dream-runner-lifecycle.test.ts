@@ -14,6 +14,7 @@ import {
   readDreamConsolidationRunById,
 } from "../../../src/storage/v8-state-stores.js";
 import { checkDailyRhythm } from "../../../src/core/second-nature/quiet-dream/daily-rhythm-scheduler.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 import type { SourceRef } from "../../../src/shared/types/v8-contracts.js";
 
 function makeRef(id: string, family: SourceRef["family"] = "evidence"): SourceRef {
@@ -25,6 +26,7 @@ describe("dream runner lifecycle", () => {
     const db = createStateDatabase(":memory:");
     try {
       const day = "2026-06-15";
+      await seedContentEvidence(db, { now: `${day}T08:00:00Z` });
       await writeActionClosureRecord(db, {
         id: `closure_${day}_1`,
         createdAt: `${day}T12:00:00Z`,
@@ -59,7 +61,13 @@ describe("dream runner lifecycle", () => {
         sourceRefs: [makeRef(quietId, "quiet_review")],
         redactionClass: "none",
         lifecycleStatus: "pending",
-        payloadJson: JSON.stringify({ reviewSummary: "Day summary", importanceSignals: [], sections: [] }),
+        payloadJson: JSON.stringify({
+          reviewSummary: "Day summary",
+          contentStatus: "content_present",
+          importanceSignals: ["one closure"],
+          memoryCandidates: [],
+          sections: [],
+        }),
       });
 
       await writeDreamConsolidationRun(db, {
@@ -113,6 +121,7 @@ describe("dream runner lifecycle", () => {
         payloadJson: JSON.stringify({ scheduledAt: `${day}T11:00:00Z`, consolidatedAt: `${day}T11:01:00Z` }),
       });
 
+      await seedContentEvidence(db, { now: `${day}T08:00:00Z` });
       await writeActionClosureRecord(db, {
         id: `closure_${day}_1`,
         createdAt: `${day}T12:00:00Z`,

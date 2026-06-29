@@ -21,6 +21,7 @@
  * Test coverage: tests/unit/action/policy-bound-dispatch.test.ts
  */
 import { serializeSourceRefs } from "../../../shared/serialization.js";
+import { classifyDegradedStatus } from "../../../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────────────────
@@ -61,7 +62,8 @@ export function dispatchAllowedAction(proposal, decision, options) {
                 actionKind: target,
                 draftType,
                 policyProof: { decisionId: decision.id, decision: decision.decision },
-                sourceRefs: serializeSourceRefs(decision.proofRefs),
+                sourceRefs: serializeSourceRefs(proposal.sourceRefs),
+                proofRefs: serializeSourceRefs(decision.proofRefs),
             },
         };
     }
@@ -77,6 +79,7 @@ export function dispatchAllowedAction(proposal, decision, options) {
                     idempotencyKey: proposal.idempotencyKey,
                     policyProof: { decisionId: decision.id, decision: decision.decision },
                     sourceRefs: serializeSourceRefs(proposal.sourceRefs),
+                    proofRefs: serializeSourceRefs(decision.proofRefs),
                 },
             };
         }
@@ -93,6 +96,7 @@ export function dispatchAllowedAction(proposal, decision, options) {
                     draftType,
                     policyProof: { decisionId: decision.id, decision: decision.decision },
                     sourceRefs: serializeSourceRefs(proposal.sourceRefs),
+                    proofRefs: serializeSourceRefs(decision.proofRefs),
                 },
             };
         }
@@ -102,10 +106,10 @@ export function dispatchAllowedAction(proposal, decision, options) {
     return {
         type: "degraded",
         degraded: {
-            status: "degraded",
+            status: classifyDegradedStatus("closure_failed"),
             reason: "closure_failed",
             ownerStage: "execution",
-            sourceRefs: decision.proofRefs,
+            sourceRefs: proposal.sourceRefs,
             operatorNextAction: "Unexpected policy decision shape",
             retryable: false,
         },

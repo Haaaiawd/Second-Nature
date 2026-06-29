@@ -71,6 +71,7 @@ import {
   serializeSourceRefs,
   parseSourceRefs,
 } from "../shared/serialization.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
@@ -83,7 +84,7 @@ function makeDegraded(
   sourceRefs: SourceRef[] = [],
 ): DegradedOperationResult {
   return {
-    status: "degraded",
+    status: classifyDegradedStatus(reason),
     reason,
     ownerStage,
     sourceRefs,
@@ -137,8 +138,9 @@ export async function writeEvidenceItem(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewEvidenceItemRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db
@@ -263,7 +265,7 @@ function validatePerceptionCardCanonical(
     return {
       ok: false,
       degraded: {
-        status: "degraded",
+        status: classifyDegradedStatus("perception_contract_drift"),
         reason: "perception_contract_drift",
         ownerStage: "perception",
         sourceRefs: row.sourceRefs,
@@ -279,7 +281,7 @@ function validatePerceptionCardCanonical(
       return {
         ok: false,
         degraded: {
-          status: "degraded",
+          status: classifyDegradedStatus("perception_contract_drift"),
           reason: "perception_contract_drift",
           ownerStage: "perception",
           sourceRefs: row.sourceRefs,
@@ -295,7 +297,7 @@ function validatePerceptionCardCanonical(
     return {
       ok: false,
       degraded: {
-        status: "degraded",
+        status: classifyDegradedStatus("perception_contract_drift"),
         reason: "perception_contract_drift",
         ownerStage: "perception",
         sourceRefs: row.sourceRefs,
@@ -319,8 +321,9 @@ export async function writePerceptionCard(
   if (!canonicalCheck.ok) return canonicalCheck.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewPerceptionCardRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db.insert(perceptionCard).values(record);
@@ -415,8 +418,9 @@ export async function writeJudgmentVerdict(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewJudgmentVerdictRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db.insert(judgmentVerdict).values(record);
@@ -482,15 +486,24 @@ export async function readJudgmentVerdictById(
 
 export async function writeActionClosureRecord(
   db: StateDatabase,
-  row: Omit<ActionClosureRecordInsert, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+  row: Omit<ActionClosureRecordInsert, "sourceRefsJson" | "proofRefsJson" | "traceRefsJson" | "payloadJson"> & {
+    sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
+    payload?: Record<string, unknown>;
+  },
 ): Promise<{ id: string } | DegradedOperationResult> {
   const validated = validateSourceRefs(row.sourceRefs, "closure");
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, proofRefs, traceRefs, payload, ...rest } = row;
     const record: ActionClosureRecordInsert = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
+      proofRefsJson: serializeSourceRefs(proofRefs ?? []),
+      traceRefsJson: serializeSourceRefs(traceRefs ?? []),
+      payloadJson: JSON.stringify(payload ?? {}),
     };
     await db.db.insert(actionClosureRecord).values(record);
     return { id: row.id };
@@ -562,10 +575,11 @@ export async function writeQuietDailyReview(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, closureRefs, ...rest } = row;
     const record: NewQuietDailyReviewRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
-      closureRefsJson: row.closureRefs ? serializeSourceRefs(row.closureRefs) : null,
+      closureRefsJson: closureRefs ? serializeSourceRefs(closureRefs) : null,
     };
     await db.db.insert(quietDailyReview).values(record);
     return { id: row.id };
@@ -636,8 +650,9 @@ export async function writeDreamConsolidationRun(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewDreamConsolidationRunRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db.insert(dreamConsolidationRun).values(record);
@@ -764,8 +779,9 @@ export async function writeLongTermMemoryProjection(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewLongTermMemoryProjectionRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db.insert(longTermMemoryProjection).values(record);
@@ -883,8 +899,9 @@ export async function writeHeartbeatCycleTrace(
   row: Omit<NewHeartbeatCycleTraceRecord, "sourceRefsJson"> & { sourceRefs?: SourceRef[] },
 ): Promise<{ id: string } | DegradedOperationResult> {
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewHeartbeatCycleTraceRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: row.sourceRefs ? serializeSourceRefs(row.sourceRefs) : "[]",
     };
     await db.db.insert(heartbeatCycleTrace).values(record);
@@ -927,24 +944,31 @@ export async function readHeartbeatCycleTraces(
 
 export async function writeLoopStageEvent(
   db: StateDatabase,
-  row: Omit<NewLoopStageEventRecord, "sourceRefsJson"> & { sourceRefs: SourceRef[] },
+  row: Omit<NewLoopStageEventRecord, "sourceRefsJson" | "proofRefsJson" | "traceRefsJson"> & {
+    sourceRefs: SourceRef[];
+    proofRefs?: SourceRef[];
+    traceRefs?: SourceRef[];
+  },
 ): Promise<{ id: string } | DegradedOperationResult> {
   const stage = row.stage as import("../shared/types/v8-contracts.js").LoopStage;
   const validated = validateSourceRefs(row.sourceRefs, stage);
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _s, proofRefs: _p, traceRefs: _t, ...rest } = row as Record<string, unknown>;
     const record: NewLoopStageEventRecord = {
-      ...row,
+      ...(rest as Omit<typeof row, "sourceRefs" | "proofRefs" | "traceRefs">),
       sourceRefsJson: serializeSourceRefs(validated.record),
+      proofRefsJson: serializeSourceRefs(row.proofRefs ?? []),
+      traceRefsJson: serializeSourceRefs(row.traceRefs ?? []),
     };
     await db.db.insert(loopStageEvent).values(record);
     return { id: row.id };
-  } catch {
+  } catch (err) {
     return makeDegraded(
       "state_unreadable",
       stage,
-      "Retry stage event write after DB recovery",
+      `Retry stage event write after DB recovery: ${err instanceof Error ? err.message : String(err)}`,
       validated.record,
     );
   }
@@ -1010,8 +1034,9 @@ export async function writeImpulseContextArtifact(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewImpulseContextArtifactRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     // Upsert: delete existing then insert (SQLite primary-key conflict)
@@ -1077,8 +1102,9 @@ export async function writeDailyRhythmState(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewDailyRhythmStateRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db.delete(dailyRhythmState).where(eq(dailyRhythmState.id, row.id));
@@ -1154,8 +1180,9 @@ export async function writeConnectorCooldownState(
   if (!validated.ok) return validated.degraded;
 
   try {
+    const { sourceRefs: _, ...rest } = row;
     const record: NewConnectorCooldownStateRecord = {
-      ...row,
+      ...rest,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db.delete(connectorCooldownState).where(eq(connectorCooldownState.id, row.id));

@@ -26,6 +26,7 @@ import { writeDailyRhythmState, readDailyRhythmStateByDay, readActionClosuresByD
 import { buildQuietDailyReview } from "./quiet-daily-review-builder.js";
 import { scheduleDreamAfterQuiet } from "./dream-scheduler.js";
 import { runDreamConsolidation } from "./dream-consolidation-runner.js";
+import { acceptMemoryProjection } from "./memory-projection-lifecycle.js";
 // ───────────────────────────────────────────────────────────────
 // Config
 // ───────────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ async function executeStaleScheduledDreams(db, state, now) {
             continue;
         if ((run.status === "scheduled" || run.status === "started") && isStaleScheduled(run, now)) {
             const consolidateResult = await runDreamConsolidation(db, runId, { now });
-            if ("status" in consolidateResult && consolidateResult.status !== "degraded") {
+            if ("status" in consolidateResult && !("ownerStage" in consolidateResult)) {
                 const dreamResult = consolidateResult;
                 const finalStatus = dreamResult.status;
                 const finalReason = dreamResult.reason ?? undefined;
@@ -121,6 +122,20 @@ async function executeStaleScheduledDreams(db, state, now) {
                 });
                 if ("reason" in updateResult) {
                     return updateResult;
+                }
+                // T-DQ.R.10: Accept valid candidates as long-term memory projections.
+                // This step was moved out of the runner to separate candidate generation
+                // from acceptance, per design §4.2.
+                if (dreamResult.status === "completed") {
+                    for (const candidate of dreamResult.candidates.filter((c) => c.validationStatus === "valid")) {
+                        const acceptResult = await acceptMemoryProjection(db, candidate.id, `topic_${state.day}`, candidate.candidateText, candidate.sourceRefs, { now });
+                        if ("projectionId" in acceptResult) {
+                            candidate.acceptedProjectionId = acceptResult.projectionId;
+                        }
+                        else {
+                            return acceptResult;
+                        }
+                    }
                 }
                 lastResult = { completed: true, reason: finalReason ?? "dream_scheduled_stalled" };
             }
@@ -207,7 +222,7 @@ export async function checkDailyRhythm(db, options) {
         else if (state.dreamStatus === "scheduled") {
             // Stale scheduled run: try to execute consolidation now
             const staleResult = await executeStaleScheduledDreams(db, state, now);
-            if ("status" in staleResult && staleResult.status === "degraded") {
+            if ("status" in staleResult) {
                 return staleResult;
             }
             const { completed, reason } = staleResult;
@@ -262,7 +277,7 @@ export async function checkDailyRhythm(db, options) {
                     // Immediately execute the freshly scheduled dream so it does not sit
                     // pending forever (T-DQ.R.7).
                     const consolidateResult = await runDreamConsolidation(db, dreamResult.id, { now });
-                    if ("status" in consolidateResult && consolidateResult.status !== "degraded") {
+                    if ("status" in consolidateResult && !("ownerStage" in consolidateResult)) {
                         const dreamOutcome = consolidateResult;
                         const updateResult = await updateDreamConsolidationRunStatus(db, dreamResult.id, dreamOutcome.status, {
                             reason: dreamOutcome.reason ?? null,
@@ -278,6 +293,18 @@ export async function checkDailyRhythm(db, options) {
                         state.dreamReason = dreamOutcome.reason ?? (dreamOutcome.status === "completed" ? "dream_completed" : "dream_failed");
                         if (dreamOutcome.status === "completed") {
                             state.dreamCompletedAt = now;
+                            // T-DQ.R.10: Accept valid candidates as long-term memory projections.
+                            // This step was moved out of the runner to separate candidate generation
+                            // from acceptance, per design §4.2.
+                            for (const candidate of dreamOutcome.candidates.filter((c) => c.validationStatus === "valid")) {
+                                const acceptResult = await acceptMemoryProjection(db, candidate.id, `topic_${day}`, candidate.candidateText, candidate.sourceRefs, { now });
+                                if ("projectionId" in acceptResult) {
+                                    candidate.acceptedProjectionId = acceptResult.projectionId;
+                                }
+                                else {
+                                    return acceptResult;
+                                }
+                            }
                         }
                     }
                     else {

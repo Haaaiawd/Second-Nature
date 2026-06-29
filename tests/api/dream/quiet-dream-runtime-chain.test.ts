@@ -11,6 +11,7 @@ import assert from "node:assert";
 import { createStateDatabase } from "../../../src/storage/db/index.js";
 import { checkDailyRhythm } from "../../../src/core/second-nature/quiet-dream/daily-rhythm-scheduler.js";
 import { writeActionClosureRecord } from "../../../src/storage/v8-state-stores.js";
+import { seedContentEvidence } from "../../shared/content-evidence-fixture.js";
 
 describe("quiet-dream-runtime-chain API", () => {
   function makeClosure(day: string, overrides?: Record<string, unknown>) {
@@ -39,6 +40,7 @@ describe("quiet-dream-runtime-chain API", () => {
     try {
       const now = "2026-06-12T10:00:00Z";
       const day = now.slice(0, 10);
+      await seedContentEvidence(db, { now: `${day}T08:00:00Z` });
       await writeActionClosureRecord(db, makeClosure(day));
 
       const result = await checkDailyRhythm(db, { now, forceQuiet: true });
@@ -101,6 +103,7 @@ describe("quiet-dream-runtime-chain API", () => {
     try {
       const now = "2026-06-12T10:00:00Z";
       const day = now.slice(0, 10);
+      await seedContentEvidence(db, { now: `${day}T08:00:00Z` });
       await writeActionClosureRecord(db, makeClosure(day));
 
       const r1 = await checkDailyRhythm(db, { now, forceQuiet: true });

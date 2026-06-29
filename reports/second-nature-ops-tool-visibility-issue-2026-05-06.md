@@ -2,7 +2,7 @@
 
 **报告日期**: 2026-05-06  
 **关联验证**: `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`（INT-S4 / T1.1.4 宿主与会话侧）  
-**前置探索报告**: `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`
+**前置探索报告**: 已归档删除（原 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`）。
 
 ---
 
@@ -93,14 +93,13 @@
 ## 7. 结论
 
 - **已写入独立报告**：是（本文件）。  
-- **与既有探索报告关系**：本报告为 **面向干系人的汇总与门禁说明**；细节证据与时间线见 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`。  
+- **与既有探索报告关系**：原探索报告 `explore/reports/2026-05-05_second-nature-ops-registration-gap.md` 已归档删除；本报告为 **面向干系人的汇总与门禁说明**。  
 - **当前跟踪定性（按你的要求）**: **Second Nature 插件在目标宿主上的 `second_nature_ops` 会话可见性缺陷（P0）**，在宿主日志与 OpenClaw 工具合并语义补齐前，**根因单点仍保留可推翻空间**。
 
 ---
 
 ## 8. 附录：引用路径
 
-- `explore/reports/2026-05-05_second-nature-ops-registration-gap.md`  
 - `plugin/openclaw.plugin.json`  
 - `plugin/index.ts` / `plugin/index.js`  
 - `docs/validation/e2e-t1-1-4-workspace-bridge-and-host-verification.md`
