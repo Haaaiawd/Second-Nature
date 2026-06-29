@@ -1,0 +1,326 @@
+{
+  "continuity.read": {
+    "ok": true,
+    "command": "continuity.read",
+    "evidenceLevel": "state_present",
+    "surfaceMode": "full_runtime",
+    "payload": {
+      "status": "available",
+      "card": {
+        "id": "card-1",
+        "summary": "Agent maintains body intuition through recent activity.",
+        "bodyIntuition": "Comfortable with tool routines, cautious with new connectors.",
+        "relationshipPosture": "Collaborative, source-backed.",
+        "valuePosture": "Transparency over assertion.",
+        "behaviorHabits": [
+          "checks source refs before acting"
+        ],
+        "activeRoutinePointers": [
+          {
+            "routineId": "routine-1",
+            "capabilityPattern": "twitter:feed.read",
+            "version": "1.0.0",
+            "sourceRefs": [
+              {
+                "family": "routine",
+                "id": "r1"
+              }
+            ]
+          }
+        ],
+        "currentProhibitions": [
+          "no raw credential in output"
+        ],
+        "characterFramePointer": {
+          "frameId": "cf-1",
+          "summary": "Cautious, source-backed agent",
+          "contestPrompt": "This frame describes habits inferred from recent activity. Contest if inaccurate.",
+          "sourceRefs": [
+            {
+              "family": "character",
+              "id": "s1"
+            }
+          ],
+          "status": "active"
+        },
+        "sourceRefs": [
+          {
+            "family": "evidence",
+            "id": "card-src"
+          }
+        ],
+        "acceptedAt": "2025-01-01T00:00:00Z",
+        "status": "active",
+        "redactionClass": "none"
+      },
+      "sourceRefs": [
+        {
+          "family": "evidence",
+          "id": "card-src"
+        }
+      ]
+    },
+    "degradedReasons": [],
+    "diagnostics": {
+      "surfaceMode": "full_runtime"
+    },
+    "sourceRefs": [
+      {
+        "family": "evidence",
+        "id": "card-src"
+      }
+    ],
+    "generatedAt": "2026-06-29T01:29:47.777Z"
+  },
+  "routine.list": {
+    "ok": true,
+    "command": "routine.list",
+    "evidenceLevel": "state_present",
+    "surfaceMode": "full_runtime",
+    "payload": [
+      {
+        "routineId": "routine-1",
+        "capabilityRef": "twitter:feed.read",
+        "version": "1.0.0",
+        "status": "installed",
+        "installedAt": "2025-01-01T00:00:00Z",
+        "rollbackRef": {
+          "family": "routine",
+          "id": "none"
+        },
+        "sourceRefs": [
+          {
+            "family": "routine",
+            "id": "r1"
+          }
+        ]
+      }
+    ],
+    "degradedReasons": [],
+    "diagnostics": {
+      "surfaceMode": "full_runtime"
+    },
+    "sourceRefs": [
+      {
+        "family": "routine",
+        "id": "r1"
+      }
+    ],
+    "generatedAt": "2026-06-29T01:29:47.825Z"
+  },
+  "routine.show": {
+    "ok": true,
+    "command": "routine.show",
+    "evidenceLevel": "state_present",
+    "surfaceMode": "full_runtime",
+    "payload": {
+      "routineId": "routine-1",
+      "capabilityRef": "twitter:feed.read",
+      "version": "1.0.0",
+      "status": "installed",
+      "installedAt": "2025-01-01T00:00:00Z",
+      "rollbackRef": {
+        "family": "routine",
+        "id": "none"
+      },
+      "sourceRefs": [
+        {
+          "family": "routine",
+          "id": "r1"
+        }
+      ]
+    },
+    "degradedReasons": [],
+    "diagnostics": {
+      "surfaceMode": "full_runtime"
+    },
+    "sourceRefs": [
+      {
+        "family": "routine",
+        "id": "r1"
+      }
+    ],
+    "generatedAt": "2026-06-29T01:29:47.907Z"
+  },
+  "connector_evolution.status": {
+    "ok": true,
+    "command": "connector_evolution.status",
+    "evidenceLevel": "state_present",
+    "surfaceMode": "full_runtime",
+    "payload": [
+      {
+        "planId": "plan-1",
+        "platformId": "twitter",
+        "targetVersion": "plan-1",
+        "previousStableRef": {
+          "family": "connector",
+          "id": "git:stable-1"
+        },
+        "gateResults": [],
+        "status": "gating",
+        "sourceRefs": [
+          {
+            "family": "connector",
+            "id": "plan-1"
+          }
+        ]
+      }
+    ],
+    "degradedReasons": [],
+    "diagnostics": {
+      "surfaceMode": "full_runtime"
+    },
+    "sourceRefs": [
+      {
+        "family": "connector",
+        "id": "plan-1"
+      }
+    ],
+    "generatedAt": "2026-06-29T01:29:47.945Z"
+  },
+  "loop_status.read": {
+    "ok": true,
+    "command": "loop_status.read",
+    "evidenceLevel": "contract_smoke",
+    "surfaceMode": "full_runtime",
+    "payload": {
+      "loop": {
+        "windowStart": "2026-06-28T01:29:47.973Z",
+        "windowEnd": "2026-06-29T01:29:47.973Z",
+        "overall": "healthy",
+        "stageAttribution": {
+          "evidence": "ok",
+          "perception": "empty",
+          "attention": "empty",
+          "activity": "empty",
+          "proposal": "empty",
+          "policy": "empty",
+          "dispatch": "empty",
+          "closure": "empty",
+          "quiet": "empty",
+          "dream": "empty",
+          "continuity": "empty",
+          "connector_evolution": "empty",
+          "rollback": "empty"
+        },
+        "activityTerminalCounts": {
+          "active": 0,
+          "paused": 0,
+          "completed": 0,
+          "abandoned": 0,
+          "blocked": 0
+        },
+        "reasons": [],
+        "rollbackBlocked": false
+      },
+      "continuity": {
+        "cardAvailable": true,
+        "cardSourceRefCount": 1,
+        "projectionFreshness": "fresh",
+        "memoryProjectionCount": 0,
+        "proceduralProjectionCount": 0
+      },
+      "routine": {
+        "installedCount": 0,
+        "pendingValidationCount": 0,
+        "deniedCount": 0,
+        "rollbackReady": true,
+        "reasons": []
+      },
+      "connectorEvolution": {
+        "gateSummary": {
+          "schema": "pass"
+        },
+        "canaryResult": "not_run",
+        "rollbackStatus": "not_needed"
+      },
+      "character": {
+        "totalEvents": 0,
+        "deferredCount": 0,
+        "conflictCount": 0,
+        "acceptedCount": 0,
+        "rejectedCount": 0,
+        "retiredCount": 0,
+        "supersededCount": 0,
+        "refreshedCount": 0,
+        "hasDeferredOrConflict": false,
+        "summary": "Character frame events: 0 total, 0 accepted, 0 rejected, 0 deferred, 0 conflict. Source references across events."
+      },
+      "overall": "healthy"
+    },
+    "degradedReasons": [],
+    "diagnostics": {
+      "surfaceMode": "full_runtime"
+    },
+    "sourceRefs": [],
+    "generatedAt": "2026-06-29T01:29:47.973Z"
+  },
+  "continuity.read.carrier": {
+    "ok": false,
+    "command": "continuity.read",
+    "evidenceLevel": "carrier_ack",
+    "surfaceMode": "carrier",
+    "payload": {
+      "status": "unavailable",
+      "unavailableReason": "host_tool_unavailable",
+      "sourceRefs": []
+    },
+    "degradedReasons": [
+      {
+        "code": "host_tool_unavailable",
+        "message": "Carrier mode cannot read continuity",
+        "system": "memory-continuity"
+      }
+    ],
+    "diagnostics": {
+      "surfaceMode": "carrier",
+      "host_tool_unavailable": true
+    },
+    "sourceRefs": [],
+    "generatedAt": "2026-06-29T01:29:47.973Z"
+  },
+  "redaction_gate": {
+    "ok": true,
+    "command": "continuity.read",
+    "evidenceLevel": "contract_smoke",
+    "surfaceMode": "full_runtime",
+    "payload": {
+      "token": "<redacted:credential>",
+      "email": "<redacted:private>",
+      "prompt": "prompt_redacted:75bb3f8d",
+      "card": {
+        "summary": "Agent maintains body intuition.",
+        "bodyIntuition": "Comfortable with routines."
+      }
+    },
+    "degradedReasons": [],
+    "diagnostics": {
+      "surfaceMode": "full_runtime",
+      "redactedKeys": [
+        "token",
+        "email",
+        "prompt"
+      ]
+    },
+    "sourceRefs": [],
+    "generatedAt": "2026-06-29T01:29:47.976Z"
+  },
+  "unknown.command": {
+    "ok": false,
+    "command": "unknown.command",
+    "evidenceLevel": "contract_smoke",
+    "surfaceMode": "full_runtime",
+    "payload": null,
+    "degradedReasons": [
+      {
+        "code": "unknown_command",
+        "message": "Unknown v9 ops command: unknown.command"
+      }
+    ],
+    "diagnostics": {
+      "surfaceMode": "full_runtime"
+    },
+    "sourceRefs": [],
+    "generatedAt": "2026-06-29T01:29:47.977Z"
+  }
+}
