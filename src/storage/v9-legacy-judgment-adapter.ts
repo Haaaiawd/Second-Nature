@@ -51,6 +51,7 @@ export async function readLegacyJudgmentVerdictAsAttentionSignal(
         label: "v8_legacy_judgment",
       },
     ],
+    summary: "v8 legacy judgment mapped to attention signal (replay only)",
     status: "degraded",
     reason: "v8_legacy_judgment_mapped",
   };

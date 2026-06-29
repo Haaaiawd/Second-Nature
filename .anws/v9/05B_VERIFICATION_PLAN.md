@@ -212,7 +212,7 @@
 - **集成/E2E/冒烟覆盖**: Quiet→Dream continuity chain; INT-S2/S3/S4 feed off outputs
 - **前置数据**: quiet review with memory/routine/connector/character signals
 - **断言**: candidates carry sourceRefs and blocked paths use canonical reasons
-- **证据**: `tests/unit/dream/v9-dream-output-families.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
+- **证据**: `tests/unit/dream/v9-dream-consolidation-runner.test.ts`, `tests/unit/dream/v9-procedural-projection-lifecycle.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
 
 ### T5.2.2
 - **关联需求**: REQ-001
@@ -435,7 +435,7 @@
 | `ActivityThread` / `ActivityStep` continuation | 数据结构 / 跨 heartbeat 操作契约 | T5.1.1, T5.1.2, T2.2.4 | T2.2.4 单元/集成 + T8.2.1 health API | ⬜ |
 | v8 `JudgmentVerdict` legacy mapping | 兼容契约 | T5.2.3 | T5.2.3 单元/回归 | ⬜ |
 | Stable evidence identity | 数据变更接口 | T5.1.2, T3.2.2 | T3.2.2 集成 | ⬜ |
-| `EmbodiedContext` v9 slices | 跨系统接口 | T2.2.1 | T2.2.1 单元/集成 | ⬜ |
+| `EmbodiedContext` v9 slices | 跨系统接口 | T2.2.1 | T2.2.1 单元/集成 | ✅ |
 | `SelfContinuityCard` section ordering and budget | 数据结构 / Agent-facing context | T5.2.2, T2.2.1 | T5.2.2 单元/集成 | ⬜ |
 | `CharacterRefreshInput` / `CharacterSignal` | Agent-facing input boundary | T7.2.1, T5.1.1 | T7.2.1 normalizer 单元 + T7.2.1 集成 | ⬜ |
 | `CharacterFrame` and contest prompt | Agent-facing projection | T7.2.1, T7.2.2 | T7.2.1/T7.2.2 单元/集成；双语 forbidden fixtures；`newlyProposed` lifecycle | ⬜ |
@@ -460,8 +460,8 @@
 | Storage migration fresh/upgrade | 数据持久化 | 集成 + before/after schema introspection | T5.1.2 | `tests/integration/storage/v9-schema-migration.test.ts` | ⬜ |
 | Attention scoring and source blocker | Mind/body 边界 | 单元 + integration | T3.2.1 | `tests/unit/attention/v9-attention-assembler.test.ts` | ⬜ |
 | Repeated feed suppression | 数据增长 | 集成 + before/after row count | T3.2.2 | `tests/integration/v9/repeated-feed-suppression.test.ts` | ⬜ |
-| Context card/frame injection | Agent-facing context | 单元 + integration | T2.2.1, T5.2.2, T7.2.2 | `tests/integration/v9/context-continuity-injection.test.ts` | ⬜ |
-| ActivityThread continuation | Runaway prevention / sustained activity | Unit + integration + API health | T2.2.4, T8.2.1 | `tests/integration/v9/activity-thread-continuation.test.ts` | ⬜ |
+| Context card/frame injection | Agent-facing context | 单元 + integration | T2.2.1, T5.2.2, T7.2.2 | `tests/integration/v9/context-continuity-injection.test.ts` | ✅ |
+| ActivityThread continuation | Runaway prevention / sustained activity | Unit + integration + API health | T2.2.4, T8.2.1 | `tests/integration/v9/activity-thread-continuation.test.ts` | ✅ |
 | Heartbeat no final judgment and exactly-one closure | Loop semantics | 单元 + integration | T2.2.2, T4.2.3 | `tests/integration/v9/attention-to-closure-chain.test.ts` | ⬜ |
 | Routine guard permission expansion | Authority boundary | 单元 + integration | T4.2.2, T6.2.2 | `tests/integration/v9/routine-policy-closure.test.ts` | ⬜ |
 | Real-hand affordance truth | Tool truth | 单元 + integration | T6.2.1 | `tests/integration/v9/real-hand-affordance.test.ts` | ⬜ |
@@ -471,7 +471,7 @@
 | CharacterRefreshInput normalizer | Input boundary | Unit allowlist/blocker + integration | T7.2.1 | `tests/unit/character/v9-character-refresh-input-normalizer.test.ts` | ⬜ |
 | CharacterFrame validator | Prompt safety | Bilingual unit fixtures + integration | T7.2.1 | `tests/unit/character/v9-character-frame-builder.test.ts` | ⬜ |
 | CharacterFrame first-injection contestability | Agent-facing context | Unit lifecycle + integration/API marker | T7.2.2, T2.2.1 | `tests/integration/v9/character-context-projection.test.ts` | ⬜ |
-| Agent-boundary rendering | Anti-programming / no Agent controller | Serializer + API forbidden-pattern fixtures | T2.2.1, T7.2.1, T7.2.2, T8.2.1 | `tests/unit/control-plane/v9-context-serializer-boundary.test.ts` | ⬜ |
+| Agent-boundary rendering | Anti-programming / no Agent controller | Serializer + API forbidden-pattern fixtures | T2.2.1, T7.2.1, T7.2.2, T8.2.1 | `tests/unit/control-plane/v9-embodied-context.test.ts` | ✅ |
 | Loop health false-healthy prevention | Observability | Unit + API, including activity health and bilingual character wording blocker | T8.2.1 | `tests/api/runtime-ops/v9-loop-status.test.ts` | ⬜ |
 | Runtime ops API normal/error cases | API契约 | API接口功能测试 | T1.2.1, T1.2.2 | `tests/api/runtime-ops/v9-ops-surface.test.ts` | ⬜ |
 | Sprint/release smoke | Milestone | INT reports + logs | INT-S1~INT-S6 | `reports/int-s*-v9-*.md` | ⬜ |

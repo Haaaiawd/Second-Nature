@@ -106,5 +106,545 @@
     },
     "evidenceLevel": "carrier_ack",
     "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:30:03.658Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:30:03.657Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:30:03.657Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:30:04.003Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:30:04.003Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:30:04.003Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:34:34.949Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:34:34.949Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:34:34.949Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:34:34.987Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:34:34.986Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:34:34.987Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:35:42.351Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:35:42.351Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:35:42.351Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:35:42.392Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:35:42.392Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:35:42.392Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:40:53.972Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:40:53.971Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:40:53.971Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:40:53.982Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:40:53.982Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:40:53.982Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:42:06.143Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:42:06.143Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:42:06.143Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:42:06.197Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:42:06.196Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:42:06.196Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:44:01.959Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:44:01.956Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:44:01.956Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:44:01.972Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:44:01.971Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:44:01.971Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:48:26.911Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:48:26.911Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:48:26.911Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T03:48:27.129Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T03:48:27.129Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T03:48:27.129Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T04:00:40.889Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T04:00:40.889Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T04:00:40.889Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T04:00:40.905Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T04:00:40.905Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T04:00:40.905Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T04:04:41.907Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T04:04:41.906Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T04:04:41.906Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T04:04:42.069Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T04:04:42.069Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T04:04:42.069Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T07:23:35.453Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T07:23:35.453Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T07:23:35.453Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T07:23:35.482Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T07:23:35.482Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T07:23:35.482Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T07:40:54.757Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T07:40:54.757Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T07:40:54.757Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-23T07:40:54.949Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-23T07:40:54.949Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-23T07:40:54.949Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:18:22.704Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:18:22.704Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:18:22.704Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:18:22.716Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:18:22.716Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:18:22.716Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:33:02.917Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:33:02.917Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:33:02.917Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:33:02.969Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:33:02.968Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:33:02.968Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:47:46.460Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:47:46.460Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:47:46.460Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:47:46.547Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:47:46.547Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:47:46.547Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T12:08:33.856Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T12:08:33.855Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T12:08:33.855Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T12:08:34.138Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T12:08:34.138Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T12:08:34.138Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
   }
 ]

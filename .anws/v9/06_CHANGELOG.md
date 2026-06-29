@@ -124,6 +124,33 @@ A dedicated read-only challenge pass found two remaining anti-programming seams.
 - Updated action proposal tasks and verification so attention refs-only never author a proposal.
 - Replaced broad forbidden wording bans with scoped rule IDs (`emotion_claim`, `identity_lock`, `hard_control`, `personality_score`) plus required safe counterexamples to prevent over-blocking normal text.
 
-### Workflow Lesson
+## 2026-06-26 — Dependency Cycle Repair Change
 
-- Future `/challenge` reviews touching Agent-facing text, identity/personality/emotion boundaries, attention semantics, routine behavior, or health rendering must inspect design and 05A/05B propagation together.
+A `/forge` readiness check found a circular dependency in `05A_TASKS.md` that blocked S2/S3 task ordering.
+
+### Problem
+
+The task dependency graph contained a cycle:
+
+`T5.2.2 → T6.2.2 → T4.2.2 → T4.2.1 → T2.2.4 → T2.2.1 → T5.2.2`
+
+This made `T2.2.1`, `T5.2.2`, `T6.2.2` and downstream milestones impossible to schedule.
+
+### Root Cause
+
+`T2.2.1 EmbodiedContext assembler` was declared to depend on `T5.2.2 SelfContinuityCard assembly` and `T7.2.2 CharacterFrame lifecycle`. Per `02_ARCHITECTURE_OVERVIEW.md §3` and `control-context-system.md §4.1`, `control-context-system` only **reads** accepted projections / card / frame through narrow SQLite read ports; it does not own the assembly or lifecycle logic. The real prerequisites are the storage schema and canonical contract shapes, not the full downstream implementations.
+
+### Fixed
+
+- `T2.2.1` dependencies changed from `T5.2.2, T7.2.2, T6.2.1` to `T5.1.2, T5.2.1, T6.2.1, T7.2.1`.
+- Dependency graph mermaid updated to show `T5.1.2`, `T5.2.1`, `T6.2.1`, `T7.2.1` feeding `T2.2.1`, and `T7.2.1` feeding `T7.2.2`.
+- The graph is now acyclic: `T5.2.2` still depends on `T6.2.2` and `T7.2.2`, but `T2.2.1` no longer waits for `T5.2.2`.
+
+### Boundary Preserved
+
+- `control-context-system` remains a reader of `memory-continuity-system` / `character-continuity-system` projections.
+- No implementation detail was added or removed; only task ordering and interface-level dependencies were corrected.
+
+### Next
+
+Resume `/forge` Wave 123 with `T7.2.1` and `T8.1.1`, then continue in dependency order through `T7.2.2`, `T6.2.2`, `T5.2.2`, `T2.2.1`, `T2.2.4`, `T4.2.1`, `T4.2.2`.

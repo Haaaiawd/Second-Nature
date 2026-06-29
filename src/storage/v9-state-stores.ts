@@ -24,24 +24,60 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import type { StateDatabase } from "./db/index.js";
 import {
   attentionSignal,
   activityThread,
   activityStep,
+  toolRoutine,
+  proceduralProjection,
+  connectorEvolutionPlan,
+  characterFrame,
+  selfContinuityCard,
+  autonomousChangeLedger,
   type AttentionSignalRecord,
   type NewAttentionSignalRecord,
   type ActivityThreadRecord,
   type NewActivityThreadRecord,
   type ActivityStepRecord,
   type NewActivityStepRecord,
+  type ToolRoutineRecord,
+  type NewToolRoutineRecord,
+  type ProceduralProjectionRecord,
+  type NewProceduralProjectionRecord,
+  type ConnectorEvolutionPlanRecord,
+  type NewConnectorEvolutionPlanRecord,
+  type CharacterFrameRecord,
+  type NewCharacterFrameRecord,
+  type SelfContinuityCardRecord,
+  type NewSelfContinuityCardRecord,
+  type AutonomousChangeLedgerRecord,
+  type NewAutonomousChangeLedgerRecord,
 } from "./db/schema/v9-entities.js";
 import type { SourceRef } from "../shared/types/v9-contracts.js";
+import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
+import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
 // ───────────────────────────────────────────────────────────────
+
+function makeDegraded(
+  reason: DegradedOperationResult["reason"],
+  ownerStage: DegradedOperationResult["ownerStage"],
+  operatorNextAction: string,
+  sourceRefs: SourceRef[] = [],
+): DegradedOperationResult {
+  return {
+    status: classifyDegradedStatus(reason),
+    reason,
+    ownerStage,
+    sourceRefs: sourceRefs as unknown as import("../shared/types/v8-contracts.js").SourceRef[],
+    operatorNextAction,
+    retryable: true,
+  };
+}
 
 function serializeSourceRefs(refs: SourceRef[]): string {
   return JSON.stringify(refs);
@@ -170,6 +206,19 @@ export async function readActivityThreadById(
   return rows[0];
 }
 
+export async function readActivityThreadsByStatus(
+  db: StateDatabase,
+  status: ActivityThreadRecord["status"],
+  options: { limit?: number; orderBy?: "asc" | "desc" } = {},
+): Promise<ActivityThreadRecord[]> {
+  const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
+  const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
+  if (options.limit !== undefined && options.limit > 0) {
+    return await query.limit(options.limit);
+  }
+  return await query;
+}
+
 export async function updateActivityThreadProgress(
   db: StateDatabase,
   id: string,
@@ -180,6 +229,8 @@ export async function updateActivityThreadProgress(
     | "completedStepCount"
     | "lastStepKind"
     | "blockerReason"
+    | "stopCondition"
+    | "nextPossibleMovesJson"
     | "lastHeartbeatSequence"
     | "updatedAt"
   >>,
@@ -234,6 +285,621 @@ export async function readActivityStepsByThreadId(
     .where(eq(activityStep.threadId, threadId))
     .orderBy(desc(activityStep.createdAt))
     .limit(limit);
+}
+
+// ───────────────────────────────────────────────────────────────
+// ToolRoutine read port (T6.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export async function readActiveToolRoutinesByCapabilityPattern(
+  db: StateDatabase,
+  capabilityPattern: string,
+): Promise<ToolRoutineRecord[]> {
+  return db.db
+    .select()
+    .from(toolRoutine)
+    .where(
+      and(
+        eq(toolRoutine.status, "active"),
+        eq(toolRoutine.capabilityPattern, capabilityPattern),
+      ),
+    )
+    .orderBy(desc(toolRoutine.activatedAt));
+}
+
+export async function readToolRoutinesByStatus(
+  db: StateDatabase,
+  status: ToolRoutineRecord["status"],
+): Promise<{ rows: ToolRoutineRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(toolRoutine)
+      .where(eq(toolRoutine.status, status))
+      .orderBy(desc(toolRoutine.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export interface WriteToolRoutineOptions {
+  id: string;
+  name: string;
+  version: string;
+  capabilityPattern: string;
+  status?: ToolRoutineRecord["status"];
+  sourceRefs: SourceRef[];
+  rollbackRef?: string;
+  payloadJson?: string;
+  activatedAt?: string;
+  retiredAt?: string;
+  createdAt: string;
+}
+
+export async function writeToolRoutine(
+  db: StateDatabase,
+  options: WriteToolRoutineOptions,
+): Promise<ToolRoutineRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("tool_routine sourceRefs required");
+  }
+  const row: NewToolRoutineRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    name: options.name,
+    version: options.version,
+    capabilityPattern: options.capabilityPattern,
+    status: options.status ?? "active",
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    rollbackRef: options.rollbackRef,
+    payloadJson: options.payloadJson,
+    activatedAt: options.activatedAt,
+    retiredAt: options.retiredAt,
+  };
+  await db.db.insert(toolRoutine).values(row);
+  return row as ToolRoutineRecord;
+}
+
+// ───────────────────────────────────────────────────────────────
+// ProceduralProjection read/write ports (T5.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteProceduralProjectionOptions {
+  id: string;
+  createdAt: string;
+  candidateId: string;
+  capabilityPattern: string;
+  status?: ProceduralProjectionRecord["status"];
+  sourceRefs: SourceRef[];
+  payloadJson?: string;
+}
+
+export async function writeProceduralProjection(
+  db: StateDatabase,
+  options: WriteProceduralProjectionOptions,
+): Promise<ProceduralProjectionRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("procedural_projection sourceRefs required");
+  }
+  const row: NewProceduralProjectionRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    candidateId: options.candidateId,
+    capabilityPattern: options.capabilityPattern,
+    status: options.status ?? "candidate",
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    payloadJson: options.payloadJson,
+  };
+  await db.db.insert(proceduralProjection).values(row);
+  return row as ProceduralProjectionRecord;
+}
+
+export async function readProceduralProjectionsByStatus(
+  db: StateDatabase,
+  status: ProceduralProjectionRecord["status"],
+): Promise<{ rows: ProceduralProjectionRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(proceduralProjection)
+      .where(eq(proceduralProjection.status, status))
+      .orderBy(desc(proceduralProjection.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readProceduralProjectionsByCapabilityPattern(
+  db: StateDatabase,
+  capabilityPattern: string,
+): Promise<{ rows: ProceduralProjectionRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(proceduralProjection)
+      .where(eq(proceduralProjection.capabilityPattern, capabilityPattern))
+      .orderBy(desc(proceduralProjection.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateProceduralProjectionStatus(
+  db: StateDatabase,
+  id: string,
+  status: ProceduralProjectionRecord["status"],
+  payloadJson?: string,
+): Promise<ProceduralProjectionRecord | undefined> {
+  try {
+    await db.db
+      .update(proceduralProjection)
+      .set({ status, payloadJson })
+      .where(eq(proceduralProjection.id, id));
+    const rows = await db.db
+      .select()
+      .from(proceduralProjection)
+      .where(eq(proceduralProjection.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// ConnectorEvolutionPlan read/write ports (T5.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteConnectorEvolutionPlanOptions {
+  id: string;
+  createdAt: string;
+  platformId: string;
+  planType: ConnectorEvolutionPlanRecord["planType"];
+  status?: ConnectorEvolutionPlanRecord["status"];
+  sourceRefs: SourceRef[];
+  payloadJson?: string;
+  previousStableRef?: string;
+  rollbackCommandHint?: string;
+}
+
+export async function writeConnectorEvolutionPlan(
+  db: StateDatabase,
+  options: WriteConnectorEvolutionPlanOptions,
+): Promise<ConnectorEvolutionPlanRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("connector_evolution_plan sourceRefs required");
+  }
+  const row: NewConnectorEvolutionPlanRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    platformId: options.platformId,
+    planType: options.planType,
+    status: options.status ?? "proposed",
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    payloadJson: options.payloadJson,
+    previousStableRef: options.previousStableRef,
+    rollbackCommandHint: options.rollbackCommandHint,
+  };
+  await db.db.insert(connectorEvolutionPlan).values(row);
+  return row as ConnectorEvolutionPlanRecord;
+}
+
+export async function readConnectorEvolutionPlansByStatus(
+  db: StateDatabase,
+  status: ConnectorEvolutionPlanRecord["status"],
+): Promise<{ rows: ConnectorEvolutionPlanRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorEvolutionPlan)
+      .where(eq(connectorEvolutionPlan.status, status))
+      .orderBy(desc(connectorEvolutionPlan.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readConnectorEvolutionPlansByPlatform(
+  db: StateDatabase,
+  platformId: string,
+): Promise<{ rows: ConnectorEvolutionPlanRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorEvolutionPlan)
+      .where(eq(connectorEvolutionPlan.platformId, platformId))
+      .orderBy(desc(connectorEvolutionPlan.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateConnectorEvolutionPlanStatus(
+  db: StateDatabase,
+  id: string,
+  status: ConnectorEvolutionPlanRecord["status"],
+  payloadJson?: string,
+): Promise<ConnectorEvolutionPlanRecord | undefined> {
+  try {
+    await db.db
+      .update(connectorEvolutionPlan)
+      .set({ status, payloadJson })
+      .where(eq(connectorEvolutionPlan.id, id));
+    const rows = await db.db
+      .select()
+      .from(connectorEvolutionPlan)
+      .where(eq(connectorEvolutionPlan.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// CharacterFrame (T7.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteCharacterFrameOptions {
+  id: string;
+  createdAt: string;
+  version: number;
+  validFrom: string;
+  status?: CharacterFrameRecord["status"];
+  sectionsJson: string;
+  contestPrompt: string;
+  charCount: number;
+  sourceRefs: SourceRef[];
+  supersededBy?: string | null;
+  revisionOf?: string | null;
+  acceptedAt?: string | null;
+  validUntil?: string | null;
+  payloadJson?: string;
+}
+
+export async function writeCharacterFrame(
+  db: StateDatabase,
+  options: WriteCharacterFrameOptions,
+): Promise<CharacterFrameRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("character_frame sourceRefs required");
+  }
+  const row: NewCharacterFrameRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    version: options.version,
+    validFrom: options.validFrom,
+    sectionsJson: options.sectionsJson,
+    contestPrompt: options.contestPrompt,
+    charCount: options.charCount,
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    status: options.status ?? "candidate",
+    supersededBy: options.supersededBy,
+    revisionOf: options.revisionOf,
+    acceptedAt: options.acceptedAt,
+    validUntil: options.validUntil,
+    payloadJson: options.payloadJson,
+  };
+  await db.db.insert(characterFrame).values(row);
+  return row as CharacterFrameRecord;
+}
+
+export async function readCharacterFrameById(
+  db: StateDatabase,
+  id: string,
+): Promise<CharacterFrameRecord | undefined> {
+  const rows = await db.db.select().from(characterFrame).where(eq(characterFrame.id, id));
+  return rows[0];
+}
+
+export async function readCharacterFramesByStatus(
+  db: StateDatabase,
+  status: CharacterFrameRecord["status"],
+): Promise<{ rows: CharacterFrameRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(characterFrame)
+      .where(eq(characterFrame.status, status))
+      .orderBy(desc(characterFrame.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readLatestAcceptedCharacterFrame(
+  db: StateDatabase,
+): Promise<{ row?: CharacterFrameRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(characterFrame)
+      .where(eq(characterFrame.status, "accepted"))
+      .orderBy(desc(characterFrame.acceptedAt))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readCharacterFrameRevisionCandidates(
+  db: StateDatabase,
+  revisionOf: string,
+): Promise<{ rows: CharacterFrameRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(characterFrame)
+      .where(and(eq(characterFrame.status, "candidate"), eq(characterFrame.revisionOf, revisionOf)))
+      .orderBy(desc(characterFrame.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateCharacterFrameStatus(
+  db: StateDatabase,
+  id: string,
+  status: CharacterFrameRecord["status"],
+  patch?: Partial<
+    Pick<
+      CharacterFrameRecord,
+      | "supersededBy"
+      | "revisionOf"
+      | "acceptedAt"
+      | "validFrom"
+      | "validUntil"
+      | "charCount"
+      | "payloadJson"
+    >
+  >,
+): Promise<CharacterFrameRecord | undefined> {
+  try {
+    const set: Partial<CharacterFrameRecord> = { status, ...patch };
+    await db.db.update(characterFrame).set(set).where(eq(characterFrame.id, id));
+    const rows = await db.db.select().from(characterFrame).where(eq(characterFrame.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// SelfContinuityCard (T5.2.2)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteSelfContinuityCardOptions {
+  id: string;
+  createdAt: string;
+  version?: number;
+  cardText: string;
+  sectionsJson: string;
+  sourceRefs: SourceRef[];
+  characterFramePointerJson: string;
+  status?: SelfContinuityCardRecord["status"];
+  redactionClass?: SelfContinuityCardRecord["redactionClass"];
+  payloadJson?: string;
+}
+
+export async function writeSelfContinuityCard(
+  db: StateDatabase,
+  options: WriteSelfContinuityCardOptions,
+): Promise<SelfContinuityCardRecord | undefined> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("self_continuity_card sourceRefs required");
+  }
+  if (new TextEncoder().encode(options.cardText).length > 4000) {
+    throw new Error("self_continuity_card cardText exceeds hard byte ceiling");
+  }
+  try {
+    const row: NewSelfContinuityCardRecord = {
+      id: options.id,
+      createdAt: options.createdAt,
+      version: options.version ?? 1,
+      cardText: options.cardText,
+      sectionsJson: options.sectionsJson,
+      sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+      characterFramePointerJson: options.characterFramePointerJson,
+      status: options.status ?? "active",
+      redactionClass: options.redactionClass ?? "none",
+      payloadJson: options.payloadJson,
+    };
+    await db.db.insert(selfContinuityCard).values(row);
+    return row as SelfContinuityCardRecord;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function readLatestSelfContinuityCard(
+  db: StateDatabase,
+): Promise<{ row?: SelfContinuityCardRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(selfContinuityCard)
+      .orderBy(desc(selfContinuityCard.createdAt))
+      .limit(1);
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readSelfContinuityCardById(
+  db: StateDatabase,
+  id: string,
+): Promise<{ row?: SelfContinuityCardRecord; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db.select().from(selfContinuityCard).where(eq(selfContinuityCard.id, id));
+    return { row: rows[0] };
+  } catch {
+    return {
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateSelfContinuityCardStatus(
+  db: StateDatabase,
+  id: string,
+  status: SelfContinuityCardRecord["status"],
+): Promise<SelfContinuityCardRecord | undefined> {
+  try {
+    await db.db.update(selfContinuityCard).set({ status }).where(eq(selfContinuityCard.id, id));
+    const rows = await db.db.select().from(selfContinuityCard).where(eq(selfContinuityCard.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// AutonomousChangeLedger (T8.1.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteAutonomousChangeLedgerOptions {
+  id: string;
+  createdAt: string;
+  workspaceRoot: string;
+  changeKind: AutonomousChangeLedgerRecord["changeKind"];
+  targetId: string;
+  previousStableRef?: string;
+  status?: AutonomousChangeLedgerRecord["status"];
+  gateResultsJson?: string;
+  rollbackRef?: string;
+  rollbackCommandHint?: string;
+  sourceRefs: SourceRef[];
+  redactedPayloadJson?: string;
+  activatedAt?: string;
+  rolledBackAt?: string;
+}
+
+export async function writeAutonomousChangeLedger(
+  db: StateDatabase,
+  options: WriteAutonomousChangeLedgerOptions,
+): Promise<AutonomousChangeLedgerRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("autonomous_change_ledger sourceRefs required");
+  }
+  const row: NewAutonomousChangeLedgerRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    workspaceRoot: options.workspaceRoot,
+    changeKind: options.changeKind,
+    targetId: options.targetId,
+    previousStableRef: options.previousStableRef,
+    status: options.status ?? "proposed",
+    gateResultsJson: options.gateResultsJson,
+    rollbackRef: options.rollbackRef,
+    rollbackCommandHint: options.rollbackCommandHint,
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    redactedPayloadJson: options.redactedPayloadJson,
+    activatedAt: options.activatedAt,
+    rolledBackAt: options.rolledBackAt,
+  };
+  await db.db.insert(autonomousChangeLedger).values(row);
+  return row as AutonomousChangeLedgerRecord;
+}
+
+export async function readAutonomousChangeLedgerById(
+  db: StateDatabase,
+  id: string,
+): Promise<AutonomousChangeLedgerRecord | undefined> {
+  const rows = await db.db.select().from(autonomousChangeLedger).where(eq(autonomousChangeLedger.id, id));
+  return rows[0];
+}
+
+export async function readAutonomousChangeLedgerByTarget(
+  db: StateDatabase,
+  targetId: string,
+  limit = 50,
+): Promise<{ rows: AutonomousChangeLedgerRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(autonomousChangeLedger)
+      .where(eq(autonomousChangeLedger.targetId, targetId))
+      .orderBy(desc(autonomousChangeLedger.createdAt))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readAutonomousChangeLedgerByStatus(
+  db: StateDatabase,
+  status: AutonomousChangeLedgerRecord["status"],
+): Promise<{ rows: AutonomousChangeLedgerRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(autonomousChangeLedger)
+      .where(eq(autonomousChangeLedger.status, status))
+      .orderBy(desc(autonomousChangeLedger.createdAt));
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function updateAutonomousChangeLedgerStatus(
+  db: StateDatabase,
+  id: string,
+  status: AutonomousChangeLedgerRecord["status"],
+  patch?: Partial<
+    Pick<
+      AutonomousChangeLedgerRecord,
+      "gateResultsJson" | "rollbackRef" | "rollbackCommandHint" | "activatedAt" | "rolledBackAt"
+    >
+  >,
+): Promise<AutonomousChangeLedgerRecord | undefined> {
+  try {
+    const set: Partial<AutonomousChangeLedgerRecord> = { status, ...patch };
+    await db.db.update(autonomousChangeLedger).set(set).where(eq(autonomousChangeLedger.id, id));
+    const rows = await db.db.select().from(autonomousChangeLedger).where(eq(autonomousChangeLedger.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
 }
 
 // ───────────────────────────────────────────────────────────────

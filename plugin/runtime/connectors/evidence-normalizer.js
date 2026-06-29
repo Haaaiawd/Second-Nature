@@ -75,6 +75,10 @@ async function findExistingEvidenceByExternalId(db, id) {
             id: result.row.id,
             observedAt: result.row.observedAt,
             payloadJson: result.row.payloadJson ?? null,
+            contentHash: result.row.contentHash,
+            seenCount: result.row.seenCount ?? 1,
+            stableIdentityKey: result.row.stableIdentityKey,
+            rowIdentityStatus: result.row.rowIdentityStatus,
         };
     }
     return undefined;
@@ -123,15 +127,27 @@ export async function normalizeConnectorEvidence(db, result, now = new Date().to
         const sensitivityHint = mergeSensitivityHint(inferSensitivityHint(content.summary), inferSensitivityHint(content.title ?? ""));
         if (existing) {
             // Idempotent update: refresh observedAt and seen count; do not duplicate.
+            // contentHash column is kept as the first observed hash to support
+            // repetition=changed detection in v9 attention-system.
             try {
+                const payload = JSON.parse(existing.payloadJson ?? "{}");
+                const isChangedContent = contentHash !== existing.contentHash;
                 await db.db
                     .update(evidenceItem)
                     .set({
                     observedAt,
+                    lastObservedAt: observedAt,
+                    seenCount: (existing.seenCount ?? 1) + 1,
+                    stableIdentityKey: existing.stableIdentityKey || content.externalId || contentHash,
+                    rowIdentityStatus: existing.rowIdentityStatus || (content.externalId ? "stable" : "unstable"),
                     payloadJson: JSON.stringify({
-                        ...JSON.parse(existing.payloadJson ?? "{}"),
+                        ...payload,
                         lastObservedAt: observedAt,
-                        seenCount: (JSON.parse(existing.payloadJson ?? "{}").seenCount ?? 1) + 1,
+                        seenCount: (Number(payload.seenCount) || 1) + 1,
+                        firstContentHash: isChangedContent
+                            ? (existing.contentHash ?? contentHash)
+                            : (payload.firstContentHash ?? existing.contentHash ?? contentHash),
+                        latestContentHash: contentHash,
                     }),
                 })
                     .where(eq(evidenceItem.id, existing.id));
@@ -139,15 +155,26 @@ export async function normalizeConnectorEvidence(db, result, now = new Date().to
                 continue;
             }
             catch {
-                // Fall through to insert attempt if update fails.
+                // Existing row is known but the idempotent update failed. Do not fall
+                // through to the insert path, because writeEvidenceItem's upsert would
+                // increment seenCount a second time and overwrite first-content metadata.
+                // Keep the existing evidence id; the next heartbeat will retry the update.
+                evidenceIds.push(existing.id);
+                continue;
             }
         }
         const writeResult = await writeEvidenceItem(db, {
             id: evidenceId,
             createdAt: now,
             platformId: result.platformId,
+            externalId: content.externalId,
             contentHash,
+            stableIdentityKey: content.externalId ?? contentHash,
             observedAt,
+            firstObservedAt: observedAt,
+            lastObservedAt: observedAt,
+            seenCount: 1,
+            rowIdentityStatus: content.externalId ? "stable" : "unstable",
             sensitivityHint,
             sourceRefs: [sourceRef],
             redactionClass: sensitivityHint === "sensitive" ? "blocked" : "none",
