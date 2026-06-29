@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-29` (Wave 138 完成；T1.2.2 已交付)
-- **当前波次**: Wave 138 ✅ — v9 S1 Ops Redaction & Evidence-Level Truth Gate
-- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T2.2.3 context deadline 或 INT-S5 集成验证
+- **最近一次更新**: `2026-06-29` (Wave 139 完成；T2.2.3 已交付)
+- **当前波次**: Wave 139 ✅ — v9 2s heartbeat deadline + per-slice timeout + latency stage events
+- **下一步**: 05A 所有任务已完成；进入 INT-S5 集成验证或 /challenge 质量把关
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 

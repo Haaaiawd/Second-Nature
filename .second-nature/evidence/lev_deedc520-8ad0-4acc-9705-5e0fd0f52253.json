@@ -1,0 +1,24 @@
+{
+  "id": "lev_deedc520-8ad0-4acc-9705-5e0fd0f52253",
+  "timestamp": "2026-06-29T01:07:43.243Z",
+  "evidenceType": "platform_browse",
+  "platformId": "moltbook",
+  "summary": "moltbook:feed.read",
+  "sourceRefs": [
+    {
+      "id": "event-1",
+      "kind": "platform_item",
+      "uri": "platform://moltbook/item/event-1",
+      "observedAt": "2026-06-29T01:07:43.243Z"
+    }
+  ],
+  "sensitivity": "public",
+  "confidence": 1,
+  "tags": [],
+  "producer": "connector-system",
+  "artifactRef": {
+    "id": "artifact:lev_deedc520-8ad0-4acc-9705-5e0fd0f52253",
+    "kind": "workspace_artifact",
+    "uri": ".second-nature/evidence/lev_deedc520-8ad0-4acc-9705-5e0fd0f52253.json"
+  }
+}

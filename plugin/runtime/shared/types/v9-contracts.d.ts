@@ -647,7 +647,7 @@ export type RoutineInvocationProposal = Omit<ActionProposal, "actionKind" | "sid
     routineInvocationId: string;
     routineVersion: string;
 };
-export type LoopStageKind = "evidence" | "perception" | "attention" | "activity" | "proposal" | "policy" | "dispatch" | "closure" | "quiet" | "dream" | "continuity" | "connector_evolution" | "rollback";
+export type LoopStageKind = "evidence" | "perception" | "attention" | "activity" | "proposal" | "policy" | "dispatch" | "closure" | "quiet" | "dream" | "continuity" | "connector_evolution" | "rollback" | "context_assembly";
 export type StageEventStatus = "ok" | "degraded" | "blocked" | "skipped" | "empty";
 export type HealthOverall = "healthy" | "degraded" | "blocked";
 export type CharacterFrameEventKind = "refresh" | "accepted" | "rejected" | "revised" | "retired" | "superseded" | "deferred" | "conflict";
@@ -810,6 +810,14 @@ export interface ContinuityHealth {
     projectionFreshness: "fresh" | "stale" | "missing";
     memoryProjectionCount: number;
     proceduralProjectionCount: number;
+}
+export interface ContextAssemblyLatencyReport {
+    totalDurationMs: number;
+    hardDeadlineMs: number;
+    withinDeadline: boolean;
+    sliceTimings: Record<string, number>;
+    degradedSlices: string[];
+    timedOutSlices: string[];
 }
 export interface RoutineHealth {
     installedCount: number;

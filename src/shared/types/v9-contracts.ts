@@ -980,7 +980,8 @@ export type LoopStageKind =
   | "dream"
   | "continuity"
   | "connector_evolution"
-  | "rollback";
+  | "rollback"
+  | "context_assembly";
 
 export type StageEventStatus = "ok" | "degraded" | "blocked" | "skipped" | "empty";
 
@@ -1178,6 +1179,19 @@ export interface ContinuityHealth {
   projectionFreshness: "fresh" | "stale" | "missing";
   memoryProjectionCount: number;
   proceduralProjectionCount: number;
+}
+
+// ───────────────────────────────────────────────────────────────
+// control-context-system.detail.md §3.3 — context assembly latency report
+// ───────────────────────────────────────────────────────────────
+
+export interface ContextAssemblyLatencyReport {
+  totalDurationMs: number;
+  hardDeadlineMs: number;
+  withinDeadline: boolean;
+  sliceTimings: Record<string, number>;
+  degradedSlices: string[];
+  timedOutSlices: string[];
 }
 
 export interface RoutineHealth {

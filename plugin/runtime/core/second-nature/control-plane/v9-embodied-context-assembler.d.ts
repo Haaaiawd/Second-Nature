@@ -37,7 +37,7 @@
 import type { EmbodiedContextStatePort } from "../../../storage/services/embodied-context-state-port.js";
 import type { AffordanceAssembler } from "../body/tool-affordance/affordance-assembler.js";
 import type { SelfHealthSnapshot } from "../../../shared/types/v7-entities.js";
-import type { CharacterFramePointer, ContinuityReadPort, ContinuityScope, EmbodiedContext, EmbodiedContextCharacterProjection } from "../../../shared/types/v9-contracts.js";
+import type { CharacterFramePointer, ContextAssemblyLatencyReport, ContinuityReadPort, ContinuityScope, EmbodiedContext, EmbodiedContextCharacterProjection } from "../../../shared/types/v9-contracts.js";
 import type { StateDatabase } from "../../../storage/db/index.js";
 import type { ActivityThreadPort } from "./activity-thread-coordinator.js";
 export interface SelfHealthProvider {
@@ -59,6 +59,14 @@ export interface CharacterLoaderPort {
         };
     }>;
 }
+/**
+ * Optional stage event sink for context assembly latency reporting (T2.2.3).
+ * When provided, the assembler emits a `context_assembly` stage event with
+ * the total duration and degraded/timed-out slice list.
+ */
+export interface ContextAssemblyStageEventSink {
+    recordContextAssemblyLatency(report: ContextAssemblyLatencyReport): void;
+}
 export interface V9EmbodiedContextAssemblerDeps {
     statePort: EmbodiedContextStatePort;
     affordanceAssembler: AffordanceAssembler;
@@ -66,12 +74,15 @@ export interface V9EmbodiedContextAssemblerDeps {
     continuityReadPort: ContinuityReadPort;
     characterLoader: CharacterLoaderPort;
     activityThreadPort: ActivityThreadPort;
+    stageEventSink?: ContextAssemblyStageEventSink;
     options?: {
         interactionLimit?: number;
         experienceLimit?: number;
         acceptedDreamLimit?: number;
         activityThreadLimit?: number;
         hardDeadlineMs?: number;
+        criticalSliceTimeoutMs?: number;
+        nonCriticalSliceTimeoutMs?: number;
     };
 }
 export interface V9EmbodiedContextAssembler {
@@ -86,5 +97,6 @@ export interface V9EmbodiedContextAssemblerFactoryDeps {
     affordanceAssembler: AffordanceAssembler;
     selfHealthProvider?: SelfHealthProvider;
     continuityReadPort: ContinuityReadPort;
+    stageEventSink?: ContextAssemblyStageEventSink;
 }
 export declare function createV9EmbodiedContextAssemblerFromDeps(deps: V9EmbodiedContextAssemblerFactoryDeps): V9EmbodiedContextAssembler;
