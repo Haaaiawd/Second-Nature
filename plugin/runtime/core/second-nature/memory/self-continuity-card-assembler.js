@@ -33,7 +33,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { redactPayload } from "../../../observability/redaction/policy.js";
-import { readToolRoutinesByStatus, readProceduralProjectionsByStatus, readLatestSelfContinuityCard, writeSelfContinuityCard, } from "../../../storage/v9-state-stores.js";
+import { readToolRoutinesByStatus, readProceduralProjectionsByStatus, readLatestSelfContinuityCard, writeSelfContinuityCard, readCharacterFrameById, readLatestAcceptedCharacterFrame, readCharacterFrameRevisionCandidates, updateCharacterFrameStatus, } from "../../../storage/v9-state-stores.js";
 import { readMemoryProjectionsByStatus } from "../../../storage/v8-state-stores.js";
 import { loadActiveCharacterFrame, } from "../character/character-frame-lifecycle.js";
 // ───────────────────────────────────────────────────────────────
@@ -310,26 +310,25 @@ function collectSourceRefs(memories, procedurals, routines, characterPointer) {
 // ───────────────────────────────────────────────────────────────
 // CharacterFrame store adapter
 // ───────────────────────────────────────────────────────────────
-export async function createCharacterFrameStoreAdapter(db) {
-    const stores = await import("../../../storage/v9-state-stores.js");
+export function createCharacterFrameStoreAdapter(db) {
     return {
         async readFrameById(id) {
-            const row = await stores.readCharacterFrameById(db, id);
+            const row = await readCharacterFrameById(db, id);
             return row ? rowToFrame(row) : null;
         },
         async readLatestAcceptedFrame() {
-            const result = await stores.readLatestAcceptedCharacterFrame(db);
+            const result = await readLatestAcceptedCharacterFrame(db);
             return result.row ? rowToFrame(result.row) : null;
         },
         async readPendingRevisionFor(frameId) {
-            const result = await stores.readCharacterFrameRevisionCandidates(db, frameId);
+            const result = await readCharacterFrameRevisionCandidates(db, frameId);
             return result.rows[0] ? rowToFrame(result.rows[0]) : null;
         },
         async writeCandidateFrame() {
             throw new Error("character_frame_write_not_allowed_in_continuity_assembly");
         },
         async updateFrameLifecycle(frameId, status, opts) {
-            await stores.updateCharacterFrameStatus(db, frameId, status, opts);
+            await updateCharacterFrameStatus(db, frameId, status, opts);
         },
     };
 }

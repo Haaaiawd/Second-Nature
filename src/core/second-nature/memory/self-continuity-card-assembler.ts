@@ -56,6 +56,10 @@ import {
   readProceduralProjectionsByStatus,
   readLatestSelfContinuityCard,
   writeSelfContinuityCard,
+  readCharacterFrameById,
+  readLatestAcceptedCharacterFrame,
+  readCharacterFrameRevisionCandidates,
+  updateCharacterFrameStatus,
 } from "../../../storage/v9-state-stores.js";
 import type { CharacterFrameStorePort } from "../character/character-frame-lifecycle.js";
 import { readMemoryProjectionsByStatus } from "../../../storage/v8-state-stores.js";
@@ -380,19 +384,18 @@ function collectSourceRefs(
 // CharacterFrame store adapter
 // ───────────────────────────────────────────────────────────────
 
-export async function createCharacterFrameStoreAdapter(db: StateDatabase): Promise<CharacterFrameStorePort> {
-  const stores = await import("../../../storage/v9-state-stores.js");
+export function createCharacterFrameStoreAdapter(db: StateDatabase): CharacterFrameStorePort {
   return {
     async readFrameById(id: string) {
-      const row = await stores.readCharacterFrameById(db, id);
+      const row = await readCharacterFrameById(db, id);
       return row ? rowToFrame(row) : null;
     },
     async readLatestAcceptedFrame() {
-      const result = await stores.readLatestAcceptedCharacterFrame(db);
+      const result = await readLatestAcceptedCharacterFrame(db);
       return result.row ? rowToFrame(result.row) : null;
     },
     async readPendingRevisionFor(frameId: string) {
-      const result = await stores.readCharacterFrameRevisionCandidates(db, frameId);
+      const result = await readCharacterFrameRevisionCandidates(db, frameId);
       return result.rows[0] ? rowToFrame(result.rows[0]) : null;
     },
     async writeCandidateFrame() {
@@ -407,7 +410,7 @@ export async function createCharacterFrameStoreAdapter(db: StateDatabase): Promi
       charCount?: number;
       payloadJson?: string;
     }) {
-      await stores.updateCharacterFrameStatus(db, frameId, status, opts);
+      await updateCharacterFrameStatus(db, frameId, status, opts);
     },
   };
 }

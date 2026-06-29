@@ -44,7 +44,7 @@ export const POSSIBLE_ACTIONS_MAX_COUNT = 4;
 export const ACTION_RATIONALE_MAX_CHARS = 120;
 
 export const ACTIVITY_THREAD_MAX_STEPS = 8;
-export const ACTIVITY_THREAD_STALE_HEARTBEATS = 3;
+export const ACTIVITY_THREAD_STALE_HEARTBEATS = 6;
 
 export type SensitivityHint = "public_technical" | "public_general" | "private_context" | "sensitive";
 

@@ -273,6 +273,7 @@ function buildSections(input) {
 function charCountOfTextualParts(frame) {
     const parts = [
         ...frame.emergentHabits?.map((h) => h.description) ?? [],
+        ...(frame.valuePosture?.ordering ?? []),
         frame.valuePosture?.note ?? "",
         frame.relationshipPosture?.stance ?? "",
         frame.relationshipPosture?.toward ?? "",
