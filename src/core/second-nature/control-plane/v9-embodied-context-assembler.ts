@@ -153,25 +153,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-function toSlice<T>(result: PromiseSettledResult<ContextSlice<T>>): ContextSlice<T> {
-  if (result.status === "fulfilled") return result.value;
-  return { status: "degraded", data: {} as T, reason: "slice_timeout" };
-}
-
-function toBodySlice<T extends Record<string, unknown>>(
-  result: PromiseSettledResult<ContextSlice<T>>,
-): ContextSlice<T> {
-  if (result.status === "fulfilled") return result.value;
-  return { status: "degraded", data: {} as T, reason: "slice_timeout" };
-}
-
-function toProjectionSlice<T>(
-  result: PromiseSettledResult<ContextSlice<T>>,
-): ContextSlice<T> {
-  if (result.status === "fulfilled") return result.value;
-  return { status: "degraded", data: {} as T, reason: "slice_timeout" };
-}
-
 function emptyMemoryProjection(id: string): MemoryProjection {
   return {
     id,

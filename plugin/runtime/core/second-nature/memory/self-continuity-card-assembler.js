@@ -46,22 +46,42 @@ const POSTURE_MAX_CHARS = 200;
 const HABIT_MAX_CHARS = 120;
 const SELF_CONTINUITY_CARD_MAX_BYTES = 4000; // hard ceiling for raw storage
 const SENSITIVE_VALUE_PATTERNS = [
-    /[A-Za-z0-9_\-]{32,}/g, // long API keys / tokens
-    /\b(sk|pk|bearer)\s*[=_:\s]+\s*[^\s\n]{8,}/gi, // sk-xxx / bearer xxx
-    /\b(password|secret|token)\s*[=_:\s]+\s*[^\s\n]{4,}/gi,
-    /sk-[A-Za-z0-9]{16,}/g, // openai-style secret key
+    {
+        pattern: /[A-Za-z0-9_\-]{32,}/g, // long API keys / tokens
+        shouldRedact: (match) => !UUID_PATTERN.test(match),
+    },
+    {
+        pattern: /\b(sk|pk|bearer)\s*[=_:\s]+\s*[^\s\n]{8,}/gi, // sk-xxx / bearer xxx
+        shouldRedact: () => true,
+    },
+    {
+        pattern: /\b(password|secret|token)\s*[=_:\s]+\s*[^\s\n]{4,}/gi,
+        shouldRedact: () => true,
+    },
+    {
+        pattern: /sk-[A-Za-z0-9]{16,}/g, // openai-style secret key
+        shouldRedact: () => true,
+    },
 ];
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function scanForSensitiveValues(text) {
-    return SENSITIVE_VALUE_PATTERNS.some((pattern) => {
+    return SENSITIVE_VALUE_PATTERNS.some(({ pattern, shouldRedact }) => {
         pattern.lastIndex = 0;
-        return pattern.test(text);
+        let match;
+        while ((match = pattern.exec(text)) !== null) {
+            if (shouldRedact(match[0]))
+                return true;
+        }
+        return false;
     });
 }
 function redactSensitiveInline(text) {
     let redacted = text;
-    for (const pattern of SENSITIVE_VALUE_PATTERNS) {
+    for (const { pattern, shouldRedact } of SENSITIVE_VALUE_PATTERNS) {
         pattern.lastIndex = 0;
         redacted = redacted.replace(pattern, (match) => {
+            if (!shouldRedact(match))
+                return match;
             const visible = Math.min(4, Math.floor(match.length / 4));
             return match.slice(0, visible) + "…[REDACTED]";
         });
@@ -314,18 +334,19 @@ export async function createCharacterFrameStoreAdapter(db) {
     };
 }
 function rowToFrame(row) {
+    const sections = JSON.parse(row.sectionsJson);
     return {
         ...row,
         status: row.status,
         acceptedAt: row.acceptedAt ?? undefined,
         projectionKind: "character_frame",
         sourceRefs: parseSourceRefs(row.sourceRefsJson),
-        emergentHabits: JSON.parse(row.sectionsJson).emergentHabits,
-        valuePosture: JSON.parse(row.sectionsJson).valuePosture,
-        relationshipPosture: JSON.parse(row.sectionsJson).relationshipPosture,
-        expressionPosture: JSON.parse(row.sectionsJson).expressionPosture,
-        growthTensions: JSON.parse(row.sectionsJson).growthTensions,
-        conflictNotes: JSON.parse(row.sectionsJson).conflictNotes,
+        emergentHabits: sections.emergentHabits,
+        valuePosture: sections.valuePosture,
+        relationshipPosture: sections.relationshipPosture,
+        expressionPosture: sections.expressionPosture,
+        growthTensions: sections.growthTensions,
+        conflictNotes: sections.conflictNotes,
         payloadJson: row.payloadJson ?? undefined,
     };
 }

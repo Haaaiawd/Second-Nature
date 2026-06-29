@@ -62,21 +62,6 @@ function withTimeout(promise, ms) {
         new Promise((_, reject) => setTimeout(() => reject(new Error("slice_timeout")), ms)),
     ]);
 }
-function toSlice(result) {
-    if (result.status === "fulfilled")
-        return result.value;
-    return { status: "degraded", data: {}, reason: "slice_timeout" };
-}
-function toBodySlice(result) {
-    if (result.status === "fulfilled")
-        return result.value;
-    return { status: "degraded", data: {}, reason: "slice_timeout" };
-}
-function toProjectionSlice(result) {
-    if (result.status === "fulfilled")
-        return result.value;
-    return { status: "degraded", data: {}, reason: "slice_timeout" };
-}
 function emptyMemoryProjection(id) {
     return {
         id,

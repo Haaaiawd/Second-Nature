@@ -26,6 +26,7 @@
  * - `tests/unit/control-plane/v9-activity-thread-coordinator.test.ts`
  * - `tests/integration/v9/activity-thread-continuation.test.ts`
  */
+import { randomUUID } from "node:crypto";
 // ───────────────────────────────────────────────────────────────
 // Constants
 // ───────────────────────────────────────────────────────────────
@@ -312,5 +313,5 @@ async function emitStageEvent(recorder, event) {
     }
 }
 function makeId(prefix) {
-    return `${prefix}_${crypto.randomUUID()}`;
+    return `${prefix}_${randomUUID()}`;
 }

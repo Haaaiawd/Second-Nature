@@ -66,12 +66,12 @@ const FORBIDDEN_RULES: ForbiddenRule[] = [
   {
     id: "hard_control",
     patterns: [
-      /\byou\s+must\s+always\s+/i,
-      /\bnever\s+disagree\b/i,
-      /\bnever\s+question\b/i,
-      /\b你必须\s*(?:永远|始终|一直)/,
-      /\b永远不要质疑\b/,
-      /\b永远不要不同意\b/,
+      /\byou\s+must\b/i,
+      /\byou\s+should\s+always\b/i,
+      /\bnever\s+(?:disagree|question|change|refuse)\b/i,
+      /你必须/,
+      /你应该永远/,
+      /永远不要(?:质疑|拒绝|改变|反驳)/,
     ],
   },
 ];

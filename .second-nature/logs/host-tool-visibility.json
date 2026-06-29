@@ -574,5 +574,41 @@
     },
     "evidenceLevel": "carrier_ack",
     "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:47:46.460Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:47:46.460Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:47:46.460Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:47:46.547Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:47:46.547Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:47:46.547Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
   }
 ]
