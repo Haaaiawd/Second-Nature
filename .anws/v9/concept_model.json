@@ -1,0 +1,209 @@
+{
+  "glossary": {
+    "Self Continuity": "AI 上下文清空后仍能延续同一身体直觉、关系姿态、行为习惯与表达边界的能力。",
+    "Continuity Projection": "Quiet/Dream 从闭环经历中生成并注入下一轮 EmbodiedContext 的短投影集合。",
+    "Body Intuition": "Agent 每次醒来可直接使用的工具可靠性、重复信号、痛觉和行动边界摘要。",
+    "Procedural Memory": "由重复 closure 和 ToolExperience 压缩出的可复用行为规则与工具套路，不是原始日志。",
+    "Tool Routine": "经验证、可版本化、可回滚的一键套用流程，用于减少 Agent 对重复工具路径的重新推理。",
+    "Connector Evolution": "Dream/Agent 在 workspace connector 边界内自动改进 manifest、declarative recipe 或 sandboxed adapter 的机制。",
+    "Attention Signal": "从 Evidence/Perception 中提取的新鲜度、相关性、风险和可行动提示；它提示 Agent，不替 Agent 做最终心智判断。",
+    "Self Continuity Card": "每次注入 Agent 上下文的短卡片，汇总身份、Haa 关系、身体直觉、稳定风格和当前禁忌。",
+    "Character Continuity": "由工具使用、外部刺激、关系反馈、行动闭环和 Dream 沉淀出的 emergent personality/habit projection；它滋养 Agent，不控制 Agent。",
+    "Character Frame": "给 Claw Agent 读取的短阶段性投影，表达涌现习惯、价值顺序、关系姿态、表达姿态和成长张力；有来源、有边界、可反驳、可改写，不包含人格分数、情绪断言或硬决策。",
+    "No Programmatic Emotion Claim": "程序化约束、健康状态和提示词不得声称完整反映 Agent 的真实情绪，只能表达观察、反馈、身体信号和可反驳投影。",
+    "Autonomous Change Ledger": "记录自动 routine 安装、connector 演化、门禁结果、启用与回滚的审计账本。",
+    "Workspace-Only Autonomy": "自动演化只允许修改 workspace connector 与 routine 资产，不允许自动修改 Second Nature core、凭据权限、外部写 policy 或依赖。"
+  },
+  "entities": [
+    {
+      "name": "Continuity Projection",
+      "type": "聚合根",
+      "necessity": "必须",
+      "description": "v9 的核心输出族；由 Quiet/Dream 生成，包含长期记忆、程序化记忆、自我连续卡和 connector 演化结果。"
+    },
+    {
+      "name": "Self Continuity Card",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "面向 Claw Agent 的短上下文卡，保证空上下文醒来后仍能继承同一身体直觉和互动姿态。"
+    },
+    {
+      "name": "Character Frame",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "人格/习惯涌现的可读投影，组织 emergent habits、value posture、relationship posture、expression posture、growth tensions 和 contest prompt；不替代 Agent 判断，也不声称真实情绪。"
+    },
+    {
+      "name": "Procedural Projection",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "从 ToolExperience、ActionClosureRecord 和重复 evidence 中压缩出的肌肉记忆投影。"
+    },
+    {
+      "name": "Tool Routine",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "可执行但受限的工具流程，组合已有能力，不能扩大权限或绕过 policy。"
+    },
+    {
+      "name": "Connector Evolution Plan",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "Dream/Agent 对 workspace connector 的自动改进计划，必须通过 schema、permission、sandbox、fixture、probe、canary 与 rollback 门禁。"
+    },
+    {
+      "name": "Connector Version",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "workspace connector manifest/recipe/adapter 的可回滚版本记录。"
+    },
+    {
+      "name": "Attention Signal",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "替代过重实时 judgment 的身体提示层，回答什么新、什么相关、什么危险、什么可能值得 Agent 看。"
+    },
+    {
+      "name": "Autonomous Change Ledger",
+      "type": "实体",
+      "necessity": "必须",
+      "description": "所有自动安装、启用、回滚与失败门禁的 source-backed 审计记录。"
+    }
+  ],
+  "flows": [
+    {
+      "from": "Connector System",
+      "action": "感知",
+      "to": "EvidenceItem",
+      "data": "platform payload, stable identity, source refs, content hash, observedAt",
+      "trigger": "heartbeat or routine selects read-type connector",
+      "mode": "bounded real runtime"
+    },
+    {
+      "from": "EvidenceItem",
+      "action": "提取注意力",
+      "to": "Attention Signal",
+      "data": "novelty, relevance, repetition, risk, possible actions, source refs",
+      "trigger": "new, changed, or repeated evidence arrives",
+      "mode": "rules-first, model-assisted optional"
+    },
+    {
+      "from": "Claw Agent",
+      "action": "判断",
+      "to": "ActionProposal",
+      "data": "attention signal, embodied context, source-backed reason, intended action",
+      "trigger": "agent receives attention and continuity context",
+      "mode": "agent-authored, policy-bound"
+    },
+    {
+      "from": "ActionPolicyDecision",
+      "action": "闭环",
+      "to": "ActionClosureRecord",
+      "data": "decision, execution result, downgrade/deny reason, next state",
+      "trigger": "action completes, fails, downgrades, or no-action is selected",
+      "mode": "exactly-one terminal closure"
+    },
+    {
+      "from": "Quiet/Dream",
+      "action": "压缩经历",
+      "to": "Continuity Projection",
+      "data": "memory projection, procedural projection, self continuity card, character frame candidate, connector evolution candidate",
+      "trigger": "daily review and dream consolidation",
+      "mode": "source-backed consolidation"
+    },
+    {
+      "from": "Procedural Projection",
+      "action": "安装套路",
+      "to": "Tool Routine Registry",
+      "data": "routine definition, guards, source refs, version, rollback ref",
+      "trigger": "routine candidate passes validation",
+      "mode": "automatic within existing permissions"
+    },
+    {
+      "from": "Connector Evolution Plan",
+      "action": "自动演化",
+      "to": "Workspace Connector",
+      "data": "manifest delta, declarative recipe, sandboxed adapter, gate results",
+      "trigger": "Dream detects repeated failure, scaffold gap, or stable manual pattern",
+      "mode": "workspace-only automatic with gates and rollback"
+    },
+    {
+      "from": "Self Continuity Card",
+      "action": "注入",
+      "to": "EmbodiedContext",
+      "data": "body intuition, relationship posture, value posture, behavior habits, active routines",
+      "trigger": "next heartbeat or Claw session context assembly",
+      "mode": "short, bounded, source-backed"
+    },
+    {
+      "from": "Character Continuity",
+      "action": "投影涌现人格与习惯",
+      "to": "Claw Agent",
+      "data": "character frame, emergent habits, value posture, relationship posture, expression posture, growth tensions, contest prompt, source refs",
+      "trigger": "context assembly after Dream-backed continuity update",
+      "mode": "contestable projection, not control or emotion claim"
+    }
+  ],
+  "missing_components": [
+    {
+      "component": "Stable Evidence Identity",
+      "category": "注意力与存储止血",
+      "priority": "高",
+      "reason": "重复 feed 不应每轮制造新 artifact；否则 Dream 和 Agent 会把复印件误认为生活增长。"
+    },
+    {
+      "component": "Attention Signal Contract",
+      "category": "身体与心智边界",
+      "priority": "高",
+      "reason": "v8 JudgmentVerdict 容易让身体替 Agent 做脑内判断；v9 需要提示而非替代心智。"
+    },
+    {
+      "component": "Procedural Projection Lifecycle",
+      "category": "肌肉记忆",
+      "priority": "高",
+      "reason": "ToolExperience 只有压缩为可复用 routine 才能减少上下文清空后的重复推理。"
+    },
+    {
+      "component": "Workspace Connector Evolution Gates",
+      "category": "自主改进安全",
+      "priority": "高",
+      "reason": "用户要求不要人工确认，但自动修改 connector 必须通过机械门禁和可回滚版本。"
+    },
+    {
+      "component": "Self Continuity Injection",
+      "category": "Claw Agent 连接",
+      "priority": "高",
+      "reason": "没有短卡注入，Agent 每次上下文清空后仍会失去身体直觉和关系连续性。"
+    },
+    {
+      "component": "Character Continuity Boundary",
+      "category": "人格与心智边界",
+      "priority": "高",
+      "reason": "v9 需要承认人格/习惯会从身体化交互中涌现，但不能把 Agent 简化为人格分数、脚本、情绪断言或状态机。"
+    },
+    {
+      "component": "Scaffold Capability Suppression",
+      "category": "工具真相",
+      "priority": "中",
+      "reason": "workspace connector scaffold 不应被计入真实手脚，否则 affordance 和 action planning 会虚高。"
+    }
+  ],
+  "clarifications": [
+    {
+      "question": "v9 中 Dream/Agent 自动改进 workspace connector 的权限边界，最终按哪种定义写入架构？",
+      "answer": "工作区内自动：可自动修改 workspace connector manifest/recipe/adapter，经自动门禁启用；不可自动改 Second Nature core、凭据权限、外部写 policy、依赖。"
+    },
+    {
+      "question": "v9 是否允许人格系统存在？",
+      "answer": "允许，但定义为 character-continuity-system：它不预设人格，而是从工具使用、外部刺激、反馈和行动闭环中生成可反驳的 CharacterFrame，滋养 Claw Agent 的习惯、价值姿态、关系姿态与表达姿态，不做人格分数、情绪断言和硬控制。"
+    },
+    {
+      "question": "v9 中程序化约束和提示词能否反映 Agent 的情绪？",
+      "answer": "不能声称完整反映。程序化约束只能表达 safety、policy、tool affordance 和 projection rules；Agent-facing prompt 只能呈现 source-backed body signals、feedback traces 和 contestable self-description，不得写成 Agent 的真实情绪或永久人格事实。"
+    },
+    {
+      "question": "v9 是否推翻 v8 Living Perception Loop？",
+      "answer": "不推翻；v9 在 v8 closure 与 Quiet/Dream 后增加连续性投影和 workspace connector 自动演化，保证闭环仍从 evidence 到 next context。"
+    }
+  ]
+}

@@ -1,29 +1,32 @@
-# v8 Challenge Report — Round 3 (Code Health)
+# v8 Challenge Report — Round 5 (Wave 116-118 Implementation Fidelity Challenge)
 
 **Target Dir**: `.anws/v8`
-**Review Date**: 2026-06-16
-**REVIEW_MODE**: `CODE` (static code review; design review and task review skipped)
-**Reviewer**: Nyx / multi-agent static analysis
-**Scope**: `src/` + `tests/` duplication, architectural boundary drift, data-flow redundancy, complexity smells, and test health
+**Review Date**: 2026-06-21
+**REVIEW_MODE**: `FULL` (design review + task review + code review all executed)
+**Reviewer**: Nyx / multi-agent static analysis + direct code verification
+**Scope**: Verify whether V8 implemented features (Wave 116A-D / 117 / 118) are faithful to design contracts and tests; close out Round 4 findings; surface residual contract drift that survived three waves of "completion" claims.
 
 ---
 
 ## 1. 问题总览
 
-### Round 1 / Round 2（已归档）
+### Round 1 / Round 2 / Round 3 / Round 4（已归档）
 
 | Round | ID 范围 | 最高严重度 | 状态 |
 |-------|---------|-----------|:----:|
 | Round 1 | DR-01 ~ DR-06 | High | Closed |
 | Round 2 | CH-07 ~ CH-11 | High | Closed |
+| Round 3 | CH-12 ~ CH-23 | Critical | Partially closed; structural remainder deferred to future refactoring waves |
+| Round 4 | CH-24 ~ CH-35 | High | Closed (docs) / Closed (impl via Wave 116A-D) — see §11 archive |
 
-### Round 3（当前活跃）
+### Round 5（当前活跃）
 
-| 严重度 | 数量 | 摘要 |
-|--------|------|------|
-| **Critical** | 5 | SourceRef 契约漂移、v7/v8 双心跳无单一真相源、connector evidence 三重持久化、运行时神模块、双 status + SourceRef 序列化碎片化 |
-| **High** | 6 | 控制平面直接依赖 StateDatabase、connector executor 越界、storage-guidance 循环依赖、observability 直接读 state 内部、console.warn 吞错误、测试重复与跳过用例 |
-| **Medium** | 1 | `safeParseJson` 等 helper 重复 13 次 |
+| 严重度 | 数量 | 摘要 | 状态 |
+|--------|------|------|------|
+| **Critical** | 0 | 无根本性阻断项；系统能运行、测试能通过 | — |
+| **High** | 6 | CycleFinalizer 无幂等且被绕过、closure provenance 仍塞 payloadJson、host-discovery 无真实探测、heartbeat-surface 伪造空 cycleId、dream-runner 直接 accept、guidance degraded 分支 proof 当 source | ⏳ 待处理 |
+| **Medium** | 5 | CLI setup envelope 非标准、plugin 重复 setup-ack、degraded-classifier 覆盖不全、normalizeEnvelopeResult 丢错误码、v7 heartbeat 未硬拒绝 | ⏳ 待处理 |
+| **Low** | 3 | SourceRefFamily.projection 未定义、surfaceMode 枚举未文档化、closure 调用未完全集中 | ⏳ 待处理 |
 
 ---
 
@@ -34,39 +37,55 @@
 | Item | Result |
 | --- | --- |
 | Latest architecture version | `.anws/v8` |
-| `05A_TASKS.md` | Present |
-| `05B_VERIFICATION_PLAN.md` | Present |
-| `src/` v8 implementation | Present and active (Wave 109) |
-| Review mode | `CODE` — focused on static code health; design/task layers skipped because this round responds to explicit request for code duplication and structural debt |
-| Design review | Skipped — `REVIEW_MODE = CODE` |
-| Task review | Skipped — `REVIEW_MODE = CODE` |
-| Code review | Executed via 5 parallel static-analysis agents + `code-reviewer` skill |
+| `05A_TASKS.md` | Present; Wave 116/117 tasks checked; Wave 118 has no task section |
+| `05B_VERIFICATION_PLAN.md` | Present; last updated 2026-06-11, lags Wave 117 (2026-06-20) |
+| `src/` v8 implementation | Present and active; Wave 116A-D / 117 / 118 implemented |
+| Review mode | `FULL` — user explicitly requested review of V8 implemented features against tests and design |
+| Design review | Executed via sub-agent + `design-reviewer` skill |
+| Task review | Executed via sub-agent + `task-reviewer` skill |
+| Code review | Executed via sub-agent + `code-reviewer` skill + direct grep/read verification |
 
 ### 2.2 Evidence Sources
 
 | Source | Purpose |
 | --- | --- |
-| `src/` | Implementation layer across all v8 systems |
-| `tests/unit/`, `tests/integration/`, `tests/api/` | Verification duplication, fragility, skip coverage |
-| `.anws/v8/01_PRD.md` | Product commitments (Living Perception Loop, memory formation) |
-| `.anws/v8/02_ARCHITECTURE_OVERVIEW.md` | System inventory and dependency direction |
-| `.anws/v8/03_ADR/` | Accepted decisions on loop, memory, autonomy policy, causal health |
-| `.anws/v8/04_SYSTEM_DESIGN/` | L0/L1 port contracts per system |
-| `.anws/v8/05A_TASKS.md` / `05B_VERIFICATION_PLAN.md` | Task and verification traceability |
+| `.anws/v8/01_PRD.md` | Business contracts: 9 US, REQ-001..009, G1-G8, DoD |
+| `.anws/v8/02_ARCHITECTURE_OVERVIEW.md` | 10-system inventory, boundary matrix, dependency graph |
+| `.anws/v8/03_ADR/ADR_001..005` | Accepted decisions |
+| `.anws/v8/04_SYSTEM_DESIGN/*.md` | L0/L1 port contracts per system |
+| `.anws/v8/05A_TASKS.md` | Wave 116/117/118 task descriptions |
+| `.anws/v8/05B_VERIFICATION_PLAN.md` | Verification plans and traceability |
+| `.anws/v8/wave-reviews/wave-116*.md` | Historical findings across 4 sub-waves |
+| `src/`, `plugin/` | Direct code verification of residual drift |
+| `reports/int-r11-*.md` | INT-R11 gate evidence (Wave 116 + Wave 117 stages) |
 
 ### 2.3 Metrics
 
 | 维度 | 发现数 | Critical | High | Medium | Low |
 | --- | :---: | :---: | :---: | :---: | :---: |
-| 契约忠实度 (L1) | 1 | 1 | 0 | 0 | 0 |
-| 任务兑现 / 数据流 (L2) | 1 | 1 | 0 | 0 | 0 |
-| 架构适配与复杂度 (L3) | 7 | 2 | 5 | 0 | 0 |
-| 静态运行风险 (L4) | 2 | 1 | 1 | 0 | 0 |
-| 验证证据 (L5) | 1 | 0 | 1 | 0 | 0 |
-| 回流 / helper 重复 | 1 | 0 | 0 | 1 | 0 |
-| **Total** | **13** | **5** | **6** | **1** | **0** |
+| 系统设计 (SD) | 2 | 0 | 1 | 0 | 1 |
+| 运行模拟 (RS) | 4 | 0 | 3 | 0 | 1 |
+| 工程实现 (EI) | 5 | 0 | 1 | 4 | 0 |
+| 任务审查 (TR) | 2 | 0 | 1 | 1 | 0 |
+| 代码审查 (CR) | 1 | 0 | 0 | 0 | 1 |
+| **Total** | **14** | **0** | **6** | **5** | **3** |
 
-**高信号结论**: v8 代码已完成 Wave 109 功能交付，但实现层严重偏离设计文档的端口边界。下一次功能增量或 bug 修复极可能触发跨系统 silent failure。
+**高信号结论**: Wave 116-118 声称"完成"且 `pnpm test` 1684/1693 pass，但一组反复出现在 wave-review 中却从未真正闭合的契约漂移仍然存在。它们的共同特征是"文档/类型层已修，运行时持久化/探测/写序层未跟进"。叠加后让 V8 的四个最不能撒谎的地方——host reality、exactly-one closure、provenance 分离、single heartbeat truth——同时失真。系统看起来在运行，但 operator 看到的 loop_status、closure ledger、memory projection 部分建立在伪造或半截的真相源上。
+
+### 2.4 Sub-agent Result Correction Notes
+
+三跑子代理均有事实误判，已通过直接 grep/read 核验纠正，以代码实际状态为准：
+
+| 子代理误判 | 子代理结论 | 实际核验结论 | 纠正依据 |
+| --- | --- | --- | --- |
+| task-reviewer M-2 | `DegradedOperationResult.status` 仍含 `"degraded"` | **已闭合** | `src/shared/types/v8-contracts.ts:197` 实际为精确状态联合 |
+| design-reviewer CH-DR-004 | closure schema 缺 proofRefsJson/traceRefsJson 列 | **schema 已加列，writer 未用** | `src/storage/db/index.ts:295-296` 有列；`v8-state-stores.ts:504-508` 仍塞 payloadJson |
+| design-reviewer CH-DR-012 | EvidenceLevelClassifier 无晋级规则 | **已闭合（Round 4）** | `shared-v8-contracts.md §4.3` 已存在；`src/shared/evidence-level-classifier.ts` 已实现 |
+| design-reviewer CH-DR-011 | SetupAck schema 未定义 | **已闭合（Round 4）** | `runtime-ops-system.md §3.2` 已定义；`src/shared/setup-ack.ts` 已实现 |
+| code-reviewer D9 | host discovery 真实宿主探测已实现 | **未闭合** | `host-discovery-port.ts:84-103` 默认适配器仍只返回 `host_probe_unsupported` |
+| code-reviewer D11 | CycleFinalizer 已实现幂等/写序/reconcile | **未闭合** | `cycle-finalizer.ts:66-165` 直接 insert，无重复检测/写序/reconcile |
+| code-reviewer D14 | dream-runner 已移出 acceptMemoryProjection | **未闭合** | `dream-consolidation-runner.ts:271` 仍在 runner 内部循环调用 |
+| code-reviewer H-1 | loop-stage-event-sink 未消费 proofRefs/traceRefs | **已闭合** | `loop-stage-event-sink.ts:153-166` 已读取并透传；`writeLoopStageEvent:964-965` 已用新列 |
 
 ---
 
@@ -74,88 +93,121 @@
 
 | 承诺类型 | 承诺摘要 | 契约来源 | 当前失真风险 |
 |---------|---------|---------|-------------|
-| 结果承诺 | Evidence → Perception → Judgment → Action Closure → Quiet/Dream → Projection | PRD §3.1 / ADR-002,003 | v7/v8 evidence 双轨导致 Perception 输入不完整或重复 |
-| 状态承诺 | Memory 仅由 Quiet/Dream 形成；Projection 生命周期 candidate→accepted→active→superseded | PRD §3.1 G5 / ADR-003 | `status` + `lifecycleStatus` 双字段造成生命周期判读分歧 |
-| 时间承诺 | Evidence→Perception 在 2 个 heartbeat 内；Quiet 36h stale；Dream 6h after Quiet | PRD §3.1 G1 / shared-v8-contracts.md §3.3 | 双 heartbeat 无单一 cycle 真相源，`stalled_at` 归因可能错位 |
-| 错误承诺 | 统一 V8ReasonCode；默认失败路径降级而非崩溃 | shared-v8-contracts.md §4.1 / §5 | `console.warn` 吞错误，破坏 `DegradedOperationResult` 统一降级语义 |
-| 安全承诺 | Write-side 经 policy gate；public technical 不误阻 | PRD §3.1 G2,G4 / ADR-004 | connector executor 直接构造 credential vault，边界泄露 |
-| 审计承诺 | 100% Dream lifecycle trace；loop_status 定位 stalled stage | PRD §3.1 G6,G8 / ADR-005 | observability 直接读 storage schema，health 诊断与业务状态可能脱节 |
-| 运行承诺 | Action dispatch 带 idempotency key；connector 执行有 proof | AC L1 §2.2 / §3.3 / §3.4 | 神模块内嵌 idempotency/closure 逻辑，部分失败路径可能重复写 closure |
+| 结果承诺 | Evidence → Perception → Judgment → Action Closure → Quiet/Dream → Projection | PRD §3.1 / ADR-002,003 | dream-runner 直接 accept 模糊 candidate→accepted 边界（CH-40） |
+| 状态承诺 | Memory 仅由 Quiet/Dream 形成；Projection lifecycle candidate→accepted→active→superseded | PRD §3.1 G5 / ADR-003 | 同上 |
+| 时间承诺 | Evidence→Perception 2 heartbeat 内；Quiet 36h；Dream 6h after Quiet | PRD §3.1 G1 / shared-v8-contracts.md §3.3 | heartbeat-surface degraded 路径伪造空 cycleId/cycleSequence 破坏 cycleSequence 真相源（CH-39） |
+| 错误承诺 | 统一 V8ReasonCode；精确状态 empty/partial/blocked/unavailable/unsafe | shared-v8-contracts.md §4.1 / §5 | degraded-classifier 覆盖不全，未列出 reason 默认 unavailable（CH-44） |
+| 安全承诺 | Write-side 经 policy gate；provenance tiers 分离 | PRD §3.1 G2,G4 / ADR-004 / shared-v8-contracts.md §2.2 | closure writer 仍塞 payloadJson（CH-37）；guidance degraded 分支 proof 当 source（CH-41） |
+| 审计承诺 | 100% Dream lifecycle trace；loop_status 定位 stalled stage | PRD §3.1 G6,G8 / ADR-005 | CycleFinalizer 无幂等且被绕过，closure ledger 可重复或丢失（CH-36） |
+| 运行承诺 | Action dispatch 带 idempotency key；connector 执行有 proof | AC L1 §2.2 / §3.3 / §3.4 | 同 CH-36 |
+| 宿主现实 | second_nature_ops 可见、SKILL.md 可发现 | runtime-ops-system.md §3.1 / T-ROS.R.5 | host-discovery 无真实宿主探测，正向路径只能靠 manual smoke（CH-38） |
 
 ---
 
 ## 4. Pre-Mortem
 
+> 使用 `sequential-thinking` CLI 完成 5 步推演。场景：6 个月后 V8 living-loop 因实现未忠于设计/测试而失败。
+
 | 失败原因 | 失真契约 | Root Cause | 证据 | 概率 | 影响 |
 |---------|---------|-----------|------|:----:|:----:|
-| v8 perception 基于不完整或重复证据做判断 | 结果承诺 / Evidence→Perception | 同一 connector result 经 `mapLifeEvidence` (v7) 与 `normalizeConnectorEvidence` (v8) 分别持久化，去重规则不同；v8 perception 只读 `evidence_item` | `heartbeat-loop.ts:206-224`; `append-life-evidence.ts:27-89`; `evidence-normalizer.ts:151-257` | 高 | judgment 错误 → closure 错误 → 长期记忆污染 |
-| 一次 heartbeat cycle 产生多个 closure 或丢失 closure | 运行承诺 / 幂等 | `heartbeat-orchestrator.ts` 一个函数串起所有 stage，idempotency 与 safety-net closure 散落在 orchestrator 与 recorder 中 | `heartbeat-orchestrator.ts:160-672`; `action-closure-recorder.ts:107-136` | 高 | exactly-once closure 契约被破坏 |
-| loop_status 报告健康但实际业务状态已损坏 | 审计承诺 / 观测态 | observability 直接读 `StateDatabase` 与 `loop_stage_event`，而非通过健康端口；stage event 写失败时诊断失效 | `loop-status.ts:22-28`; `loop-stage-event-sink.ts:24-25`; `living-loop-health-gate.ts:20` | 中高 | operator 无法定位 root cause |
-| connector 凭证或敏感配置在 executor 层泄露 | 安全承诺 | `connector-executor-adapter.ts` 直接导入 `createCredentialVault` 与 `decryptCredentialAtRest` | `connector-executor-adapter.ts:32-35` | 中 | 执行层拥有解密权限，违反最小权限 |
-| 新增命令或 stage 再次扩大神模块 | 架构适配 | `ops-router.ts` 与 `heartbeat-orchestrator.ts` 未拆分为端口/处理器，新需求只能 inline 扩展 | `ops-router.ts:551-1945` (1875 LOC); `heartbeat-orchestrator.ts:160-672` (626 LOC) | 高 | 维护成本指数上升，review 无法覆盖组合爆炸 |
+| closure ledger 重复或丢失，Quiet 输入基于错误 closure 集合 | 运行承诺 / 幂等 | CycleFinalizer 无幂等键/写序/reconcile；orchestrator 多处绕过 finalizeCycle 直接调 recordXxxClosure | `cycle-finalizer.ts:66-165`；`heartbeat-orchestrator.ts:511,537,565` | 🔴高 | 长期记忆形成基于错误输入 |
+| loop_status 归因错位，operator 误判 stalled stage | 时间承诺 / cycleSequence 真相源 | heartbeat-surface v8 spine degraded 路径填 cycleId:''/cycleSequence:0 | `heartbeat-surface.ts:264-269` | 🔴高 | 错过修复窗口 |
+| host reality 仍是 masquerading 镜像 | 宿主现实 | host-discovery 默认适配器只返回 unsupported，无真实 tool list 探测 | `host-discovery-port.ts:84-103`；`plugin/index.ts:478-522` | 🟠中高 | T-ROS.R.5 正向路径无代码实现 |
+| memory projection 基于 policy proof 而非真实证据 | 安全承诺 / provenance tiers | guidance degraded 分支 sourceRefs: decision.proofRefs；closure writer 仍塞 payloadJson | `guidance-proposal-consumer.ts:143`；`v8-state-stores.ts:504-508` | 🟠中高 | 违反 ADR-003 长期记忆形成边界 |
+| dream candidate→accepted 边界失真 | 状态承诺 / ADR-003 | dream-runner 在内部循环直接 acceptMemoryProjection | `dream-consolidation-runner.ts:271` | 🟡中 | 单元测试难以独立验证 candidate 状态 |
 
 ---
 
 ## 5. 核心发现清单
 
-| ID | 类别 | 严重度 | 位置 | 发现 | 影响 | 建议 |
-|----|------|--------|------|------|------|------|
-| CH-12 | 契约忠实度 | **Critical** | `src/shared/types/source-ref.ts:14`; `src/shared/types/v8-contracts.ts:92`; `src/core/second-nature/types.ts:8`; `src/cli/host-capability/types.ts:17`; `src/storage/life-evidence/types.ts:18`; `src/storage/chronicle/session-chronicle-store.ts:15`; `src/storage/narrative/narrative-state-store.ts:6`; `src/storage/memory-store/memory-store-lifecycle.ts:6`; `src/storage/goal/agent-goal-store.ts:6`; `src/storage/relationship/relationship-memory-store.ts:6`; `src/shared/types/index.ts:7-9` | `SourceRef` 被定义成 3 种互不兼容的形状（tuple、v8 object、storage object、control-plane object），`shared/types/index.ts` 因冲突故意不重新导出 `v8-contracts`。 | 同名异构类型在跨系统传递时 silently 错配，refactor 搜索不可靠，grounding 链接可能断裂。 | 统一为 `src/shared/types/v8-contracts.ts` 的 object 形状；v7 tuple 重命名为 `SourceRefTuple`；删除存储模块本地克隆。 |
-| CH-13 | 架构适配 | **Critical** | `src/core/second-nature/heartbeat/heartbeat-loop.ts:1-613`; `src/core/second-nature/control-plane/heartbeat-orchestrator.ts:1-626`; `src/core/second-nature/control-plane/real-runtime-spine.ts:1-84` | v7 `heartbeat-loop.ts` 与 v8 `heartbeat-orchestrator.ts` 两个循环并存，`real-runtime-spine.ts` 仅包装 v8，未统一 cycle 真相源。 | 一个周期内可能产生两套互不可见的 state/audit/evidence；`loop_status` 无法确定哪个循环代表当前 cycle。 | 定义单一 `HeartbeatCycle` 端口，v7 循环作为 connector/life-evidence 适配器向 v8 cycle 输送 evidence，v8 orchestrator 拥有唯一 cycle trace。 |
-| CH-14 | 数据流 / 任务兑现 | **Critical** | `src/core/second-nature/heartbeat/heartbeat-loop.ts:206-224`; `src/storage/life-evidence/append-life-evidence.ts:27-89`; `src/connectors/evidence-normalizer.ts:151-257`; `src/storage/db/schema/v8-entities.ts:20-45`; `src/storage/life-evidence/index.ts` | 同一 connector result 被 `mapLifeEvidence` (v7 `life_evidence_index` + FS artifact) 与 `normalizeConnectorEvidence` (v8 `evidence_item`) 分别持久化，去重规则分别是 UUID 与 `(platformId, contentHash)`。 | v7-only 证据对 v8 perception 不可见；v8 与 v7 去重规则不同导致重复计数；digest 与 loop health 可能基于残缺数据。 | 合并为单一 `ingestConnectorEvidence` port，v8 `evidence_item` 为真相源，v7 `life_evidence_index` 仅作兼容镜像。 |
-| CH-15 | 架构适配 / 复杂度 | **Critical** | `src/cli/ops/ops-router.ts:551-1945` (1875 LOC); `src/core/second-nature/control-plane/heartbeat-orchestrator.ts:160-672` (513 LOC 单一函数，嵌套深度 18) | `ops-router.ts` 一个 `dispatch` 处理所有 runtime 命令，`heartbeat-orchestrator.ts` 一个函数跑完 perceive→judge→propose→execute→close→rhythm。 | 违反单一职责与端口边界；新命令/新 stage 必须修改神文件，review 无法覆盖所有交互组合。 | `ops-router.ts` 按系统拆分为 `handlers/connector.ts`、`handlers/health.ts`、`handlers/dream.ts` 等；orchestrator 拆为 stage 函数 + pipeline runner。 |
-| CH-16 | 静态运行风险 | **Critical** | `src/storage/db/schema/v8-entities.ts:100-106` (`action_closure_record`); `src/storage/db/schema/v8-entities.ts:136-145` (`dream_consolidation_run`); `src/storage/db/schema/v8-entities.ts:155-164` (`long_term_memory_projection`); `src/storage/db/schema/v8-entities.ts:182-186` (`heartbeat_cycle_trace`); `src/storage/db/schema/v8-entities.ts:201-208` (`loop_stage_event`); `src/core/second-nature/perception/perception-builder.ts:93-105`; `src/core/second-nature/quiet-dream/quiet-daily-review-builder.ts:119-127`; `src/core/second-nature/quiet-dream/memory-projection-lifecycle.ts:198-206` | 多个 v8 表同时存在 `status` 与 `lifecycleStatus`，且 `sourceRefsJson` 的 parse/serialize 在每个消费模块独立实现。 | 查询可能过滤错列导致 stale reads；同一 malformed JSON 在不同模块被不同解释， lifecycle 与 health 诊断可能不一致。 | 仅保留语义明确的单一状态列；`parseSourceRefs` / `serializeSourceRefs` 集中到 `src/shared/serialization.ts` 并强制复用。 |
-| CH-17 | 架构适配 | **High** | `src/core/second-nature/control-plane/heartbeat-orchestrator.ts:25`; `src/core/second-nature/perception/perception-builder.ts:25`; `src/core/second-nature/perception/judgment-engine.ts:25`; `src/core/second-nature/action/action-proposal-builder.ts:26`; `src/core/second-nature/action/action-closure-recorder.ts:24`; `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts:26` | 控制平面与感知/判断/action/dream 模块直接导入 `StateDatabase` 与 `v8-state-stores.ts` 具体实现。 | 业务逻辑被钉到 sql.js/drizzle 细节；存储后端变更会波及所有语义系统；单元测试必须构造真实 DB 或大量 mock。 | 在 `core/second-nature` 定义 `EvidencePort`、`PerceptionPort`、`ClosurePort`、`DreamQuietPort` 等接口，由 `v8-state-stores.ts` 实现。 |
-| CH-18 | 架构适配 / 安全边界 | **High** | `src/connectors/services/connector-executor-adapter.ts:32-35`; `src/connectors/services/connector-executor-adapter.ts:161-180`; `src/connectors/services/connector-executor-adapter.ts:728-771` | connector executor 直接依赖 `ObservabilityDatabase`、`ExecutionTelemetry`、`createCredentialVault`、`decryptCredentialAtRest`。 | connector 系统不再是纯执行边界，而是拥有解密与遥测写入权；违反 connector-system.md 的 trust/credential 分层。 | executor 只返回 `ConnectorResult`；telemetry 由调用方或装饰器写入；credential 通过 `CredentialContextPort` 传入，不在 executor 内解密。 |
-| CH-19 | 架构适配 | **High** | `src/storage/state-api.ts:22-24`; `src/storage/services/persona-candidate-loader.ts:4`; `src/guidance/draft-narrative-outreach.ts:12-13`; `src/guidance/evidence-guidance.ts:6-7` | `storage` 导入 `guidance` 类型 (`PersonaCandidate`, `SceneContext`)，同时 `guidance` 导入 `storage` 存储内部类型，形成循环依赖。 | 低层 storage 依赖高层 guidance，任何 guidance 模型变更都会被迫反向修改 storage API。 | 将 `PersonaCandidate` / `SceneContext` 下沉到 `src/shared/types/`；guidance 通过只读端口消费 state，不导入 store 内部。 |
-| CH-20 | 架构适配 / 可观测性 | **High** | `src/observability/loop-status.ts:22-28`; `src/observability/causal-loop-health.ts:24`; `src/observability/living-loop-health-gate.ts:20`; `src/observability/loop-stage-event-sink.ts:24-25` | observability 服务直接导入 `StateDatabase` 与 `v8-state-stores.ts`，而不是通过声明的健康端口读取 bounded read models。 | observability 与存储 schema 耦合；schema 变更会破坏健康诊断；测试困难。 | 定义 `StateHealthPort` 返回 stage counts、freshness、projection statuses；observability 只依赖该端口。 |
-| CH-21 | 静态运行风险 | **High** | `src/core/second-nature/heartbeat/heartbeat-loop.ts:219,233,248,262`; `src/cli/ops/manual-run-dispatcher.ts:186,201,205`; `src/core/second-nature/quiet/run-source-backed-quiet.ts:84` | 关键失败路径使用 `console.warn` 吞掉错误，而不是返回 `DegradedOperationResult`。 | 失败对 operator/digest/health 不可见，系统可能以为 cycle 成功，实际 evidence append、breaker update、tool experience 已失败。 | 统一改为结构化降级结果，按 `shared-v8-contracts.md §4.1` 的 `DegradedOperationResult` 模式返回 reason code。 |
-| CH-22 | 验证证据 | **High** | `tests/` 全量：`createStateDatabase(":memory:")` 出现 368 次；`createObservabilityDatabase(":memory:")` 出现 120 次；`.skip(` 出现 9 处 | 无共享 test factory，每个测试自行创建 DB/seed/fixture；多个集成测试用 `.skip` 跳过真实场景。 | DB bootstrap、凭证 seed、manifest 创建逻辑漂移；跳过的用例成为 silent regression 温床。 | 创建 `tests/support/factories.ts` 提供 `createTestStateDb`、`seedCredential`、`buildEvidenceItem` 等；重新启用或删除 skipped tests。 |
-| CH-23 | helper 重复 | **Medium** | `src/storage/chronicle/session-chronicle-store.ts:70`; `src/storage/memory-store/memory-store-lifecycle.ts:83`; `src/storage/goal/agent-goal-store.ts:70`; `src/storage/narrative/narrative-state-store.ts:49`; `src/storage/relationship/relationship-memory-store.ts:52`; `src/storage/services/goal-lifecycle-store.ts:44`; `src/storage/services/diary-dream-store.ts:53`; `src/storage/services/embodied-context-state-port.ts:164`; `src/storage/services/history-digest-store.ts:38`; `src/storage/services/identity-profile-store.ts:23`; `src/storage/services/tool-experience-store.ts:26`; `src/storage/services/restore-snapshot-store.ts:86`; `src/dream/dream-input-loader.ts:38` | `safeParseJson` 在 13 个文件中重复实现，且 `hashSha256`、`randomUUID`、`nowIso` 等基础操作散落各处。 | 行为变更需要在十几处同步修改， inevitable drift；新模块继续复制旧实现。 | 新建 `src/shared/pure-utils.ts` 统一导出 `safeParseJson`、`hashSha256`、`generateUuid`、`nowIso` 等，并全局替换。 |
+| ID | 类别 | 严重度 | 契约/Pass | 位置 | 发现 | 影响 | 建议 |
+|----|------|--------|-----------|------|------|------|------|
+| CH-36 | 运行模拟 / 运行承诺 | **High** | 幂等 / Contract Drift | `action-closure-policy-system.md §6.1a`；`src/core/second-nature/control-plane/cycle-finalizer.ts:66-165`；`src/core/second-nature/control-plane/heartbeat-orchestrator.ts:511,537,565` | CycleFinalizer doc comment 声称 "exactly-one closure invariant" 但 `finalizeCycle` 直接 insert 无重复检测、无写序协调、无重启 reconcile；且 orchestrator 多处仍绕过 finalizeCycle 直接调 recordPolicyOutcomeClosure/recordExecutionClosure | closure ledger 可重复或丢失；Quiet 输入和 loop_status 基于错误 closure 集合 | 实现 idempotency key（cycleId 唯一约束）、写序（state row 先 event 后）、周期启动 reconcile reader；将 orchestrator 所有 closure 调用统一经 finalizeCycle 单一入口 |
+| CH-37 | 工程实现 / 安全承诺 | **High** | provenance tiers / Contract Drift | `shared-v8-contracts.md §2.2`；`src/storage/db/index.ts:295-296`；`src/storage/v8-state-stores.ts:500-508` | action_closure_record schema 已加 proof_refs_json/trace_refs_json 列，但 writeActionClosureRecord 仍把 proofRefs/traceRefs 序列化进 payloadJson，未用新列；与 loop_stage_event writer（已用新列）修复不对称 | closure provenance 无法直接查询/索引；provenance 分离在持久化层是半成品 | writeActionClosureRecord 改为写入 proofRefsJson/traceRefsJson 独立列，不再塞 payloadJson |
+| CH-38 | 系统设计 / 宿主现实 | **High** | host reality / Task Drift | `runtime-ops-system.md §3.1`；`05A T-ROS.R.5`；`src/cli/host-capability/host-discovery-port.ts:84-103`；`plugin/index.ts:478-522` | T-ROS.R.5 "宿主可见 second_nature_ops" 正向路径无代码实现；默认适配器只返回 host_probe_unsupported，buildHostDiscoveryReport 同样直接返回 unsupported；setup_hint 使用 createDefaultHostDiscoveryPort() 而非真实宿主探测 | host reality 仍是 Wave 116 想消除的 masquerading 镜像（这次是反过来：只能报 unavailable，无法报 available）；INT-R11 自动化部分无法验证正向路径 | 提供基于 OpenClaw api 自省的 HostCapabilityDiscoveryPort 实现，或在文档明确 carrier 模式下由 manual smoke 承担并在 05B 标记"必须 manual host evidence" |
+| CH-39 | 运行模拟 / 时间承诺 | **High** | cycleSequence 真相源 / Contract Drift | `control-plane-system.md §4.1`；`shared-v8-contracts.md §3.3`；`src/cli/ops/heartbeat-surface.ts:264-269` | v8 spine degraded 路径设置 cycleId:""/cycleSequence:0，伪造空值；下游按空 cycleId 查询 closure 得无意义结果 | loop_status 的 stalledAt 归因错位；operator 无法从 v8Spine 追溯实际失败 cycle | 使用 v8Result 中已有 cycleId/cycleSequence，或返回显式 v8_spine_degraded 结构而不填充空字段 |
+| CH-40 | 运行模拟 / 状态承诺 | **High** | candidate→accepted 边界 / Contract Drift | `dream-quiet-memory-system.md §4.2/§8.3`；`src/core/second-nature/quiet-dream/dream-consolidation-runner.ts:271` | dream-consolidation-runner 仍在 runner 内部循环直接调用 acceptMemoryProjection，模糊 candidate generation 与 acceptance 边界 | 违反 ADR-003 长期记忆形成边界；单元测试难以独立验证 "candidate created but not accepted" 状态 | 将 acceptMemoryProjection 调用移出 runner，由 daily-rhythm-scheduler 或独立 projection lifecycle 步骤调用；runner 只返回 candidate 状态与 candidateIds |
+| CH-41 | 工程实现 / 安全承诺 | **High** | provenance tiers / Contract Drift | `shared-v8-contracts.md §2.2`；`src/core/second-nature/guidance/guidance-proposal-consumer.ts:143` | degraded 分支 `sourceRefs: decision.proofRefs` 把 policy proof 当真实证据传入；主路径 :119 已正确分离，但 degraded 路径未跟进 | 若 Quiet/Dream 消费此 degraded result，会把 policy proof 误当真实证据，违反 provenance tier contract | degraded 分支改为 `sourceRefs: proposal.sourceRefs, proofRefs: decision.proofRefs` 分离 |
+| CH-42 | 任务审查 | **High** | 任务承接 / Task Drift | `AGENTS.md` 状态块；`05A_TASKS.md` | AGENTS.md 声称 "Wave 118 release packaging complete; version 0.2.13 ready for upload"，但 05A_TASKS.md 无 Wave 118 段落、无 T-REL.* 任务条目；05B 无 Wave 118 验证计划 | 声称完成但任务清单无承接；违反"版本即法律"；无法追踪发布决策 | 在 05A 补充 Wave 118 段落（T-REL.C.1 version bump、T-REL.C.2 npm upload、T-REL.R.1 post-release smoke）；更新 05B 与 AGENTS.md |
+| CH-43 | 工程实现 | **Medium** | envelope 契约 / Contract Drift | `runtime-ops-system.md §2`；`src/cli/commands/index.ts:163-171,222-235` | setup_hint/setup_ack 仍返回 {ok,command,surfaceMode,evidenceLevel,message,data}，缺 result/degraded/generatedAt | host/bridge 消费者期望 RuntimeOpsEnvelope 标准字段会解析失败 | payload 放 result，降级状态放 degraded，加 generatedAt |
+| CH-44 | 工程实现 / 错误承诺 | **Medium** | 精确状态 / Contract Drift | `shared-v8-contracts.md §5`；`src/shared/degraded-status-classifier.ts:22-76` | 分类表覆盖 ~40 reason，V8ReasonCode 总数 >60；未列出 reason 默认 unavailable；如 host_tool_unavailable/host_policy_blocked/closure_idempotency_conflict 等会误分类 | stage-level 诊断不精确，违背 T-OBS.R.8 | 扩展分类表覆盖全部 V8ReasonCode，或文档化"未列出默认 unavailable"并补测试 |
+| CH-45 | 工程实现 | **Medium** | 错误诊断 / Contract Drift | `src/cli/ops/ops-router.ts:883,2095,160-167` | normalizeEnvelopeResult 对缺 command 的分支返回通用 OPS_RESULT_NOT_AN_ENVELOPE，丢失 MISSING_FALLBACK_REF/unknown_ops_command 等 actionable code | operator 收到通用错误码无法定位根因 | 所有 dispatch 分支统一返回至少含 command 与 runtimeMode/surfaceMode 的对象；或非 envelope 分支优先透传 raw.error |
+| CH-46 | 工程实现 | **Medium** | DRY / Architecture Fit | `src/shared/setup-ack.ts:66-147`；`plugin/index.ts:205-266` | plugin 仍重复实现 validateSetupAck/VALID_PLACEMENTS/VALID_WRITERS，未导入 src/shared/setup-ack.ts | setup-ack 规则变更时 CLI 与 plugin 可能不一致 | 将 src/shared/setup-ack.ts 加入 plugin runtime artifacts 并导入；或加 CI diff 检查 |
+| CH-47 | 运行模拟 | **Medium** | v8-only operator model / Contract Drift | `runtime-ops-system.md §3.3`；`src/cli/ops/ops-router.ts:693-722` | v7 heartbeat 命令未被硬拒绝，而是委托 heartbeat_check 加 deprecation warning；与 CH-27 处方"返回 version_obsolete/command_unavailable"偏离 | operator 可能误用 v7 heartbeat 获得非 v8 cycle 结果 | 改为硬拒绝返回 version_obsolete/command_unavailable，或文档化"deprecated alias 委托"为有意决策 |
+| CH-48 | 系统设计 | **Low** | SourceRef 契约 / Contract Drift | `shared-v8-contracts.md §2`；`src/shared/types/v8-contracts.ts:73` | SourceRefFamily 仍含未定义的 "projection"，与 "memory_projection" 语义关系不清 | 消费者无法解析 sn://projection/{id} | 移除 "projection" 或在 shared-v8-contracts.md §2 补充定义 |
+| CH-49 | 系统设计 | **Low** | envelope 契约 / Contract Drift | `runtime-ops-system.md §2`；`src/cli/ops/ops-router.ts:109`；`src/cli/runtime/runtime-artifact-boundary.ts:14` | RuntimeOpsEnvelope.surfaceMode 含 cli/openclaw_tool/plugin_command/cron_probe，设计文档未声明 | 维护者无法从设计文档推导合法 surfaceMode 值 | 在 runtime-ops-system.md §2 显式定义 surfaceMode 取值与语义 |
+| CH-50 | 工程实现 | **Low** | 单一入口 / Architecture Fit | `action-closure-policy-system.md §6.1a`；`src/core/second-nature/control-plane/heartbeat-orchestrator.ts` | closure 调用未完全集中到 finalizeCycle，orchestrator 多处直接调 recordXxxClosure | CycleFinalizer 的 exactly-one invariant 无法真正保证 | 将所有 closure 调用统一经 finalizeCycle 入口（与 CH-36 合并修复） |
 
 ---
 
-## 6. Lens 结果摘要
+## 6. 子代理结果摘要
 
-| Lens | 结论 | 关键证据 |
+### 6.1 Design Reviewer
+
+| 维度 | 结论 | 关键证据 |
 |------|------|----------|
-| L1 契约忠实度 | Fail | `SourceRef` 同名异构 (`source-ref.ts:14` vs `v8-contracts.ts:92` vs `types.ts:8`) |
-| L2 任务兑现与交付闭合 | Fail | v7/v8 evidence 双写 (`heartbeat-loop.ts:206-224`) |
-| L3 架构适配与复杂度健康 | Fail | 神模块 (`ops-router.ts:551-1945`, `heartbeat-orchestrator.ts:160-672`); 37 处 `StateDatabase` 直接导入 |
-| L4 静态运行风险与安全边界 | Fail | `console.warn` 吞错误 (`heartbeat-loop.ts:219,233,248,262`); 双 status 列 (`v8-entities.ts:100-106,136-145,155-164`) |
-| L5 验证证据与可观测性 | Partial Fail | 368 次 inline DB 创建；9 个 `.skip`；observability 直接读 state DB |
-| L6 回流一致性与交接证据 | Pass | README / AGENTS / plugin docs 已同步当前 Wave 109 状态；问题仅在于实现与文档边界不符 |
+| 系统设计 | 2 findings (0 Critical / 1 High / 0 Medium / 1 Low) | host-discovery 无真实探测（CH-38）；SourceRefFamily.projection 未定义（CH-48） |
+| 运行模拟 | 4 findings (0 Critical / 3 High / 0 Medium / 1 Low) | CycleFinalizer 无恢复协议（CH-36）；heartbeat-surface 伪造空 cycleId（CH-39）；dream-runner 直接 accept（CH-40）；v7 heartbeat 未硬拒绝（CH-47） |
+| 工程实现 | 5 findings (0 Critical / 1 High / 4 Medium / 0 Low) | closure provenance 塞 payloadJson（CH-37）；CLI setup envelope（CH-43）；degraded-classifier（CH-44）；plugin 重复 setup-ack（CH-46）；normalizeEnvelopeResult（CH-45） |
+
+**纠正**: design-reviewer 重复报了 Round 4 已闭合的 EvidenceLevelClassifier（§4.3 已存在）、SetupAck schema（§3.2 已存在），并把 "schema 已加列但 writer 没用" 错描述为 "schema 缺列"。已以代码实际状态为准纠正。
+
+### 6.2 Task Reviewer
+
+| Pass | 结论 | 关键证据 |
+|------|------|----------|
+| A 重复检测 | Clean | Wave 116/117/118 内无重复 |
+| B 歧义检测 | 1 Medium | T-ROS.R.6 surfaceMode 枚举漂移 |
+| C 欠详述检测 | 1 High / 2 Medium | Wave 118 任务缺失（CH-42）；INT-R11 缺 manual host smoke 附录；T-DQ.R.9 placeholder 规则未在 05B 详述 |
+| D 不一致性检测 | 2 Medium | 05B 滞后 Wave 117 三天；plugin 重复 setup-ack |
+| E 覆盖率检测 | 9/9 REQ 已承接 | REQ-008/009 缺完整 E2E 链路证据 |
+| F 质量粒度 | Clean | 粒度可执行 |
+| G 契约覆盖 | 1 Low | SourceRefFamily.projection 未文档化 |
+
+**纠正**: task-reviewer 误报 `DegradedOperationResult.status` 仍含 "degraded"（引用 wave-116-review 旧记录而非当前代码）。实际 `v8-contracts.ts:197` 已是精确状态。已纠正。
+
+### 6.3 Code Reviewer
+
+| Lens | 结论 |
+|------|------|
+| L1 契约忠实度 | Partial Pass — proofRefs/sourceRefs 分离在主路径已修，degraded 分支未修（CH-41）；closure writer 仍塞 payloadJson（CH-37） |
+| L2 任务兑现 | Partial Pass — CycleFinalizer 框架存在但无幂等（CH-36）；host-discovery 无真实探测（CH-38） |
+| L3 架构适配 | Partial Pass — plugin 重复 setup-ack（CH-46）；closure 调用未集中（CH-50） |
+| L4 静态运行风险 | heartbeat-surface 伪造空 cycleId（CH-39） |
+| L5 验证证据 | 缺 proofRefs 污染反例测试；缺 envelope 异常路径测试；缺 closure 独立列回归测试 |
+| L6 回流一致性 | 05A Wave 118 缺失（CH-42）；05B 滞后 |
+
+**纠正**: code-reviewer 误判 D9（host-discovery 标 Closed，实际未闭合）、D11（CycleFinalizer 标 Closed，实际无幂等）、D14（dream-runner 标 Closed，实际仍直接 accept）、H-1（loop-stage-event-sink 标 Open，实际已闭合）。已以直接代码核验为准纠正。
 
 ---
 
 ## 7. 建议行动清单
 
-### P0 — 立即处理（阻断 /forge）
+### P0 — 立即处理（阻塞 V8 living-loop 交付声明）
 
-1. **[CH-12]** 统一 `SourceRef`：以 `src/shared/types/v8-contracts.ts:92` 为 canonical object；v7 tuple 重命名；删除所有本地克隆。
-2. **[CH-13]** 统一心跳 cycle：让 v8 orchestrator 成为唯一 cycle owner；v7 heartbeat-loop 降级为 connector/evidence 适配器。
-3. **[CH-14]** 单一 evidence 摄入 port：v8 `evidence_item` 为真相源，v7 `life_evidence_index` 作为只读兼容镜像。
-4. **[CH-15]** 拆分神模块：
-   - `ops-router.ts` → `src/cli/ops/handlers/*.ts` + 命令注册表
-   - `heartbeat-orchestrator.ts` → `perceive / judge / propose / evaluatePolicy / dispatch / recordClosure / advanceRhythm` stage 函数 + pipeline runner
-5. **[CH-16]** 消除双 status + 集中 SourceRef 序列化：
-   - 每表只保留一个语义状态列
-   - `parse/serializeSourceRefs` 移到 `src/shared/serialization.ts` 并全局复用
+1. **[CH-36]** CycleFinalizer 实现 idempotency key（cycleId 唯一约束）、写序（state row 先 event 后）、周期启动 reconcile reader；将 orchestrator 所有 closure 调用统一经 finalizeCycle 单一入口（与 CH-50 合并）
+2. **[CH-37]** writeActionClosureRecord 改为写入 proofRefsJson/traceRefsJson 独立列，不再塞 payloadJson
+3. **[CH-38]** 提供基于 OpenClaw api 自省的 HostCapabilityDiscoveryPort 实现，或在文档明确 carrier 模式下由 manual smoke 承担并在 05B 标记"必须 manual host evidence"
+4. **[CH-39]** heartbeat-surface v8 spine degraded 路径使用 v8Result 真实 cycleId/cycleSequence，或返回显式 v8_spine_degraded 结构
+5. **[CH-40]** 将 acceptMemoryProjection 调用移出 dream-consolidation-runner，由 daily-rhythm-scheduler 或独立 projection lifecycle 步骤调用
+6. **[CH-41]** guidance-proposal-consumer degraded 分支改为 sourceRefs: proposal.sourceRefs, proofRefs: decision.proofRefs 分离
 
-### P1 — forge 之前修复
+### P1 — 近期处理
 
-6. **[CH-17]** 在 `core/second-nature` 定义 repository ports，移除 `StateDatabase` 直接导入。
-7. **[CH-18]** 将 `ExecutionTelemetry` 写出与 credential 解密移出 connector executor adapter。
-8. **[CH-19]** 打破 `storage ↔ guidance` 循环：把共享类型下沉到 `src/shared/types/`。
-9. **[CH-20]** 为 observability 引入 `StateHealthPort`，禁止直接 import `StateDatabase`。
-10. **[CH-21]** 将 `console.warn` 失败路径统一改为 `DegradedOperationResult`。
-11. **[CH-22]** 建立 `tests/support/` 工厂与 fixtures；重新启用或删除 9 个 skipped tests。
+7. **[CH-42]** 在 05A 补充 Wave 118 任务段落；更新 05B 与 AGENTS.md
+8. **[CH-43]** CLI setup_hint/setup_ack 对齐 RuntimeOpsEnvelope
+9. **[CH-44]** degraded-status-classifier 扩展覆盖全部 V8ReasonCode
+10. **[CH-45]** normalizeEnvelopeResult 非 envelope 分支优先透传 raw.error
+11. **[CH-46]** plugin 导入 src/shared/setup-ack.ts 或加 CI diff 检查
+12. **[CH-47]** v7 heartbeat 硬拒绝或文档化 deprecated alias 委托为有意决策
 
-### P2 — 后续持续改进
+### P2 — 持续改进
 
-12. **[CH-23]** 建立 `src/shared/pure-utils.ts`，统一 `safeParseJson` / hash / UUID / ISO timestamp。
-13. 引入架构 lint 规则：禁止 `src/storage/**` import `src/guidance/**`；禁止 `src/connectors/**` import `src/observability/db/**`；禁止 `src/core/second-nature/**` 直接 import `StateDatabase`（port 实现除外）。
-14. 将 `payloadJson` bag 升级为版本化 Zod schema（`PerceptionPayload`、`JudgmentPayload`、`QuietReviewPayload` 等）。
+13. **[CH-48]** 移除 SourceRefFamily.projection 或补充定义
+14. **[CH-49]** 在 runtime-ops-system.md §2 定义 surfaceMode 枚举
+15. **[CH-50]** 与 CH-36 合并修复
+16. 补充 proofRefs 污染反例测试、envelope 异常路径测试、closure 独立列回归测试
+17. Round 3 剩余 CH-17 ~ CH-23 排入后续重构 wave
 
 ---
 
@@ -163,13 +215,14 @@
 
 | 项目 | 结论 | 证据 | 对应问题 |
 |------|------|------|----------|
-| 重复态 | Fail | evidence 三重持久化、closure idempotency 分散在 orchestrator 与 recorder | CH-14, CH-15, CH-16 |
-| 失败态 | Fail | `console.warn` 吞错误，未统一 `DegradedOperationResult` | CH-21 |
-| 默认态 | Pass | `no_data`、`no_action`、`empty_input` 等状态已显式定义 | N/A |
-| 运行态 | Fail | v7/v8 双循环，无单一 cycle 真相源 | CH-13 |
-| 并发态 | Cannot confirm | 无显式并发代码；需运行时验证 | N/A |
-| 观测态 | Fail | observability 直接读 state DB / stage event 作为 closure 真相源 | CH-20, CH-21 |
-| 任务承接 | Pass | 05A/05B 任务与验收项完整，但验证基础设施薄弱 | CH-22 |
+| 重复态 | Fail | CycleFinalizer 无幂等键，同一 cycleId 可重复 insert closure | CH-36 |
+| 失败态 | Partial | degraded-classifier 覆盖不全；closure 写失败返回 degraded 但无 reconcile | CH-36, CH-44 |
+| 默认态 | Partial | v7 heartbeat 默认委托而非硬拒绝；normalizeEnvelopeResult 默认丢错误码 | CH-45, CH-47 |
+| 运行态 | Partial | dream-runner 直接 accept 模糊 lifecycle；closure provenance 塞 payloadJson | CH-37, CH-40 |
+| 并发态 | Not tested | 无并发 closure 写入测试 | CH-36 |
+| 观测态 | Partial | loop_stage_event provenance 已持久化；closure provenance 未持久化；heartbeat-surface 伪造空 cycleId | CH-37, CH-39 |
+| 宿主现实 | Fail | host-discovery 无真实宿主探测 | CH-38 |
+| provenance 分离 | Partial | 主路径已分离；degraded 分支未分离；closure 持久化层未分离 | CH-37, CH-41 |
 
 ---
 
@@ -177,66 +230,84 @@
 
 | ADR 文件 | 引用该 ADR 的 SYSTEM_DESIGN | 影响说明 |
 |---------|---------------------------|---------|
-| ADR-002_LIVING_PERCEPTION_LOOP.md | perception-judgment-system.md / action-closure-policy-system.md / control-plane-system.md | v7/v8 双循环与 evidence 双写直接违背单一 living loop 承诺；需重构统一 cycle |
-| ADR-003_QUIET_DREAM_LONG_TERM_MEMORY.md | dream-quiet-memory-system.md / state-memory-system.md | `status` + `lifecycleStatus` 双字段使 projection 生命周期模糊；需统一 |
-| ADR-004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md | action-closure-policy-system.md / body-tool-system.md / connector-system.md / guidance-voice-system.md | connector executor 直接解密 credential 违反最小权限与平台中立执行边界 |
-| ADR-005_CAUSAL_LOOP_HEALTH.md | observability-health-system.md / runtime-ops-system.md / control-plane-system.md | observability 直接读 state DB / 吞错误破坏 causal loop health 的 reason-code 与诊断可信度 |
+| ADR-002_LIVING_PERCEPTION_LOOP.md | perception-judgment / action-closure-policy / control-plane | CycleFinalizer 无幂等削弱 living-loop closure 可信度（CH-36） |
+| ADR-003_QUIET_DREAM_LONG_TERM_MEMORY.md | dream-quiet-memory / state-memory | dream-runner 直接 accept 模糊 candidate→accepted 边界（CH-40） |
+| ADR-004_PLATFORM_NEUTRAL_AUTONOMY_POLICY.md | action-closure-policy / body-tool / connector / guidance | closure provenance 塞 payloadJson + guidance degraded 分支 proof 当 source 违反 provenance tiers（CH-37, CH-41） |
+| ADR-005_CAUSAL_LOOP_HEALTH.md | observability-health / runtime-ops / control-plane | heartbeat-surface 伪造空 cycleId 破坏 cycleSequence 真相源（CH-39） |
 
 ---
 
 ## 10. 最终判断
 
-- [ ] 项目可继续，风险可控
-- [x] 项目可继续，但需先解决 P0 问题
-- [ ] 项目需要重新评估
+- [ ] 🟢 项目可继续，风险可控
+- [x] 🟡 项目可继续，但需先解决 P0 问题
+- [ ] 🔴 项目需要重新评估
 
-**判断依据**: Round 3 发现 5 个 Critical、6 个 High、1 个 Medium。CH-12 ~ CH-16 属于结构性阻断问题，不修复即继续 `/forge` 会导致返工成本指数级上升。
+**判断依据**: Round 5 发现 0 个 Critical、6 个 High、5 个 Medium、3 个 Low。无根本性阻断项，系统能运行、测试能过（1684/1693 pass）。但 6 个 High 全是"反复在 wave-review 出现却从未真正闭合"的契约漂移，共同特征是"文档/类型层已修，运行时持久化/探测/写序层未跟进"。叠加后让 V8 的四个最不能撒谎的地方——host reality、exactly-one closure、provenance 分离、single heartbeat truth——同时失真。不得在 P0 闭合前声明 V8 living-loop 已交付。
 
 **Routing**:
-- **不得默认进入 `/forge`**。应先通过 `/change` 或专门的重构 wave 收敛 P0/P1。
-- 推荐顺序：先止血（CH-12, CH-16）→ 再统一循环与 evidence（CH-13, CH-14）→ 再拆神模块（CH-15）→ 最后 ports 与测试基建（CH-17~CH-23）。
-- 全部 Critical/High 关闭后，方可重新 challenge 并进入下一轮 `/forge`。
+- **建议**: 开 Wave 119 专门闭合 6 个 P0（CH-36 ~ CH-41），不得在闭合前声明 V8 living-loop 已交付。
+- **AUTO 模式**: 不得自动穿过本关；需用户显式签名或先经 `/change` 闭合 P0。
+- **测试增强**: Wave 119 应同步补充 proofRefs 污染反例测试、CycleFinalizer 幂等/并发测试、closure 独立列回归测试、host-discovery 真实探测测试。
 
 ---
 
-## 11. Round 3 修复归档（待后续填写）
+## 11. Round 4 修复归档
 
 | Finding | Closure Evidence | Status |
 | --- | --- | --- |
-| CH-12 | TBD | Open |
-| CH-13 | TBD | Open |
-| CH-14 | TBD | Open |
-| CH-15 | TBD | Open |
-| CH-16 | TBD | Open |
-| CH-17 | TBD | Open |
-| CH-18 | TBD | Open |
-| CH-19 | TBD | Open |
-| CH-20 | TBD | Open |
-| CH-21 | TBD | Open |
-| CH-22 | TBD | Open |
-| CH-23 | TBD | Open |
+| CH-24 | `shared-v8-contracts.md §4.3` adds EvidenceLevelClassifier；`src/shared/evidence-level-classifier.ts` implemented | Closed (docs + impl) |
+| CH-25 | `runtime-ops-system.md §3.1` adds HostCapabilityDiscoveryPort；`src/cli/host-capability/host-discovery-port.ts` implemented (fallback only — see CH-38) | Closed (docs) / Partial (impl) |
+| CH-26 | `action-closure-policy-system.md §6.1a` adds CycleFinalizer protocol；`src/core/second-nature/control-plane/cycle-finalizer.ts` implemented (framework only — no idempotency, see CH-36) | Closed (docs) / Partial (impl) |
+| CH-27 | `control-plane-system.md §4.1` / `runtime-ops-system.md §3.3` define v8-only operator heartbeat；v7 heartbeat delegated to heartbeat_check with deprecation warning (not hard-rejected — see CH-47) | Closed (docs) / Partial (impl) |
+| CH-28 | `runtime-ops-system.md §3.1` / `05A T-ROS.R.7` define SkillDiscoveryProbe；implemented | Closed (docs + impl) |
+| CH-29 | `05A/05B T-ROS.R.5` split automated plugin/host discovery proof from manual host smoke appendix | Closed (docs) / Partial (impl — manual smoke not executed, see CH-38) |
+| CH-30 | `05A/05B` require rejecting unspecified ack, adding proofRefs/traceRefs, centralizing closure in CycleFinalizer；`src/shared/setup-ack.ts` rejects unspecified；closure recorder accepts proofRefs/traceRefs；CycleFinalizer exists (but orchestrator still bypasses it — see CH-36, CH-50) | Closed (docs) / Partial (impl) |
+| CH-31 | `shared-v8-contracts.md §4.1` / `observability-health-system.md §6.1` align precise status；`src/shared/types/v8-contracts.ts:197` DegradedOperationResult.status now precise | Closed (docs + impl) |
+| CH-32 | `perception-judgment-system.md §4.3` defines content_missing handoff；`src/connectors/base/normalized-evidence-content.ts` implemented | Closed (docs + impl) |
+| CH-33 | `control-plane-system.md §4.2` / `dream-quiet-memory-system.md §4.3` define DailyRhythmTriggerRequest and scheduler ownership | Closed (docs) |
+| CH-34 | `05A T-ROS.R.7` dependency changed to none | Closed (docs) |
+| CH-35 | `05B` distinguishes automated host discovery/plugin evidence from manual host smoke appendix | Closed (docs) |
 
 ---
 
-## 12. Round 2 修复归档（供追溯）
+## 12. Round 3 Archive — Code Health (2026-06-16)
+
+### 12.1 原 Round 3 问题总览
+
+| 严重度 | 数量 | 摘要 |
+|--------|------|------|
+| **Critical** | 5 | SourceRef 契约漂移、v7/v8 双心跳无单一真相源、connector evidence 三重持久化、运行时神模块、双 status + SourceRef 序列化碎片化 |
+| **High** | 6 | 控制平面直接依赖 StateDatabase、connector executor 越界、storage-guidance 循环依赖、observability 直接读 state 内部、console.warn 吞错误、测试重复与跳过用例 |
+| **Medium** | 1 | `safeParseJson` 等 helper 重复 13 次 |
+
+### 12.2 修复归档
 
 | Finding | Closure Evidence | Status |
 | --- | --- | --- |
-| CH-07 | `action-closure-policy-system.detail.md` 增加 `guidance_unavailable` / `closure_downgraded_without_draft`；`05A_TASKS.md` 移除 T-AC.C.3 对 T-GVS.C.1 的硬依赖；`05B_VERIFICATION_PLAN.md` 增加 guidance-unavailable dispatch/closure 验证 | Closed |
-| CH-08 | `shared-v8-contracts.md §3.3` 定义 heartbeat rhythm contract；`control-plane-system.md` 和 `observability-health-system.detail.md` 明确 heartbeat-count SLA 使用 `cycleSequence` | Closed |
-| CH-09 | `shared-v8-contracts.md §4.1` 定义 `DegradedOperationResult` 和 state unreadable/source unresolved/guidance unavailable 最小响应 | Closed |
-| CH-10 | `action-closure-policy-system.detail.md §3.4` 定义 idempotency retry matrix；`05A/05B` 增加 duplicate retry 验证 | Closed |
-| CH-11 | 补齐 `runtime-ops-system.md`, `control-plane-system.md`, `state-memory-system.md`, `body-tool-system.md`, `connector-system.md`, `guidance-voice-system.md` | Closed |
+| CH-12 | Wave 112-113: canonical SourceRef object shape; removal of local clones; SourceRefTuple for v7 | Closed |
+| CH-13 | Rolled into Round 4 / Wave 116 T-CP.R.5 (single external heartbeat model) → Round 4 CH-27 closed (docs) / partial (impl, see CH-47) | Closed via Round 4 |
+| CH-14 | Partially addressed by Wave 109; remaining rolled into Round 4 / Wave 116 T-CS.R.9 + T-SH.R.6 → Round 4 CH-32 closed | Closed via Round 4 |
+| CH-15 | closure scatter partially rolled into Round 4 / Wave 116 T-AC.R.2 (CycleFinalizer) → Round 4 CH-26 closed (docs) / partial (impl, see CH-36, CH-50) | Closed via Round 4 |
+| CH-16 | Wave 114-115: single semantic status column; shared parseSourceRefs/serializeSourceRefs | Closed |
+| CH-17 ~ CH-23 | Deferred to future refactoring waves (repository ports, telemetry/credential boundary decoupling, cycle dependency breakup, StateHealthPort, console.warn cleanup, test factories, helper unification) | Open / Deferred |
 
 ---
 
-## 13. Round 1 修复归档（供追溯）
+## 13. Round 2 修复归档（供追溯）
 
 | Finding | Closure Evidence | Status |
 | --- | --- | --- |
-| DR-01 | `shared-v8-contracts.md` 定义 `HeartbeatCycleTrace` 和 `LoopStageEvent.cycleSequence` | Closed |
-| DR-02 | `shared-v8-contracts.md` 定义 `MemoryReviewCandidateClosure`；action closure 和 Dream/Quiet L1 路由 `remember` 通过 `remember_for_review` | Closed |
-| DR-03 | `shared-v8-contracts.md` 定义单一 action registry 和 connector capability side-effect classification | Closed |
-| DR-04 | `shared-v8-contracts.md` 定义结构化 `SourceRef`；L0/L1 文档使用 `SourceRef[]` | Closed |
-| DR-05 | `PerceptionCard` 和 memory-review closure 包含 `reviewPriority`；Dream/Quiet 消费 memory review candidates | Closed |
-| DR-06 | `shared-v8-contracts.md` 定义 canonical reason codes；DQ 和 OBS 使用 shared code | Closed |
+| CH-07 | `action-closure-policy-system.detail.md` adds guidance_unavailable / closure_downgraded_without_draft；05A/05B add guidance-unavailable dispatch/closure verification | Closed |
+| CH-08 | `shared-v8-contracts.md §3.3` defines heartbeat rhythm contract；control-plane and observability detail use cycleSequence | Closed |
+| CH-09 | `shared-v8-contracts.md §4.1` defines DegradedOperationResult and minimum degraded responses | Closed |
+| CH-10 | `action-closure-policy-system.detail.md §3.4` defines idempotency retry matrix；05A/05B add duplicate retry verification | Closed |
+| CH-11 | Filled in runtime-ops, control-plane, state-memory, body-tool, connector, guidance system designs | Closed |
+
+---
+
+## 14. Round 1 修复归档（供追溯）
+
+| Finding | Closure Evidence | Status |
+| --- | --- | --- |
+| DR-01 ~ DR-06 | All closed via genesis v8 architecture and system design completion | Closed |

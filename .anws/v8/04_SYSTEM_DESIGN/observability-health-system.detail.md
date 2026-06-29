@@ -100,6 +100,7 @@ interface CausalLoopHealthSnapshot {
   id: string;
   workspaceRoot: string;
   overallStatus: "healthy" | "degraded" | "blocked" | "stalled" | "no_data";
+  evidenceLevel: "carrier_ack" | "contract_smoke" | "state_present" | "real_runtime" | "durable_verified";
   stalledAt?: LoopStage;
   stages: StageHealth[];
   nextAction: string;
@@ -112,7 +113,7 @@ interface CausalLoopHealthSnapshot {
 ```ts
 interface StageHealth {
   stage: LoopStage;
-  status: "healthy" | "no_data" | "stalled" | "blocked" | "degraded";
+  status: "healthy" | "no_data" | "stalled" | "empty" | "partial" | "blocked" | "unavailable" | "unsafe";
   lastStartedAt?: string;
   lastCompletedAt?: string;
   backlogCount?: number;
@@ -129,12 +130,14 @@ interface LoopDiagnosticReason {
 }
 ```
 
+`degraded` is not a stage-level status. It is derived only for `overallStatus` when one or more stages are `partial`, `unavailable`, or otherwise below healthy but not fully blocked/stalled.
+
 ### §2.3 Invariants
 
 | 编号 | Invariant |
 | --- | --- |
 | OBS-I1 | `overallStatus=healthy` 只能在 required stages fresh 或 explicit skipped reason 存在时返回。 |
-| OBS-I2 | state unreadable 必须返回 `degraded`，不得返回 healthy。 |
+| OBS-I2 | state unreadable 必须让 affected stage 返回 `unavailable`，并让 aggregate `overallStatus=degraded`，不得返回 healthy。 |
 | OBS-I3 | health/audit payload 不得包含 raw credential、raw private message、raw prompt。 |
 | OBS-I4 | policy deny 后 execution 缺失不算 stalled；closure 缺失才算 stalled。 |
 

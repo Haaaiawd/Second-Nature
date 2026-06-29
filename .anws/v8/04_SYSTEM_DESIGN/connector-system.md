@@ -69,6 +69,8 @@ interface NormalizedEvidenceContent {
   externalId?: string;
   title?: string;
   summary: string;
+  contentStatus: "content_present" | "content_missing" | "content_redacted";
+  contentMissingReason?: "id_only" | "empty_payload" | "unsupported_shape" | "redacted_private";
   excerpt?: string;
   canonicalText?: string;
   actor?: { id?: string; displayName?: string; role?: string };
@@ -121,6 +123,7 @@ flowchart TD
 - Credential missing returns `execution_unavailable`, not platform-specific judgment.
 - Connector may classify data shape, but cannot choose autonomous action.
 - `NormalizedEvidenceContent` must never store raw credential or raw private content; `rawContentRef` is optional and policy-controlled.
+- ID-only/ref-only connector results must set `contentStatus=content_missing`; downstream perception/Quiet/Dream must not fabricate summaries or memory candidates from IDs alone.
 - Evidence deduplication uses `platformId + capabilityId + externalId` first, then `contentHash(canonicalText|excerpt|summary)`; `observedAt` is not part of identity.
 
 ## 7. 测试策略

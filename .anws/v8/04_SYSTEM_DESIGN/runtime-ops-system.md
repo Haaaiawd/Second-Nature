@@ -28,7 +28,7 @@
 
 | 方向 | 契约 |
 | --- | --- |
-| 输入 | plugin tool call, CLI args, workspaceRoot, env, host cadence hint |
+| 输入 | plugin tool call, CLI args, workspaceRoot, env, host cadence hint, optional host capability discovery ports |
 | 输出 | `RuntimeOpsEnvelope`, command result, diagnostic reason code |
 | 共享契约 | heartbeat rhythm, degraded response, loop status reason registry |
 
@@ -36,11 +36,30 @@
 interface RuntimeOpsEnvelope<T> {
   ok: boolean;
   command: string;
+  evidenceLevel: "carrier_ack" | "contract_smoke" | "state_present" | "real_runtime" | "durable_verified";
+  surfaceMode?: SurfaceMode;
   result?: T;
   degraded?: DegradedOperationResult;
   generatedAt: string;
 }
 ```
+
+`ok=true` only means the command envelope was produced. It must not be interpreted as real living-loop health unless `evidenceLevel` is `real_runtime` or `durable_verified` and `loop_status` agrees.
+
+#### SurfaceMode enum (Wave 119 / T-DOC.R.1)
+
+`surfaceMode` describes which runtime surface produced the envelope. The canonical values are:
+
+| value | meaning |
+| --- | --- |
+| `workspace_full_runtime` | Full v8 runtime available; command executed against real state and cycle. |
+| `cli` | CLI-only mode; no plugin/host runtime attached. |
+| `openclaw_tool` | OpenClaw plugin tool surface. |
+| `plugin_command` | Plugin command surface (non-tool dispatch). |
+| `cron_probe` | Scheduled/cron probe surface. |
+| `capability_probe` | Host capability discovery probe (setup_hint/setup_ack host discovery). |
+
+Implementations MUST NOT invent `surfaceMode` values outside this list. The code type in `src/cli/ops/ops-router.ts` and `src/cli/runtime/runtime-artifact-boundary.ts` must converge to this enum (T-DOC.R.1).
 
 ## 3. 核心数据模型
 
@@ -49,6 +68,74 @@ interface RuntimeOpsEnvelope<T> {
 | `RuntimeOpsEnvelope` | all ops response wrapper。 |
 | `LoopStatusCommandResult` | causal loop health read model。 |
 | `HeartbeatRunCommandResult` | manual/scheduled heartbeat result。 |
+
+### 3.1 Host Reality Setup State
+
+Runtime setup is complete only when host-visible surfaces are actually available:
+
+- `second_nature_ops` must be visible in the host tool list, or ops must report `host_tool_unavailable` with an owner next action.
+- Packaged `SKILL.md` is not enough; the skill must be discoverable by the host skill registry or reported as `skill_projection_unavailable`.
+- `setup/agent-inner-guide-ack.json` with `placedIn: "unspecified"` is an incomplete ack, not a success state.
+
+```ts
+interface HostCapabilityDiscoveryPort {
+  listHostTools(): Promise<HostToolDiscoveryResult>;
+  listHostSkills?(): Promise<HostSkillDiscoveryResult>;
+}
+
+interface HostToolDiscoveryResult {
+  status: "available" | "unavailable" | "unsupported" | "blocked";
+  tools: string[];
+  hostName?: string;
+  hostVersion?: string;
+  observedAt: string;
+  reason?: "host_tool_unavailable" | "host_probe_unsupported" | "host_policy_blocked" | "host_probe_timeout";
+}
+
+interface HostSkillDiscoveryResult {
+  status: "available" | "unavailable" | "unsupported" | "blocked";
+  skills: string[];
+  observedAt: string;
+  reason?: "skill_projection_unavailable" | "skill_probe_unsupported" | "host_policy_blocked" | "host_probe_timeout";
+}
+```
+
+Probe rules:
+
+- If the host probe is unsupported or blocked, setup remains incomplete and the runtime reports the precise reason; it must not silently promote to `real_runtime`.
+- `second_nature_ops` visibility is proven only by `listHostTools().tools` containing `second_nature_ops` in the current host session.
+- Skill projection is proven only by `listHostSkills().skills` containing the Second Nature skill id or by a host-provided equivalent discovery proof.
+- Carrier fallback without a host probe is capped at `evidenceLevel=carrier_ack` for setup and at `contract_smoke` for plugin package checks.
+
+### 3.2 SetupAck Schema
+
+```ts
+interface SetupAck {
+  schemaVersion: 1;
+  acknowledgedAt: string;
+  placedIn: "workspace_guide" | "host_skill_registry" | "agent_profile" | "manual_operator_instruction";
+  placementProofRef: string;
+  writer: "setup_ack_command" | "host_setup_bridge";
+  hostName?: string;
+  hostVersion?: string;
+}
+```
+
+Setup ack rules:
+
+- `placedIn: "unspecified"`, missing `placementProofRef`, unknown `writer`, or missing `schemaVersion` means setup is incomplete.
+- Only the setup command or host setup bridge may create a complete ack; hand-written files are treated as `state_present` evidence until verified by host discovery.
+- `setup_hint` may return package content, but setup completion requires either host discovery proof or a blocked diagnostic with owner next action.
+
+### 3.3 Operator Command Evidence Caps
+
+| Command/path | Required operator model | Evidence cap unless proven |
+| --- | --- | --- |
+| `heartbeat_run` / `heartbeat_check` | v8 living-loop cycle only | `real_runtime` only when v8 `cycleId` has stage + final closure proof. |
+| legacy v7 `heartbeat` command | deprecated-alias delegation to `heartbeat_check` (T-CP.R.7) | `carrier_ack` at most; warning `LEGACY_HEARTBEAT_DEPRECATED` emitted; no independent v7 cycle produced. The v7 `heartbeat` command is not hard-rejected but delegated to `heartbeat_check` with a deprecation warning, so existing operator scripts continue to work while the canonical operator-facing command is `heartbeat_check`. This is an intentional backward-compatibility decision (CH-27 prescription relaxed to avoid breaking deployed operator scripts). |
+| `setup_hint` | package/setup guidance | `carrier_ack` or `contract_smoke`; never setup complete. |
+| `setup_ack` | setup state mutation | `state_present` until host discovery confirms placement. |
+| `loop_status` | causal health read model | minimum of required stage evidence levels. |
 
 ## 4. 状态机/流程图
 
@@ -71,10 +158,12 @@ flowchart TD
 | `control-plane-system` | heartbeat run。 |
 | `state-memory-system` | state/package diagnostics。 |
 | `observability-health-system` | loop status and redacted diagnostics。 |
+| HostCapabilityDiscoveryPort | optional host tool/skill registry proof; unavailable hosts produce explicit blocked diagnostics。 |
 
 ## 6. 错误/降级/安全边界
 
 - Command exceptions return `ok=false` or degraded envelope; no unstructured throw to host.
+- Carrier/plugin acknowledgements must use `evidenceLevel=carrier_ack` or `contract_smoke`; they cannot claim real runtime health.
 - `heartbeatCadenceHintMs` is diagnostic only; does not define heartbeat-count SLA.
 - Runtime secret location may be referenced, never printed.
 - Raw audit/private payload must be redacted before response.
@@ -86,6 +175,7 @@ flowchart TD
 | API | command success/error/degraded envelopes。 |
 | 集成 | `loop_status` healthy/stalled/blocked/degraded fixtures。 |
 | 冒烟 | plugin registration and command routing。 |
+| 手动 E2E | hostName, hostVersion, timestamp, raw tool list JSON, raw skill list/probe result, command envelope, and evidenceLevel. |
 
 ## 8. Trade-offs
 

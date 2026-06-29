@@ -45,6 +45,7 @@
 - **[G2]**: Dream run 100% 有 lifecycle trace 或 blocked reason。[REQ-006]
 - **[G3]**: accepted long-term memory projection 可被 `EmbodiedContext` 加载。[REQ-005]
 - **[G4]**: Dream validation 失败时保留 rejected/blocked reason，不静默丢弃。[REQ-006]
+- **[G5]**: Quiet review must be content-bearing or explicitly empty; template placeholders cannot become memory input。[REQ-005]
 
 ### 2.2 Non-Goals
 
@@ -120,6 +121,8 @@ sequenceDiagram
     CP->>SM: load accepted projection for next heartbeat
 ```
 
+Control-plane only emits `DailyRhythmTriggerRequest` after a finalized cycle. This system owns whether Quiet is due, whether Dream is due, 7-day interval enforcement, stale scheduled repair, and duplicate-schedule prevention.
+
 ## 5. 接口设计 (Interface Design)
 
 ### 5.1 操作契约表
@@ -174,6 +177,7 @@ interface QuietDailyReview {
 
 interface QuietReviewPayload {
   reviewSummary: string;
+  contentStatus: "content_present" | "empty" | "placeholder_rejected" | "content_missing";
   notableSignals: string[];
   memoryCandidates: Array<{
     text: string;
@@ -211,6 +215,8 @@ interface LongTermMemoryProjection {
   acceptedAt?: string;
 }
 ```
+
+Dream blocked/skipped reasons must distinguish no content, private content redacted, credential-shaped block, and validation failure. A broad sensitivity block is not enough for operator repair.
 
 ### 6.2 实体关系图
 

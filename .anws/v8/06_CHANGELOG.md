@@ -1,9 +1,29 @@
 # 06_CHANGELOG.md — v8 变更日志
 
 > 版本: v8
-> 最后更新: 2026-06-13
+> 最后更新: 2026-06-20
 
 ---
+
+## v0.2.13 Release — Wave 116-118: Host Reality, Loop Hemostasis, Runtime Integration Repair, and Release Packaging — 2026-06-20
+
+- **Wave 116**: Closed host-reality and v8 ideal-loop hemostasis gaps. Repaired plugin workspace bridge so full-runtime commands return `surfaceMode: "workspace_full_runtime"` and v6 ops/connector_test remain reachable.
+- **Wave 117**: Triaged and repaired 21 pre-existing v8 runtime integration failures surfaced by INT-R11:
+  - Added missing `proof_refs_json`/`trace_refs_json` columns to `loop_stage_event` bootstrap + defensive migration.
+  - Removed systemic `...row` spread from all v8 state writers to prevent schema drift.
+  - Aligned Quiet/Dream tests with T-DQ.R.9 placeholder rejection via `tests/shared/content-evidence-fixture.ts`.
+  - Corrected INT-V8 guidance source/proof tier assertion.
+- **Wave 118**: Release packaging. Bumped version to `0.2.13` in root, plugin `package.json`, and `openclaw.plugin.json`. Rebuilt plugin runtime and verified `npm pack --dry-run` for `@haaaiawd/second-nature@0.2.13`.
+- **Verification**:
+  - Full `pnpm test`: 1693 tests, 1684 pass, 0 fail, 9 skipped.
+  - `pnpm typecheck` ✅, `pnpm build` ✅, `pnpm build:plugin` ✅.
+  - Plugin package dry-run: 635 files, 450.4 kB tarball, 2.1 MB unpacked.
+- **Artifacts**:
+  - `reports/int-r11-wave-116-host-reality-hemostasis.md`
+  - `reports/int-r11-wave-117-runtime-integration-repair.md`
+  - `.anws/v8/05A_TASKS.md` — INT-R11 checked
+  - `.anws/v8/05B_VERIFICATION_PLAN.md` — Wave 116/INT-R11 verification statuses ✅
+- **Status**: Package ready for upload to npm registry.
 
 ## v8 Genesis — 2026-05-30
 
@@ -234,6 +254,30 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `logs/wave-115-source-refs-search.log` — search evidence.
 - **Guardrails**: No package version bump, no external write enablement, no change to v7 source-ref shapes.
 
+## Wave 116A — v8 Change: Host Reality and Ideal Loop Hemostasis (Part 1) — 2026-06-18
+
+- **Change source**: host runtime reality review plus v8 ideal-loop hemostasis review.
+- **Classification**: `/change` local repair backlog; no PRD/ADR premise change and no new genesis required.
+- **Tasks completed**: `T-OBS.R.7`, `T-ROS.R.7`, `T-ROS.R.8`.
+- **Fixes implemented**:
+  - Added shared `EvidenceLevelClassifier` (`src/shared/evidence-level-classifier.ts`) with `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, `durable_verified` taxonomy and cap/promote/min helpers.
+  - Injected `evidenceLevel` into `RuntimeOpsEnvelope` via `src/cli/ops/ops-router.ts`; `heartbeat_check`, `loop_status`, causal-loop health snapshot, and heartbeat digest now report honest evidence levels.
+  - Created canonical `SetupAck` validator (`src/shared/setup-ack.ts`) rejecting `placedIn: "unspecified"`, missing `placementProofRef`, unknown `writer`, and bad `schemaVersion`.
+  - Wired setup-ack validation into CLI `setup_hint`/`setup_ack` (`src/cli/commands/index.ts`) and OpenClaw plugin carrier (`plugin/index.ts`).
+  - Added `HostCapabilityDiscoveryPort` and default fail-closed adapter (`src/cli/host-capability/host-discovery-port.ts`) proving `second_nature_ops` tool visibility and packaged `SKILL.md` skill projection, or reporting explicit `skill_projection_unavailable` / `host_tool_unavailable` diagnostics.
+  - `setup_hint`/`setup_ack` now include a `hostDiscovery` report so setup completion cannot be claimed without host evidence.
+- **Verification**:
+  - `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅.
+  - Wave 116A targeted tests: 48/48 PASS (setup-ack validator, evidence-level classifier, host-discovery port, CLI setup parity, plugin setup parity).
+  - Full regression: 1628/1666 pass, 29 fail, 9 skipped; failures appear pre-existing in legacy v5/v6/v7 ops surface paths.
+- **Artifacts**:
+  - `reports/int-r11-wave-116-host-reality-hemostasis.md` — INT-R11 116A gate report.
+  - `.anws/v8/wave-reviews/wave-116-review.md` — code review (Partial Pass; H-1 pre-existing drift assigned to T-OBS.R.8).
+- **Remaining Wave 116 work**: `T-SH.R.6`, `T-CP.R.5`, `T-AC.R.2`, `T-OBS.R.8`, `T-CS.R.9`, `T-DQ.R.9`, `INT-R11` final gate.
+- **Guardrails**: No package version bump, no external write enablement, no PRD/ADR premise edits.
+
+## Wave 116 — v8 Change: Host Reality and Ideal Loop Hemostasis (Backlog Opened) — 2026-06-18
+
 ---
 
 ## v0.2.11 Change — Wave 111 Review Closure Gap Repair — 2026-06-16
@@ -283,6 +327,24 @@ Following user review, 5 findings + 1 test evidence issue were identified and fi
   - `.anws/v8/wave-reviews/wave-112-review.md` — code review (Partial Pass, no Critical/High).
 - **Guardrails**: No fake context-engine capability, no raw credential exposure, no external write enablement, no PRD/ADR premise edits.
 - **Classification**: `/change` local repair; no PRD/ADR premise change and no new genesis required.
+
+---
+
+## 2026-06-21 - 受控扩展变更 (Wave 119 Contract Fidelity Hemostasis)
+
+- [CHANGE] Wave 119 task section appended to `05A_TASKS.md`
+  - 用户原话: "review 一下我们 V8 所实现的各个功能是否都实现了，对照着我们的 test 和 design 去进行一波 review" → Round 5 Challenge 发现 14 项契约漂移 → "一个个问题再次确认，确认后直接写入到 /change 里面"
+  - 修改内容: 追加 Wave 119 段落，含 13 个修复任务（T-AC.R.3, T-SH.R.7, T-ROS.R.9, T-CP.R.6, T-DQ.R.10, T-GVS.R.4, T-REL.C.1, T-ROS.R.10, T-OBS.R.9, T-ROS.R.11, T-SH.R.8, T-CP.R.7, T-DOC.R.1）+ 1 个回归门（INT-R12）
+  - 影响范围: `05A_TASKS.md`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`, `04_SYSTEM_DESIGN/runtime-ops-system.md §2`
+  - PRD 追溯: [REQ-001], [REQ-004], [REQ-005], [REQ-008], [REQ-009] / ADR-002, ADR-003, ADR-004, ADR-005
+- [CHANGE] `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`: 添加 Note 标注 `SourceRefFamily` 代码类型含未规范的 `"projection"`，T-DOC.R.1 将移除或定义
+  - 承接发现: CH-48
+- [CHANGE] `04_SYSTEM_DESIGN/runtime-ops-system.md §2`: `RuntimeOpsEnvelope` 补充 `surfaceMode?` 字段 + SurfaceMode 枚举表（6 个规范值）
+  - 承接发现: CH-49
+- **Guardrails**: 无 PRD/ADR 核心前提修改；无新功能注入；所有任务直接对应 Round 5 发现与用户原话；未回填任何已有任务 checkbox
+- **Classification**: `/change` 受控扩展；无 PRD/ADR 前提改变，无需 /genesis
+- **Tasks opened**: T-AC.R.3, T-SH.R.7, T-ROS.R.9, T-CP.R.6, T-DQ.R.10, T-GVS.R.4, T-REL.C.1, T-ROS.R.10, T-OBS.R.9, T-ROS.R.11, T-SH.R.8, T-CP.R.7, T-DOC.R.1, INT-R12
+- **Round 5 Challenge Report**: `.anws/v8/07_CHALLENGE_REPORT.md` (Round 5, 2026-06-21)
 - **Tasks opened**: `T-SMS.R.2`, `T-CP.R.4`, `T-DQ.R.8`, `T-AC.R.1`, `T-CS.R.8`, `T-GVS.R.3`, `INT-R6`.
 - **Fixes**:
   - Added `v8-004-schema-closure` migration to create `daily_rhythm_state`, `impulse_context_artifact`, and `connector_cooldown_state` for DBs initialized before the current bootstrap schema; made `action_closure_record.platform_id/capability_id` and `quiet_daily_review.closure_refs_json` idempotently additive.

@@ -63,6 +63,22 @@ interface SourceRef {
 }
 ```
 
+> **T-DOC.R.1 (Wave 119)**: The code type `SourceRefFamily` in `src/shared/types/v8-contracts.ts` also includes `"projection"`, which is the family used by **impulse context artifacts** (guidance-voice-system). It is distinct from `"memory_projection"` (dream-quiet-memory-system): `"projection"` references an impulse context artifact (`sn://impulse/{artifactId}`), while `"memory_projection"` references an accepted long-term memory projection (`sn://memory_projection/{projectionId}`). Canonical family list now includes both:
+>
+> | Family | URI shape | Owner system | Semantics |
+> | --- | --- | --- | --- |
+> | `evidence` | `sn://evidence/{evidenceId}` | perception-judgment | Raw evidence item |
+> | `perception` | `sn://perception/{cardId}` | perception-judgment | Perception card |
+> | `judgment` | `sn://judgment/{verdictId}` | perception-judgment | Judgment verdict |
+> | `action_closure` | `sn://closure/{closureId}` | action-closure-policy | Action closure record |
+> | `quiet_review` | `sn://quiet/{reviewId}` | dream-quiet-memory | Quiet daily review |
+> | `dream_run` | `sn://dream/{runId}` | dream-quiet-memory | Dream consolidation run |
+> | `memory_projection` | `sn://memory_projection/{projectionId}` | dream-quiet-memory | Accepted long-term memory projection |
+> | `projection` | `sn://impulse/{artifactId}` | guidance-voice | Impulse context artifact (agent-facing guidance) |
+> | `tool_experience` | `sn://tool_exp/{expId}` | body-tool | Tool experience record |
+> | `connector_result` | `sn://connector/{resultId}` | connector-system | Connector execution result |
+> | `audit` | `sn://audit/{auditId}` | observability-health | Audit trail entry |
+
 ### 2.1 URI Shape
 
 ```text
@@ -76,6 +92,22 @@ sn://evidence/ev_20260601_001
 sn://action_closure/ac_20260601_001
 sn://memory_projection/mp_20260601_001
 ```
+
+### 2.2 Provenance Tier Contract
+
+`sourceRefs`, `proofRefs`, and `traceRefs` are distinct semantic tiers:
+
+| Field | Meaning | May drive perception/memory? |
+| --- | --- | :---: |
+| `sourceRefs` | Real domain evidence or state objects being reasoned about. | yes |
+| `proofRefs` | Runtime, policy, setup, host, or packaging proof artifacts. | no |
+| `traceRefs` | Observability/audit/stage-event traces used to explain execution. | no |
+
+Rules:
+
+- Synthetic proofs such as plugin loaded, setup ack, carrier response, or test fixture evidence must not be serialized into `sourceRefs`.
+- `proofRefs` and `traceRefs` may support operator diagnostics and closure audit, but they do not count as content-bearing evidence.
+- If an existing payload only has `sourceRefs`, implementations must not stuff proof/trace artifacts into it for convenience. Add explicit fields instead.
 
 ---
 
@@ -168,7 +200,7 @@ All systems must use the same minimum response shape when shared state, source r
 
 ```ts
 interface DegradedOperationResult {
-  status: "degraded" | "blocked";
+  status: "empty" | "partial" | "blocked" | "unavailable" | "unsafe";
   reason: V8ReasonCode;
   ownerStage: LoopStage;
   sourceRefs: SourceRef[];
@@ -177,6 +209,8 @@ interface DegradedOperationResult {
 }
 ```
 
+`degraded` is an aggregate/read-model status only. Stage-level diagnostics and `DegradedOperationResult.status` must use the precise state: `empty`, `partial`, `blocked`, `unavailable`, or `unsafe`.
+
 | Failure family | Required reason | Minimum behavior |
 | --- | --- | --- |
 | state read unavailable | `state_unreadable` | Return degraded result, emit `LoopStageEvent(status=failed|blocked)`, do not claim healthy. |
@@ -184,6 +218,39 @@ interface DegradedOperationResult {
 | optional model unavailable | stage-specific rules-only reason | Continue with deterministic fallback where possible. |
 | optional guidance unavailable | `guidance_unavailable` | Close downgraded action with `closure_downgraded_without_draft`; do not block heartbeat closure. |
 | connector unavailable | `execution_unavailable` | No platform write; record closure failure or deferred retry posture. |
+
+### 4.2 Evidence Level Contract
+
+Operator-facing health/proof surfaces must classify how strong their evidence is:
+
+| evidenceLevel | Meaning |
+| --- | --- |
+| `carrier_ack` | Host/plugin carrier returned an envelope, but no runtime path was exercised. |
+| `contract_smoke` | Static or fixture contract passed. |
+| `state_present` | Durable state exists/read succeeded, but no live runtime execution was proven. |
+| `real_runtime` | The real runtime path executed and produced stage/closure evidence. |
+| `durable_verified` | Real runtime evidence was persisted and replay/readback verified. |
+
+Only `real_runtime` and `durable_verified` may be used as evidence for living-loop health.
+
+### 4.3 EvidenceLevelClassifier
+
+Every operator-facing response must derive `evidenceLevel` from observed execution depth, not from local optimism. The classifier is monotonic within one command: it may stay the same or increase only when the required proof for the next level exists.
+
+| Level | Required proof | Examples | Hard cap |
+| --- | --- | --- | --- |
+| `carrier_ack` | Host/plugin/CLI produced a JSON envelope but no Second Nature contract path ran. | plugin loaded, command carrier returned, setup hint text read from package | Cannot claim runtime health. |
+| `contract_smoke` | Static/fixture contract path ran without proving live state mutation. | package smoke, tool schema present, handler dispatch dry path, v7 adapter-only run | Cannot satisfy living-loop health. |
+| `state_present` | Durable state was read or existing rows were observed, but no current live cycle executed. | DB can open, setup ack exists, historical closure rows exist | Cannot prove current runtime. |
+| `real_runtime` | Current v8 living-loop command executed and produced stage plus closure/no-action proof for the same `cycleId`. | real `heartbeat_run` with v8 cycle, stage events, and final closure | Requires v8 cycle identity. |
+| `durable_verified` | `real_runtime` proof was persisted and read back through the normal read model. | heartbeat result persisted, `loop_status` readback sees same `cycleId` and final closure | Highest operator-facing level. |
+
+Classifier rules:
+
+- `CausalLoopHealthSnapshot.evidenceLevel` is the minimum evidence level across required stage proofs for the reported cycle.
+- v7 heartbeat traces, package smoke checks, and host carrier acknowledgements are capped at `contract_smoke`; they cannot be attached to a v8 living-loop cycle because the v8 control plane does not accept v7 heartbeat requests.
+- Existing state rows without a current-cycle execution proof are capped at `state_present`.
+- Manual host screenshots or logs may support an E2E appendix but cannot raise automated `loop_status` above the strongest machine-readable proof.
 
 Each degraded result must preserve `ownerStage` so `loop_status` can attribute root cause instead of surfacing unrelated downstream symptoms.
 
@@ -230,6 +297,8 @@ Each degraded result must preserve `ownerStage` so `loop_status` can attribute r
 | `closure_downgraded` | closure | Downgraded action closed the cycle. |
 | `closure_downgraded_without_draft` | closure | Downgraded action closed without draft output because guidance was unavailable. |
 | `closure_failed` | closure | Execution or draft generation failed. |
+| `closure_unavailable` | closure | Closure row or finalizer write was unavailable; no closure content may be fabricated. |
+| `closure_idempotency_conflict` | closure | More than one terminal closure or incompatible retry exists for the same cycle/idempotency key. |
 
 ### 5.3 Perception / Judgment / Observability
 
@@ -238,8 +307,17 @@ Each degraded result must preserve `ownerStage` so `loop_status` can attribute r
 | `perception_rules_only` | perception | Model unavailable; deterministic perception used. |
 | `evidence_batch_empty` | perception | No evidence available. |
 | `evidence_batch_truncated` | perception | Evidence batch exceeded limit. |
+| `evidence_id_only` | perception | Evidence contains only identifiers/refs and cannot support a meaningful perception summary. |
+| `evidence_content_missing` | perception | Evidence payload lacks content-bearing fields. |
+| `evidence_content_redacted` | perception | Evidence content exists but was redacted or blocked before perception. |
 | `judgment_low_confidence` | judgment | Judgment confidence below action threshold. |
 | `judgment_missing_source_refs` | judgment | Source refs missing. |
 | `source_refs_unresolved` | observability | Required source refs could not be resolved. |
 | `state_unreadable` | observability | State probe failed. |
 | `stage_event_missing` | observability | Required stage event missing. |
+| `host_tool_unavailable` | observability | Host tool discovery did not expose `second_nature_ops`. |
+| `host_probe_unsupported` | observability | Host does not expose a machine-readable capability probe. |
+| `host_policy_blocked` | observability | Host policy blocks tool or skill projection. |
+| `host_probe_timeout` | observability | Host capability probe timed out. |
+| `skill_projection_unavailable` | observability | Packaged skill was not discoverable by the host skill registry. |
+| `skill_probe_unsupported` | observability | Host skill discovery probe is unsupported. |

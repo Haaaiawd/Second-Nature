@@ -1900,3 +1900,518 @@ graph TD
   - **依赖**: T-SMS.R.5
   - **优先级**: P1
 
+---
+
+## Wave 116 — v8 Change: Host Reality and Ideal Loop Hemostasis
+
+> 触发：host runtime reality review + v8 ideal loop hemostasis review.
+> 目标：让 v8 不再把 loaded/smoke/carrier-visible 当作真实运行；收束 heartbeat、closure、provenance、degradation、content-bearing evidence 的语义污染。
+
+- [x] **T-ROS.R.5** [REQ-008, REQ-009]: Restore host-visible `second_nature_ops` tool injection contract
+  - **描述**: Ensure plugin loaded state is not considered operational until `second_nature_ops` is visible through `HostCapabilityDiscoveryPort.listHostTools()` or an explicit host capability-denial diagnostic explains why it is unavailable.
+  - **输入**: OpenClaw plugin registration, workspace ops bridge, runtime ops envelope, `HostCapabilityDiscoveryPort`
+  - **输出**: Host-visible tool registration proof or blocked diagnostic with owner next action; manual smoke appendix must include hostName, hostVersion, timestamp, raw tool list JSON, command envelope, and evidenceLevel
+  - **契约承接**: runtime ops host reality contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given plugin status is loaded
+    - When the host session enumerates available tools
+    - Then `second_nature_ops` is visible in machine-readable host tool list or `loop_status` reports `host_tool_unavailable` with `evidenceLevel != real_runtime`
+  - **验证类型**: plugin bridge / host smoke / API接口功能测试
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-5`
+  - **证据产出**: host tool visibility log, plugin bridge test
+  - **估时**: 6h
+  - **依赖**: T-OBS.R.7
+  - **优先级**: P0
+
+- [x] **T-ROS.R.7** [REQ-008]: Project packaged `SKILL.md` into actual host skill discovery
+  - **描述**: Treat packaged `SKILL.md` as incomplete setup until `SkillDiscoveryProbe` confirms discovery, or reports `skill_projection_unavailable`, `skill_probe_unsupported`, `host_policy_blocked`, or `host_probe_timeout`.
+  - **输入**: packaged plugin artifacts, setup hint/ack, host skill discovery path, `HostCapabilityDiscoveryPort.listHostSkills?()`
+  - **输出**: skill discovery proof or explicit `skill_projection_unavailable` diagnostic
+  - **契约承接**: runtime ops setup reality contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given package contains `SKILL.md`
+    - When setup completes
+    - Then the skill is discoverable by machine-readable host skill lookup or setup remains incomplete with precise repair instruction
+  - **验证类型**: packaging / host smoke / setup state test
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-7`
+  - **证据产出**: skill projection evidence log
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P0
+
+- [x] **T-ROS.R.8** [REQ-008]: Make setup ack placement a truthful completion gate
+  - **描述**: Reject or downgrade setup completion when `setup/agent-inner-guide-ack.json` records `placedIn: "unspecified"`; require `schemaVersion=1`, a concrete placement target, `placementProofRef`, and authorized writer.
+  - **输入**: setup ack artifact, setup_hint/setup_ack commands
+  - **输出**: setup state with concrete placement proof or incomplete diagnostic
+  - **契约承接**: runtime setup truth contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given setup ack has `placedIn: "unspecified"`
+    - When runtime ops evaluates setup completion
+    - Then setup is not reported complete and owner next action names the missing placement, writer, schema, or proof field
+  - **验证类型**: unit / API接口功能测试 / host setup smoke
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-8`
+  - **证据产出**: setup ack validation test
+  - **估时**: 3h
+  - **依赖**: none
+  - **优先级**: P0
+
+- [x] **T-SH.R.6** [REQ-001, REQ-008, REQ-009]: Split provenance into `sourceRefs`, `proofRefs`, and `traceRefs`
+  - **描述**: Define and apply provenance tiers so real evidence sources, policy/setup proofs, and observability traces cannot be serialized into the same semantic bucket.
+  - **输入**: shared v8 contracts, action closure records, loop stage events, runtime ops proofs
+  - **输出**: canonical provenance-tier contract and migration plan for `ActionClosureRecord`, `ActionPolicyDecision`, `GuidanceUnavailableDispatchResult`, `LoopStageEvent`, `RuntimeOpsEnvelope`, heartbeat cycle traces, and setup/tool visibility proofs
+  - **契约承接**: v8 provenance contract
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`, `04_SYSTEM_DESIGN/action-closure-policy-system.md`
+  - **验收标准**:
+    - Given a closure or status payload contains synthetic runtime proof
+    - When it is serialized
+    - Then it appears in `proofRefs` or `traceRefs`, not in evidence `sourceRefs`, and affected payloads have explicit fields or documented migration steps
+  - **验证类型**: compile / unit / search
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sh-r-6`
+  - **证据产出**: provenance-tier search log
+  - **估时**: 8h
+  - **依赖**: T-SMS.R.5
+  - **优先级**: P0
+
+- [x] **T-CP.R.5** [REQ-008, REQ-009]: Collapse external heartbeat model to v8 living loop
+  - **描述**: Make v8 heartbeat the only operator-facing heartbeat model; `heartbeat_check` runs the v8 control-plane spine by default, and legacy `heartbeat` command is deprecated/aliased with a `LEGACY_HEARTBEAT_DEPRECATED` warning. Legacy v7-only requests that cannot run v8 return `version_obsolete` or `command_unavailable`.
+  - **输入**: heartbeat surface, real runtime spine, ops docs
+  - **输出**: single external heartbeat contract and legacy-command rejection diagnostics
+  - **契约承接**: heartbeat rhythm contract
+  - **参考**: `04_SYSTEM_DESIGN/control-plane-system.md`
+  - **验收标准**:
+    - Given an operator runs heartbeat_check or heartbeat_run
+    - When v8 living-loop cycle executes
+    - Then output names one v8 living loop cycle with v8 cycle identity, emits `DailyRhythmTriggerRequest` after final closure, and does not expose v7 primary cycle fields
+    - And legacy v7 heartbeat requests without v8 wiring return `version_obsolete` or `command_unavailable`; no v7 cycle is produced
+  - **验证类型**: API接口功能测试 / integration / docs search
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-5`
+  - **证据产出**: heartbeat model parity log, API tests asserting v8-only heartbeat path, legacy deprecation tests, trigger envelope test
+  - **估时**: 6h
+  - **依赖**: T-OBS.R.7
+  - **优先级**: P0
+
+- [x] **T-AC.R.2** [REQ-004, REQ-009]: Introduce a single CycleFinalizer closure invariant
+  - **描述**: Move exactly-one closure/no-action responsibility to a single finalizer boundary with `cycleId` idempotency key, closure-row-first write order, and partial-failure reconcile semantics.
+  - **输入**: action proposal/policy/dispatch/closure ports, heartbeat orchestrator
+  - **输出**: `CycleFinalizer` contract in `src/core/second-nature/control-plane/cycle-finalizer.ts` with idempotent exactly-one closure semantics
+  - **契约承接**: ActionClosureRecord invariant
+  - **参考**: `04_SYSTEM_DESIGN/action-closure-policy-system.md`
+  - **验收标准**:
+    - Given any heartbeat branch exits early, fails, denies, defers, downgrades, or succeeds
+    - When the cycle finalizes
+    - Then exactly one `ActionClosureRecord` or no-action closure exists for the cycle; closure-row/event partial failures reconcile without fabricating content
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-r-2`
+  - **证据产出**: cycle finalizer tests
+  - **估时**: 8h
+  - **依赖**: T-CP.R.5
+  - **优先级**: P0
+
+- [x] **T-OBS.R.7** [REQ-008]: Add `evidenceLevel` to operator-facing health and proof surfaces
+  - **描述**: Implement the shared `EvidenceLevelClassifier` for `carrier_ack`, `contract_smoke`, `state_present`, `real_runtime`, and `durable_verified` so loaded/smoke/carrier success cannot masquerade as real living-loop health.
+  - **输入**: runtime ops envelopes, loop_status, digest, setup/tool proofs
+  - **输出**: evidence-level taxonomy in all relevant operator surfaces
+  - **契约承接**: causal loop health truth contract
+  - **参考**: `04_SYSTEM_DESIGN/observability-health-system.md`, `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given a carrier-only or contract-smoke response
+    - When shown to the operator
+    - Then its `evidenceLevel` is capped by the classifier and is not `real_runtime` or `durable_verified`
+  - **验证类型**: unit / API接口功能测试 / integration
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-7`
+  - **证据产出**: loop_status evidence-level fixtures
+  - **估时**: 6h
+  - **依赖**: none
+  - **优先级**: P0
+
+- [x] **T-OBS.R.8** [REQ-006, REQ-008]: Split `degraded` into precise operational states
+  - **描述**: Keep `degraded` as aggregate only; stage-level diagnostics and `DegradedOperationResult.status` must report `empty`, `partial`, `blocked`, `unavailable`, or `unsafe` where applicable.
+  - **输入**: degraded responses, loop_status stage health, Quiet/Dream absence reasons
+  - **输出**: precise status taxonomy and read model mapping
+  - **契约承接**: degraded response contract
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md`, `04_SYSTEM_DESIGN/observability-health-system.md`
+  - **验收标准**:
+    - Given missing content, blocked redaction, unavailable host tool, or unsafe policy denial
+    - When loop_status reports the stage
+    - Then the stage/degraded result uses the precise state and `degraded` only appears as aggregate `overallStatus` if needed
+  - **验证类型**: unit / API接口功能测试 / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-8`
+  - **证据产出**: status taxonomy tests
+  - **估时**: 6h
+  - **依赖**: T-OBS.R.7
+  - **优先级**: P0
+
+- [x] **T-CS.R.9** [REQ-001, REQ-002, REQ-005]: Enforce content-bearing evidence minimum contract
+  - **描述**: Connector read evidence must carry useful content fields or an explicit `content_missing` reason; ID-only evidence must not feed perception/Quiet as meaningful content.
+  - **输入**: connector result extractors, EvidenceItem normalization, perception inputs
+  - **输出**: content minimum gate and no-fabrication fallback
+  - **契约承接**: NormalizedEvidenceContent contract
+  - **参考**: `04_SYSTEM_DESIGN/connector-system.md`
+  - **验收标准**:
+    - Given connector output only contains IDs or refs
+    - When evidence is normalized
+    - Then downstream receives `content_missing` with canonical reason such as `evidence_id_only` and does not generate fake summaries or memory candidates
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cs-r-9`
+  - **证据产出**: content-bearing evidence tests
+  - **估时**: 6h
+  - **依赖**: T-SH.R.6
+  - **优先级**: P0
+
+- [x] **T-DQ.R.9** [REQ-005, REQ-006, REQ-007]: Remove Quiet template placeholders and split Dream sensitivity blocks
+  - **描述**: Quiet must not emit template-like review text as meaningful memory input; Dream sensitivity blocks must distinguish no content, private content redacted, credential-shaped block, and validation failure; Dream-Quiet scheduler owns daily/7-day due policy after `DailyRhythmTriggerRequest`.
+  - **输入**: QuietDailyReview payloads, DreamConsolidationRun lifecycle, sensitivity diagnostics, `DailyRhythmTriggerRequest`
+  - **输出**: non-template Quiet payload gate and precise Dream blocked reasons
+  - **契约承接**: Quiet/Dream content and lifecycle truth contract
+  - **参考**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md`
+  - **验收标准**:
+    - Given Quiet has only placeholders or ref-only evidence
+    - When Dream consolidation is considered
+    - Then Dream is skipped/blocked with precise reason, no long-term memory candidate is fabricated, and duplicate/stale scheduling is decided by dream-quiet scheduler rather than control-plane
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-9`
+  - **证据产出**: Quiet/Dream content truth tests
+  - **估时**: 6h
+  - **依赖**: T-CS.R.9, T-OBS.R.8
+  - **优先级**: P0
+
+- [x] **T-ROS.R.6** [REQ-008, REQ-009]: Repair plugin workspace bridge surfaceMode and command dispatch
+  - **描述**: Fix `plugin-workspace-ops-bridge` so full-runtime commands return `surfaceMode: "workspace_full_runtime"`, `heartbeat_check` exposes v8 spine/closure proof, probeOnly returns `heartbeat_ok`, v6 ops commands and connector_test are reachable, env-only workspace bridge works, and impulse context is exposed when artifact exists.
+  - **输入**: `plugin/workspace-ops-bridge.ts`, `src/cli/ops/ops-router.ts`, `src/cli/ops/heartbeat-surface.ts`, plugin runtime artifact wiring
+  - **输出**: repaired bridge dispatch with correct surfaceMode and passing plugin-workspace-ops-bridge tests
+  - **契约承接**: runtime ops host reality contract / workspace bridge contract
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md`
+  - **验收标准**:
+    - Given `plugin-workspace-ops-bridge.test.ts` runs
+    - When known workspaceRoot dispatches heartbeat_check / heartbeat_run / probeOnly / v6 ops / connector_test / env-only bridge
+    - Then surfaceMode is `workspace_full_runtime`, status is `heartbeat_ok` for probeOnly, v6 ops return ok, connector_test returns ok, env-only bridge exits 0, and impulse context is present
+  - **验证类型**: integration / plugin bridge / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-6`
+  - **证据产出**: plugin bridge test pass log
+  - **估时**: 6h
+  - **依赖**: T-ROS.R.5
+  - **优先级**: P0
+
+- [x] **INT-R11** [MILESTONE]: Host Reality and Hemostasis Gate
+  - **描述**: Verify Wave 116 closes host reality and v8 ideal-loop semantic drift without regressing Wave 108-115 repairs. Wave 117 triage repaired 21 pre-existing v8 runtime integration failures (loop_stage_event schema, systemic sourceRefs spread, T-DQ.R.9 test alignment) so the gate now passes fully.
+  - **输入**: T-ROS.R.5, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9 outputs; Wave 117 repair artifacts
+  - **输出**: `reports/int-r11-wave-116-host-reality-hemostasis.md` + `reports/int-r11-wave-117-runtime-integration-repair.md`
+  - **契约承接**: v8 host reality + living loop hemostasis contract
+  - **验收标准**:
+    - Given Wave 116 code changes + Wave 117 triage fixes
+    - When targeted host/plugin/content/closure tests and Wave 108-115 regressions run
+    - Then `loop_status`, `heartbeat_run`, `RuntimeOpsEnvelope`, setup state, host tool/skill probes, evidence normalization, closure finalization, `DailyRhythmTriggerRequest`, Quiet/Dream status, and digest surfaces show no loaded/smoke/carrier response as real runtime health, and every cycle/content/memory path has truthful closure or precise blocked reason; full `pnpm test` is green
+  - **验证类型**: 回归门 / 集成测试 / host smoke
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r11`
+  - **证据产出**: `reports/int-r11-wave-116-host-reality-hemostasis.md`, `reports/int-r11-wave-117-runtime-integration-repair.md`, full regression log
+  - **依赖**: all Wave 116 repair tasks; Wave 117 runtime integration repair
+  - **优先级**: P0
+
+---
+
+## Wave 118 — Release Packaging (Backfilled by T-REL.C.1)
+
+> **来源**: AGENTS.md claimed "Wave 118 release packaging complete; version 0.2.13 ready for upload" but 05A had no Wave 118 section. T-REL.C.1 backfills the task entries for traceability.
+>
+> **签入**: ✅ (backfilled 2026-06-21)
+> **code-reviewer**: N/A (release packaging)
+> **子波目标**: version bump, changelog generation, npm upload verification, post-release regression smoke.
+
+- [x] **T-REL.C.1** [MILESTONE]: Version bump + changelog generation
+  - **描述**: Bump `package.json`/`plugin/package.json` to `0.2.13`; generate `06_CHANGELOG.md` entry for Wave 116-117 repairs.
+  - **验收标准**: version `0.2.13` in both package.json files; CHANGELOG entry exists.
+  - **验证类型**: docs / build
+  - **证据**: `package.json` version=0.2.13, `06_CHANGELOG.md` Wave 116-117 entry.
+
+- [x] **T-REL.C.2** [MILESTONE]: npm upload verification
+  - **描述**: Verify `@haaaiawd/second-nature@0.2.13` package is buildable and ready for npm upload.
+  - **验收标准**: `pnpm build` succeeds; package tarball produced.
+  - **验证类型**: build
+  - **证据**: `pnpm build` exit 0; `plugin/` runtime artifacts produced.
+
+- [x] **T-REL.R.1** [MILESTONE]: Post-release regression smoke
+  - **描述**: Run full `pnpm test` to verify 0 fail after version bump.
+  - **验收标准**: full `pnpm test` green (1684 pass, 0 fail, 9 skipped as of 2026-06-20).
+  - **验证类型**: regression
+  - **证据**: `pnpm test` output: 1684 pass, 0 fail, 9 skipped.
+
+---
+
+## Wave 119 — v8 Change: Contract Fidelity Hemostasis (Round 5 Challenge Repair)
+
+> **来源**: `/challenge` Round 5 (`07_CHALLENGE_REPORT.md`) — Wave 116-118 implementation fidelity review surfaced 14 residual contract drifts that survived three waves of "completion" claims. Common pattern: "docs/types layer fixed, runtime persistence/probe/write-order layer not followed up". Wave 119 closes the 6 High + 5 Medium + 3 Low findings so V8's four least-lying places (host reality, exactly-one closure, provenance separation, single heartbeat truth) stop being simultaneously distorted.
+>
+> **签入**: 待 /forge 执行后勾选
+> **code-reviewer**: 默认执行
+> **子波目标**: Close Round 5 CH-36 ~ CH-50 so V8 living-loop delivery claims rest on truthful closure ledger, provenance separation, host reality, and single heartbeat truth.
+
+- [x] **T-AC.R.3** [REQ-009]: CycleFinalizer idempotency, write order, and reconcile — centralize all closure calls
+  - **描述**: `finalizeCycle` currently inserts directly with no duplicate detection, no write-order coordination, and no restart reconcile; `heartbeat-orchestrator.ts` has 11 direct `recordXxxClosure` calls and 0 `finalizeCycle` calls, so the "exactly-one closure invariant" claimed in the doc comment is not enforced. Implement: (1) idempotency key = `cycleId` with uniqueness constraint / duplicate detection; (2) write order = state row first, stage event after; (3) restart reconcile reader that detects orphaned closure/event rows at cycle start; (4) route all orchestrator closure calls through `finalizeCycle` single entry.
+  - **输入**: `src/core/second-nature/control-plane/cycle-finalizer.ts`, `src/core/second-nature/control-plane/heartbeat-orchestrator.ts`, `src/core/second-nature/action/action-closure-recorder.ts`
+  - **输出**: CycleFinalizer with enforced exactly-one invariant; orchestrator closure calls centralized
+  - **契约承接**: action-closure-policy-system §6.1a CycleFinalizer protocol / shared-v8-contracts §5 closure_idempotency_conflict
+  - **参考**: `04_SYSTEM_DESIGN/action-closure-policy-system.md §6.1a`, `04_SYSTEM_DESIGN/control-plane-system.md §3.4`
+  - **验收标准**:
+    - Given the same `cycleId` is finalized twice
+    - When the second `finalizeCycle` call runs
+    - Then it returns `closure_idempotency_conflict` degraded result instead of inserting a duplicate closure row
+    - And given a cycle where closure row was written but stage event failed
+    - When the next cycle starts
+    - Then the reconcile reader detects the orphaned closure and emits a repair stage event
+    - And given `heartbeat-orchestrator.ts` runs any closure path
+    - When closure is recorded
+    - Then it goes through `finalizeCycle` (no direct `recordXxxClosure` calls remain in orchestrator)
+  - **验证类型**: unit / integration / concurrency
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ac-r-3`
+  - **证据产出**: CycleFinalizer idempotency + reconcile + centralization tests
+  - **估时**: 1d
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-36, CH-50
+
+- [x] **T-SH.R.7** [REQ-009]: Closure provenance separation — use dedicated proofRefsJson/traceRefsJson columns
+  - **描述**: `action_closure_record` schema already has `proof_refs_json`/`trace_refs_json` columns (added in Wave 117), but `writeActionClosureRecord` still serializes `proofRefs`/`traceRefs` into `payloadJson` and never writes the dedicated columns. This is asymmetric with `writeLoopStageEvent` which already uses the new columns. Fix `writeActionClosureRecord` to write `proofRefsJson`/`traceRefsJson` columns and stop stuffing provenance into `payloadJson`.
+  - **输入**: `src/storage/v8-state-stores.ts`, `src/storage/db/index.ts`
+  - **输出**: closure provenance persisted in dedicated columns, queryable/indexable
+  - **契约承接**: shared-v8-contracts §2.2 provenance tier contract / ADR-004 platform-neutral autonomy policy
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md §2.2`, `04_SYSTEM_DESIGN/action-closure-policy-system.md §6.1`
+  - **验收标准**:
+    - Given a closure with `proofRefs` and `traceRefs`
+    - When `writeActionClosureRecord` runs
+    - Then `proof_refs_json` and `trace_refs_json` columns are populated and `payloadJson` no longer contains `proofRefs`/`traceRefs`
+    - And a readback query on `proof_refs_json` returns the same refs
+  - **验证类型**: unit / integration / regression
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sh-r-7`
+  - **证据产出**: closure provenance column regression test
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-37
+
+- [x] **T-ROS.R.9** [REQ-008]: Real host tool list discovery or explicit manual-smoke-only contract
+  - **描述**: `HostCapabilityDiscoveryPort` default adapter only returns `host_probe_unsupported`; there is no real host tool list probe implementation, so T-ROS.R.5 "host-visible `second_nature_ops`" positive path has no code and can only be proven via manual host smoke. Either (a) provide a real `HostCapabilityDiscoveryPort` implementation based on OpenClaw api introspection (check registered tool list for `second_nature_ops`), or (b) document explicitly that carrier mode host discovery is borne by external manual smoke and mark T-ROS.R.5 in `05B` as "requires manual host evidence".
+  - **输入**: `src/cli/host-capability/host-discovery-port.ts`, `plugin/index.ts`, `04_SYSTEM_DESIGN/runtime-ops-system.md §3.1`
+  - **输出**: real host probe implementation OR documented manual-smoke-only contract with 05B evidence weight split
+  - **契约承接**: runtime-ops-system §3.1 HostCapabilityDiscoveryPort / T-ROS.R.5 host reality
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md §3.1`
+  - **验收标准**:
+    - Given a real OpenClaw host with `second_nature_ops` registered
+    - When `probeHostDiscovery` runs with the real adapter
+    - Then `tools` contains `second_nature_ops` and `evidenceLevel` can reach `state_present` (not capped at `carrier_ack`)
+    - OR given option (b) is chosen
+    - When `05B_VERIFICATION_PLAN.md#t-ros-r-5` is read
+    - Then it explicitly marks the positive path as "requires manual host evidence" with required fields (hostName, hostVersion, timestamp, raw tool list JSON)
+  - **验证类型**: integration / manual host smoke (if option b)
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-9`
+  - **证据产出**: host discovery real-probe test OR 05B manual-smoke-only annotation
+  - **估时**: 1d
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-38
+
+- [x] **T-CP.R.6** [REQ-008]: heartbeat-surface v8 spine degraded path — stop fabricating empty cycleId
+  - **描述**: `heartbeat-surface.ts:264-269` sets `cycleId: ""`/`cycleSequence: 0` when v8 spine returns degraded, fabricating an empty truth source. Downstream queries on empty `cycleId` get meaningless results and `loop_status` stalled-at attribution is misaligned. Fix: use the real `cycleId`/`cycleSequence` from `v8Result` when available, or return an explicit `v8_spine_degraded` structure without filling empty spine fields.
+  - **输入**: `src/cli/ops/heartbeat-surface.ts`
+  - **输出**: degraded spine path carries real cycle identity or explicit degraded structure
+  - **契约承接**: control-plane-system §4.1 / shared-v8-contracts §3.3 cycleSequence truth source
+  - **参考**: `04_SYSTEM_DESIGN/control-plane-system.md §4.1`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §3.3`
+  - **验收标准**:
+    - Given v8 spine returns a degraded result with a real `cycleId`
+    - When `heartbeat-surface` builds the degraded spine
+    - Then `v8Spine.cycleId` equals the real cycleId (not `""`) and `cycleSequence` equals the real sequence (not `0`)
+    - And given v8 spine returns degraded with no cycleId
+    - Then the surface returns an explicit `v8_spine_degraded` marker without fabricating empty spine fields
+  - **验证类型**: unit / integration
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-6`
+  - **证据产出**: heartbeat-surface degraded path test
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-39
+
+- [x] **T-DQ.R.10** [REQ-005]: Move acceptMemoryProjection out of dream-consolidation-runner
+  - **描述**: `dream-consolidation-runner.ts:271` still calls `acceptMemoryProjection` inside the runner loop, blurring the candidate→accepted projection boundary and violating ADR-003 long-term memory formation boundary. Move the accept call out of the runner; `daily-rhythm-scheduler` or a separate projection lifecycle step should call `acceptMemoryProjection`. The runner should only return `candidate` status and `candidateIds`.
+  - **输入**: `src/core/second-nature/quiet-dream/dream-consolidation-runner.ts`, `src/core/second-nature/quiet-dream/daily-rhythm-scheduler.ts`, `src/core/second-nature/quiet-dream/memory-projection-lifecycle.ts`
+  - **输出**: runner returns candidates only; acceptance owned by scheduler/lifecycle step
+  - **契约承接**: dream-quiet-memory-system §4.2/§8.3 / ADR-003
+  - **参考**: `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §4.2`, `04_SYSTEM_DESIGN/dream-quiet-memory-system.md §8.3`
+  - **验收标准**:
+    - Given a Dream run produces valid candidates
+    - When `dream-consolidation-runner` completes
+    - Then it returns candidates with `validationStatus: "valid"` and `candidateIds`, and does NOT call `acceptMemoryProjection`
+    - And the scheduler/lifecycle step subsequently calls `acceptMemoryProjection` for each valid candidate
+    - And a unit test can independently verify "candidate created but not accepted" state
+  - **验证类型**: unit / integration
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-dq-r-10`
+  - **证据产出**: dream candidate/acceptance separation test
+  - **估时**: 6h
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-40
+
+- [x] **T-GVS.R.4** [REQ-004]: guidance degraded branch — separate sourceRefs from proofRefs
+  - **描述**: `guidance-proposal-consumer.ts:143` degraded branch sets `sourceRefs: decision.proofRefs`, putting policy proof as real evidence. The main path (`:119`) already separates correctly. Fix the degraded branch to `sourceRefs: proposal.sourceRefs, proofRefs: decision.proofRefs` so Quiet/Dream cannot consume policy proof as real evidence.
+  - **输入**: `src/core/second-nature/guidance/guidance-proposal-consumer.ts`
+  - **输出**: degraded branch respects provenance tier separation
+  - **契约承接**: shared-v8-contracts §2.2 provenance tier contract / ADR-004
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md §2.2`
+  - **验收标准**:
+    - Given a denied policy decision with `proofRefs`
+    - When `consumeGuidanceProposal` returns the degraded result
+    - Then `degraded.sourceRefs` equals `proposal.sourceRefs` (not `decision.proofRefs`) and `degraded.proofRefs` equals `decision.proofRefs`
+  - **验证类型**: unit
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-gvs-r-4`
+  - **证据产出**: guidance degraded provenance separation test
+  - **估时**: 2h
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-41
+
+- [x] **T-REL.C.1** [MILESTONE]: Wave 118 release packaging task backfill
+  - **描述**: AGENTS.md claims "Wave 118 release packaging complete; version 0.2.13 ready for upload" but `05A_TASKS.md` has no Wave 118 section and no T-REL.* tasks. Backfill Wave 118 task entries for version bump, changelog generation, npm upload verification, and post-release regression smoke so release decisions are traceable.
+  - **输入**: `package.json`, `plugin/package.json`, `plugin/openclaw.plugin.json`, `06_CHANGELOG.md`
+  - **输出**: Wave 118 task section in 05A with T-REL.C.1/C.2/R.1 entries
+  - **契约承接**: version-is-law / release traceability
+  - **参考**: AGENTS.md current state block
+  - **验收标准**:
+    - Given `05A_TASKS.md` is read
+    - When searching for Wave 118 / T-REL
+    - Then T-REL.C.1 (version bump + changelog), T-REL.C.2 (npm upload verification), T-REL.R.1 (post-release smoke) entries exist with acceptance criteria
+  - **验证类型**: docs / task traceability
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-rel-c-1`
+  - **证据产出**: 05A Wave 118 section
+  - **估时**: 2h
+  - **依赖**: none
+  - **优先级**: P0
+  - **承接发现**: CH-42
+
+- [x] **T-ROS.R.10** [REQ-009]: setup_hint/setup_ack align to RuntimeOpsEnvelope
+  - **描述**: `src/cli/commands/index.ts:163-171,222-235` setup_hint/setup_ack return `{ok,command,surfaceMode,evidenceLevel,message,data}` instead of canonical `RuntimeOpsEnvelope` (missing `result`/`degraded`/`generatedAt`). Align: payload under `result`, degraded state under `degraded`, add `generatedAt: new Date().toISOString()`.
+  - **输入**: `src/cli/commands/index.ts`
+  - **输出**: setup commands return RuntimeOpsEnvelope-compatible shape
+  - **契约承接**: runtime-ops-system §2 RuntimeOpsEnvelope
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md §2`
+  - **验收标准**:
+    - Given setup_hint/setup_ack returns
+    - When the envelope is inspected
+    - Then it contains `result`, `generatedAt`, and `degraded` (when host discovery blocked) fields, and `message`/`data` are nested under `result`
+  - **验证类型**: unit / integration
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-10`
+  - **证据产出**: setup envelope shape test
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P1
+  - **承接发现**: CH-43
+
+- [x] **T-OBS.R.9** [REQ-008]: degraded-status-classifier cover all V8ReasonCode
+  - **描述**: `src/shared/degraded-status-classifier.ts` covers ~40 reasons but `V8ReasonCode` has >60; uncovered reasons (e.g. `host_tool_unavailable`, `host_policy_blocked`, `closure_idempotency_conflict`, `proposal_risk_blocked`, `execution_failed`) default to `unavailable`, violating T-OBS.R.8 precise status. Extend the classification table to cover all `V8ReasonCode` values, or document "uncovered defaults to unavailable" explicitly with tests.
+  - **输入**: `src/shared/degraded-status-classifier.ts`, `src/shared/types/v8-contracts.ts`
+  - **输出**: classifier covers all V8ReasonCode with precise status
+  - **契约承接**: shared-v8-contracts §4.1/§5 / T-OBS.R.8
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md §4.1`, `04_SYSTEM_DESIGN/observability-health-system.md §6.1`
+  - **验收标准**:
+    - Given every `V8ReasonCode` value
+    - When `classifyDegradedStatus` is called
+    - Then it returns a precise status (`empty`/`partial`/`blocked`/`unavailable`/`unsafe`) that matches the reason's semantic, and a test asserts coverage for all reasons
+  - **验证类型**: unit
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-obs-r-9`
+  - **证据产出**: degraded-status-classifier full coverage test
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P1
+  - **承接发现**: CH-44
+
+- [x] **T-ROS.R.11** [REQ-008]: normalizeEnvelopeResult preserve raw error codes
+  - **描述**: `ops-router.ts:223` returns generic `OPS_RESULT_NOT_AN_ENVELOPE` when a dispatch branch omits `command`, losing actionable codes like `MISSING_FALLBACK_REF`/`unknown_ops_command`. Fix: all dispatch branches return at least `{command, runtimeMode/surfaceMode}`; or `normalizeEnvelopeResult` non-envelope branch prioritizes transparently passing `raw.error`.
+  - **输入**: `src/cli/ops/ops-router.ts`
+  - **输出**: operator receives actionable error codes, not generic envelope failure
+  - **契约承接**: runtime-ops-system §2 RuntimeOpsEnvelope / error diagnosability
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md §2`
+  - **验收标准**:
+    - Given a dispatch branch returns `{ok:false, error:{code:"unknown_ops_command"}}` without `command`
+    - When `normalizeEnvelopeResult` processes it
+    - Then the result preserves `unknown_ops_command` as the error code (not `OPS_RESULT_NOT_AN_ENVELOPE`)
+  - **验证类型**: unit
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-ros-r-11`
+  - **证据产出**: normalizeEnvelopeResult error preservation test
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P1
+  - **承接发现**: CH-45
+
+- [x] **T-SH.R.8** [REQ-009]: Unify plugin/CLI setup-ack validation
+  - **描述**: `plugin/index.ts:205-266` re-implements `validateSetupAck`/`VALID_PLACEMENTS`/`VALID_WRITERS` instead of importing `src/shared/setup-ack.ts`, creating divergence risk. Add `src/shared/setup-ack.ts` to plugin runtime artifact list and import the shared validator; if packaging constraints force duplication, add a source-of-truth comment with hard link and a CI diff check.
+  - **输入**: `plugin/index.ts`, `src/shared/setup-ack.ts`, `scripts/build-plugin-package.ts`
+  - **输出**: single source of truth for setup-ack validation
+  - **契约承接**: runtime-ops-system §3.2 SetupAck / DRY
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md §3.2`
+  - **验收标准**:
+    - Given `plugin/index.ts` validates a setup ack
+    - When the validation logic runs
+    - Then it uses the imported shared validator from `src/shared/setup-ack.ts` (no local `VALID_PLACEMENTS`/`VALID_WRITERS`/`validateSetupAck` redefinition)
+    - OR a CI diff check exists that fails when the two validators diverge
+  - **验证类型**: unit / build
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-sh-r-8`
+  - **证据产出**: plugin setup-ack unification test / CI check
+  - **估时**: 4h
+  - **依赖**: none
+  - **优先级**: P1
+  - **承接发现**: CH-46
+
+- [x] **T-CP.R.7** [REQ-008]: v7 heartbeat hard-reject or document deprecated-alias delegation
+  - **描述**: `ops-router.ts:693-722` v7 `heartbeat` command is not hard-rejected but delegated to `heartbeat_check` with a `LEGACY_HEARTBEAT_DEPRECATED` warning, deviating from CH-27 prescription "return `version_obsolete`/`command_unavailable`". Either hard-reject v7 heartbeat returning `version_obsolete`/`command_unavailable`, or document the deprecated-alias delegation as an intentional decision in `runtime-ops-system.md §3.3`.
+  - **输入**: `src/cli/ops/ops-router.ts`, `04_SYSTEM_DESIGN/runtime-ops-system.md §3.3`
+  - **输出**: v7 heartbeat either hard-rejected or documented as intentional delegation
+  - **契约承接**: runtime-ops-system §3.3 v8-only operator model / CH-27
+  - **参考**: `04_SYSTEM_DESIGN/runtime-ops-system.md §3.3`
+  - **验收标准**:
+    - Given operator calls `heartbeat` (v7)
+    - When the router processes it
+    - Then it either returns `version_obsolete`/`command_unavailable` without executing v7 path, OR `runtime-ops-system.md §3.3` documents the deprecated-alias delegation as intentional with rationale
+  - **验证类型**: unit / docs
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-cp-r-7`
+  - **证据产出**: v7 heartbeat rejection test OR docs annotation
+  - **估时**: 3h
+  - **依赖**: none
+  - **优先级**: P1
+  - **承接发现**: CH-47
+
+- [x] **T-DOC.R.1** [REQ-001]: SourceRefFamily.projection definition/removal + surfaceMode enum documentation
+  - **描述**: (1) `SourceRefFamily` includes `"projection"` not defined in `shared-v8-contracts.md §2` — remove it or document its meaning and URI shape. (2) `RuntimeOpsEnvelope.surfaceMode` in code includes `cli`/`openclaw_tool`/`plugin_command`/`cron_probe` but `runtime-ops-system.md §2` does not declare these values — document them with semantics.
+  - **输入**: `src/shared/types/v8-contracts.ts`, `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`, `04_SYSTEM_DESIGN/runtime-ops-system.md §2`
+  - **输出**: SourceRefFamily and surfaceMode enums aligned between code and design docs
+  - **契约承接**: shared-v8-contracts §2 SourceRef / runtime-ops-system §2 RuntimeOpsEnvelope
+  - **参考**: `04_SYSTEM_DESIGN/shared-v8-contracts.md §2`, `04_SYSTEM_DESIGN/runtime-ops-system.md §2`
+  - **验收标准**:
+    - Given `shared-v8-contracts.md §2` is read
+    - When `SourceRefFamily` enum is compared to code
+    - Then they match (either `"projection"` removed from code or defined in docs)
+    - And given `runtime-ops-system.md §2` is read
+    - When `surfaceMode` values are compared to code
+    - Then all code values (`workspace_full_runtime`/`cli`/`openclaw_tool`/`plugin_command`/`cron_probe`/`capability_probe`) are documented with semantics
+  - **验证类型**: docs / contract alignment
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#t-doc-r-1`
+  - **证据产出**: aligned enum definitions in code and docs
+  - **估时**: 3h
+  - **依赖**: none
+  - **优先级**: P2
+  - **承接发现**: CH-48, CH-49
+
+- [x] **INT-R12** [MILESTONE]: Wave 119 Contract Fidelity Regression Gate
+  - **描述**: Verify Wave 119 closes all Round 5 CH-36 ~ CH-50 findings without regressing Wave 108-117 repairs. Full `pnpm test` must remain green. Targeted tests: CycleFinalizer idempotency/concurrency, closure provenance column regression, host discovery real-probe (or manual smoke appendix), heartbeat-surface degraded path, dream candidate/acceptance separation, guidance degraded provenance, setup envelope shape, degraded-classifier full coverage, normalizeEnvelopeResult error preservation, plugin setup-ack unification, v7 heartbeat rejection, SourceRefFamily/surfaceMode alignment.
+  - **输入**: all Wave 119 task outputs
+  - **输出**: `reports/int-r12-wave-119-contract-fidelity-gate.md`
+  - **契约承接**: v8 contract fidelity / Round 5 challenge closure
+  - **验收标准**:
+    - Given Wave 119 code changes
+    - When targeted contract fidelity tests and Wave 108-117 regressions run
+    - Then all Round 5 findings (CH-36 ~ CH-50) are closed with evidence, and full `pnpm test` is green (0 fail)
+  - **验证类型**: 回归门 / 集成测试 / contract fidelity
+  - **验证引用**: `05B_VERIFICATION_PLAN.md#int-r12`
+  - **证据产出**: `reports/int-r12-wave-119-contract-fidelity-gate.md`, full regression log
+  - **依赖**: all Wave 119 repair tasks
+  - **优先级**: P0
+
