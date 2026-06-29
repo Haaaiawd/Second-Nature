@@ -26,14 +26,16 @@ function ensureMetaTable(sqlite) {
         sqlite.exec("INSERT OR IGNORE INTO _meta (key, value) VALUES ('schema_version', '0')");
     }
 }
-function getSchemaVersion(sqlite) {
+export function getSchemaVersion(sqlite) {
+    ensureMetaTable(sqlite);
     const rows = sqlite.exec("SELECT value FROM _meta WHERE key = 'schema_version'");
     if (rows.length === 0 || rows[0].values.length === 0) {
         return 0;
     }
     return parseInt(rows[0].values[0][0], 10);
 }
-function setSchemaVersion(sqlite, version) {
+export function setSchemaVersion(sqlite, version) {
+    ensureMetaTable(sqlite);
     sqlite.exec(`UPDATE _meta SET value = '${version}' WHERE key = 'schema_version'`);
 }
 function markMigrationFailed(sqlite, version, error) {

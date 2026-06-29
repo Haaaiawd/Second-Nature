@@ -26,5 +26,7 @@ export interface MigrationResult {
     failedVersion?: number;
     failedError?: string;
 }
+export declare function getSchemaVersion(sqlite: Database): number;
+export declare function setSchemaVersion(sqlite: Database, version: number): void;
 export declare function isMigrationFailed(sqlite: Database): boolean;
 export declare function runMigrations(sqlite: Database, migrations: readonly Migration[]): MigrationResult;

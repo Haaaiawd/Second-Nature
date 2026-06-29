@@ -22,7 +22,7 @@
  * Test coverage: tests/unit/storage/v8-state-stores.test.ts
  */
 
-import { eq, and, desc, like, isNull, inArray } from "drizzle-orm";
+import { eq, and, desc, like, isNull, inArray, sql } from "drizzle-orm";
 import type { StateDatabase } from "./db/index.js";
 import {
   evidenceItem,
@@ -139,8 +139,17 @@ export async function writeEvidenceItem(
 
   try {
     const { sourceRefs: _, ...rest } = row;
+    const identityKey = rest.stableIdentityKey ?? (rest.externalId ?? rest.contentHash ?? "");
+    const identityStatus =
+      rest.rowIdentityStatus ??
+      (rest.externalId ? "stable" : rest.contentHash ? "unstable" : "unstable");
     const record: NewEvidenceItemRecord = {
       ...rest,
+      stableIdentityKey: identityKey,
+      firstObservedAt: rest.firstObservedAt ?? rest.observedAt,
+      lastObservedAt: rest.lastObservedAt ?? rest.observedAt,
+      seenCount: rest.seenCount ?? 1,
+      rowIdentityStatus: identityStatus,
       sourceRefsJson: serializeSourceRefs(validated.record),
     };
     await db.db
@@ -151,6 +160,8 @@ export async function writeEvidenceItem(
         set: {
           payloadJson: record.payloadJson,
           observedAt: record.observedAt,
+          lastObservedAt: record.observedAt,
+          seenCount: sql`COALESCE(seen_count, 1) + 1`,
         },
       });
     return { id: row.id };

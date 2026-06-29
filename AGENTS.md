@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-22` (`/challenge` Agent-boundary follow-up closed — attention refs cannot author actions; forbidden-pattern specs now scoped with safe counterexamples; ready for `/forge` Wave 119 / S1)
-- **当前波次**: Blueprint v9 + controlled `/change` closure (complete)
-- **下一步**: 进入 `/forge`，从 S1 Contract Spine 开始执行；编码前对照 `.anws/v9/05A_TASKS.md` 与 `.anws/v9/05B_VERIFICATION_PLAN.md`，注意 S2 已新增 `T2.2.4 ActivityThread continuation`。
+- **最近一次更新**: `2026-06-27` (Wave 127 完成；T2.2.4 已实现、验证并通过 code-reviewer)
+- **当前波次**: Wave 127 — v9 S2 ActivityThread Cross-Heartbeat Continuation
+- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,28 +219,201 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 119 — S1 Contract Spine（T5.1.1, T5.1.2, T5.2.3, INT-S1）
-- **最近更新**: `2026-06-22` (`/blueprint` v9 complete)
+- **下一步**: `/forge` Wave 128 — 按 05A 依赖图选择就绪任务
+- **最近更新**: `2026-06-27` (Wave 127 complete; T2.2.4 checked; review-fix applied)
 
-### 🌊 Wave 119 🧭 — v9 S1 Contract Spine
-T5.1.1, T5.1.2, T5.2.3, INT-S1
+### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
+T2.2.4
 **签入**: AUTO
 **code-reviewer**: 默认执行
-- **状态**: ✅ 完成
-- **分支**: `feature/wave-119-v9-contract-spine` @ `e836283`
+- **状态**: ✅ Wave 127 完成（code-reviewer final verdict: Partial Pass → review-fix applied → verified）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T2.2.4 `ActivityThread` 跨 heartbeat 延续脊柱：create/continue/pause/complete、每轮最多推进一个 bounded step、runaway guard（max steps / stale / blocked）
 - **产出**:
-  - `src/shared/types/v9-contracts.ts` — v9 canonical shared contracts
-  - `src/storage/db/schema/v9-entities.ts` + v8 schema extensions — v9 storage schema
-  - `src/storage/db/migrations/v9-001-self-continuity.ts` — v8→v9 migration
-  - `src/storage/v9-state-stores.ts` — bounded read/write ports
-  - `src/storage/v9-legacy-judgment-adapter.ts` — v8 JudgmentVerdict → AttentionSignal
-  - `tests/unit/contracts/v9-shared-contracts.test.ts` — 14 tests PASS
-  - `tests/integration/storage/v9-schema-migration.test.ts` — 7 tests PASS
-  - `tests/unit/memory/v9-legacy-judgment-adapter.test.ts` — 3 tests PASS
-  - `reports/int-s1-v9-contract-spine.md` + `logs/int-s1-v9-typecheck.log`
-- **最高严重度**: none (2 Low findings recorded in `wave-reviews/wave-119-review.md`)
-- **验证**: `pnpm typecheck` ✅; `pnpm build` ✅; `pnpm build:plugin` ✅; targeted v9 tests 24/24 PASS
-- **下一步**: 进入 Wave 120 / S2 Attention + Context（T3.2.1, T5.1.2 extension, T2.2.1, T2.2.4）
+  - `src/core/second-nature/control-plane/activity-thread-coordinator.ts` — `createActivityThreadCoordinator`、`advanceActivityThread` 操作状态机；`observe/associate/ask_agent/propose_action` step 推进；side-effecting step 仅记录不执行
+  - `src/core/second-nature/control-plane/v9-embodied-context-assembler.ts` — `ActivityThreadPort` 工厂（`ContextSlice<ActivityThread[]>` 形状）、active/paused thread 加载 wiring
+  - `tests/unit/control-plane/v9-activity-thread-coordinator.test.ts` — create/continue/pause/complete、max-step、stale、`threadSuggestion="none"` skip、terminal status stop、source-free association 阻断
+  - `tests/integration/v9/activity-thread-continuation.test.ts` — end-to-end cross-heartbeat continuation 与 runaway guard
+  - `.anws/v9/05A_TASKS.md` — T2.2.4 已勾选
+  - `.anws/v9/05B_VERIFICATION_PLAN.md` — T2.2.4 验证项已更新
+  - `.anws/v9/wave-reviews/wave-127-review.md` — Partial Pass → review-fix applied
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1872 tests, 1863 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-127-review.md` — Partial Pass → review-fix applied
+- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务。
+- **说明**: T2.2.4 产出包含 ActivityThread 跨 heartbeat 延续与 runaway guard；下游 `T4.2.1` action-closure handoff、`T8.2.1` activity health classification 与 `INT-S2` 可继续推进。
+
+### 🌊 Wave 126 ✅ — v9 S2 EmbodiedContext Continuity Injection
+T2.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 126 完成（code-reviewer final verdict: Partial Pass → review-fix applied → verified）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T2.2.1 扩展 `EmbodiedContext` 装配 SelfContinuityCard、CharacterFrame、routines、activity threads 与 affordance slices
+- **产出**:
+  - `src/core/second-nature/control-plane/v9-embodied-context-assembler.ts` — v9 全切片并行装配、CharacterLoaderPort、ActivityThreadPort、工厂 wiring
+  - `src/core/second-nature/control-plane/context-serializer.ts` — contestable marker、newlyProposed、Agent-boundary forbidden-pattern 检测与 blocked section 替换
+  - `src/storage/v9-state-stores.ts` — `readActivityThreadsByStatus` read port
+  - `src/core/second-nature/memory/self-continuity-card-assembler.ts` — 导出 `createCharacterFrameStoreAdapter`
+  - `tests/unit/control-plane/v9-embodied-context.test.ts` — happy path、deferred path、hard_control/emotion_claim/identity_lock/allowed counterexample 覆盖
+  - `tests/integration/v9/context-continuity-injection.test.ts` — end-to-end assembler + serializer 集成
+  - `.anws/v9/05A_TASKS.md` — T2.2.1 已勾选
+  - `.anws/v9/05B_VERIFICATION_PLAN.md` — T2.2.1 验证项已更新
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1851 tests, 1842 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-126-review.md` — Partial Pass → review-fix applied
+- **下一步**: 进入 Wave 127；按 05A 依赖图选择就绪任务。
+- **说明**: T2.2.1 产出包含 EmbodiedContext v9 全切片装配与 ContextSerializer；下游 T2.2.2 attention-to-intent、T2.2.4 activity continuation 与 T1.2.1 ops surface 可继续推进。
+
+### 🌊 Wave 125 ✅ — v9 S2 SelfContinuityCard Assembly
+T5.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 125 完成（code-reviewer final verdict: Pass）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T5.2.2 SelfContinuityCard assembly 与 bounded read model
+- **产出**:
+  - `src/core/second-nature/memory/self-continuity-card-assembler.ts` — assembleSelfContinuityCard, ContinuityReadPort, char-budget truncation, credential redaction
+  - `src/storage/v9-state-stores.ts` — self_continuity_card read/write/update ports with sourceRefs/budget validation
+  - `src/shared/types/v9-contracts.ts` — SelfContinuityCard, ContinuityScope, ContinuityReadPort 契约定型
+  - `tests/unit/memory/v9-self-continuity-card.test.ts`
+  - `tests/integration/v9/self-continuity-card-read.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1842 tests, 1833 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-125-review.md` — Pass
+- **下一步**: 进入 Wave 126；按 05A 依赖图选择就绪任务。
+- **说明**: T5.2.2 产出包含 card assembly、read port 与 persistence；下游 T2.2.1 EmbodiedContext injection 与 T1.2.1 ops surface 可继续推进。
+
+### 🌊 Wave 124 ✅ — v9 S2 Character Continuity Projection
+T7.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 124 完成（code-reviewer final verdict: Pass）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T7.2.2 CharacterFrame lifecycle、contest/re-authoring 与 EmbodiedContext projection adapter
+- **产出**:
+  - `src/core/second-nature/character/character-frame-lifecycle.ts` — accept/reject/revise/retire 状态机、revision candidate 生成、pointer/projection builder
+  - `src/shared/types/v9-contracts.ts` — `CharacterContestAction` / `CharacterContestResult` / `CharacterFramePointer.newlyProposed`
+  - `tests/unit/character/v9-character-lifecycle.test.ts`
+  - `tests/integration/v9/character-context-projection.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1824 tests, 1815 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-124-review.md` — Pass
+- **下一步**: 进入 Wave 125；按 05A 依赖图选择就绪任务。
+- **说明**: T7.2.2 产出包含 contest 状态机与 projection adapter；SelfContinuityCard 集成（T5.2.2）与 control-context projection 注入（T2.2.1）为下游依赖。
+
+### 🌊 Wave 123 ✅ — v9 S2 Character + Ledger Foundation
+T7.2.1, T8.1.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 123 完成（code-reviewer final verdict: Pass）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T7.2.1 CharacterFrame builder/extractor/validator；T8.1.1 AutonomousChangeLedger write/read port
+- **产出**:
+  - `src/core/second-nature/character/character-refresh-input-normalizer.ts` — CharacterSignal allowlist + raw payload blocker + character-family posture lineage guard
+  - `src/core/second-nature/character/frame-source-validator.ts` — emotion/personality-score/identity-lock/hard-control rule validator
+  - `src/core/second-nature/character/character-frame-builder.ts` — five-section frame builder with auto-supersede and UTF-8 byte budget
+  - `src/storage/v9-state-stores.ts` — `character_frame` / `autonomous_change_ledger` read/write ports（degraded-aware）
+  - `src/storage/db/schema/v9-entities.ts` + `src/storage/db/index.ts` + `src/storage/db/migrations/v9-001-self-continuity.ts` — character_frame `valid_from`, `char_count`, `valid_until` schema
+  - `src/observability/services/autonomous-change-ledger.ts` — canonical ledger service implementing `AutonomousChangeLedgerWritePort`
+  - `src/shared/types/v9-contracts.ts` — `CharacterRefreshInput.kind: "input"` discriminator
+  - `tests/unit/character/v9-character-refresh-input-normalizer.test.ts`
+  - `tests/unit/character/v9-character-frame-builder.test.ts`
+  - `tests/unit/observability/v9-ledger-store.test.ts`
+  - `tests/integration/v9/autonomous-change-ledger.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1806 tests, 1797 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-123-review.md` — Pass
+- **下一步**: 进入 Wave 124；按 05A 依赖图选择就绪任务。
+- **说明**: T7.2.1 产出包含 candidate 生成、生命周期端口与验证；`CharacterFramePointer`/`EmbodiedContextCharacterProjection` 注入（T7.2.2）为下游依赖，需等待 SelfContinuityCard（T5.2.2）与 ToolRoutine registry（T6.2.2）就绪。
+
+### 🌊 Wave 122 ✅ — v9 S2 Continuity Foundation
+T5.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 122 完成
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T5.2.1 扩展 Quiet/Dream 输出族与 projection lifecycle
+- **产出**:
+  - `src/storage/v9-state-stores.ts` — `procedural_projection` / `connector_evolution_plan` 读写端口（degraded-aware）
+  - `src/core/second-nature/quiet-dream/v9-dream-consolidation-runner.ts` — memory/procedural/self_continuity/connector_evolution/character 五族候选生成，placeholder/no-content 阻断，credential/private redaction
+  - `src/core/second-nature/quiet-dream/v9-procedural-projection-lifecycle.ts` — accept/supersede/reject/retire 生命周期
+  - `tests/unit/dream/v9-dream-consolidation-runner.test.ts`
+  - `tests/unit/dream/v9-procedural-projection-lifecycle.test.ts`
+  - `tests/integration/v9/quiet-dream-continuity.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1774 tests, 1765 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-122-review.md` — 待生成
+- **下一步**: 进入 Wave 123；按 05A 依赖图选择就绪任务。
+- **说明**: T5.2.1 产出仅包含候选生成与 procedural 生命周期；SelfContinuityCard（T5.2.2）/ CharacterFrame（T7.2.2）/ ToolRoutine registry（T6.2.2）/ ConnectorEvolutionPlan gates（T6.3.1）为下游依赖，需等待上游就绪。
+
+### 🌊 Wave 120 ✅ — v9 S2 Attention + Stable Identity
+T3.2.1, T3.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 120 完成
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T3.2.1 AttentionSignal 装配器；T3.2.2 重复 feed 抑制与 identity_unstable 阻断
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — `StableEvidenceIdentity` / `AttentionSignal` 契约定型
+  - `src/storage/v9-evidence-identity-port.ts` — 只读 identity resolution over v8 evidence
+  - `src/connectors/evidence-normalizer.ts` + `src/storage/v8-state-stores.ts` — identity 列写入与幂等更新
+  - `src/core/second-nature/perception/attention-assembler.ts` — 装配器主流程
+  - `src/core/second-nature/perception/attention-scorer.ts` — relevance/risk/action/thread 评分
+  - `src/core/second-nature/perception/repetition-detector.ts` — identity 查询包装
+  - `src/core/second-nature/perception/attention-signal-validator.ts` — 最终校验门
+  - `tests/unit/attention/v9-attention-assembler.test.ts`
+  - `tests/integration/v9/stable-identity-attention.test.ts`
+  - `tests/integration/v9/repeated-feed-suppression.test.ts`
+  - `src/storage/db/index.ts` — 修复 bootstrap 在旧 DB 上引用未创建列的索引（移入迁移块）
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1750 tests, 1741 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-120-review.md` — Pass（1 Medium / 5 Low）
+- **下一步**: 进入 Wave 121；按 05A 依赖图选择就绪任务。
+- **说明**: AGENTS.md 原建议 Wave 120 同时包含 T2.2.1/T2.2.4，但 05A 依赖图显示二者依赖 T5.2.2/T7.2.2/T6.2.1 等上游任务，本波按依赖就绪顺序先做 T3.2.1/T3.2.2。
+
+### 🌊 Wave 121 ✅ — v9 S2 Affordance Baseline
+T6.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 121 完成
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T6.2.1 real-hand affordance 三轴与 scaffold/stale 降级
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 更新 `AffordancePosture` 为 design doc L1 三轴形态
+  - `src/storage/v9-state-stores.ts` — `readActiveToolRoutinesByCapabilityPattern` + `writeToolRoutine` 种子端口
+  - `src/core/second-nature/body/tool-affordance/v9-affordance-assembler.ts` — 三轴 posture 装配器
+  - `tests/unit/body/v9-affordance-posture.test.ts`
+  - `tests/integration/v9/real-hand-affordance.test.ts`
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1761 tests, 1752 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-121-review.md` — Pass（2 Medium / 5 Low）
+- **下一步**: 进入 Wave 122；按 05A 依赖图选择就绪任务。
+- **说明**: M-1 credential presence 已收紧为仅 `active`；M-2 v9 `ProbeStatus.not_implemented` 需等待 v9 probe runner（T6.3.x）引入，当前在代码中已标注 residual。
 
 ### 🌊 Wave 116 🧭 — v8 Change: Host Reality and Ideal Loop Hemostasis
 T-ROS.R.5, T-ROS.R.6, T-ROS.R.7, T-ROS.R.8, T-SH.R.6, T-CP.R.5, T-AC.R.2, T-OBS.R.7, T-OBS.R.8, T-CS.R.9, T-DQ.R.9, INT-R11
