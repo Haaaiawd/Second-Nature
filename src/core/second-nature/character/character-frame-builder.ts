@@ -113,17 +113,19 @@ function deduplicateSourceRefs(refs: SourceRef[]): SourceRef[] {
 
 function truncateToBytes(text: string, maxBytes: number): string {
   if (countUtf8Chars(text) <= maxBytes) return text;
+  const ellipsis = "…";
+  const ellipsisBytes = countUtf8Chars(ellipsis);
   let low = 0;
   let high = text.length;
   while (low < high) {
     const mid = Math.ceil((low + high) / 2);
-    if (countUtf8Chars(text.slice(0, mid)) <= maxBytes) {
+    if (countUtf8Chars(text.slice(0, mid)) + ellipsisBytes <= maxBytes) {
       low = mid;
     } else {
       high = mid - 1;
     }
   }
-  return text.slice(0, low - 1) + "…";
+  return text.slice(0, low) + ellipsis;
 }
 
 function truncateToChars(text: string, max: number): string {

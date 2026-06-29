@@ -320,6 +320,10 @@ export function createActivityThreadPort(db: StateDatabase): ActivityThreadPort 
           completedStepCount: patch.completedStepCount,
           lastStepKind: patch.lastStepKind,
           blockerReason: patch.blockerReason,
+          stopCondition: patch.stopCondition,
+          nextPossibleMovesJson: patch.nextPossibleMoves !== undefined
+            ? JSON.stringify(patch.nextPossibleMoves)
+            : undefined,
           lastHeartbeatSequence: patch.lastHeartbeatSequence,
           updatedAt: patch.updatedAt ?? new Date().toISOString(),
         });

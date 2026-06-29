@@ -230,6 +230,8 @@ export async function updateActivityThreadProgress(
     | "completedStepCount"
     | "lastStepKind"
     | "blockerReason"
+    | "stopCondition"
+    | "nextPossibleMovesJson"
     | "lastHeartbeatSequence"
     | "updatedAt"
   >>,

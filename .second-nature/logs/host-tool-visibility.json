@@ -502,5 +502,77 @@
     },
     "evidenceLevel": "carrier_ack",
     "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:18:22.704Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:18:22.704Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:18:22.704Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:18:22.716Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:18:22.716Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:18:22.716Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:33:02.917Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:33:02.917Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:33:02.917Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-06-29T11:33:02.969Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-06-29T11:33:02.968Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-06-29T11:33:02.968Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
   }
 ]

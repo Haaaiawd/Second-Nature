@@ -24,13 +24,20 @@ graph TD
     T5_1_1[T5.1.1 v9 shared contracts] --> T5_1_2[T5.1.2 storage schema]
     T5_1_2 --> T3_2_1[T3.2.1 AttentionSignal]
     T5_1_2 --> T6_2_1[T6.2.1 affordance baseline]
-    T3_2_1 --> T2_2_1[T2.2.1 EmbodiedContext]
+    T5_1_2 --> T2_2_1[T2.2.1 EmbodiedContext read ports]
+    T5_2_1[T5.2.1 Quiet/Dream outputs] --> T2_2_1
+    T5_2_1 --> T5_2_2[T5.2.2 SelfContinuityCard assembly]
+    T5_2_1 --> T7_2_1[T7.2.1 CharacterFrame builder]
+    T5_2_1 --> T6_3_1[T6.3.1 connector evolution]
+    T6_2_1 --> T2_2_1
+    T7_2_1 --> T2_2_1
+    T7_2_1 --> T7_2_2[T7.2.2 CharacterFrame lifecycle]
+    T3_2_1 --> T2_2_1
     T2_2_1 --> T2_2_4[T2.2.4 ActivityThread continuation]
     T2_2_1 --> T4_2_1[T4.2.1 action proposal]
-    T5_2_1[T5.2.1 Quiet/Dream outputs] --> T5_2_2[T5.2.2 SelfContinuityCard]
-    T5_2_1 --> T7_2_1[T7.2.1 CharacterFrame]
-    T5_2_1 --> T6_3_1[T6.3.1 connector evolution]
     T4_2_2[T4.2.2 routine policy gate] --> T6_2_2[T6.2.2 ToolRoutine registry]
+    T6_2_2 --> T5_2_2
+    T7_2_2 --> T5_2_2
     T6_3_1 --> T8_2_2[T8.2.2 rollback watchdog]
     T8_2_1[T8.2.1 health ledger] --> T1_2_1[T1.2.1 ops surface]
     T1_2_1 --> INT_S6[INT-S6]
@@ -99,9 +106,9 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T2.2.1** [REQ-001][REQ-008]: 扩展 `EmbodiedContext` 装配 SelfContinuityCard 与 CharacterFrame
+- [x] **T2.2.1** [REQ-001][REQ-008]: 扩展 `EmbodiedContext` 装配 SelfContinuityCard 与 CharacterFrame
   - **描述**: 在 context assembly 中并行加载 `SelfContinuityCard`、`CharacterFramePointer`、独立 `EmbodiedContextCharacterProjection`、active projections、routine list、active ActivityThreads 与 affordance slices。
-  - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3 §3.5`, `shared-v9-contracts.md §3.5 §4 §5 §10`, `T5.2.2`, `T7.2.2`, `T6.2.1`
+  - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3 §3.5`, `shared-v9-contracts.md §3.5 §4 §5 §10`, `T5.1.2`, `T5.2.1`, `T6.2.1`, `T7.2.1`
   - **输出**: `src/core/second-nature/control-plane/embodied-context-assembler.ts` v9 slices, `ContextSerializer` v9 projection rendering
   - **契约承接**: `EmbodiedContext.selfContinuityCard`, `characterFramePointer`, `characterFrameProjection`, `routineList`, `activityThreads`, 1200/900/200 字符预算；Agent-boundary labels prevent continuity/activity/routine/health from becoming Agent controller text
   - **参考**: ADR-003, ADR-006
@@ -115,7 +122,7 @@ graph TD
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t2-2-1`
   - **证据产出**: `tests/unit/control-plane/v9-embodied-context.test.ts`, `tests/integration/v9/context-continuity-injection.test.ts`
   - **估时**: 1.5d
-  - **依赖**: T5.2.2, T7.2.2, T6.2.1
+  - **依赖**: T5.1.2, T5.2.1, T6.2.1, T7.2.1
   - **优先级**: P0
 
 - [ ] **T2.2.2** [REQ-003]: 将 heartbeat 主链路从 JudgmentVerdict 切换到 AttentionSignal
@@ -156,7 +163,7 @@ graph TD
   - **依赖**: T2.2.1
   - **优先级**: P1
 
-- [ ] **T2.2.4** [REQ-003]: 实现 `ActivityThread` 跨 heartbeat continuation spine
+- [x] **T2.2.4** [REQ-003]: 实现 `ActivityThread` 跨 heartbeat continuation spine
   - **描述**: 新增 `ActivityThreadCoordinator`，根据 `AttentionSignal.threadSuggestion` 与 active threads 创建/延续/暂停/完成 thread；每轮最多推进一个 bounded `ActivityStep`，side-effecting step 仍交给 action policy。
   - **输入**: `04_SYSTEM_DESIGN/control-context-system.md §5.1`, `04_SYSTEM_DESIGN/control-context-system.detail.md §3.9`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.1b`, `shared-v9-contracts.md §3.5`, `T2.2.1`, `T3.2.1`, `T5.1.2`
   - **输出**: `activity-thread-coordinator.ts`, ActivityThread read/write port wiring, heartbeat progress stage events
@@ -181,7 +188,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T3.2.1** [REQ-002][REQ-003]: 实现 `AttentionSignal` 装配器与 stable identity 读取
+- [x] **T3.2.1** [REQ-002][REQ-003]: 实现 `AttentionSignal` 装配器与 stable identity 读取
   - **描述**: 新增 `AttentionAssembler`, `RepetitionDetector`, `AttentionScorer`, `AttentionSignalValidator`，将 evidence 转为 source-backed attention hint，并为相关 evidence 输出 ActivityThread create/continue/pause suggestion。
   - **输入**: `04_SYSTEM_DESIGN/attention-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/attention-system.detail.md §1-§5`, `shared-v9-contracts.md §2 §3`, `T5.1.2`
   - **输出**: `src/core/second-nature/perception/attention-assembler.ts`, scorer/validator modules, `AttentionSignal` persistence handoff
@@ -200,7 +207,7 @@ graph TD
   - **依赖**: T5.1.2
   - **优先级**: P0
 
-- [ ] **T3.2.2** [REQ-002]: 实现重复 feed 抑制与 `identity_unstable` routine-signal 阻断
+- [x] **T3.2.2** [REQ-002]: 实现重复 feed 抑制与 `identity_unstable` routine-signal 阻断
   - **描述**: 将同一 externalId/contentHash 的 repeated feed 聚合到同一 logical identity，并保证 unstable identity 不进入 routine promotion。
   - **输入**: `04_SYSTEM_DESIGN/attention-system.detail.md §3.1 §5.2`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.1`, `T5.1.2`, `T3.2.1`
   - **输出**: stable identity integration path, duplicate suppression assertions
@@ -327,10 +334,10 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T5.2.1** [REQ-001][REQ-004][REQ-005][REQ-008]: 扩展 Quiet/Dream 输出族与 projection lifecycle
+- [x] **T5.2.1** [REQ-001][REQ-004][REQ-005][REQ-008]: 扩展 Quiet/Dream 输出族与 projection lifecycle
   - **描述**: 让 Dream consolidation 产生 memory、procedural、self-continuity、connector-evolution、character signals，并维护 accept/supersede/reject/retire 生命周期。
   - **输入**: `04_SYSTEM_DESIGN/memory-continuity-system.md §5.1`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.2-§3.4 §4.1`, `T5.1.2`
-  - **输出**: Dream output family routing, `ProceduralProjection`, `ConnectorEvolutionPlan`, character refresh handoff
+  - **输出**: `src/core/second-nature/quiet-dream/v9-dream-consolidation-runner.ts`, `src/core/second-nature/quiet-dream/v9-procedural-projection-lifecycle.ts`, `src/storage/v9-state-stores.ts` 新增 `proceduralProjection` / `connectorEvolutionPlan` 读写端口, character refresh handoff
   - **契约承接**: Continuity Projection output family；Quiet placeholder rejection；Dream blocked no content
   - **参考**: ADR-003, ADR-005, ADR-006
   - **验收标准**:
@@ -341,12 +348,12 @@ graph TD
   - **E2E触发设想**: 无
   - **验证摘要**: Covers output routing, no-content blocked path, supersede lifecycle.
   - **验证引用**: `05B_VERIFICATION_PLAN.md#t5-2-1`
-  - **证据产出**: `tests/unit/dream/v9-dream-output-families.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
+  - **证据产出**: `tests/unit/dream/v9-dream-consolidation-runner.test.ts`, `tests/unit/dream/v9-procedural-projection-lifecycle.test.ts`, `tests/integration/v9/quiet-dream-continuity.test.ts`
   - **估时**: 2d
   - **依赖**: T5.1.2
   - **优先级**: P0
 
-- [ ] **T5.2.2** [REQ-001]: 实现 `SelfContinuityCard` assembly 与 bounded read model
+- [x] **T5.2.2** [REQ-001]: 实现 `SelfContinuityCard` assembly 与 bounded read model
   - **描述**: 从 active memory/procedural projections、ToolRoutine、CharacterFrame pointer 组装 canonical section ordering 的 `SelfContinuityCard`。
   - **输入**: `shared-v9-contracts.md §4`, `04_SYSTEM_DESIGN/memory-continuity-system.detail.md §3.7`, `T5.2.1`, `T7.2.2`, `T6.2.2`
   - **输出**: `assembleSelfContinuityCard`, `ContinuityReadPort.loadSelfContinuityCard`, card store/read model
@@ -390,7 +397,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T6.2.1** [REQ-006]: 实现 real-hand affordance 三轴与 scaffold/stale 降级
+- [x] **T6.2.1** [REQ-006]: 实现 real-hand affordance 三轴与 scaffold/stale 降级
   - **描述**: 统一 probe、execution、routine 历史，输出 access/reliability/familiarity 三轴 posture，禁止 scaffold 与 stale probe 伪装真实可用。
   - **输入**: `04_SYSTEM_DESIGN/body-connector-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/body-connector-system.detail.md §3.1 §4.1 §5`, `T5.1.2`
   - **输出**: `AffordanceAssembler` v9 posture, `CapabilityProbeResult` read path
@@ -474,7 +481,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T7.2.1** [REQ-008]: 实现 `CharacterFrame` builder、五剖面 extractor 与 source validator
+- [x] **T7.2.1** [REQ-008]: 实现 `CharacterFrame` builder、五剖面 extractor 与 source validator
   - **描述**: 从 normalized `CharacterRefreshInput` 的 source-backed closure、tool experience、feedback、projection、expression outcome 生成五剖面 `CharacterFrame` candidate，并阻断空泛人格、人格分数、情绪断言、硬控制规则。
   - **输入**: `04_SYSTEM_DESIGN/character-continuity-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/character-continuity-system.detail.md §1-§3.5`, `shared-v9-contracts.md §5`, `T5.2.1`
   - **输出**: `src/core/second-nature/character/character-frame-builder.ts`, `frame-source-validator.ts`, `character-refresh-input-normalizer.ts`, extractor modules
@@ -493,7 +500,7 @@ graph TD
   - **依赖**: T5.2.1
   - **优先级**: P0
 
-- [ ] **T7.2.2** [REQ-008]: 实现 CharacterFrame lifecycle、contest/re-authoring 与 EmbodiedContext projection adapter
+- [x] **T7.2.2** [REQ-008]: 实现 CharacterFrame lifecycle、contest/re-authoring 与 EmbodiedContext projection adapter
   - **描述**: 实现 candidate/accepted/rejected/retired/superseded 状态机、accept/reject/revise/retire 动作、bounded projection serializer、`newlyProposed` first-injection 标记与 contest prompt。
   - **输入**: `04_SYSTEM_DESIGN/character-continuity-system.detail.md §2 §3.2 §3.3 §4.2 §5.1`, `T7.2.1`
   - **输出**: `character-continuity-lifecycle.ts`, `buildEmbodiedContextProjection`, CharacterFrame store port integration
@@ -518,7 +525,7 @@ graph TD
 
 ### Phase 1: Foundation
 
-- [ ] **T8.1.1** [REQ-007]: 实现 canonical `AutonomousChangeLedger` write/read port
+- [x] **T8.1.1** [REQ-007]: 实现 canonical `AutonomousChangeLedger` write/read port
   - **描述**: 建立 ledger append-only 写入、read model、sourceRefs 非空校验与 canonical type import，供 routine install 与 connector evolution 使用。
   - **输入**: `shared-v9-contracts.md §8`, `04_SYSTEM_DESIGN/observability-recovery-system.md §5.1 §6.1`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §2.1 §3.2`, `T5.1.1`, `T5.1.2`
   - **输出**: `AutonomousChangeLedgerWritePort`, ledger store, redacted read model
