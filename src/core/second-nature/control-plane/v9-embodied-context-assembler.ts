@@ -48,6 +48,7 @@ import type {
   ActivityThread,
   ActivityStep,
   CharacterFramePointer,
+  ContextAssemblyLatencyReport,
   ContextSlice,
   ContinuityReadPort,
   ContinuityScope,
@@ -90,6 +91,12 @@ const ACCEPTED_DREAM_PROJECTION_LIMIT = 3;
 const ACTIVE_ACTIVITY_THREAD_LIMIT = 3;
 const EMBODIED_CONTEXT_HARD_DEADLINE_MS = 1800;
 
+// Per-slice timeout budgets (T2.2.3).
+// Critical slices get the full hard deadline; non-critical slices get a shorter
+// budget so a hanging non-critical read port cannot consume the whole heartbeat.
+const CRITICAL_SLICE_TIMEOUT_MS = 1500;
+const NON_CRITICAL_SLICE_TIMEOUT_MS = 600;
+
 // ───────────────────────────────────────────────────────────────
 // Ports
 // ───────────────────────────────────────────────────────────────
@@ -109,6 +116,15 @@ export interface CharacterLoaderPort {
   }>;
 }
 
+/**
+ * Optional stage event sink for context assembly latency reporting (T2.2.3).
+ * When provided, the assembler emits a `context_assembly` stage event with
+ * the total duration and degraded/timed-out slice list.
+ */
+export interface ContextAssemblyStageEventSink {
+  recordContextAssemblyLatency(report: ContextAssemblyLatencyReport): void;
+}
+
 export interface V9EmbodiedContextAssemblerDeps {
   statePort: EmbodiedContextStatePort;
   affordanceAssembler: AffordanceAssembler;
@@ -116,12 +132,15 @@ export interface V9EmbodiedContextAssemblerDeps {
   continuityReadPort: ContinuityReadPort;
   characterLoader: CharacterLoaderPort;
   activityThreadPort: ActivityThreadPort;
+  stageEventSink?: ContextAssemblyStageEventSink;
   options?: {
     interactionLimit?: number;
     experienceLimit?: number;
     acceptedDreamLimit?: number;
     activityThreadLimit?: number;
     hardDeadlineMs?: number;
+    criticalSliceTimeoutMs?: number;
+    nonCriticalSliceTimeoutMs?: number;
   };
 }
 
@@ -417,6 +436,7 @@ export function createV9EmbodiedContextAssembler(
     continuityReadPort,
     characterLoader,
     activityThreadPort,
+    stageEventSink,
     options = {},
   } = deps;
 
@@ -425,294 +445,286 @@ export function createV9EmbodiedContextAssembler(
   const acceptedDreamLimit = options.acceptedDreamLimit ?? ACCEPTED_DREAM_PROJECTION_LIMIT;
   const activityThreadLimit = options.activityThreadLimit ?? ACTIVE_ACTIVITY_THREAD_LIMIT;
   const hardDeadlineMs = options.hardDeadlineMs ?? EMBODIED_CONTEXT_HARD_DEADLINE_MS;
+  const criticalTimeout = options.criticalSliceTimeoutMs ?? CRITICAL_SLICE_TIMEOUT_MS;
+  const nonCriticalTimeout = options.nonCriticalSliceTimeoutMs ?? NON_CRITICAL_SLICE_TIMEOUT_MS;
 
   return {
     async assembleEmbodiedContext() {
       const assembledAt = new Date().toISOString();
+      const startTime = Date.now();
 
-      // ── 1. Identity ───────────────────────────────────────────
-      const identityResult = await statePort.loadIdentityProfile("default");
-      const identitySlice: EmbodiedContext["identity"] =
-        identityResult.status === "loaded"
-          ? { status: "loaded", data: identityResult.data }
-          : identityResult.status === "degraded" && identityResult.data
-            ? {
-                status: "degraded",
-                data: identityResult.data,
-                reason: identityResult.reason,
-              }
-            : {
-                status: "degraded",
-                data: {} as EmbodiedContext["identity"]["data"],
-                reason: identityResult.reason,
-              };
+      // ── Parallel slice loading with per-slice timeouts (T2.2.3) ──
+      // Critical slices (identity, goals, affordanceMap) get the full critical budget.
+      // Non-critical slices (continuity, character, projections, routines, threads, health,
+      //   dream, interactions, experience) get a shorter budget so a hanging non-critical
+      //   read port cannot consume the whole heartbeat.
+      const sliceNames = [
+        "identity",
+        "goals",
+        "recentInteractions",
+        "toolExperience",
+        "acceptedDream",
+        "affordanceMap",
+        "selfHealth",
+        "selfContinuityCard",
+        "characterFrame",
+        "activeMemoryProjections",
+        "activeProceduralProjections",
+        "routineList",
+        "activityThreads",
+      ] as const;
 
-      // ── 2. Goals ──────────────────────────────────────────────
-      const goalsResult = await statePort.listActiveGoals(10);
-      const goalsSlice: EmbodiedContext["goals"] =
-        goalsResult.status === "loaded"
-          ? { status: "loaded", data: goalsResult.data }
-          : { status: "degraded", data: [], reason: goalsResult.reason };
-
-      // ── 3. Recent Interactions (trim LIFO) ────────────────────
-      const interactionResult = await statePort.loadRecentInteractionSnapshot(interactionLimit);
-      const recentInteractionsSlice: EmbodiedContext["recentInteractions"] =
-        interactionResult.status === "loaded"
-          ? {
-              status: "loaded",
-              data: trimLifo(interactionResult.data, interactionLimit),
-            }
-          : {
-              status: "degraded",
-              data: [],
-              reason: interactionResult.reason,
+      const sliceLoaders: Record<typeof sliceNames[number], () => Promise<ContextSlice<unknown>>> = {
+        identity: async () => {
+          const r = await statePort.loadIdentityProfile("default");
+          return r.status === "loaded"
+            ? { status: "loaded", data: r.data as unknown }
+            : r.status === "degraded" && r.data
+              ? { status: "degraded", data: r.data as unknown, reason: r.reason }
+              : { status: "degraded", data: {} as unknown, reason: r.reason };
+        },
+        goals: async () => {
+          const r = await statePort.listActiveGoals(10);
+          return r.status === "loaded"
+            ? { status: "loaded", data: r.data as unknown }
+            : { status: "degraded", data: [] as unknown, reason: r.reason };
+        },
+        recentInteractions: async () => {
+          const r = await statePort.loadRecentInteractionSnapshot(interactionLimit);
+          return r.status === "loaded"
+            ? { status: "loaded", data: trimLifo(r.data, interactionLimit) as unknown }
+            : { status: "degraded", data: [] as unknown, reason: r.reason };
+        },
+        toolExperience: async () => {
+          const r = await statePort.loadToolExperienceSlice(experienceLimit);
+          return r.status === "loaded"
+            ? { status: "loaded", data: trimLifo(r.data, experienceLimit) as unknown }
+            : { status: "degraded", data: [] as unknown, reason: r.reason };
+        },
+        acceptedDream: async () => {
+          const r = await statePort.loadAcceptedDreamProjection(acceptedDreamLimit);
+          return r.status === "loaded"
+            ? { status: "loaded", data: r.data.map(mapDreamOutputToMemoryProjection) as unknown }
+            : { status: "degraded", data: [] as unknown, reason: r.reason };
+        },
+        affordanceMap: async () => {
+          try {
+            const map = await affordanceAssembler.assembleAffordanceMap();
+            return { status: "loaded" as const, data: map as unknown };
+          } catch (err) {
+            return {
+              status: "degraded" as const,
+              data: {} as unknown,
+              reason: `affordance_assembly_failed:${err instanceof Error ? err.message : String(err)}`,
             };
-
-      // ── 4. Tool Experience (trim LIFO) ────────────────────────
-      const experienceResult = await statePort.loadToolExperienceSlice(experienceLimit);
-      const toolExperienceSlice: EmbodiedContext["toolExperience"] =
-        experienceResult.status === "loaded"
-          ? {
-              status: "loaded",
-              data: trimLifo(experienceResult.data, experienceLimit),
-            }
-          : {
-              status: "degraded",
-              data: [],
-              reason: experienceResult.reason,
+          }
+        },
+        selfHealth: async () => {
+          if (!selfHealthProvider) {
+            return {
+              status: "degraded" as const,
+              data: { snapshotId: "unavailable", dimensions: {}, checkedAt: assembledAt } as unknown,
+              reason: "self_health_provider_unavailable",
             };
-
-      // ── 5. Accepted Dream ─────────────────────────────────────
-      const dreamResult = await statePort.loadAcceptedDreamProjection(acceptedDreamLimit);
-      const acceptedDreamSlice: EmbodiedContext["acceptedDream"] =
-        dreamResult.status === "loaded"
-          ? {
-              status: "loaded",
-              data: dreamResult.data.map(mapDreamOutputToMemoryProjection),
-            }
-          : { status: "degraded", data: [], reason: dreamResult.reason };
-
-      // ── 6. Affordance Map ─────────────────────────────────────
-      let affordanceMapSlice: ContextSlice<AffordanceMap>;
-      try {
-        const affordanceMap = await affordanceAssembler.assembleAffordanceMap();
-        affordanceMapSlice = { status: "loaded", data: affordanceMap };
-      } catch (err) {
-        affordanceMapSlice = {
-          status: "degraded",
-          data: {},
-          reason: `affordance_assembly_failed:${err instanceof Error ? err.message : String(err)}`,
-        };
-      }
-
-      // ── 7. Self Health (optional) ─────────────────────────────
-      let selfHealthSlice: ContextSlice<SelfHealthSnapshot>;
-      if (selfHealthProvider) {
-        try {
-          const healthResult = await selfHealthProvider.loadSelfHealth();
-          selfHealthSlice =
-            healthResult.status === "loaded"
-              ? { status: "loaded", data: healthResult.data }
+          }
+          try {
+            const r = await selfHealthProvider.loadSelfHealth();
+            return r.status === "loaded"
+              ? { status: "loaded" as const, data: r.data as unknown }
               : {
-                  status: "degraded",
-                  data: { snapshotId: "degraded", dimensions: {}, checkedAt: assembledAt },
-                  reason: healthResult.reason,
+                  status: "degraded" as const,
+                  data: { snapshotId: "degraded", dimensions: {}, checkedAt: assembledAt } as unknown,
+                  reason: r.reason,
                 };
+          } catch (err) {
+            return {
+              status: "degraded" as const,
+              data: { snapshotId: "degraded", dimensions: {}, checkedAt: assembledAt } as unknown,
+              reason: `self_health_unavailable:${err instanceof Error ? err.message : String(err)}`,
+            };
+          }
+        },
+        selfContinuityCard: async () => {
+          const cardOrDegraded = await continuityReadPort.loadSelfContinuityCard({
+            workspaceRoot: "",
+            now: assembledAt,
+          });
+          if (isDegradedOperationResult(cardOrDegraded)) {
+            return { status: "degraded" as const, data: {} as unknown, reason: cardOrDegraded.reason };
+          }
+          return { status: "loaded" as const, data: cardOrDegraded as unknown };
+        },
+        characterFrame: async () => {
+          const result = await characterLoader.loadActiveCharacterFrame({
+            workspaceRoot: "",
+            now: assembledAt,
+          });
+          if (result.degraded || !result.pointer || !result.projection) {
+            const reason = result.degraded?.reason ?? "character_frame_deferred";
+            return {
+              status: "degraded" as const,
+              data: {
+                pointer: {
+                  frameId: "deferred",
+                  summary: "character frame deferred",
+                  contestPrompt: "",
+                  sourceRefs: [],
+                  status: "deferred",
+                },
+                projection: {
+                  frameId: "deferred",
+                  text: "character frame deferred",
+                  contestPrompt: "",
+                  sourceRefs: [],
+                  status: "deferred",
+                },
+                reason,
+              } as unknown,
+              reason,
+            };
+          }
+          return {
+            status: "loaded" as const,
+            data: { pointer: result.pointer, projection: result.projection } as unknown,
+          };
+        },
+        activeMemoryProjections: async () => {
+          const r = await continuityReadPort.loadActiveMemoryProjections({
+            workspaceRoot: "",
+            now: assembledAt,
+          });
+          if (r.degraded) {
+            return { status: "degraded" as const, data: [] as unknown, reason: r.degraded.reason };
+          }
+          return { status: "loaded" as const, data: r.projections as unknown };
+        },
+        activeProceduralProjections: async () => {
+          const r = await continuityReadPort.loadActiveProceduralProjections({
+            workspaceRoot: "",
+            now: assembledAt,
+          });
+          if (r.degraded) {
+            return { status: "degraded" as const, data: [] as unknown, reason: r.degraded.reason };
+          }
+          return { status: "loaded" as const, data: r.projections as unknown };
+        },
+        routineList: async () => {
+          const r = await continuityReadPort.loadRoutineList({
+            workspaceRoot: "",
+            status: ["installed"],
+          });
+          if (r.degraded) {
+            return { status: "degraded" as const, data: [] as unknown, reason: r.degraded.reason };
+          }
+          return { status: "loaded" as const, data: r.routines as unknown };
+        },
+        activityThreads: async () => {
+          const r = await activityThreadPort.loadActivityThreads({
+            workspaceRoot: "",
+            status: ["active", "paused"],
+            limit: activityThreadLimit,
+          });
+          if (r.status === "degraded") {
+            return { status: "degraded" as const, data: [] as unknown, reason: r.reason };
+          }
+          if (r.status === "blocked") {
+            return { status: "blocked" as const, data: [] as unknown, reason: r.reason };
+          }
+          return { status: "loaded" as const, data: r.data as unknown };
+        },
+      };
+
+      // Per-slice timeout budget assignment.
+      // Critical: identity, goals, affordanceMap → criticalTimeout
+      // Non-critical: everything else → nonCriticalTimeout
+      const criticalSlices = new Set(["identity", "goals", "affordanceMap"]);
+      const sliceTimeouts: Record<string, number> = {};
+      for (const name of sliceNames) {
+        sliceTimeouts[name] = criticalSlices.has(name) ? criticalTimeout : nonCriticalTimeout;
+      }
+
+      // Launch all slices in parallel with individual timeouts.
+      const slicePromises = sliceNames.map(async (name) => {
+        const sliceStart = Date.now();
+        try {
+          const result = await withTimeout(sliceLoaders[name](), sliceTimeouts[name]);
+          return { name, result, durationMs: Date.now() - sliceStart, timedOut: false };
         } catch (err) {
-          selfHealthSlice = {
-            status: "degraded",
-            data: { snapshotId: "degraded", dimensions: {}, checkedAt: assembledAt },
-            reason: `self_health_unavailable:${err instanceof Error ? err.message : String(err)}`,
+          return {
+            name,
+            result: {
+              status: "degraded" as const,
+              data: {} as unknown,
+              reason: err instanceof Error && err.message === "slice_timeout"
+                ? "slice_timeout"
+                : err instanceof Error ? err.message : String(err),
+            } as ContextSlice<unknown>,
+            durationMs: Date.now() - sliceStart,
+            timedOut: err instanceof Error && err.message === "slice_timeout",
           };
         }
-      } else {
-        selfHealthSlice = {
-          status: "degraded",
-          data: { snapshotId: "unavailable", dimensions: {}, checkedAt: assembledAt },
-          reason: "self_health_provider_unavailable",
-        };
-      }
+      });
 
-      // ── 8. Self Continuity Card ───────────────────────────────
-      const selfContinuityCardSlice: ContextSlice<SelfContinuityCard> = await loadProjectionSlice(
-        () =>
-          continuityReadPort
-            .loadSelfContinuityCard({ workspaceRoot: "", now: assembledAt })
-            .then((cardOrDegraded) => {
-              if (isDegradedOperationResult(cardOrDegraded)) {
-                return {
-                  status: "degraded" as const,
-                  data: {} as SelfContinuityCard,
-                  reason: cardOrDegraded.reason,
-                };
-              }
-              return { status: "loaded" as const, data: cardOrDegraded };
-            }),
-        hardDeadlineMs,
-      );
+      const results = await Promise.all(slicePromises);
+      const totalDurationMs = Date.now() - startTime;
 
-      // ── 9. Character Frame Pointer / Projection ─────────────
-      let characterFramePointerSlice: ContextSlice<CharacterFramePointer>;
-      let characterFrameProjectionSlice: ContextSlice<EmbodiedContextCharacterProjection>;
-      try {
-        const result = await withTimeout(
-          characterLoader.loadActiveCharacterFrame({ workspaceRoot: "", now: assembledAt }),
-          hardDeadlineMs,
-        );
-        if (result.degraded || !result.pointer || !result.projection) {
-          const reason = result.degraded?.reason ?? "character_frame_deferred";
-          characterFramePointerSlice = {
-            status: "degraded",
-            data: {
-              frameId: "deferred",
-              summary: "character frame deferred",
-              contestPrompt: "",
-              sourceRefs: [],
-              status: "deferred",
-            },
-            reason,
-          };
-          characterFrameProjectionSlice = {
-            status: "degraded",
-            data: {
-              frameId: "deferred",
-              text: "character frame deferred",
-              contestPrompt: "",
-              sourceRefs: [],
-              status: "deferred",
-            },
-            reason,
-          };
-        } else {
-          characterFramePointerSlice = { status: "loaded", data: result.pointer };
-          characterFrameProjectionSlice = { status: "loaded", data: result.projection };
+      // Build slice map.
+      const sliceMap: Record<string, ContextSlice<unknown>> = {};
+      const sliceTimings: Record<string, number> = {};
+      const degradedSlices: string[] = [];
+      const timedOutSlices: string[] = [];
+      for (const r of results) {
+        sliceMap[r.name] = r.result;
+        sliceTimings[r.name] = r.durationMs;
+        if (r.result.status === "degraded" || r.result.status === "blocked") {
+          degradedSlices.push(r.name);
         }
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : String(err);
-        characterFramePointerSlice = {
-          status: "degraded",
-          data: {
-            frameId: "deferred",
-            summary: "character frame deferred",
-            contestPrompt: "",
-            sourceRefs: [],
-            status: "deferred",
-          },
-          reason,
-        };
-        characterFrameProjectionSlice = {
-          status: "degraded",
-          data: {
-            frameId: "deferred",
-            text: "character frame deferred",
-            contestPrompt: "",
-            sourceRefs: [],
-            status: "deferred",
-          },
-          reason,
-        };
+        if (r.timedOut) {
+          timedOutSlices.push(r.name);
+        }
       }
 
-      // ── 11. Active Memory Projections ─────────────────────────
-      const activeMemoryProjectionsSlice: ContextSlice<MemoryProjection[]> =
-        await loadProjectionSlice(
-          () =>
-            continuityReadPort
-              .loadActiveMemoryProjections({ workspaceRoot: "", now: assembledAt })
-              .then((result) => {
-                if (result.degraded) {
-                  return {
-                    status: "degraded" as const,
-                    data: [],
-                    reason: result.degraded.reason,
-                  };
-                }
-                return { status: "loaded" as const, data: result.projections };
-              }),
+      // Emit latency stage event if sink is provided.
+      if (stageEventSink) {
+        stageEventSink.recordContextAssemblyLatency({
+          totalDurationMs,
           hardDeadlineMs,
-        );
+          withinDeadline: totalDurationMs <= hardDeadlineMs,
+          sliceTimings,
+          degradedSlices,
+          timedOutSlices,
+        });
+      }
 
-      // ── 12. Active Procedural Projections ─────────────────────
-      const activeProceduralProjectionsSlice: ContextSlice<ProceduralProjection[]> =
-        await loadProjectionSlice(
-          () =>
-            continuityReadPort
-              .loadActiveProceduralProjections({ workspaceRoot: "", now: assembledAt })
-              .then((result) => {
-                if (result.degraded) {
-                  return {
-                    status: "degraded" as const,
-                    data: [],
-                    reason: result.degraded.reason,
-                  };
-                }
-                return { status: "loaded" as const, data: result.projections };
-              }),
-          hardDeadlineMs,
-        );
-
-      // ── 13. Routine List ──────────────────────────────────────
-      const routineListSlice: ContextSlice<RoutineListItem[]> = await loadProjectionSlice(
-        () =>
-          continuityReadPort
-            .loadRoutineList({ workspaceRoot: "", status: ["installed"] })
-            .then((result) => {
-              if (result.degraded) {
-                return {
-                  status: "degraded" as const,
-                  data: [],
-                  reason: result.degraded.reason,
-                };
-              }
-              return { status: "loaded" as const, data: result.routines };
-            }),
-        hardDeadlineMs,
-      );
-
-      // ── 14. Activity Threads ──────────────────────────────────
-      const activityThreadsSlice: ContextSlice<ActivityThread[]> = await loadProjectionSlice(
-        () =>
-          activityThreadPort
-            .loadActivityThreads({
-              workspaceRoot: "",
-              status: ["active", "paused"],
-              limit: activityThreadLimit,
-            })
-            .then((result) => {
-              if (result.status === "degraded") {
-                return {
-                  status: "degraded" as const,
-                  data: [],
-                  reason: result.reason,
-                };
-              }
-              if (result.status === "blocked") {
-                return {
-                  status: "blocked" as const,
-                  data: [],
-                  reason: result.reason,
-                };
-              }
-              return { status: "loaded" as const, data: result.data };
-            }),
-        hardDeadlineMs,
-      );
+      // Unpack character frame composite slice.
+      const charFrameData = sliceMap.characterFrame.data as {
+        pointer: CharacterFramePointer;
+        projection: EmbodiedContextCharacterProjection;
+      };
 
       return {
-        identity: identitySlice,
-        goals: goalsSlice,
-        recentInteractions: recentInteractionsSlice,
-        toolExperience: toolExperienceSlice,
-        acceptedDream: acceptedDreamSlice,
-        affordanceMap: affordanceMapSlice,
-        selfHealth: selfHealthSlice,
-        selfContinuityCard: selfContinuityCardSlice,
-        characterFramePointer: characterFramePointerSlice,
-        characterFrameProjection: characterFrameProjectionSlice,
-        activeMemoryProjections: activeMemoryProjectionsSlice,
-        activeProceduralProjections: activeProceduralProjectionsSlice,
-        routineList: routineListSlice,
-        activityThreads: activityThreadsSlice,
+        identity: sliceMap.identity as EmbodiedContext["identity"],
+        goals: sliceMap.goals as EmbodiedContext["goals"],
+        recentInteractions: sliceMap.recentInteractions as EmbodiedContext["recentInteractions"],
+        toolExperience: sliceMap.toolExperience as EmbodiedContext["toolExperience"],
+        acceptedDream: sliceMap.acceptedDream as EmbodiedContext["acceptedDream"],
+        affordanceMap: sliceMap.affordanceMap as ContextSlice<AffordanceMap>,
+        selfHealth: sliceMap.selfHealth as ContextSlice<SelfHealthSnapshot>,
+        selfContinuityCard: sliceMap.selfContinuityCard as ContextSlice<SelfContinuityCard>,
+        characterFramePointer: {
+          status: sliceMap.characterFrame.status,
+          data: charFrameData.pointer,
+          reason: sliceMap.characterFrame.reason,
+        } as ContextSlice<CharacterFramePointer>,
+        characterFrameProjection: {
+          status: sliceMap.characterFrame.status,
+          data: charFrameData.projection,
+          reason: sliceMap.characterFrame.reason,
+        } as ContextSlice<EmbodiedContextCharacterProjection>,
+        activeMemoryProjections: sliceMap.activeMemoryProjections as ContextSlice<MemoryProjection[]>,
+        activeProceduralProjections: sliceMap.activeProceduralProjections as ContextSlice<ProceduralProjection[]>,
+        routineList: sliceMap.routineList as ContextSlice<RoutineListItem[]>,
+        activityThreads: sliceMap.activityThreads as ContextSlice<ActivityThread[]>,
         assembledAt,
       };
     },
@@ -740,6 +752,7 @@ export interface V9EmbodiedContextAssemblerFactoryDeps {
   affordanceAssembler: AffordanceAssembler;
   selfHealthProvider?: SelfHealthProvider;
   continuityReadPort: ContinuityReadPort;
+  stageEventSink?: ContextAssemblyStageEventSink;
 }
 
 export function createV9EmbodiedContextAssemblerFromDeps(
@@ -754,5 +767,6 @@ export function createV9EmbodiedContextAssemblerFromDeps(
     continuityReadPort: deps.continuityReadPort,
     characterLoader,
     activityThreadPort,
+    stageEventSink: deps.stageEventSink,
   });
 }

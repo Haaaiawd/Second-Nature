@@ -144,7 +144,7 @@ graph TD
   - **依赖**: T3.2.1, T4.2.1
   - **优先级**: P0
 
-- [ ] **T2.2.3** [REQ-001]: 实现 2s heartbeat deadline 与 context slice timeout 分发
+- [x] **T2.2.3** [REQ-001]: 实现 2s heartbeat deadline 与 context slice timeout 分发
   - **描述**: 为 context assembly 添加 `EMBODIED_CONTEXT_HARD_DEADLINE_MS` 与 per-slice timeout，使非关键切片降级而不阻塞 heartbeat。
   - **输入**: `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3`, `PRD §6.1`, `T2.2.1` 产出的 v9 assembler
   - **输出**: timeout helper, degraded slice mapper, latency stage events
