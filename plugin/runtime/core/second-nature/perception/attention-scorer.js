@@ -30,7 +30,7 @@ export const ATTENTION_SUMMARY_MAX_CHARS = 280;
 export const POSSIBLE_ACTIONS_MAX_COUNT = 4;
 export const ACTION_RATIONALE_MAX_CHARS = 120;
 export const ACTIVITY_THREAD_MAX_STEPS = 8;
-export const ACTIVITY_THREAD_STALE_HEARTBEATS = 6;
+export const ACTIVITY_THREAD_STALE_HEARTBEATS = 3;
 // ───────────────────────────────────────────────────────────────
 // Scoring helpers
 // ───────────────────────────────────────────────────────────────

@@ -29,7 +29,7 @@ export declare const ATTENTION_SUMMARY_MAX_CHARS = 280;
 export declare const POSSIBLE_ACTIONS_MAX_COUNT = 4;
 export declare const ACTION_RATIONALE_MAX_CHARS = 120;
 export declare const ACTIVITY_THREAD_MAX_STEPS = 8;
-export declare const ACTIVITY_THREAD_STALE_HEARTBEATS = 6;
+export declare const ACTIVITY_THREAD_STALE_HEARTBEATS = 3;
 export type SensitivityHint = "public_technical" | "public_general" | "private_context" | "sensitive";
 export interface AttentionContextGoal {
     text: string;

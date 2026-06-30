@@ -153,6 +153,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
+function toSlice<T>(result: PromiseSettledResult<ContextSlice<T>>): ContextSlice<T> {
+  if (result.status === "fulfilled") return result.value;
+  return { status: "degraded", data: {} as T, reason: "slice_timeout" };
+}
+
+function toBodySlice<T extends Record<string, unknown>>(
+  result: PromiseSettledResult<ContextSlice<T>>,
+): ContextSlice<T> {
+  if (result.status === "fulfilled") return result.value;
+  return { status: "degraded", data: {} as T, reason: "slice_timeout" };
+}
+
+function toProjectionSlice<T>(
+  result: PromiseSettledResult<ContextSlice<T>>,
+): ContextSlice<T> {
+  if (result.status === "fulfilled") return result.value;
+  return { status: "degraded", data: {} as T, reason: "slice_timeout" };
+}
+
 function emptyMemoryProjection(id: string): MemoryProjection {
   return {
     id,
@@ -301,10 +320,6 @@ export function createActivityThreadPort(db: StateDatabase): ActivityThreadPort 
           completedStepCount: patch.completedStepCount,
           lastStepKind: patch.lastStepKind,
           blockerReason: patch.blockerReason,
-          stopCondition: patch.stopCondition,
-          nextPossibleMovesJson: patch.nextPossibleMoves !== undefined
-            ? JSON.stringify(patch.nextPossibleMoves)
-            : undefined,
           lastHeartbeatSequence: patch.lastHeartbeatSequence,
           updatedAt: patch.updatedAt ?? new Date().toISOString(),
         });

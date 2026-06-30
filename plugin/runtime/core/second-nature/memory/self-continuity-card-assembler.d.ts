@@ -36,7 +36,7 @@ import type { StateDatabase } from "../../../storage/db/index.js";
 import type { CharacterFrameStorePort } from "../character/character-frame-lifecycle.js";
 export declare function countChars(text: string): number;
 export declare function truncateToChars(text: string, maxChars: number): string;
-export declare function createCharacterFrameStoreAdapter(db: StateDatabase): CharacterFrameStorePort;
+export declare function createCharacterFrameStoreAdapter(db: StateDatabase): Promise<CharacterFrameStorePort>;
 export interface AssembleSelfContinuityCardResult {
     card: SelfContinuityCard;
     persistedId: string;

@@ -27,7 +27,6 @@
  * - `tests/integration/v9/activity-thread-continuation.test.ts`
  */
 
-import { randomUUID } from "node:crypto";
 import type {
   ActivityStep,
   ActivityThread,
@@ -421,5 +420,5 @@ async function emitStageEvent(
 }
 
 function makeId(prefix: string): string {
-  return `${prefix}_${randomUUID()}`;
+  return `${prefix}_${crypto.randomUUID()}`;
 }

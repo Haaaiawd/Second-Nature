@@ -51,20 +51,18 @@ function deduplicateSourceRefs(refs) {
 function truncateToBytes(text, maxBytes) {
     if (countUtf8Chars(text) <= maxBytes)
         return text;
-    const ellipsis = "…";
-    const ellipsisBytes = countUtf8Chars(ellipsis);
     let low = 0;
     let high = text.length;
     while (low < high) {
         const mid = Math.ceil((low + high) / 2);
-        if (countUtf8Chars(text.slice(0, mid)) + ellipsisBytes <= maxBytes) {
+        if (countUtf8Chars(text.slice(0, mid)) <= maxBytes) {
             low = mid;
         }
         else {
             high = mid - 1;
         }
     }
-    return text.slice(0, low) + ellipsis;
+    return text.slice(0, low - 1) + "…";
 }
 function truncateToChars(text, max) {
     return truncateToBytes(text, max);
@@ -273,7 +271,6 @@ function buildSections(input) {
 function charCountOfTextualParts(frame) {
     const parts = [
         ...frame.emergentHabits?.map((h) => h.description) ?? [],
-        ...(frame.valuePosture?.ordering ?? []),
         frame.valuePosture?.note ?? "",
         frame.relationshipPosture?.stance ?? "",
         frame.relationshipPosture?.toward ?? "",

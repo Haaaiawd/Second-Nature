@@ -69,7 +69,7 @@ export declare function readActivityThreadsByStatus(db: StateDatabase, status: A
     limit?: number;
     orderBy?: "asc" | "desc";
 }): Promise<ActivityThreadRecord[]>;
-export declare function updateActivityThreadProgress(db: StateDatabase, id: string, patch: Partial<Pick<ActivityThreadRecord, "status" | "currentFocus" | "completedStepCount" | "lastStepKind" | "blockerReason" | "stopCondition" | "nextPossibleMovesJson" | "lastHeartbeatSequence" | "updatedAt">>): Promise<void>;
+export declare function updateActivityThreadProgress(db: StateDatabase, id: string, patch: Partial<Pick<ActivityThreadRecord, "status" | "currentFocus" | "completedStepCount" | "lastStepKind" | "blockerReason" | "lastHeartbeatSequence" | "updatedAt">>): Promise<void>;
 export interface WriteActivityStepOptions {
     id: string;
     threadId: string;

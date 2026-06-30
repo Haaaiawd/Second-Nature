@@ -23,7 +23,7 @@
  *
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { attentionSignal, activityThread, activityStep, toolRoutine, proceduralProjection, connectorEvolutionPlan, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
@@ -110,6 +110,7 @@ export async function readActivityThreadById(db, id) {
     return rows[0];
 }
 export async function readActivityThreadsByStatus(db, status, options = {}) {
+    const { desc, asc } = await import("drizzle-orm");
     const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
     const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
     if (options.limit !== undefined && options.limit > 0) {

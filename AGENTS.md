@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-27` (Wave 127 完成；T2.2.4 已实现、验证并通过 code-reviewer)
-- **当前波次**: Wave 127 — v9 S2 ActivityThread Cross-Heartbeat Continuation
-- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务
+- **最近一次更新**: `2026-06-28` (Wave 130 完成；T4.2.2 已交付)
+- **当前波次**: Wave 130 ✅ — v9 S3 ToolRoutine Guard Policy Integration
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T6.2.2 ToolRoutine registry 或 INT-S3
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -219,8 +219,81 @@ src/
 - 系统数: 8
 - **状态**: ✅ v9 `/genesis` + `/design-system` + `/challenge` + `/blueprint` 完成；任务与验证计划已落盘
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
-- **下一步**: `/forge` Wave 128 — 按 05A 依赖图选择就绪任务
-- **最近更新**: `2026-06-27` (Wave 127 complete; T2.2.4 checked; review-fix applied)
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T4.2.2 routine guard policy 或 T6.2.2 ToolRoutine registry
+- **最近更新**: `2026-06-27` (Wave 129 完成；T2.2.2 + T4.2.3 已交付)
+
+### 🌊 Wave 128 ✅ — v9 S3 ActionProposalBuilder v9 Spine
+T4.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 128 完成（code-reviewer final verdict: Partial Pass → review-fix applied → Pass）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T4.2.1 扩展 `ActionProposalBuilder` 接收 Agent intent、ActivityStep、RoutineInvocation，并使用 AttentionSignal refs 作为 grounding
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 新增 `V9_ACTION_KIND_REGISTRY` 与 `ActionKindMetadata`，覆盖 `PlatformNeutralActionKind` 全枚举
+  - `src/core/second-nature/action/v9-action-proposal-builder.ts` — `buildV9ActionProposal`、`buildV9ActionProposals`、Agent/ActivityStep/RoutineInvocation 归一化、AttentionSignal grounding-only、source-ref gate、`MAX_PROPOSALS_PER_CYCLE`
+  - `src/core/second-nature/action/v9-autonomy-policy-evaluator.ts` — v9 policy evaluator：external_write/capability_declared/routine/owner_attention 决策表、source-ref gate、affordance proofRefs
+  - `tests/unit/action/v9-action-proposal-builder.test.ts` — Agent/activity/routine/attention-only/missing source refs/batch cap 覆盖
+  - `tests/unit/action/v9-autonomy-policy-evaluator.test.ts` — allow/deny/downgrade/defer/routine 决策表覆盖
+  - `.anws/v9/05A_TASKS.md` — T4.2.1 已勾选
+  - `.anws/v9/wave-reviews/wave-128-review.md` — Partial Pass → review-fix applied → Pass
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1903 tests, 1894 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-128-review.md` — Partial Pass → review-fix applied → Pass
+- **下一步**: 进入 Wave 129；按 05A 依赖图选择就绪任务。
+- **说明**: T4.2.1 产出包含 v9 ActionProposalBuilder 与 policy evaluator 脊柱；下游 `T2.2.2` attention-to-closure、`T4.2.2` routine guard policy、`T4.2.3` closure recorder 可继续推进。
+
+### 🌊 Wave 129 🧭 — v9 S3 Attention-to-Closure Heartbeat Loop
+T2.2.2, T4.2.3
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 129 完成（code-reviewer final verdict: Partial Pass → L-3 fixed → L-1 accepted residual）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T2.2.2 将 heartbeat 主链路从 JudgmentVerdict 切换到 AttentionSignal；T4.2.3 保持 v9 exactly-one closure 与 routine/activity linkage
+- **产出**:
+  - `src/core/second-nature/control-plane/v9-heartbeat-orchestrator.ts` — v9 heartbeat cycle：context assembly → attention → activity thread → action proposal/policy → closure
+  - `src/core/second-nature/action/v9-action-closure-recorder.ts` — v9 closure writer：routineInvocationId/routineVersion、activityThreadId/activityStepId、v9 SourceRef serialization
+  - `tests/unit/control-plane/v9-attention-cycle.test.ts`
+  - `tests/integration/v9/attention-to-closure-chain.test.ts`
+  - `tests/unit/action/v9-action-closure-recorder.test.ts`
+  - `tests/integration/v9/exactly-one-closure.test.ts`
+  - `.anws/v9/05A_TASKS.md` — T2.2.2 / T4.2.3 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1920 tests, 1911 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-129-review.md` — Partial Pass → L-3 fixed → L-1 accepted residual
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T4.2.2 routine guard policy 或 T6.2.2 ToolRoutine registry。
+- **说明**: Wave 129 关闭 v9 heartbeat attention→action→closure 循环；下游 T4.2.2 routine policy gate 可继续推进。
+
+### 🌊 Wave 130 ✅ — v9 S3 ToolRoutine Guard Policy Integration
+T4.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 130 完成（code-reviewer final verdict: Partial Pass → review-fix applied → Pass）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T4.2.2 将 `ToolRoutineGuardSchema` 集成到 v9 action policy evaluator，处理 routine install/invocation 的权限扩大、owner confirm、breaker 与 owner preference
+- **产出**:
+  - `src/core/second-nature/action/v9-autonomy-policy-evaluator.ts` — guard 评估分支；triggerCapabilities/capabilityPattern 权限扩张检查；maxSideEffectClass 触发能力 side-effect 天花板；缺失 guard 拒绝；legacy no-guard fallback 移除
+  - `src/core/second-nature/action/v9-action-proposal-builder.ts` — routine proposal 携带 guard context、capabilityPattern、triggerCapabilities
+  - `src/core/second-nature/control-plane/v9-heartbeat-orchestrator.ts` — default `ActionClosurePort` 从 affordance accessLevel 推导 permission/owner preference
+  - `src/shared/types/v9-contracts.ts` — `ToolRoutineReadModel` / `RoutineInvocation` / `ActionProposal` 新增 `triggerCapabilities`、`capabilityPattern`
+  - `tests/unit/action/v9-routine-policy-guard.test.ts` — wildcard capabilityPattern、multi-trigger expansion、side-effect ceiling 覆盖
+  - `tests/integration/v9/routine-policy-closure.test.ts`
+  - `.anws/v9/05A_TASKS.md` — T4.2.2 已勾选
+  - `.anws/v9/wave-reviews/wave-130-review.md` — Partial Pass → review-fix applied → Pass
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 1936 tests, 1927 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-130-review.md` — Pass
+- **下一步**: 按 05A 依赖图选择就绪任务。
+- **说明**: T4.2.2 产出为 v9 routine policy gate；下游 T6.2.2 ToolRoutine registry 与 INT-S3 可继续推进。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4

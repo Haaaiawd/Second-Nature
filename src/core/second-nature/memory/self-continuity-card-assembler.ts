@@ -56,10 +56,6 @@ import {
   readProceduralProjectionsByStatus,
   readLatestSelfContinuityCard,
   writeSelfContinuityCard,
-  readCharacterFrameById,
-  readLatestAcceptedCharacterFrame,
-  readCharacterFrameRevisionCandidates,
-  updateCharacterFrameStatus,
 } from "../../../storage/v9-state-stores.js";
 import type { CharacterFrameStorePort } from "../character/character-frame-lifecycle.js";
 import { readMemoryProjectionsByStatus } from "../../../storage/v8-state-stores.js";
@@ -84,43 +80,24 @@ const HABIT_MAX_CHARS = 120;
 const SELF_CONTINUITY_CARD_MAX_BYTES = 4000; // hard ceiling for raw storage
 
 const SENSITIVE_VALUE_PATTERNS = [
-  {
-    pattern: /[A-Za-z0-9_\-]{32,}/g, // long API keys / tokens
-    shouldRedact: (match: string) => !UUID_PATTERN.test(match),
-  },
-  {
-    pattern: /\b(sk|pk|bearer)\s*[=_:\s]+\s*[^\s\n]{8,}/gi, // sk-xxx / bearer xxx
-    shouldRedact: () => true,
-  },
-  {
-    pattern: /\b(password|secret|token)\s*[=_:\s]+\s*[^\s\n]{4,}/gi,
-    shouldRedact: () => true,
-  },
-  {
-    pattern: /sk-[A-Za-z0-9]{16,}/g, // openai-style secret key
-    shouldRedact: () => true,
-  },
+  /[A-Za-z0-9_\-]{32,}/g, // long API keys / tokens
+  /\b(sk|pk|bearer)\s*[=_:\s]+\s*[^\s\n]{8,}/gi, // sk-xxx / bearer xxx
+  /\b(password|secret|token)\s*[=_:\s]+\s*[^\s\n]{4,}/gi,
+  /sk-[A-Za-z0-9]{16,}/g, // openai-style secret key
 ];
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 function scanForSensitiveValues(text: string): boolean {
-  return SENSITIVE_VALUE_PATTERNS.some(({ pattern, shouldRedact }) => {
+  return SENSITIVE_VALUE_PATTERNS.some((pattern) => {
     pattern.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = pattern.exec(text)) !== null) {
-      if (shouldRedact(match[0])) return true;
-    }
-    return false;
+    return pattern.test(text);
   });
 }
 
 function redactSensitiveInline(text: string): string {
   let redacted = text;
-  for (const { pattern, shouldRedact } of SENSITIVE_VALUE_PATTERNS) {
+  for (const pattern of SENSITIVE_VALUE_PATTERNS) {
     pattern.lastIndex = 0;
     redacted = redacted.replace(pattern, (match) => {
-      if (!shouldRedact(match)) return match;
       const visible = Math.min(4, Math.floor(match.length / 4));
       return match.slice(0, visible) + "…[REDACTED]";
     });
@@ -384,18 +361,19 @@ function collectSourceRefs(
 // CharacterFrame store adapter
 // ───────────────────────────────────────────────────────────────
 
-export function createCharacterFrameStoreAdapter(db: StateDatabase): CharacterFrameStorePort {
+export async function createCharacterFrameStoreAdapter(db: StateDatabase): Promise<CharacterFrameStorePort> {
+  const stores = await import("../../../storage/v9-state-stores.js");
   return {
     async readFrameById(id: string) {
-      const row = await readCharacterFrameById(db, id);
+      const row = await stores.readCharacterFrameById(db, id);
       return row ? rowToFrame(row) : null;
     },
     async readLatestAcceptedFrame() {
-      const result = await readLatestAcceptedCharacterFrame(db);
+      const result = await stores.readLatestAcceptedCharacterFrame(db);
       return result.row ? rowToFrame(result.row) : null;
     },
     async readPendingRevisionFor(frameId: string) {
-      const result = await readCharacterFrameRevisionCandidates(db, frameId);
+      const result = await stores.readCharacterFrameRevisionCandidates(db, frameId);
       return result.rows[0] ? rowToFrame(result.rows[0]) : null;
     },
     async writeCandidateFrame() {
@@ -410,25 +388,24 @@ export function createCharacterFrameStoreAdapter(db: StateDatabase): CharacterFr
       charCount?: number;
       payloadJson?: string;
     }) {
-      await updateCharacterFrameStatus(db, frameId, status, opts);
+      await stores.updateCharacterFrameStatus(db, frameId, status, opts);
     },
   };
 }
 
 function rowToFrame(row: CharacterFrameRecord): import("../../../shared/types/v9-contracts.js").CharacterFrame {
-  const sections = JSON.parse(row.sectionsJson);
   return {
     ...row,
     status: row.status as import("../../../shared/types/v9-contracts.js").CharacterFrameStatus,
     acceptedAt: row.acceptedAt ?? undefined,
     projectionKind: "character_frame",
     sourceRefs: parseSourceRefs(row.sourceRefsJson),
-    emergentHabits: sections.emergentHabits,
-    valuePosture: sections.valuePosture,
-    relationshipPosture: sections.relationshipPosture,
-    expressionPosture: sections.expressionPosture,
-    growthTensions: sections.growthTensions,
-    conflictNotes: sections.conflictNotes,
+    emergentHabits: JSON.parse(row.sectionsJson).emergentHabits,
+    valuePosture: JSON.parse(row.sectionsJson).valuePosture,
+    relationshipPosture: JSON.parse(row.sectionsJson).relationshipPosture,
+    expressionPosture: JSON.parse(row.sectionsJson).expressionPosture,
+    growthTensions: JSON.parse(row.sectionsJson).growthTensions,
+    conflictNotes: JSON.parse(row.sectionsJson).conflictNotes,
     payloadJson: row.payloadJson ?? undefined,
   };
 }

@@ -62,6 +62,21 @@ function withTimeout(promise, ms) {
         new Promise((_, reject) => setTimeout(() => reject(new Error("slice_timeout")), ms)),
     ]);
 }
+function toSlice(result) {
+    if (result.status === "fulfilled")
+        return result.value;
+    return { status: "degraded", data: {}, reason: "slice_timeout" };
+}
+function toBodySlice(result) {
+    if (result.status === "fulfilled")
+        return result.value;
+    return { status: "degraded", data: {}, reason: "slice_timeout" };
+}
+function toProjectionSlice(result) {
+    if (result.status === "fulfilled")
+        return result.value;
+    return { status: "degraded", data: {}, reason: "slice_timeout" };
+}
 function emptyMemoryProjection(id) {
     return {
         id,
@@ -204,10 +219,6 @@ export function createActivityThreadPort(db) {
                     completedStepCount: patch.completedStepCount,
                     lastStepKind: patch.lastStepKind,
                     blockerReason: patch.blockerReason,
-                    stopCondition: patch.stopCondition,
-                    nextPossibleMovesJson: patch.nextPossibleMoves !== undefined
-                        ? JSON.stringify(patch.nextPossibleMoves)
-                        : undefined,
                     lastHeartbeatSequence: patch.lastHeartbeatSequence,
                     updatedAt: patch.updatedAt ?? new Date().toISOString(),
                 });
