@@ -312,6 +312,13 @@ export interface ToolRoutineGuardSchema {
     maxTimeoutMs: number;
     sandboxPolicy: "strict" | "declarative_only";
 }
+export declare function parseToolRoutineGuardSchema(input: string | Record<string, unknown> | ToolRoutineGuardSchema | undefined): {
+    ok: true;
+    guard: ToolRoutineGuardSchema;
+} | {
+    ok: false;
+    reason: string;
+};
 export type ConnectorPlanType = "manifest_delta" | "recipe_delta" | "adapter_delta";
 export type ConnectorEvolutionStatus = "proposed" | "gating" | "activated" | "rolled_back" | "blocked";
 export type ConnectorVersionStatus = "candidate" | "staged" | "active" | "rolled_back";
@@ -390,6 +397,10 @@ export interface ActionClosureRecord {
     closureRefs: SourceRef[];
     payloadJson?: string;
     reasonCode: string;
+    routineInvocationId?: string;
+    routineVersion?: string;
+    activityThreadId?: string;
+    activityStepId?: string;
     createdAt: string;
 }
 export interface ContextSlice<T> {
@@ -431,6 +442,12 @@ export interface EmbodiedContext {
 }
 export type PlatformNeutralActionKind = "ignore" | "watch" | "remember" | "notify_owner" | "draft_reply" | "auto_reply" | "draft_publish" | "auto_publish" | "run_connector" | "routine";
 export type ActionSideEffectClass = "none" | "local_state" | "owner_attention" | "external_write" | "external_read" | "capability_declared" | "routine";
+export interface ActionKindMetadata {
+    kind: PlatformNeutralActionKind;
+    sideEffectClass: ActionSideEffectClass;
+    allowedDowngrades: PlatformNeutralActionKind[];
+}
+export declare const V9_ACTION_KIND_REGISTRY: Readonly<Record<PlatformNeutralActionKind, ActionKindMetadata>>;
 export interface AgentActionIntent {
     intentId: string;
     actionKind: PlatformNeutralActionKind;
@@ -452,10 +469,12 @@ export interface AttentionSignalRef {
 export interface ToolRoutineReadModel {
     routineId: string;
     capabilityPattern: string;
+    triggerCapabilities: string[];
     version: string;
     status: RoutineRegistryStatus;
     sourceRefs: SourceRef[];
     rollbackRef?: SourceRef;
+    guardSchemaJson?: string;
 }
 export interface PolicyEvaluationContext {
     affordancePosture: AffordancePosture;
@@ -468,8 +487,10 @@ export interface RoutineInvocation {
     routineId: string;
     version: string;
     capabilityPattern: string;
+    triggerCapabilities: string[];
     payload: Record<string, unknown>;
     sourceRefs: SourceRef[];
+    guardSchemaJson?: string;
 }
 export interface ActionProposal {
     id: string;
@@ -477,6 +498,8 @@ export interface ActionProposal {
     actionKind: PlatformNeutralActionKind;
     targetPlatformId?: string;
     targetCapabilityId?: string;
+    capabilityPattern?: string;
+    triggerCapabilities?: string[];
     sourceRefs: SourceRef[];
     proofRefs: SourceRef[];
     reason: V9ReasonCode;
@@ -485,6 +508,7 @@ export interface ActionProposal {
     idempotencyKey: string;
     routineInvocationId?: string;
     routineVersion?: string;
+    guard?: ToolRoutineGuardSchema;
     createdAt: string;
 }
 export interface ActionPolicyDecision {
@@ -496,10 +520,6 @@ export interface ActionPolicyDecision {
     downgradedActionKind?: PlatformNeutralActionKind;
     proofRefs: SourceRef[];
     decidedAt: string;
-}
-export interface RoutinePolicyEvaluationContext extends PolicyEvaluationContext {
-    guard: ToolRoutineGuardSchema;
-    routineSourceRefs: SourceRef[];
 }
 export type RoutineInvocationProposal = Omit<ActionProposal, "actionKind" | "sideEffectClass"> & {
     actionKind: "routine";
@@ -718,7 +738,7 @@ export interface TimelinePage {
     rows: TimelineRow[];
     nextCursor?: string;
 }
-export type V9ReasonCode = "attention_hint_without_agent_or_routine_intent" | "attention_blocked_missing_sources" | "activity_thread_stale" | "activity_thread_overlong" | "activity_thread_missing_closure" | "activity_thread_blocked" | "continuity_unavailable" | "continuity_stale_projections" | "character_frame_insufficient_sources" | "character_refresh_input_invalid" | "character_refresh_input_redacted" | "character_frame_deferred" | "proposal_created" | "proposal_no_action" | "proposal_missing_source_refs" | "proposal_risk_blocked" | "policy_allowed" | "policy_deferred_owner_confirmation" | "policy_downgraded_to_draft" | "policy_denied_missing_permission" | "policy_denied_high_risk" | "policy_denied_breaker_open" | "closure_completed" | "closure_no_action" | "closure_denied" | "closure_deferred" | "closure_downgraded" | "routine_guard_schema_invalid" | "routine_permission_expansion_denied" | "routine_guard_policy_denied" | "routine_validation_pending" | "routine_invocation_denied" | "evolution_gate_schema_failed" | "evolution_gate_permission_failed" | "evolution_gate_sandbox_failed" | "evolution_gate_fixture_failed" | "evolution_gate_wet_probe_failed" | "evolution_canary_failed" | "evolution_rollback_failed" | "ledger_missing_source_refs" | "ledger_redaction_blocked" | "v8_legacy_judgment_mapped" | "loop_healthy" | "loop_degraded_missing_closure" | "loop_blocked_rollback_failed" | "loop_blocked_gate_failure" | "timeline_window_too_large" | "timeline_window_truncated" | "no_actionable_intent" | "policy_denied_missing_sources" | "guidance_unavailable";
+export type V9ReasonCode = "attention_hint_without_agent_or_routine_intent" | "attention_blocked_missing_sources" | "activity_thread_stale" | "activity_thread_overlong" | "activity_thread_missing_closure" | "activity_thread_blocked" | "continuity_unavailable" | "continuity_stale_projections" | "character_frame_insufficient_sources" | "character_refresh_input_invalid" | "character_refresh_input_redacted" | "character_frame_deferred" | "proposal_created" | "proposal_no_action" | "proposal_missing_source_refs" | "proposal_risk_blocked" | "policy_allowed" | "policy_deferred_owner_confirmation" | "policy_downgraded_to_draft" | "policy_denied_missing_permission" | "policy_denied_high_risk" | "policy_denied_breaker_open" | "closure_completed" | "closure_no_action" | "closure_denied" | "closure_deferred" | "closure_downgraded" | "routine_guard_schema_invalid" | "routine_permission_expansion_denied" | "routine_guard_policy_denied" | "routine_validation_pending" | "routine_invocation_denied" | "evolution_gate_schema_failed" | "evolution_gate_permission_failed" | "evolution_gate_sandbox_failed" | "evolution_gate_fixture_failed" | "evolution_gate_wet_probe_failed" | "evolution_canary_failed" | "evolution_rollback_failed" | "ledger_missing_source_refs" | "ledger_redaction_blocked" | "v8_legacy_judgment_mapped" | "loop_healthy" | "loop_degraded_missing_closure" | "loop_blocked_rollback_failed" | "loop_blocked_gate_failure" | "timeline_window_too_large" | "timeline_window_truncated" | "state_unreadable" | "no_actionable_intent" | "policy_denied_missing_sources" | "guidance_unavailable" | "runtime_unavailable";
 export type AffordanceAccessLevel = "none" | "needs_auth" | "credentialed";
 export type AffordanceReliabilityLevel = "unproven" | "proven" | "stale" | "degraded";
 export type AffordanceFamiliarityLevel = "scaffold" | "practiced" | "routine";
