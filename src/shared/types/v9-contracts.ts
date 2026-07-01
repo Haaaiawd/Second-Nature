@@ -409,6 +409,71 @@ export interface ToolRoutineGuardSchema {
   sandboxPolicy: "strict" | "declarative_only";
 }
 
+export function parseToolRoutineGuardSchema(
+  input: string | Record<string, unknown> | ToolRoutineGuardSchema | undefined,
+): { ok: true; guard: ToolRoutineGuardSchema } | { ok: false; reason: string } {
+  if (!input) {
+    return { ok: false, reason: "missing_guard_schema" };
+  }
+  let raw: Record<string, unknown>;
+  if (typeof input === "string") {
+    try {
+      raw = JSON.parse(input) as Record<string, unknown>;
+    } catch {
+      return { ok: false, reason: "invalid_json" };
+    }
+  } else if (typeof input === "object") {
+    raw = input as Record<string, unknown>;
+  } else {
+    return { ok: false, reason: "invalid_input_type" };
+  }
+
+  if (raw.version !== "1.0.0") {
+    return { ok: false, reason: "unsupported_version" };
+  }
+  if (!Array.isArray(raw.allowedCapabilities)) {
+    return { ok: false, reason: "missing_allowed_capabilities" };
+  }
+  if (!Array.isArray(raw.deniedCapabilities)) {
+    return { ok: false, reason: "missing_denied_capabilities" };
+  }
+  const maxSideEffectClass = raw.maxSideEffectClass;
+  if (
+    maxSideEffectClass !== "none" &&
+    maxSideEffectClass !== "owner_attention" &&
+    maxSideEffectClass !== "external_write"
+  ) {
+    return { ok: false, reason: "invalid_max_side_effect_class" };
+  }
+  if (typeof raw.requiresOwnerConfirm !== "boolean") {
+    return { ok: false, reason: "missing_requires_owner_confirm" };
+  }
+  if (typeof raw.maxStepCount !== "number" || raw.maxStepCount < 0) {
+    return { ok: false, reason: "invalid_max_step_count" };
+  }
+  if (typeof raw.maxTimeoutMs !== "number" || raw.maxTimeoutMs < 0) {
+    return { ok: false, reason: "invalid_max_timeout_ms" };
+  }
+  const sandboxPolicy = raw.sandboxPolicy;
+  if (sandboxPolicy !== "strict" && sandboxPolicy !== "declarative_only") {
+    return { ok: false, reason: "invalid_sandbox_policy" };
+  }
+
+  return {
+    ok: true,
+    guard: {
+      version: "1.0.0",
+      allowedCapabilities: raw.allowedCapabilities.map(String),
+      deniedCapabilities: raw.deniedCapabilities.map(String),
+      maxSideEffectClass,
+      requiresOwnerConfirm: raw.requiresOwnerConfirm,
+      maxStepCount: raw.maxStepCount,
+      maxTimeoutMs: raw.maxTimeoutMs,
+      sandboxPolicy,
+    },
+  };
+}
+
 // ───────────────────────────────────────────────────────────────
 // 7. ConnectorEvolutionPlan & ConnectorVersion
 // ───────────────────────────────────────────────────────────────
@@ -519,6 +584,10 @@ export interface ActionClosureRecord {
   closureRefs: SourceRef[];
   payloadJson?: string;
   reasonCode: string;
+  routineInvocationId?: string;
+  routineVersion?: string;
+  activityThreadId?: string;
+  activityStepId?: string;
   createdAt: string;
 }
 
@@ -589,6 +658,67 @@ export type ActionSideEffectClass =
   | "capability_declared"
   | "routine";
 
+export interface ActionKindMetadata {
+  kind: PlatformNeutralActionKind;
+  sideEffectClass: ActionSideEffectClass;
+  allowedDowngrades: PlatformNeutralActionKind[];
+}
+
+export const V9_ACTION_KIND_REGISTRY: Readonly<
+  Record<PlatformNeutralActionKind, ActionKindMetadata>
+> = {
+  ignore: {
+    kind: "ignore",
+    sideEffectClass: "none",
+    allowedDowngrades: [],
+  },
+  watch: {
+    kind: "watch",
+    sideEffectClass: "local_state",
+    allowedDowngrades: [],
+  },
+  remember: {
+    kind: "remember",
+    sideEffectClass: "local_state",
+    allowedDowngrades: ["watch"],
+  },
+  notify_owner: {
+    kind: "notify_owner",
+    sideEffectClass: "owner_attention",
+    allowedDowngrades: ["watch"],
+  },
+  draft_reply: {
+    kind: "draft_reply",
+    sideEffectClass: "local_state",
+    allowedDowngrades: ["notify_owner", "watch"],
+  },
+  auto_reply: {
+    kind: "auto_reply",
+    sideEffectClass: "external_write",
+    allowedDowngrades: ["draft_reply", "notify_owner", "watch"],
+  },
+  draft_publish: {
+    kind: "draft_publish",
+    sideEffectClass: "local_state",
+    allowedDowngrades: ["notify_owner", "watch"],
+  },
+  auto_publish: {
+    kind: "auto_publish",
+    sideEffectClass: "external_write",
+    allowedDowngrades: ["draft_publish", "notify_owner", "watch"],
+  },
+  run_connector: {
+    kind: "run_connector",
+    sideEffectClass: "capability_declared",
+    allowedDowngrades: ["notify_owner", "watch"],
+  },
+  routine: {
+    kind: "routine",
+    sideEffectClass: "routine",
+    allowedDowngrades: ["notify_owner", "watch"],
+  },
+};
+
 export interface AgentActionIntent {
   intentId: string;
   actionKind: PlatformNeutralActionKind;
@@ -612,10 +742,12 @@ export interface AttentionSignalRef {
 export interface ToolRoutineReadModel {
   routineId: string;
   capabilityPattern: string;
+  triggerCapabilities: string[];
   version: string;
   status: RoutineRegistryStatus;
   sourceRefs: SourceRef[];
   rollbackRef?: SourceRef;
+  guardSchemaJson?: string;
 }
 
 export interface PolicyEvaluationContext {
@@ -630,8 +762,10 @@ export interface RoutineInvocation {
   routineId: string;
   version: string;
   capabilityPattern: string;
+  triggerCapabilities: string[];
   payload: Record<string, unknown>;
   sourceRefs: SourceRef[];
+  guardSchemaJson?: string;
 }
 
 export interface ActionProposal {
@@ -640,6 +774,8 @@ export interface ActionProposal {
   actionKind: PlatformNeutralActionKind;
   targetPlatformId?: string;
   targetCapabilityId?: string;
+  capabilityPattern?: string;
+  triggerCapabilities?: string[];
   sourceRefs: SourceRef[];
   proofRefs: SourceRef[];
   reason: V9ReasonCode;
@@ -648,6 +784,7 @@ export interface ActionProposal {
   idempotencyKey: string;
   routineInvocationId?: string;
   routineVersion?: string;
+  guard?: ToolRoutineGuardSchema;
   createdAt: string;
 }
 
@@ -660,11 +797,6 @@ export interface ActionPolicyDecision {
   downgradedActionKind?: PlatformNeutralActionKind;
   proofRefs: SourceRef[];
   decidedAt: string;
-}
-
-export interface RoutinePolicyEvaluationContext extends PolicyEvaluationContext {
-  guard: ToolRoutineGuardSchema;
-  routineSourceRefs: SourceRef[];
 }
 
 // Re-exported convenience alias; cross-system code should use the canonical
@@ -1008,10 +1140,12 @@ export type V9ReasonCode =
   | "loop_blocked_gate_failure"
   | "timeline_window_too_large"
   | "timeline_window_truncated"
+  | "state_unreadable"
   // Fallback
   | "no_actionable_intent"
   | "policy_denied_missing_sources"
-  | "guidance_unavailable";
+  | "guidance_unavailable"
+  | "runtime_unavailable";
 
 // ───────────────────────────────────────────────────────────────
 // Minimal forward references for cross-system assembly
