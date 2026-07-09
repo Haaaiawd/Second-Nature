@@ -73,7 +73,7 @@ export function inferCapabilitySideEffectClass(
   const notifyHints = new Set(["notify", "alert", "remind", "prompt"]);
   if (writeHints.has(actionHint)) return "external_write";
   if (notifyHints.has(actionHint)) return "owner_attention";
-  return "owner_attention";
+  return "none";
 }
 
 function matchesCapabilityPattern(capabilityId: string, pattern: string): boolean {

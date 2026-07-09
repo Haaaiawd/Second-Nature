@@ -46,7 +46,7 @@ import { safeReadJson, safeReadYaml } from "./v9-connector-file-ops.js";
 
 export interface V8ConnectorManifest {
   platformId: string;
-  capabilities: { capabilityId: string; description?: string }[];
+  capabilities: Array<string | { capabilityId: string; description?: string }>;
   runner?: { kind: string; config?: Record<string, unknown> };
   recipePath?: string;
   adapterPath?: string;
@@ -136,7 +136,9 @@ export async function migrateV8ConnectorManifest(
     manifestPath,
     recipePath: manifest.recipePath,
     adapterPath: manifest.adapterPath,
-    declaredCapabilities: manifest.capabilities.map((c) => c.capabilityId),
+    declaredCapabilities: manifest.capabilities.map((c) =>
+      typeof c === "string" ? c : c.capabilityId
+    ),
     gateResults,
     status: "candidate",
     sourceRefs,

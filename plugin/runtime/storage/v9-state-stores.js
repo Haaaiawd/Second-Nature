@@ -23,7 +23,7 @@
  *
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import { attentionSignal, activityThread, activityStep, toolRoutine, routineExecutionTrace, proceduralProjection, connectorEvolutionPlan, connectorVersion, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
@@ -110,7 +110,6 @@ export async function readActivityThreadById(db, id) {
     return rows[0];
 }
 export async function readActivityThreadsByStatus(db, status, options = {}) {
-    const { desc, asc } = await import("drizzle-orm");
     const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
     const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
     if (options.limit !== undefined && options.limit > 0) {
@@ -457,7 +456,15 @@ export async function writeConnectorVersion(db, options) {
         activatedAt: options.activatedAt,
         rolledBackAt: options.rolledBackAt,
     };
-    await db.db.insert(connectorVersion).values(row).onConflictDoNothing();
+    const upsertRow = { ...row };
+    delete upsertRow.id;
+    await db.db
+        .insert(connectorVersion)
+        .values(row)
+        .onConflictDoUpdate({
+        target: connectorVersion.id,
+        set: upsertRow,
+    });
     return row;
 }
 export async function readConnectorVersionById(db, versionId) {

@@ -60,7 +60,7 @@ export function inferCapabilitySideEffectClass(capabilityId) {
         return "external_write";
     if (notifyHints.has(actionHint))
         return "owner_attention";
-    return "owner_attention";
+    return "none";
 }
 function matchesCapabilityPattern(capabilityId, pattern) {
     if (pattern === capabilityId)

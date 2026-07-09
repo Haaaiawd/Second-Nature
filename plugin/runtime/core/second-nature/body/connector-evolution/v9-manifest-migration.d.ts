@@ -33,10 +33,10 @@
 import type { ConnectorVersion } from "../../../../shared/types/v9-contracts.js";
 export interface V8ConnectorManifest {
     platformId: string;
-    capabilities: {
+    capabilities: Array<string | {
         capabilityId: string;
         description?: string;
-    }[];
+    }>;
     runner?: {
         kind: string;
         config?: Record<string, unknown>;

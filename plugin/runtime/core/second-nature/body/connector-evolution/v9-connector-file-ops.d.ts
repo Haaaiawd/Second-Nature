@@ -51,6 +51,8 @@ export interface ConnectorAssetPaths {
 }
 /**
  * Resolve asset paths relative to workspaceRoot.
+ * Paths that escape workspaceRoot (including absolute paths and traversal)
+ * are filtered to undefined.
  */
 export declare function resolveAssetPaths(assets: ConnectorAssetPaths, workspaceRoot: string): ConnectorAssetPaths;
 /**

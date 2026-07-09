@@ -51,7 +51,7 @@ function makeGuard(overrides: Partial<ToolRoutineGuardSchema> = {}): ToolRoutine
     version: "1.0.0",
     allowedCapabilities: ["moltbook:feed.read"],
     deniedCapabilities: [],
-    maxSideEffectClass: "owner_attention",
+    maxSideEffectClass: "none",
     requiresOwnerConfirm: false,
     maxStepCount: 5,
     maxTimeoutMs: 5000,
@@ -231,7 +231,7 @@ describe("T6.2.2 validateGuardSchema", () => {
   });
 
   it("denies maxSideEffectClass exceeding trigger capability ceiling", () => {
-    // feed.read → owner_attention ceiling; guard claims external_write → expansion denied
+    // feed.read → none ceiling; guard claims external_write → expansion denied
     const guard = makeGuard({ maxSideEffectClass: "external_write" });
     const result = validateGuardSchema(guardJson(guard), {
       triggerCapabilities: ["moltbook:feed.read"],

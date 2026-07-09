@@ -104,7 +104,7 @@ export declare function buildRollbackCommandHint(platformId: string, currentVers
  */
 export declare function deriveTargetVersion(plan: ConnectorEvolutionPlan, workspaceRoot: string, generateId: () => string, now: () => string): ConnectorVersion;
 export declare function applyConnectorEvolution(plan: ConnectorEvolutionPlan, workspaceRoot: string, deps: ConnectorEvolutionEngineDeps): Promise<EvolutionApplyResult>;
-export declare function rollbackConnectorVersion(versionId: string, deps: ConnectorEvolutionEngineDeps): Promise<RollbackResult>;
+export declare function rollbackConnectorVersion(versionId: string, deps: ConnectorEvolutionEngineDeps, reason?: string): Promise<RollbackResult>;
 import type { StateDatabase } from "../../../../storage/db/index.js";
 export declare function createStateStoreVersionPort(db: StateDatabase): ConnectorVersionStorePort;
 export declare function createStateStoreLedgerPort(db: StateDatabase): LedgerWritePort;

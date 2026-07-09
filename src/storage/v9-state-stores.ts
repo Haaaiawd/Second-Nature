@@ -24,7 +24,7 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
 import type { StateDatabase } from "./db/index.js";
 import {
   attentionSignal,
@@ -222,7 +222,6 @@ export async function readActivityThreadsByStatus(
   status: ActivityThreadRecord["status"],
   options: { limit?: number; orderBy?: "asc" | "desc" } = {},
 ): Promise<ActivityThreadRecord[]> {
-  const { desc, asc } = await import("drizzle-orm");
   const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
   const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
   if (options.limit !== undefined && options.limit > 0) {
@@ -775,7 +774,15 @@ export async function writeConnectorVersion(
     activatedAt: options.activatedAt,
     rolledBackAt: options.rolledBackAt,
   };
-  await db.db.insert(connectorVersion).values(row).onConflictDoNothing();
+  const upsertRow = { ...row };
+  delete (upsertRow as { id?: string }).id;
+  await db.db
+    .insert(connectorVersion)
+    .values(row)
+    .onConflictDoUpdate({
+      target: connectorVersion.id,
+      set: upsertRow,
+    });
   return row as ConnectorVersionRecord;
 }
 

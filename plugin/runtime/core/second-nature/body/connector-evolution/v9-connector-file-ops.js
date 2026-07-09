@@ -22,7 +22,7 @@
  * Test coverage: `tests/integration/connectors/v9-manifest-migration.test.ts`
  */
 import { promises as fs } from "node:fs";
-import { join, dirname, basename } from "node:path";
+import { join, dirname, basename, resolve as resolvePath, relative } from "node:path";
 export const CONNECTOR_ASSET_FILE_LOCK_TIMEOUT_MS = 5_000;
 export const CONNECTOR_ASSET_ATOMIC_RENAME = true;
 // ───────────────────────────────────────────────────────────────
@@ -117,6 +117,17 @@ export async function safeReadYaml(filePath) {
         return undefined;
     }
 }
+function parseListItemValue(itemValue) {
+    if (itemValue.includes(": ")) {
+        const obj = {};
+        const pair = itemValue.split(": ", 2);
+        if (pair.length === 2) {
+            obj[pair[0].trim()] = pair[1].trim();
+            return obj;
+        }
+    }
+    return itemValue;
+}
 function parseSimpleYaml(content) {
     // Minimal YAML parser for connector manifests.
     // Handles: key: value, nested objects via indentation, list items via "- ".
@@ -136,18 +147,20 @@ function parseSimpleYaml(content) {
         const current = stack[stack.length - 1].obj;
         if (trimmed.startsWith("- ")) {
             // List item — convert the last key's value to an array if needed.
+            // If the item contains a `key: value` form, parse it as a small object.
             const itemValue = trimmed.slice(2).trim();
+            const listItem = parseListItemValue(itemValue);
             const lastKey = Object.keys(current).pop();
             if (lastKey) {
                 if (Array.isArray(current[lastKey])) {
-                    current[lastKey].push(itemValue);
+                    current[lastKey].push(listItem);
                 }
                 else if (current[lastKey] && typeof current[lastKey] === "object" && Object.keys(current[lastKey]).length === 0) {
                     // Was created as nested object but is actually a list
-                    current[lastKey] = [itemValue];
+                    current[lastKey] = [listItem];
                 }
                 else if (current[lastKey] === undefined) {
-                    current[lastKey] = [itemValue];
+                    current[lastKey] = [listItem];
                 }
             }
         }
@@ -171,20 +184,26 @@ function parseSimpleYaml(content) {
     }
     return result;
 }
+function resolveWorkspacePath(workspaceRoot, relativePath) {
+    if (!relativePath)
+        return undefined;
+    const resolved = resolvePath(workspaceRoot, relativePath);
+    const rel = relative(workspaceRoot, resolved);
+    if (rel.startsWith("..") || rel === "") {
+        return undefined;
+    }
+    return resolved;
+}
 /**
  * Resolve asset paths relative to workspaceRoot.
+ * Paths that escape workspaceRoot (including absolute paths and traversal)
+ * are filtered to undefined.
  */
 export function resolveAssetPaths(assets, workspaceRoot) {
     return {
-        manifestPath: assets.manifestPath
-            ? join(workspaceRoot, assets.manifestPath)
-            : undefined,
-        recipePath: assets.recipePath
-            ? join(workspaceRoot, assets.recipePath)
-            : undefined,
-        adapterPath: assets.adapterPath
-            ? join(workspaceRoot, assets.adapterPath)
-            : undefined,
+        manifestPath: resolveWorkspacePath(workspaceRoot, assets.manifestPath),
+        recipePath: resolveWorkspacePath(workspaceRoot, assets.recipePath),
+        adapterPath: resolveWorkspacePath(workspaceRoot, assets.adapterPath),
     };
 }
 /**

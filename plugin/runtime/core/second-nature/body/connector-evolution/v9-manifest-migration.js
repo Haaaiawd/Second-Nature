@@ -94,7 +94,7 @@ export async function migrateV8ConnectorManifest(workspaceRoot, manifestPath, de
         manifestPath,
         recipePath: manifest.recipePath,
         adapterPath: manifest.adapterPath,
-        declaredCapabilities: manifest.capabilities.map((c) => c.capabilityId),
+        declaredCapabilities: manifest.capabilities.map((c) => typeof c === "string" ? c : c.capabilityId),
         gateResults,
         status: "candidate",
         sourceRefs,

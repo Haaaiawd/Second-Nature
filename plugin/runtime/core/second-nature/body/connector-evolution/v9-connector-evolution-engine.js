@@ -177,7 +177,7 @@ export async function applyConnectorEvolution(plan, workspaceRoot, deps) {
             reasonCode: "evolution_canary_failed",
             sourceRefs: plan.sourceRefs,
         });
-        const rollback = await rollbackConnectorVersion(version.versionId, deps);
+        const rollback = await rollbackConnectorVersion(version.versionId, deps, "canary_failure");
         return {
             status: rollback.status === "rolled_back" ? "rolled_back" : "blocked",
             version,
@@ -194,7 +194,7 @@ export async function applyConnectorEvolution(plan, workspaceRoot, deps) {
 // ───────────────────────────────────────────────────────────────
 // rollbackConnectorVersion (§3.9)
 // ───────────────────────────────────────────────────────────────
-export async function rollbackConnectorVersion(versionId, deps) {
+export async function rollbackConnectorVersion(versionId, deps, reason = "manual_rollback") {
     const now = deps.now ?? (() => new Date().toISOString());
     const generateId = deps.generateId ?? defaultGenerateId;
     const current = await deps.store.readVersionById(versionId);
@@ -249,7 +249,7 @@ export async function rollbackConnectorVersion(versionId, deps) {
         gateResultsJson: JSON.stringify([{ gate: "rollback", passed: true }]),
         rollbackCommandHint: rollbackHint,
         sourceRefs: current.sourceRefs,
-        redactedPayloadJson: JSON.stringify({ reason: "canary_failure" }),
+        redactedPayloadJson: JSON.stringify({ reason }),
         createdAt: now(),
         activatedAt: now(),
     });

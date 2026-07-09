@@ -41,7 +41,7 @@ function makeGuard(overrides: Partial<ToolRoutineGuardSchema> = {}): ToolRoutine
     version: "1.0.0",
     allowedCapabilities: ["moltbook:feed.read"],
     deniedCapabilities: [],
-    maxSideEffectClass: "owner_attention",
+    maxSideEffectClass: "none",
     requiresOwnerConfirm: false,
     maxStepCount: 5,
     maxTimeoutMs: 5000,
