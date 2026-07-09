@@ -24,7 +24,7 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 import { eq, and, desc, asc } from "drizzle-orm";
-import { attentionSignal, activityThread, activityStep, toolRoutine, proceduralProjection, connectorEvolutionPlan, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
+import { attentionSignal, activityThread, activityStep, toolRoutine, routineExecutionTrace, proceduralProjection, connectorEvolutionPlan, connectorVersion, characterFrame, selfContinuityCard, autonomousChangeLedger, } from "./db/schema/v9-entities.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 // ───────────────────────────────────────────────────────────────
 // Shared helpers
@@ -146,7 +146,7 @@ export async function readActivityStepsByThreadId(db, threadId, limit = 50) {
         .limit(limit);
 }
 // ───────────────────────────────────────────────────────────────
-// ToolRoutine read port (T6.2.1)
+// ToolRoutine read/write ports (T6.2.1 affordance + T6.2.2 registry)
 // ───────────────────────────────────────────────────────────────
 export async function readActiveToolRoutinesByCapabilityPattern(db, capabilityPattern) {
     return db.db
@@ -171,6 +171,38 @@ export async function readToolRoutinesByStatus(db, status) {
         };
     }
 }
+export async function readToolRoutineById(db, id) {
+    const rows = await db.db.select().from(toolRoutine).where(eq(toolRoutine.id, id));
+    return rows[0];
+}
+function buildToolRoutinePayloadJson(options) {
+    const explicit = options.payloadJson ? safeParseJson(options.payloadJson) : {};
+    const merged = { ...(explicit ?? {}) };
+    if (options.triggerCapabilities !== undefined) {
+        merged.triggerCapabilities = options.triggerCapabilities;
+    }
+    if (options.triggerConditionsJson !== undefined) {
+        merged.triggerConditionsJson = options.triggerConditionsJson;
+    }
+    if (options.stepsJson !== undefined) {
+        merged.stepsJson = options.stepsJson;
+    }
+    if (options.guardSchemaJson !== undefined) {
+        merged.guardSchemaJson = options.guardSchemaJson;
+    }
+    if (Object.keys(merged).length === 0)
+        return options.payloadJson;
+    return JSON.stringify(merged);
+}
+function safeParseJson(s) {
+    try {
+        const v = JSON.parse(s);
+        return v && typeof v === "object" && !Array.isArray(v) ? v : null;
+    }
+    catch {
+        return null;
+    }
+}
 export async function writeToolRoutine(db, options) {
     if (options.sourceRefs.length === 0) {
         throw new Error("tool_routine sourceRefs required");
@@ -184,12 +216,78 @@ export async function writeToolRoutine(db, options) {
         status: options.status ?? "active",
         sourceRefsJson: serializeSourceRefs(options.sourceRefs),
         rollbackRef: options.rollbackRef,
-        payloadJson: options.payloadJson,
+        guardRefsJson: options.guardRefs ? JSON.stringify(options.guardRefs) : undefined,
+        ledgerRef: options.ledgerRef,
+        redactionClass: options.redactionClass ?? "none",
+        payloadJson: buildToolRoutinePayloadJson(options),
         activatedAt: options.activatedAt,
         retiredAt: options.retiredAt,
     };
     await db.db.insert(toolRoutine).values(row);
     return row;
+}
+export async function updateToolRoutineStatus(db, id, status, patch) {
+    try {
+        const set = { status, ...patch };
+        await db.db.update(toolRoutine).set(set).where(eq(toolRoutine.id, id));
+        const rows = await db.db.select().from(toolRoutine).where(eq(toolRoutine.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeRoutineExecutionTrace(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("routine_execution_trace sourceRefs required");
+    }
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        routineId: options.routineId,
+        cycleId: options.cycleId,
+        status: options.status,
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        proofRefsJson: options.proofRefs ? JSON.stringify(options.proofRefs) : undefined,
+        traceRefsJson: options.traceRefs ? JSON.stringify(options.traceRefs) : undefined,
+        payloadJson: options.payloadJson,
+    };
+    await db.db.insert(routineExecutionTrace).values(row);
+    return row;
+}
+export async function readRoutineExecutionTracesByRoutine(db, routineId, limit = 50) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(routineExecutionTrace)
+            .where(eq(routineExecutionTrace.routineId, routineId))
+            .orderBy(desc(routineExecutionTrace.createdAt))
+            .limit(limit);
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
+}
+export async function readRoutineExecutionTracesByCycle(db, cycleId, limit = 50) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(routineExecutionTrace)
+            .where(eq(routineExecutionTrace.cycleId, cycleId))
+            .orderBy(desc(routineExecutionTrace.createdAt))
+            .limit(limit);
+        return { rows };
+    }
+    catch {
+        return {
+            rows: [],
+            degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+        };
+    }
 }
 export async function writeProceduralProjection(db, options) {
     if (options.sourceRefs.length === 0) {
@@ -315,6 +413,104 @@ export async function updateConnectorEvolutionPlanStatus(db, id, status, payload
             .select()
             .from(connectorEvolutionPlan)
             .where(eq(connectorEvolutionPlan.id, id));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function writeConnectorVersion(db, options) {
+    if (options.sourceRefs.length === 0) {
+        throw new Error("connector_version sourceRefs required");
+    }
+    const assetPaths = {};
+    if (options.manifestPath)
+        assetPaths.manifestPath = options.manifestPath;
+    if (options.recipePath)
+        assetPaths.recipePath = options.recipePath;
+    if (options.adapterPath)
+        assetPaths.adapterPath = options.adapterPath;
+    const payload = {};
+    if (options.workspaceRoot)
+        payload.workspaceRoot = options.workspaceRoot;
+    if (options.planType)
+        payload.planType = options.planType;
+    if (options.gateResults)
+        payload.gateResults = options.gateResults;
+    const row = {
+        id: options.id,
+        createdAt: options.createdAt,
+        platformId: options.platformId,
+        versionId: options.versionId,
+        sequence: options.sequence,
+        assetPathsJson: Object.keys(assetPaths).length > 0 ? JSON.stringify(assetPaths) : null,
+        declaredCapabilitiesJson: options.declaredCapabilities
+            ? JSON.stringify(options.declaredCapabilities)
+            : null,
+        status: options.status ?? "candidate",
+        previousStableRef: options.previousStableRef,
+        rollbackRef: options.rollbackRef,
+        rollbackCommandHint: options.rollbackCommandHint,
+        sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+        payloadJson: Object.keys(payload).length > 0 ? JSON.stringify(payload) : null,
+        activatedAt: options.activatedAt,
+        rolledBackAt: options.rolledBackAt,
+    };
+    const upsertRow = { ...row };
+    delete upsertRow.id;
+    await db.db
+        .insert(connectorVersion)
+        .values(row)
+        .onConflictDoUpdate({
+        target: connectorVersion.id,
+        set: upsertRow,
+    });
+    return row;
+}
+export async function readConnectorVersionById(db, versionId) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorVersion)
+            .where(eq(connectorVersion.versionId, versionId));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function readActiveConnectorVersion(db, platformId) {
+    try {
+        const rows = await db.db
+            .select()
+            .from(connectorVersion)
+            .where(and(eq(connectorVersion.platformId, platformId), eq(connectorVersion.status, "active")))
+            .orderBy(desc(connectorVersion.createdAt));
+        return rows[0];
+    }
+    catch {
+        return undefined;
+    }
+}
+export async function updateConnectorVersionStatus(db, versionId, status, patch) {
+    try {
+        const updateSet = { status };
+        if (patch?.rollbackRef !== undefined)
+            updateSet.rollbackRef = patch.rollbackRef;
+        if (patch?.rollbackCommandHint !== undefined)
+            updateSet.rollbackCommandHint = patch.rollbackCommandHint;
+        if (patch?.activatedAt !== undefined)
+            updateSet.activatedAt = patch.activatedAt;
+        if (patch?.rolledBackAt !== undefined)
+            updateSet.rolledBackAt = patch.rolledBackAt;
+        await db.db
+            .update(connectorVersion)
+            .set(updateSet)
+            .where(eq(connectorVersion.versionId, versionId));
+        const rows = await db.db
+            .select()
+            .from(connectorVersion)
+            .where(eq(connectorVersion.versionId, versionId));
         return rows[0];
     }
     catch {

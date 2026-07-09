@@ -76,6 +76,15 @@ export function parseToolRoutineGuardSchema(input) {
         },
     };
 }
+/** Pre-activation gates in §4.2 order. */
+export const PRE_ACTIVATION_GATES = [
+    "schema",
+    "permission",
+    "sandbox",
+    "fixture",
+    "wet_probe",
+    "rollback_setup",
+];
 export const V9_ACTION_KIND_REGISTRY = {
     ignore: {
         kind: "ignore",
