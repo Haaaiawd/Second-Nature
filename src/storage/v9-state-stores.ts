@@ -24,15 +24,17 @@
  * Test coverage: tests/integration/storage/v9-schema-migration.test.ts
  */
 
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import type { StateDatabase } from "./db/index.js";
 import {
   attentionSignal,
   activityThread,
   activityStep,
   toolRoutine,
+  routineExecutionTrace,
   proceduralProjection,
   connectorEvolutionPlan,
+  connectorVersion,
   characterFrame,
   selfContinuityCard,
   autonomousChangeLedger,
@@ -44,10 +46,14 @@ import {
   type NewActivityStepRecord,
   type ToolRoutineRecord,
   type NewToolRoutineRecord,
+  type RoutineExecutionTraceRecord,
+  type NewRoutineExecutionTraceRecord,
   type ProceduralProjectionRecord,
   type NewProceduralProjectionRecord,
   type ConnectorEvolutionPlanRecord,
   type NewConnectorEvolutionPlanRecord,
+  type ConnectorVersionRecord,
+  type NewConnectorVersionRecord,
   type CharacterFrameRecord,
   type NewCharacterFrameRecord,
   type SelfContinuityCardRecord,
@@ -55,7 +61,12 @@ import {
   type AutonomousChangeLedgerRecord,
   type NewAutonomousChangeLedgerRecord,
 } from "./db/schema/v9-entities.js";
-import type { SourceRef } from "../shared/types/v9-contracts.js";
+import type {
+  SourceRef,
+  ConnectorVersionStatus,
+  ConnectorPlanType,
+  GateResult,
+} from "../shared/types/v9-contracts.js";
 import type { DegradedOperationResult } from "../shared/types/v8-contracts.js";
 import { classifyDegradedStatus } from "../shared/degraded-status-classifier.js";
 
@@ -211,6 +222,7 @@ export async function readActivityThreadsByStatus(
   status: ActivityThreadRecord["status"],
   options: { limit?: number; orderBy?: "asc" | "desc" } = {},
 ): Promise<ActivityThreadRecord[]> {
+  const { desc, asc } = await import("drizzle-orm");
   const order = options.orderBy === "asc" ? asc(activityThread.updatedAt) : desc(activityThread.updatedAt);
   const query = db.db.select().from(activityThread).where(eq(activityThread.status, status)).orderBy(order);
   if (options.limit !== undefined && options.limit > 0) {
@@ -288,7 +300,7 @@ export async function readActivityStepsByThreadId(
 }
 
 // ───────────────────────────────────────────────────────────────
-// ToolRoutine read port (T6.2.1)
+// ToolRoutine read/write ports (T6.2.1 affordance + T6.2.2 registry)
 // ───────────────────────────────────────────────────────────────
 
 export async function readActiveToolRoutinesByCapabilityPattern(
@@ -326,6 +338,14 @@ export async function readToolRoutinesByStatus(
   }
 }
 
+export async function readToolRoutineById(
+  db: StateDatabase,
+  id: string,
+): Promise<ToolRoutineRecord | undefined> {
+  const rows = await db.db.select().from(toolRoutine).where(eq(toolRoutine.id, id));
+  return rows[0];
+}
+
 export interface WriteToolRoutineOptions {
   id: string;
   name: string;
@@ -334,10 +354,48 @@ export interface WriteToolRoutineOptions {
   status?: ToolRoutineRecord["status"];
   sourceRefs: SourceRef[];
   rollbackRef?: string;
+  // T6.2.2: guard evidence refs + ledger linkage + redaction class
+  guardRefs?: SourceRef[];
+  ledgerRef?: string;
+  redactionClass?: ToolRoutineRecord["redactionClass"];
+  // T6.2.2: routine body fields persisted into payloadJson as a single object.
+  // When provided, these are merged into payloadJson alongside any explicit payloadJson.
+  triggerCapabilities?: string[];
+  triggerConditionsJson?: string;
+  stepsJson?: string;
+  guardSchemaJson?: string;
   payloadJson?: string;
   activatedAt?: string;
   retiredAt?: string;
   createdAt: string;
+}
+
+function buildToolRoutinePayloadJson(options: WriteToolRoutineOptions): string | undefined {
+  const explicit = options.payloadJson ? safeParseJson(options.payloadJson) : {};
+  const merged: Record<string, unknown> = { ...(explicit ?? {}) };
+  if (options.triggerCapabilities !== undefined) {
+    merged.triggerCapabilities = options.triggerCapabilities;
+  }
+  if (options.triggerConditionsJson !== undefined) {
+    merged.triggerConditionsJson = options.triggerConditionsJson;
+  }
+  if (options.stepsJson !== undefined) {
+    merged.stepsJson = options.stepsJson;
+  }
+  if (options.guardSchemaJson !== undefined) {
+    merged.guardSchemaJson = options.guardSchemaJson;
+  }
+  if (Object.keys(merged).length === 0) return options.payloadJson;
+  return JSON.stringify(merged);
+}
+
+function safeParseJson(s: string): Record<string, unknown> | null {
+  try {
+    const v = JSON.parse(s);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function writeToolRoutine(
@@ -356,12 +414,113 @@ export async function writeToolRoutine(
     status: options.status ?? "active",
     sourceRefsJson: serializeSourceRefs(options.sourceRefs),
     rollbackRef: options.rollbackRef,
-    payloadJson: options.payloadJson,
+    guardRefsJson: options.guardRefs ? JSON.stringify(options.guardRefs) : undefined,
+    ledgerRef: options.ledgerRef,
+    redactionClass: options.redactionClass ?? "none",
+    payloadJson: buildToolRoutinePayloadJson(options),
     activatedAt: options.activatedAt,
     retiredAt: options.retiredAt,
   };
   await db.db.insert(toolRoutine).values(row);
   return row as ToolRoutineRecord;
+}
+
+export async function updateToolRoutineStatus(
+  db: StateDatabase,
+  id: string,
+  status: ToolRoutineRecord["status"],
+  patch?: Partial<
+    Pick<ToolRoutineRecord, "activatedAt" | "retiredAt" | "ledgerRef" | "payloadJson">
+  >,
+): Promise<ToolRoutineRecord | undefined> {
+  try {
+    const set: Partial<ToolRoutineRecord> = { status, ...patch };
+    await db.db.update(toolRoutine).set(set).where(eq(toolRoutine.id, id));
+    const rows = await db.db.select().from(toolRoutine).where(eq(toolRoutine.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// RoutineExecutionTrace read/write ports (T6.2.2)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteRoutineExecutionTraceOptions {
+  id: string;
+  routineId: string;
+  cycleId: string;
+  status: RoutineExecutionTraceRecord["status"];
+  sourceRefs: SourceRef[];
+  proofRefs?: SourceRef[];
+  traceRefs?: SourceRef[];
+  payloadJson?: string;
+  createdAt: string;
+}
+
+export async function writeRoutineExecutionTrace(
+  db: StateDatabase,
+  options: WriteRoutineExecutionTraceOptions,
+): Promise<RoutineExecutionTraceRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("routine_execution_trace sourceRefs required");
+  }
+  const row: NewRoutineExecutionTraceRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    routineId: options.routineId,
+    cycleId: options.cycleId,
+    status: options.status,
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    proofRefsJson: options.proofRefs ? JSON.stringify(options.proofRefs) : undefined,
+    traceRefsJson: options.traceRefs ? JSON.stringify(options.traceRefs) : undefined,
+    payloadJson: options.payloadJson,
+  };
+  await db.db.insert(routineExecutionTrace).values(row);
+  return row as RoutineExecutionTraceRecord;
+}
+
+export async function readRoutineExecutionTracesByRoutine(
+  db: StateDatabase,
+  routineId: string,
+  limit = 50,
+): Promise<{ rows: RoutineExecutionTraceRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(routineExecutionTrace)
+      .where(eq(routineExecutionTrace.routineId, routineId))
+      .orderBy(desc(routineExecutionTrace.createdAt))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
+}
+
+export async function readRoutineExecutionTracesByCycle(
+  db: StateDatabase,
+  cycleId: string,
+  limit = 50,
+): Promise<{ rows: RoutineExecutionTraceRecord[]; degraded?: DegradedOperationResult }> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(routineExecutionTrace)
+      .where(eq(routineExecutionTrace.cycleId, cycleId))
+      .orderBy(desc(routineExecutionTrace.createdAt))
+      .limit(limit);
+    return { rows };
+  } catch {
+    return {
+      rows: [],
+      degraded: makeDegraded("state_unreadable", "projection", "Check state database connectivity"),
+    };
+  }
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -548,6 +707,140 @@ export async function updateConnectorEvolutionPlanStatus(
       .select()
       .from(connectorEvolutionPlan)
       .where(eq(connectorEvolutionPlan.id, id));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+// ───────────────────────────────────────────────────────────────
+// ConnectorVersion (T6.3.1)
+// ───────────────────────────────────────────────────────────────
+
+export interface WriteConnectorVersionOptions {
+  id: string;
+  createdAt: string;
+  platformId: string;
+  versionId: string;
+  sequence?: number;
+  /** { manifestPath, recipePath?, adapterPath? } serialized into assetPathsJson. */
+  manifestPath?: string;
+  recipePath?: string;
+  adapterPath?: string;
+  declaredCapabilities?: string[];
+  status?: ConnectorVersionStatus;
+  previousStableRef?: string;
+  rollbackRef?: string;
+  rollbackCommandHint?: string;
+  sourceRefs: SourceRef[];
+  /** Additional payload (gateResults, workspaceRoot, planType) stored in payloadJson. */
+  workspaceRoot?: string;
+  planType?: ConnectorPlanType;
+  gateResults?: GateResult[];
+  activatedAt?: string;
+  rolledBackAt?: string;
+}
+
+export async function writeConnectorVersion(
+  db: StateDatabase,
+  options: WriteConnectorVersionOptions,
+): Promise<ConnectorVersionRecord> {
+  if (options.sourceRefs.length === 0) {
+    throw new Error("connector_version sourceRefs required");
+  }
+  const assetPaths: Record<string, string> = {};
+  if (options.manifestPath) assetPaths.manifestPath = options.manifestPath;
+  if (options.recipePath) assetPaths.recipePath = options.recipePath;
+  if (options.adapterPath) assetPaths.adapterPath = options.adapterPath;
+  const payload: Record<string, unknown> = {};
+  if (options.workspaceRoot) payload.workspaceRoot = options.workspaceRoot;
+  if (options.planType) payload.planType = options.planType;
+  if (options.gateResults) payload.gateResults = options.gateResults;
+  const row: NewConnectorVersionRecord = {
+    id: options.id,
+    createdAt: options.createdAt,
+    platformId: options.platformId,
+    versionId: options.versionId,
+    sequence: options.sequence,
+    assetPathsJson: Object.keys(assetPaths).length > 0 ? JSON.stringify(assetPaths) : null,
+    declaredCapabilitiesJson: options.declaredCapabilities
+      ? JSON.stringify(options.declaredCapabilities)
+      : null,
+    status: options.status ?? "candidate",
+    previousStableRef: options.previousStableRef,
+    rollbackRef: options.rollbackRef,
+    rollbackCommandHint: options.rollbackCommandHint,
+    sourceRefsJson: serializeSourceRefs(options.sourceRefs),
+    payloadJson: Object.keys(payload).length > 0 ? JSON.stringify(payload) : null,
+    activatedAt: options.activatedAt,
+    rolledBackAt: options.rolledBackAt,
+  };
+  await db.db.insert(connectorVersion).values(row).onConflictDoNothing();
+  return row as ConnectorVersionRecord;
+}
+
+export async function readConnectorVersionById(
+  db: StateDatabase,
+  versionId: string,
+): Promise<ConnectorVersionRecord | undefined> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorVersion)
+      .where(eq(connectorVersion.versionId, versionId));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+export async function readActiveConnectorVersion(
+  db: StateDatabase,
+  platformId: string,
+): Promise<ConnectorVersionRecord | undefined> {
+  try {
+    const rows = await db.db
+      .select()
+      .from(connectorVersion)
+      .where(
+        and(
+          eq(connectorVersion.platformId, platformId),
+          eq(connectorVersion.status, "active"),
+        ),
+      )
+      .orderBy(desc(connectorVersion.createdAt));
+    return rows[0];
+  } catch {
+    return undefined;
+  }
+}
+
+export async function updateConnectorVersionStatus(
+  db: StateDatabase,
+  versionId: string,
+  status: ConnectorVersionStatus,
+  patch?: Partial<{
+    rollbackRef: string;
+    rollbackCommandHint: string;
+    activatedAt: string;
+    rolledBackAt: string;
+  }>,
+): Promise<ConnectorVersionRecord | undefined> {
+  try {
+    const updateSet: Record<string, unknown> = { status };
+    if (patch?.rollbackRef !== undefined) updateSet.rollbackRef = patch.rollbackRef;
+    if (patch?.rollbackCommandHint !== undefined)
+      updateSet.rollbackCommandHint = patch.rollbackCommandHint;
+    if (patch?.activatedAt !== undefined) updateSet.activatedAt = patch.activatedAt;
+    if (patch?.rolledBackAt !== undefined) updateSet.rolledBackAt = patch.rolledBackAt;
+    await db.db
+      .update(connectorVersion)
+      .set(updateSet)
+      .where(eq(connectorVersion.versionId, versionId));
+    const rows = await db.db
+      .select()
+      .from(connectorVersion)
+      .where(eq(connectorVersion.versionId, versionId));
     return rows[0];
   } catch {
     return undefined;
