@@ -102,7 +102,7 @@ export async function migrateV8ConnectorManifest(
   } else if (manifestPath.endsWith(".yaml") || manifestPath.endsWith(".yml")) {
     manifest = await safeReadYaml<V8ConnectorManifest>(join(workspaceRoot, manifestPath));
   }
-  if (!manifest || !manifest.platformId) return undefined;
+  if (!manifest || !manifest.platformId || !Array.isArray(manifest.capabilities)) return undefined;
 
   // Check if a v9 ConnectorVersion already exists for this platform.
   const existing = await deps.store.readActiveVersion(manifest.platformId);
