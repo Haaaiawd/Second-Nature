@@ -265,11 +265,39 @@ export function redactLedgerEntry(
  * Timeline rows are read-only projections; redaction is applied on read,
  * not on write. Credential values are masked (not blocked) since the
  * timeline is a derived view.
+ *
+ * When credential-shaped values are detected, the entire payload is
+ * replaced with a safe placeholder to ensure credentials never leak
+ * through timeline reads. The redaction policy alone only masks known
+ * sensitive keys — credential values in non-sensitive fields would
+ * pass through unmasked.
  */
 export function redactTimelinePayload(
   payloadJson: string | undefined | null,
   policy: RedactionPolicy = DEFAULT_REDACTION_POLICY,
 ): V9RedactionResult {
+  if (!payloadJson || payloadJson.trim() === "") {
+    return {
+      json: payloadJson ?? "",
+      containsCredentialValue: false,
+      wasRedacted: false,
+      manifest: { maskedPaths: [], erasedPaths: [], hashedPaths: [] },
+    };
+  }
+
+  const hasCredential = containsCredentialValue(payloadJson);
+  if (hasCredential) {
+    // Replace entire payload with a safe placeholder — credential values
+    // in non-sensitive fields would survive key-based redaction alone.
+    return {
+      json: JSON.stringify({ redacted: "credential_value_detected" }),
+      containsCredentialValue: true,
+      wasRedacted: true,
+      manifest: { maskedPaths: [], erasedPaths: ["$"], hashedPaths: [] },
+    };
+  }
+
+  // No credential values — apply normal key-based redaction.
   return redactPayloadJson(payloadJson, policy);
 }
 

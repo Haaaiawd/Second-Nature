@@ -635,17 +635,39 @@ export function createV9EmbodiedContextAssembler(
           const result = await withTimeout(sliceLoaders[name](), sliceTimeouts[name]);
           return { name, result, durationMs: Date.now() - sliceStart, timedOut: false };
         } catch (err) {
+          const isTimeout = err instanceof Error && err.message === "slice_timeout";
+          const reason = isTimeout ? "slice_timeout" : err instanceof Error ? err.message : String(err);
+          // characterFrame is a composite slice with { pointer, projection }.
+          // The generic fallback `data: {}` would leave both fields undefined,
+          // causing downstream crashes. Produce proper deferred objects.
+          const fallbackData = name === "characterFrame"
+            ? {
+                pointer: {
+                  frameId: "deferred",
+                  summary: "character frame deferred",
+                  contestPrompt: "",
+                  sourceRefs: [],
+                  status: "deferred" as const,
+                },
+                projection: {
+                  frameId: "deferred",
+                  text: "character frame deferred",
+                  contestPrompt: "",
+                  sourceRefs: [],
+                  status: "deferred" as const,
+                },
+                reason,
+              }
+            : {} as unknown;
           return {
             name,
             result: {
               status: "degraded" as const,
-              data: {} as unknown,
-              reason: err instanceof Error && err.message === "slice_timeout"
-                ? "slice_timeout"
-                : err instanceof Error ? err.message : String(err),
+              data: fallbackData,
+              reason,
             } as ContextSlice<unknown>,
             durationMs: Date.now() - sliceStart,
-            timedOut: err instanceof Error && err.message === "slice_timeout",
+            timedOut: isTimeout,
           };
         }
       });

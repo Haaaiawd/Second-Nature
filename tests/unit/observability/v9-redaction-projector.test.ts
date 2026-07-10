@@ -204,9 +204,14 @@ describe("T8.1.2 redactTimelinePayload", () => {
     assert.equal(parsed.token, "[MASKED]");
   });
 
-  it("detects credential values in timeline payload", () => {
+  it("detects credential values in timeline payload and replaces with placeholder", () => {
     const result = redactTimelinePayload(JSON.stringify({ api_key: "AKIAABCDEFGHIJKLMNOP" }));
     assert.ok(result.containsCredentialValue);
+    assert.ok(result.wasRedacted);
+    const parsed = JSON.parse(result.json);
+    assert.equal(parsed.redacted, "credential_value_detected");
+    // Original credential value must not appear in output
+    assert.ok(!result.json.includes("AKIA"));
   });
 });
 

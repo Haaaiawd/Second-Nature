@@ -419,7 +419,7 @@ describe("T2.2.3 Context Assembly Deadline", () => {
       options: { hardDeadlineMs: 2000, criticalSliceTimeoutMs: 1500, nonCriticalSliceTimeoutMs: 100 },
     });
 
-    await assembler.assembleEmbodiedContext();
+    const ctx = await assembler.assembleEmbodiedContext();
 
     const report = reports[0];
     assert.ok(report.degradedSlices.length >= 5, `expected >=5 degraded slices, got ${report.degradedSlices.length}`);
@@ -428,6 +428,14 @@ describe("T2.2.3 Context Assembly Deadline", () => {
     assert.ok(report.timedOutSlices.includes("routineList"));
     assert.ok(report.timedOutSlices.includes("characterFrame"));
     assert.ok(report.timedOutSlices.includes("activityThreads"));
+
+    // Character frame timeout must produce valid deferred pointer/projection,
+    // not undefined (would crash downstream consumers).
+    assert.equal(ctx.characterFramePointer.status, "degraded");
+    assert.ok(ctx.characterFramePointer.data, "characterFramePointer.data must not be undefined after timeout");
+    assert.equal(ctx.characterFramePointer.data?.frameId, "deferred");
+    assert.ok(ctx.characterFrameProjection.data, "characterFrameProjection.data must not be undefined after timeout");
+    assert.equal(ctx.characterFrameProjection.data?.frameId, "deferred");
   });
 
   it("withinDeadline is false when total exceeds hard deadline", async () => {
