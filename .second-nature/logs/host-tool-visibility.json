@@ -1,41 +1,5 @@
 [
   {
-    "observedAt": "2026-06-20T07:14:03.462Z",
-    "command": "setup_hint",
-    "toolDiscovery": {
-      "status": "unsupported",
-      "tools": [],
-      "observedAt": "2026-06-20T07:14:03.461Z",
-      "reason": "host_probe_unsupported"
-    },
-    "skillDiscovery": {
-      "status": "unsupported",
-      "skills": [],
-      "observedAt": "2026-06-20T07:14:03.461Z",
-      "reason": "skill_probe_unsupported"
-    },
-    "evidenceLevel": "carrier_ack",
-    "setupComplete": false
-  },
-  {
-    "observedAt": "2026-06-20T07:14:03.473Z",
-    "command": "setup_ack",
-    "toolDiscovery": {
-      "status": "unsupported",
-      "tools": [],
-      "observedAt": "2026-06-20T07:14:03.473Z",
-      "reason": "host_probe_unsupported"
-    },
-    "skillDiscovery": {
-      "status": "unsupported",
-      "skills": [],
-      "observedAt": "2026-06-20T07:14:03.473Z",
-      "reason": "skill_probe_unsupported"
-    },
-    "evidenceLevel": "carrier_ack",
-    "setupComplete": false
-  },
-  {
     "observedAt": "2026-06-23T03:30:03.658Z",
     "command": "setup_hint",
     "toolDiscovery": {
@@ -894,6 +858,42 @@
       "status": "unsupported",
       "skills": [],
       "observedAt": "2026-06-29T01:29:36.776Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-07-10T09:02:30.247Z",
+    "command": "setup_hint",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-07-10T09:02:30.246Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-07-10T09:02:30.247Z",
+      "reason": "skill_probe_unsupported"
+    },
+    "evidenceLevel": "carrier_ack",
+    "setupComplete": false
+  },
+  {
+    "observedAt": "2026-07-10T09:02:30.255Z",
+    "command": "setup_ack",
+    "toolDiscovery": {
+      "status": "unsupported",
+      "tools": [],
+      "observedAt": "2026-07-10T09:02:30.255Z",
+      "reason": "host_probe_unsupported"
+    },
+    "skillDiscovery": {
+      "status": "unsupported",
+      "skills": [],
+      "observedAt": "2026-07-10T09:02:30.255Z",
       "reason": "skill_probe_unsupported"
     },
     "evidenceLevel": "carrier_ack",

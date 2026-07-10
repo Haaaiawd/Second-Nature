@@ -314,7 +314,7 @@ export async function runV9HeartbeatCycle(db, request, deps) {
     }
     // ── Attention stage ──
     await recordV9LoopStageEvent(db, {
-        id: `evt_${cycleId}_attention`,
+        id: `evt_${cycleId}_attention_started`,
         cycleId,
         cycleSequence,
         stage: "attention",
@@ -416,7 +416,7 @@ export async function runV9HeartbeatCycle(db, request, deps) {
     });
     // ── Activity thread stage ──
     await recordV9LoopStageEvent(db, {
-        id: `evt_${cycleId}_activity`,
+        id: `evt_${cycleId}_activity_started`,
         cycleId,
         cycleSequence,
         stage: "activity",
@@ -506,7 +506,7 @@ export async function runV9HeartbeatCycle(db, request, deps) {
     }
     // ── Policy evaluation / closure ──
     await recordV9LoopStageEvent(db, {
-        id: `evt_${cycleId}_policy`,
+        id: `evt_${cycleId}_policy_started`,
         cycleId,
         cycleSequence,
         stage: "policy",

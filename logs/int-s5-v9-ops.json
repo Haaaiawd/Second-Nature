@@ -70,7 +70,7 @@
         "id": "card-src"
       }
     ],
-    "generatedAt": "2026-06-29T01:29:47.777Z"
+    "generatedAt": "2026-07-10T09:02:39.170Z"
   },
   "routine.list": {
     "ok": true,
@@ -106,7 +106,7 @@
         "id": "r1"
       }
     ],
-    "generatedAt": "2026-06-29T01:29:47.825Z"
+    "generatedAt": "2026-07-10T09:02:39.198Z"
   },
   "routine.show": {
     "ok": true,
@@ -140,7 +140,7 @@
         "id": "r1"
       }
     ],
-    "generatedAt": "2026-06-29T01:29:47.907Z"
+    "generatedAt": "2026-07-10T09:02:39.247Z"
   },
   "connector_evolution.status": {
     "ok": true,
@@ -176,7 +176,7 @@
         "id": "plan-1"
       }
     ],
-    "generatedAt": "2026-06-29T01:29:47.945Z"
+    "generatedAt": "2026-07-10T09:02:39.281Z"
   },
   "loop_status.read": {
     "ok": true,
@@ -185,8 +185,8 @@
     "surfaceMode": "full_runtime",
     "payload": {
       "loop": {
-        "windowStart": "2026-06-28T01:29:47.973Z",
-        "windowEnd": "2026-06-29T01:29:47.973Z",
+        "windowStart": "2026-07-09T09:02:39.303Z",
+        "windowEnd": "2026-07-10T09:02:39.303Z",
         "overall": "healthy",
         "stageAttribution": {
           "evidence": "ok",
@@ -253,7 +253,7 @@
       "surfaceMode": "full_runtime"
     },
     "sourceRefs": [],
-    "generatedAt": "2026-06-29T01:29:47.973Z"
+    "generatedAt": "2026-07-10T09:02:39.305Z"
   },
   "continuity.read.carrier": {
     "ok": false,
@@ -277,7 +277,7 @@
       "host_tool_unavailable": true
     },
     "sourceRefs": [],
-    "generatedAt": "2026-06-29T01:29:47.973Z"
+    "generatedAt": "2026-07-10T09:02:39.305Z"
   },
   "redaction_gate": {
     "ok": true,
@@ -303,7 +303,7 @@
       ]
     },
     "sourceRefs": [],
-    "generatedAt": "2026-06-29T01:29:47.976Z"
+    "generatedAt": "2026-07-10T09:02:39.307Z"
   },
   "unknown.command": {
     "ok": false,
@@ -321,6 +321,6 @@
       "surfaceMode": "full_runtime"
     },
     "sourceRefs": [],
-    "generatedAt": "2026-06-29T01:29:47.977Z"
+    "generatedAt": "2026-07-10T09:02:39.307Z"
   }
 }
