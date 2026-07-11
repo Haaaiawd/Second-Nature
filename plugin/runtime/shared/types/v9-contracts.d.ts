@@ -647,7 +647,7 @@ export type RoutineInvocationProposal = Omit<ActionProposal, "actionKind" | "sid
     routineInvocationId: string;
     routineVersion: string;
 };
-export type LoopStageKind = "evidence" | "perception" | "attention" | "activity" | "proposal" | "policy" | "dispatch" | "closure" | "quiet" | "dream" | "continuity" | "connector_evolution" | "rollback";
+export type LoopStageKind = "evidence" | "perception" | "attention" | "activity" | "proposal" | "policy" | "dispatch" | "closure" | "quiet" | "dream" | "continuity" | "connector_evolution" | "rollback" | "context_assembly";
 export type StageEventStatus = "ok" | "degraded" | "blocked" | "skipped" | "empty";
 export type HealthOverall = "healthy" | "degraded" | "blocked";
 export type CharacterFrameEventKind = "refresh" | "accepted" | "rejected" | "revised" | "retired" | "superseded" | "deferred" | "conflict";
@@ -811,6 +811,14 @@ export interface ContinuityHealth {
     memoryProjectionCount: number;
     proceduralProjectionCount: number;
 }
+export interface ContextAssemblyLatencyReport {
+    totalDurationMs: number;
+    hardDeadlineMs: number;
+    withinDeadline: boolean;
+    sliceTimings: Record<string, number>;
+    degradedSlices: string[];
+    timedOutSlices: string[];
+}
 export interface RoutineHealth {
     installedCount: number;
     pendingValidationCount: number;
@@ -876,4 +884,57 @@ export interface AffordancePosture {
 export interface AffordanceQuery {
     platformId?: string;
     capabilityId?: string;
+}
+export type EvidenceLevel = "carrier_ack" | "contract_smoke" | "state_present" | "real_runtime" | "durable_verified";
+export type SurfaceMode = "carrier" | "full_runtime" | "workspace_full_runtime";
+export interface DegradedReason {
+    code: string;
+    message: string;
+    system?: string;
+}
+export interface RuntimeDiagnostics {
+    surfaceMode: SurfaceMode;
+    host_tool_unavailable?: boolean;
+    skill_projection_unavailable?: boolean;
+    state_store_unavailable?: boolean;
+    redactedKeys?: string[];
+    latencyMs?: number;
+}
+export interface RuntimeOpsEnvelopeV9<T = unknown> {
+    ok: boolean;
+    command: string;
+    evidenceLevel: EvidenceLevel;
+    surfaceMode: SurfaceMode;
+    payload: T;
+    degradedReasons: DegradedReason[];
+    diagnostics: RuntimeDiagnostics;
+    sourceRefs: SourceRef[];
+    generatedAt: string;
+}
+export interface ContinuityReadResult {
+    status: "available" | "unavailable";
+    card?: SelfContinuityCard;
+    characterFrameProjection?: EmbodiedContextCharacterProjection;
+    unavailableReason?: string;
+    sourceRefs: SourceRef[];
+}
+export interface RoutineReadModel {
+    routineId: string;
+    capabilityRef: string;
+    version: string;
+    status: "installed" | "disabled" | "rollback";
+    installedAt: string;
+    rollbackRef: SourceRef;
+    sourceRefs: SourceRef[];
+}
+export interface ConnectorEvolutionStatusReadModel {
+    planId: string;
+    platformId: string;
+    targetVersion: string;
+    previousStableRef?: SourceRef;
+    gateResults: GateResult[];
+    status: ConnectorEvolutionStatus;
+    activatedAt?: string;
+    rollbackRef?: SourceRef;
+    sourceRefs: SourceRef[];
 }

@@ -980,7 +980,8 @@ export type LoopStageKind =
   | "dream"
   | "continuity"
   | "connector_evolution"
-  | "rollback";
+  | "rollback"
+  | "context_assembly";
 
 export type StageEventStatus = "ok" | "degraded" | "blocked" | "skipped" | "empty";
 
@@ -1180,6 +1181,19 @@ export interface ContinuityHealth {
   proceduralProjectionCount: number;
 }
 
+// ───────────────────────────────────────────────────────────────
+// control-context-system.detail.md §3.3 — context assembly latency report
+// ───────────────────────────────────────────────────────────────
+
+export interface ContextAssemblyLatencyReport {
+  totalDurationMs: number;
+  hardDeadlineMs: number;
+  withinDeadline: boolean;
+  sliceTimings: Record<string, number>;
+  degradedSlices: string[];
+  timedOutSlices: string[];
+}
+
 export interface RoutineHealth {
   installedCount: number;
   pendingValidationCount: number;
@@ -1326,3 +1340,87 @@ export interface AffordanceQuery {
   platformId?: string;
   capabilityId?: string;
 }
+
+// ───────────────────────────────────────────────────────────────
+// 9. RuntimeOpsEnvelope v9 (T1.2.1)
+// ───────────────────────────────────────────────────────────────
+
+export type EvidenceLevel =
+  | "carrier_ack"
+  | "contract_smoke"
+  | "state_present"
+  | "real_runtime"
+  | "durable_verified";
+
+export type SurfaceMode = "carrier" | "full_runtime" | "workspace_full_runtime";
+
+export interface DegradedReason {
+  code: string;
+  message: string;
+  system?: string;
+}
+
+export interface RuntimeDiagnostics {
+  surfaceMode: SurfaceMode;
+  host_tool_unavailable?: boolean;
+  skill_projection_unavailable?: boolean;
+  state_store_unavailable?: boolean;
+  redactedKeys?: string[];
+  latencyMs?: number;
+}
+
+export interface RuntimeOpsEnvelopeV9<T = unknown> {
+  ok: boolean;
+  command: string;
+  evidenceLevel: EvidenceLevel;
+  surfaceMode: SurfaceMode;
+  payload: T;
+  degradedReasons: DegradedReason[];
+  diagnostics: RuntimeDiagnostics;
+  sourceRefs: SourceRef[];
+  generatedAt: string;
+}
+
+// ───────────────────────────────────────────────────────────────
+// 9a. ContinuityReadResult (§2.2)
+// ───────────────────────────────────────────────────────────────
+
+export interface ContinuityReadResult {
+  status: "available" | "unavailable";
+  card?: SelfContinuityCard;
+  characterFrameProjection?: EmbodiedContextCharacterProjection;
+  unavailableReason?: string;
+  sourceRefs: SourceRef[];
+}
+
+// ───────────────────────────────────────────────────────────────
+// 9b. RoutineReadModel (§2.3)
+// ───────────────────────────────────────────────────────────────
+
+export interface RoutineReadModel {
+  routineId: string;
+  capabilityRef: string;
+  version: string;
+  status: "installed" | "disabled" | "rollback";
+  installedAt: string;
+  rollbackRef: SourceRef;
+  sourceRefs: SourceRef[];
+}
+
+// ───────────────────────────────────────────────────────────────
+// 9c. ConnectorEvolutionStatusReadModel (§2.4)
+// ───────────────────────────────────────────────────────────────
+
+export interface ConnectorEvolutionStatusReadModel {
+  planId: string;
+  platformId: string;
+  targetVersion: string;
+  previousStableRef?: SourceRef;
+  gateResults: GateResult[];
+  status: ConnectorEvolutionStatus;
+  activatedAt?: string;
+  rollbackRef?: SourceRef;
+  sourceRefs: SourceRef[];
+}
+
+// EmbodiedContextCharacterProjection already defined at line 315.

@@ -84,9 +84,9 @@
 - **最新架构版本**: `.anws/v9`
 - **活动任务清单**: `.anws/v9/05A_TASKS.md`
 - **活动验证计划**: `.anws/v9/05B_VERIFICATION_PLAN.md`
-- **最近一次更新**: `2026-06-27` (Wave 127 完成；T2.2.4 已实现、验证并通过 code-reviewer)
-- **当前波次**: Wave 127 — v9 S2 ActivityThread Cross-Heartbeat Continuation
-- **下一步**: 进入 Wave 128；按 05A 依赖图选择就绪任务
+- **最近一次更新**: `2026-06-29` (Wave 139 完成；T2.2.3 已交付)
+- **当前波次**: Wave 139 ✅ — v9 2s heartbeat deadline + per-slice timeout + latency stage events
+- **下一步**: 05A 所有任务已完成；进入 INT-S5 集成验证或 /challenge 质量把关
 
 ### 🌱 Genesis v9 🧭 — Self Continuity, Character & Procedural Evolution
 
@@ -221,6 +221,105 @@ src/
 - **Challenge**: `.anws/v9/07_CHALLENGE_REPORT.md` complete，所有发现已在设计文档闭合并转入 05A/05B
 - **下一步**: `/forge` Wave 128 — 按 05A 依赖图选择就绪任务
 - **最近更新**: `2026-06-27` (Wave 127 complete; T2.2.4 checked; review-fix applied)
+
+### 🌊 Wave 134 ✅ — v9 S4 Redaction Projector + Loop Health Aggregator
+T8.1.2, T8.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 134 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T8.1.2 扩展 redaction projector 覆盖 ledger/timeline/character events；T8.2.1 实现 loop/activity/continuity/routine/evolution/character health aggregator
+- **产出**:
+  - `src/observability/v9-redaction-projector.ts` — containsCredentialValue（JWT/AWS key/长 hex/长 base64 模式检测）、redactPayloadJson（structure-preserving）、redactLedgerEntry（block on credential value + ledger_redaction_blocked）、redactTimelinePayload、redactCharacterFrameEvent、validateCharacterSafety（ADR-006 中英双语 emotion/personality/identity-lock/hard-control 检测）
+  - `src/observability/v9-loop-health-aggregator.ts` — aggregateLoopHealth（§3.3 13-stage attribution + missing closure + activity health + rollback blocked）、aggregateActivityThreadHealth（§3.3a stale/overlong/missing-closure/blocked）、aggregateContinuityHealth（§3.4 available/unavailable/stale）、aggregateRoutineHealth（§3.5 installed/pending/denied/rollbackReady）、aggregateConnectorEvolutionHealth（§3.6 gate/canary/rollback）、aggregateCharacterFrameHealth（ADR-006 safe summary）、aggregateLoopStatus（composite overall）
+  - `tests/unit/observability/v9-redaction-projector.test.ts` — 39 tests：credential detection（JWT/AWS/nested/empty）、redactPayloadJson、redactLedgerEntry、redactTimelinePayload、redactCharacterFrameEvent、validateCharacterSafety（中英双语 10+ forbidden patterns）
+  - `tests/integration/v9/ledger-redaction-block.test.ts` — 5 tests：block on credential value、persist safe payload、redact sensitive fields、nested credential、JWT
+  - `tests/unit/observability/v9-loop-health.test.ts` — 32 tests：loop health classification、activity thread health、continuity health、routine health、connector evolution health、character frame health、composite loop status
+  - `tests/api/runtime-ops/v9-loop-status.test.ts` — 11 tests：JSON-serializable shape、13 stage kinds、activity terminal counts、continuity/routine/evolution/character sections、blocked classification、unique reasons
+  - `.anws/v9/05A_TASKS.md` — T8.1.2 + T8.2.1 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2117 tests, 2108 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-134-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.2 rollback watchdog 或 T8.2.3 digest/timeline。
+- **说明**: T8.1.2 + T8.2.1 关闭 v9 S4 observability redaction + health aggregation 脊柱——credential value 检测（pattern-based，非 cryptographic）+ structure-preserving redaction + ledger_redaction_blocked + 13-stage loop health attribution + activity/continuity/routine/evolution/character health monitors + composite overall。Character summary 通过 ADR-006 safety validation。解锁 T8.2.2、T8.2.3、T1.2.1。
+
+### 🌊 Wave 135 ✅ — v9 S4 Rollback Liveness Watchdog
+T8.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 135 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T8.2.2 实现 rollback liveness watchdog 与 missing-event 推断
+- **产出**:
+  - `src/observability/v9-rollback-health-gate.ts` — rollbackHealthGate（§3.7：success/failure/timeout-inference/heartbeat-count-inference/pending）、rollbackHealthGateBatch（批量 watchdog sweep）、needsWatchdogMonitoring（gating/blocked 过滤）、ROLLBACK_WATCHDOG 常量（MAX_WAIT_MS=30s, MAX_HEARTBEATS=5）
+  - `tests/unit/observability/v9-rollback-watchdog.test.ts` — 21 tests：success、explicit failure、timeout inference、heartbeat-count inference、pending、no monitoring needed、event filtering、batch evaluation、needsWatchdogMonitoring
+  - `tests/integration/v9/rollback-liveness-gate.test.ts` — 6 tests：timeout inference → blocked、inferred event → aggregateLoopHealth → blocked、explicit success → healthy、explicit failure → blocked、heartbeat-count inference、within thresholds → degraded
+  - `.anws/v9/05A_TASKS.md` — T8.2.2 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2144 tests, 2135 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-135-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T8.2.3 digest/timeline 或 T1.2.1。
+- **说明**: T8.2.2 关闭 DR-05 rollback liveness gap——当 plan 处于 gating/blocked 状态超过 MAX_WAIT_MS(30s) 或 MAX_HEARTBEATS(5) 且缺少 rollback event 时，watchdog 推断 rollback_failed 并发射 inferred stage event，aggregateLoopHealth 看到 → overall = blocked。适配：§3.7 pseudocode 使用 `rolling_back` 状态，但 ConnectorEvolutionStatus 契约只有 `gating`/`blocked`，实现按契约适配。解锁 T8.2.3 的 rollback health 维度。
+
+### 🌊 Wave 136 ✅ — v9 S4 Digest & Timeline Read Models
+T8.2.3
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 136 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T8.2.3 实现 v9 digest 与 timeline read models
+- **产出**:
+  - `src/observability/v9-digest-timeline.ts` — assembleDigest（§3.8：aggregateLoopStatus sections + sourceRefCount + persistDigest）、queryTimeline（§3.9：family/kind/sourceRef filter + cursor pagination + redactTimelinePayload on read）、computeDigestWindow（24h default）、clampTimelineWindow（7d max）、countUniqueSourceRefs、filterCharacterFrameEvents（§1.5a whitelist）、CHARACTER_FRAME_EVENT_KINDS、DIGEST_PERF 常量
+  - `tests/unit/observability/v9-digest-timeline.test.ts` — 29 tests：digest window、timeline clamp、sourceRefCount、assembleDigest（sections/persist/JSON-serializable/safety）、queryTimeline（filter/pagination/redaction/empty/max-limit）、filterCharacterFrameEvents、CHARACTER_FRAME_EVENT_KINDS
+  - `tests/api/runtime-ops/v9-digest-timeline.test.ts` — 12 tests：digest JSON shape、4 sections、safety validation、sourceRefCount、empty window、timeline JSON shape、pagination、redaction、family filter、empty window、max limit、character whitelist
+  - `.anws/v9/05A_TASKS.md` — T8.2.3 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2185 tests, 2176 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-136-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.1 或 INT-S4 集成验证。
+- **说明**: T8.2.3 关闭 v9 S4 observability digest/timeline read models 脊柱——digest 聚合 4 health sections + sourceRefCount + redacted output；timeline 支持 family/kind/sourceRef filter + cursor pagination + 7d window clamp + redacted payload on read + character frame event whitelist（§1.5a）。Digest output 通过 ADR-006 safety validation。observability-recovery-system Phase 2 全部完成（T8.2.1 + T8.2.2 + T8.2.3）。
+
+### 🌊 Wave 137 ✅ — v9 S1 Runtime Ops Command Surface
+T1.2.1
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: ✅ Wave 137 完成（code-reviewer final verdict: Partial Pass — 无 Critical/High 阻塞）
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T1.2.1 实现 v9 ops command surface 与 JSON-first envelope
+- **产出**:
+  - `src/shared/types/v9-contracts.ts` — 新增 RuntimeOpsEnvelopeV9（§2.1：ok/command/evidenceLevel/surfaceMode/payload/degradedReasons/diagnostics/sourceRefs/generatedAt）、EvidenceLevel、SurfaceMode、DegradedReason、RuntimeDiagnostics、ContinuityReadResult（§2.2）、RoutineReadModel（§2.3）、ConnectorEvolutionStatusReadModel（§2.4）
+  - `src/cli/ops/v9-ops-handlers.ts` — 8 v9 command handlers：continuity.read（SelfContinuityCard read）、routine.list/show/rollback（ToolRoutine registry read + rollback stub）、connector_evolution.status/trigger/rollback（evolution plan read + trigger/rollback stubs）、loop_status.read（aggregateLoopStatus with activity health）、dispatchV9OpsCommand（master dispatch）、makeEnvelope/promoteEvidenceLevel（§3.2 evidence level promotion）、carrier mode honest degradation（§4.1）
+  - `tests/api/runtime-ops/v9-ops-surface.test.ts` — 25 tests：continuity.read（carrier/missing workspace/missing state）、routine.list（carrier/missing state）、routine.show（missing id/carrier）、routine.rollback（carrier/missing id/stub）、connector_evolution.status（carrier/missing state）、connector_evolution.trigger（carrier/missing id/stub）、connector_evolution.rollback（carrier/missing id）、loop_status.read（carrier/not wired/with inputs）、dispatchV9OpsCommand（unknown/dispatch/JSON-serializable）
+  - `.anws/v9/05A_TASKS.md` — T1.2.1 已勾选
+- **验证**:
+  - `pnpm typecheck` ✅
+  - `pnpm build` ✅
+  - `pnpm build:plugin` ✅
+  - `pnpm test` 2210 tests, 2201 pass, 0 fail, 9 skipped
+  - code-reviewer: `.anws/v9/wave-reviews/wave-137-review.md` — Partial Pass
+- **下一步**: 按 05A 依赖图选择就绪任务；建议继续推进 T1.2.2 ops redaction 或 T2.2.3 context deadline。
+- **说明**: T1.2.1 关闭 v9 S1 runtime ops command surface 脊柱——8 v9 commands + RuntimeOpsEnvelopeV9 JSON-first envelope + evidenceLevel promotion（carrier_ack→contract_smoke→state_present→real_runtime→durable_verified）+ carrier mode honest degradation + loop_status.read with activity health。routine.rollback/connector_evolution.trigger/rollback 为 stubs（待 T6.3.x integration wiring）。解锁 T1.2.2 ops redaction gate。
+
+### 🌊 Wave 138 🧭 — v9 S1 Ops Redaction & Evidence-Level Truth Gate
+T1.2.2
+**签入**: AUTO
+**code-reviewer**: 默认执行
+- **状态**: 🔄 Wave 138 进行中
+- **分支**: `feature/wave-119-v9-contract-spine`
+- **任务**: T1.2.2 实现 ops redaction 与 evidence-level truth gate
+- **产出**: 待交付
+- **验证**: 待执行
+- **下一步**: 完成 Wave 138 后按 05A 依赖图选择就绪任务。
+- **说明**: T1.2.2 在 v9 ops envelope 组装阶段统一执行 payload redaction、credential/private/prompt 泄漏阻断与 evidence level 提升/封顶。
 
 ### 🌊 Wave 127 ✅ — v9 S2 ActivityThread Cross-Heartbeat Continuation
 T2.2.4

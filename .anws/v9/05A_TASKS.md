@@ -62,7 +62,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T1.2.1** [REQ-001][REQ-005][REQ-007]: 实现 v9 ops command surface 与 JSON-first envelope
+- [x] **T1.2.1** [REQ-001][REQ-005][REQ-007]: 实现 v9 ops command surface 与 JSON-first envelope
   - **描述**: 扩展 CLI 与 OpenClaw plugin bridge，暴露 `continuity.read`, `routine.list/show/rollback`, `connector_evolution.status/trigger/rollback`, `loop_status.read`，并通过 `loop_status.read` 返回 activity health 维度与统一 `RuntimeOpsEnvelope`。
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.md §5.1`, `04_SYSTEM_DESIGN/runtime-ops-system.detail.md §5`, `T8.2.1` 产出的 health read ports, `T5.2.2` 产出的 card read port, `T6.2.2` 产出的 routine read port, `T6.3.1` 产出的 evolution port
   - **输出**: `src/cli/ops/ops-router.ts` v9 command handlers, `src/cli/commands/index.ts` registrations, `plugin/workspace-ops-bridge.ts` v9 command allowlist, `RuntimeOpsEnvelope` shared type
@@ -81,7 +81,7 @@ graph TD
   - **依赖**: T5.2.2, T6.2.2, T6.3.1, T8.2.1
   - **优先级**: P0
 
-- [ ] **T1.2.2** [REQ-001][REQ-007]: 实现 ops redaction 与 evidence-level truth gate
+- [x] **T1.2.2** [REQ-001][REQ-007]: 实现 ops redaction 与 evidence-level truth gate
   - **描述**: 在 v9 ops envelope 组装阶段统一执行 payload redaction、credential/private/prompt 泄漏阻断与 evidence level 提升/封顶。
   - **输入**: `04_SYSTEM_DESIGN/runtime-ops-system.detail.md §1.2 §3.2 §3.3`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §1.8 §3.2`, `T8.1.2` 产出的 redaction projector
   - **输出**: `RuntimeOpsEnvelopeFactory`, `DiagnosticsCollector`, redaction diagnostics
@@ -144,7 +144,7 @@ graph TD
   - **依赖**: T3.2.1, T4.2.1
   - **优先级**: P0
 
-- [ ] **T2.2.3** [REQ-001]: 实现 2s heartbeat deadline 与 context slice timeout 分发
+- [x] **T2.2.3** [REQ-001]: 实现 2s heartbeat deadline 与 context slice timeout 分发
   - **描述**: 为 context assembly 添加 `EMBODIED_CONTEXT_HARD_DEADLINE_MS` 与 per-slice timeout，使非关键切片降级而不阻塞 heartbeat。
   - **输入**: `04_SYSTEM_DESIGN/control-context-system.detail.md §1 §3.3`, `PRD §6.1`, `T2.2.1` 产出的 v9 assembler
   - **输出**: timeout helper, degraded slice mapper, latency stage events
@@ -544,7 +544,7 @@ graph TD
   - **依赖**: T5.1.1, T5.1.2
   - **优先级**: P0
 
-- [ ] **T8.1.2** [REQ-007][REQ-008]: 扩展 redaction projector 覆盖 ledger、timeline 与 CharacterFrame events
+- [x] **T8.1.2** [REQ-007][REQ-008]: 扩展 redaction projector 覆盖 ledger、timeline 与 CharacterFrame events
   - **描述**: 对 ledger payload、timeline payload、character events 执行 credential/private/prompt redaction，命中 credential value 时拒绝写入并记录 blocked stage event。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §1.8 §3.2 §4.2 §5.3`, `T8.1.1`
   - **输出**: v9 redaction projector extensions, `ledger_redaction_blocked` handling
@@ -565,7 +565,7 @@ graph TD
 
 ### Phase 2: Core
 
-- [ ] **T8.2.1** [REQ-001][REQ-005][REQ-007][REQ-008]: 实现 loop/activity/continuity/routine/evolution health aggregator
+- [x] **T8.2.1** [REQ-001][REQ-005][REQ-007][REQ-008]: 实现 loop/activity/continuity/routine/evolution health aggregator
   - **描述**: 聚合 stage events、cycle traces、activity thread states、card results、routine registry、connector evolution results、character events，形成 `loop_status` read model。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.md §5.1`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §3.3-§3.6`, `T8.1.1`, `T2.2.1`, `T2.2.4`, `T6.3.1`, `T7.2.2`
   - **输出**: `LoopHealthAggregator`, `ActivityThreadHealthMonitor`, `ContinuityHealthMonitor`, `RoutineHealthMonitor`, `ConnectorEvolutionHealthMonitor`, `CharacterFrame` observability events
@@ -584,7 +584,7 @@ graph TD
   - **依赖**: T8.1.1, T2.2.1, T2.2.4, T6.3.1, T7.2.2
   - **优先级**: P0
 
-- [ ] **T8.2.2** [REQ-007]: 实现 rollback liveness watchdog 与 missing-event 推断
+- [x] **T8.2.2** [REQ-007]: 实现 rollback liveness watchdog 与 missing-event 推断
   - **描述**: 监听 `ConnectorEvolutionPlan` rollback 状态，当超过时间/heartbeat 阈值且缺少 rollback success/failure event 时写入 inferred `rollback_failed`，并将 loop health 提升为 blocked。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §1.7 §3.7 §5.4`, `04_SYSTEM_DESIGN/body-connector-system.detail.md §3.9`, `T6.3.2`, `T8.2.1`
   - **输出**: `RollbackHealthGate`, watchdog scheduler/read path, inferred stage event
@@ -603,7 +603,7 @@ graph TD
   - **依赖**: T6.3.2, T8.2.1
   - **优先级**: P0
 
-- [ ] **T8.2.3** [REQ-001][REQ-008]: 实现 v9 digest 与 timeline read models
+- [x] **T8.2.3** [REQ-001][REQ-008]: 实现 v9 digest 与 timeline read models
   - **描述**: 扩展 digest/timeline，支持 loop、continuity、routine、connector evolution、character events 的 redacted 查询与分页。
   - **输入**: `04_SYSTEM_DESIGN/observability-recovery-system.md §5.1`, `04_SYSTEM_DESIGN/observability-recovery-system.detail.md §3.8 §3.9 §5.6 §5.7`, `T8.2.1`
   - **输出**: `DigestAssembler` v9 sections, `TimelineQueryService` filters and pagination
